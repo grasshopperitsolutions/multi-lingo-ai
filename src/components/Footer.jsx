@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
 import BarcelosRooster from "./BarcelosRooster";
 
@@ -21,24 +22,24 @@ const Footer = () => {
         </div>
         <p className="opacity-70">{t.footer}</p>
         <div className="flex space-x-6">
-          <a
-            href="#"
+          <Link
+            to="/privacy"
             className="hover:text-blue-600 hover:-translate-y-1 transition-transform"
           >
             Privacy
-          </a>
-          <a
-            href="#"
+          </Link>
+          <Link
+            to="/terms"
             className="hover:text-blue-600 hover:-translate-y-1 transition-transform"
           >
             Terms
-          </a>
-          <a
-            href="#"
+          </Link>
+          <Link
+            to="/contact"
             className="hover:text-blue-600 hover:-translate-y-1 transition-transform"
           >
-            Help
-          </a>
+            Contact
+          </Link>
         </div>
       </div>
     </footer>
