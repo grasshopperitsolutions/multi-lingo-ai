@@ -3,6 +3,7 @@ import { Sun, Moon, Languages } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { Link } from "react-router-dom";
 import BarcelosRooster from "./BarcelosRooster";
+import NeoDropdown from "./NeoDropdown";
 
 const Header = () => {
   const { isDarkMode, setIsDarkMode, lang, setLang, t } = useAppContext();
@@ -25,25 +26,18 @@ const Header = () => {
 
         <div className="flex items-center space-x-3 md:space-x-6">
           {/* Language Picker */}
-          <div
-            className={`flex items-center space-x-2 rounded-full px-4 py-2 border-2 
-            ${isDarkMode ? "bg-slate-700 border-slate-600" : "bg-blue-100 border-slate-900"}`}
-          >
-            <Languages
-              size={18}
-              className={isDarkMode ? "text-yellow-400" : "text-blue-600"}
-            />
-            <select
-              value={lang}
-              onChange={(e) => setLang(e.target.value)}
-              className="bg-transparent font-bold outline-none cursor-pointer focus:ring-0 uppercase text-sm"
-            >
-              <option value="us-en">EN-US</option>
-              <option value="uk-en">EN-UK</option>
-              <option value="pt-pt">PT-PT</option>
-              <option value="pt-br">PT-BR</option>
-            </select>
-          </div>
+          <NeoDropdown
+            isDarkMode={isDarkMode}
+            value={lang}
+            onChange={setLang}
+            icon={Languages}
+            options={[
+              { value: "us-en", label: "EN-US" },
+              { value: "uk-en", label: "EN-UK" },
+              { value: "pt-pt", label: "PT-PT" },
+              { value: "pt-br", label: "PT-BR" },
+            ]}
+          />
 
           {/* Theme Toggle */}
           <button

@@ -10,7 +10,9 @@ import {
   MessageCircle,
   ChevronDown,
   ChevronUp,
+  HelpCircle,
 } from "lucide-react";
+import NeoDropdown from "../components/NeoDropdown";
 
 const ContactPage = () => {
   const { isDarkMode, showAlert } = useAppContext();
@@ -220,24 +222,20 @@ const ContactPage = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="font-black uppercase text-xs tracking-widest ml-1">
-                Subject
-              </label>
-              <select
-                className={inputClasses}
-                value={formData.subject}
-                onChange={(e) =>
-                  setFormData({ ...formData, subject: e.target.value })
-                }
-              >
-                <option value="general">General Question</option>
-                <option value="support">Technical Support</option>
-                <option value="feedback">Feedback</option>
-                <option value="business">Business Enquiry</option>
-                <option value="bug">Bug Report</option>
-              </select>
-            </div>
+            <NeoDropdown
+              label="Subject"
+              isDarkMode={isDarkMode}
+              value={formData.subject}
+              onChange={(val) => setFormData({ ...formData, subject: val })}
+              icon={HelpCircle}
+              options={[
+                { value: "general", label: "General Question" },
+                { value: "support", label: "Technical Support" },
+                { value: "feedback", label: "Feedback" },
+                { value: "business", label: "Business Enquiry" },
+                { value: "bug", label: "Bug Report" },
+              ]}
+            />
 
             <div className="space-y-2">
               <label className="font-black uppercase text-xs tracking-widest ml-1">
