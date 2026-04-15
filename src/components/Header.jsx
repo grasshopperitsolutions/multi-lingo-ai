@@ -22,7 +22,7 @@ const Header = () => {
             <BarcelosRooster className="w-10 h-10" />
           </div>
           <span className="text-2xl font-black tracking-tight uppercase group-hover:text-blue-600 transition-colors">
-            Nuno's Lingo
+            Multi Lingo AI
           </span>
         </Link>
 

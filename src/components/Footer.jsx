@@ -17,10 +17,10 @@ const Footer = () => {
                 <BarcelosRooster className="w-8 h-8" />
             </div>
           <span className="text-xl uppercase tracking-tighter">
-            Nuno's Lingo
+            Multi Lingo AI
           </span>
         </div>
-        <p className="opacity-70">© 2026 Nuno’s Lingo. Built for European Portuguese learners.</p>
+        <p className="opacity-70">© 2026 Multi Lingo AI. Built for language learners worldwide.</p>
         <div className="flex space-x-6">
           <Link
             to="/privacy"

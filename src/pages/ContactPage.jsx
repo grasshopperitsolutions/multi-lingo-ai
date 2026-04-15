@@ -77,9 +77,9 @@ const ContactPage = () => {
         "Absolutely! We love hearing user suggestions. Many of our best features came directly from user requests.",
     },
     {
-      question: "Is Nuno's Lingo really 100% remote?",
+      question: "Is Multi Lingo AI really 100% remote?",
       answer:
-        "Yes! We are a fully distributed team working from beaches, cafes and co-working spaces around the world. No office, no dress code, just great Portuguese learning.",
+        "Yes! We are a fully distributed team working from beaches, cafes and co-working spaces around the world. No office, no dress code, just great language learning.",
     },
   ];
 
