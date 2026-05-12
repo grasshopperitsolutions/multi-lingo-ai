@@ -8,8 +8,9 @@ import LoginPage from "./pages/LoginPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import ContactPage from "./pages/ContactPage";
-import BarcelosRooster from "./components/BarcelosRooster";
+
 import AlertMessage from "./components/Alert";
+import GlobalCompassCursor from "./components/GlobalCompassCursor";
 
 const AppLayout = () => {
   const { isDarkMode, alert, closeAlert } = useAppContext();
@@ -27,40 +28,29 @@ const AppLayout = () => {
     <>
       <style>{`
         * { cursor: none !important; }
-        .custom-cursor {
-          position: fixed;
-          width: 40px;
-          height: 40px;
-          pointer-events: none;
-          z-index: 9999;
-          transition: transform 0.1s ease-out;
-          transform: translate(-50%, -50%);
-        }
       `}</style>
       <AlertMessage alert={alert} onClose={closeAlert} />
 
-      {/* Custom Barcelos Rooster Cursor */}
-      <div
-        className="custom-cursor"
-        style={{ left: `${cursorPos.x}px`, top: `${cursorPos.y}px` }}
-      >
-        <BarcelosRooster className="w-full h-full drop-shadow-lg" />
-      </div>
+      <GlobalCompassCursor
+        x={cursorPos.x}
+        y={cursorPos.y}
+        isDarkMode={isDarkMode}
+      />
 
       <div
         className={`min-h-screen transition-colors duration-500 flex flex-col overflow-x-hidden
         ${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-blue-50 text-slate-900"}`}
       >
-      <Header />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/terms" element={<TermsPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="*" element={<HomePage />} />
-      </Routes>
-      <Footer />
+        <Header />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="*" element={<HomePage />} />
+        </Routes>
+        <Footer />
       </div>
     </>
   );
