@@ -23,13 +23,16 @@ const LoginPage = () => {
         : "bg-white border-slate-900 text-slate-900 focus:border-blue-600 placeholder-slate-500"
     }`;
 
-  const SocialLogins = () => (
-    <div className="mt-8 pt-8 border-t-4 border-dashed border-slate-300 dark:border-slate-600">
+const SocialLogins = () => {
+  const { loginGoogle } = useAppContext();
+  
+  return (
+    <div className="mt-8 pt-8 border-t-4 border-dashed border-slate-300 dark:border-slate-700">
       <p className="text-sm font-black uppercase tracking-widest mb-4 opacity-60">
         Or continue with
       </p>
       <div className="flex gap-3">
-        <button onClick={handleNotImplemented} className={`flex-1 py-3 rounded-xl border-4 flex items-center justify-center transition-all active:scale-90 hover:-translate-y-1 ${isDarkMode ? "bg-slate-700 border-slate-600 shadow-[2px_2px_0px_0px_white]" : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#000]"}`}>
+        <button onClick={loginGoogle} className={`flex-1 py-3 rounded-xl border-4 flex items-center justify-center transition-all active:scale-90 hover:-translate-y-1 ${isDarkMode ? "bg-slate-700 border-slate-600 shadow-[2px_2px_0px_0px_white]" : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#000]"}`}>
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -55,15 +58,28 @@ const LoginPage = () => {
       </div>
     </div>
   );
+};
 
-  const renderContent = () => {
+const renderContent = () => {
+    const { loginEmail, registerUser } = useAppContext();
+
+    const handleLogin = async (e) => {
+      e.preventDefault();
+      await loginEmail(email, password);
+    };
+
+    const handleSignup = async (e) => {
+      e.preventDefault();
+      await registerUser(email, password, name);
+    };
+
     switch (view) {
       case "signup":
         return (
           <>
             <h2 className="text-4xl font-black uppercase tracking-tighter mb-2">Create Account</h2>
             <p className="font-bold opacity-70 mb-8 italic">Join the flock today!</p>
-            <form onSubmit={handleNotImplemented} className="space-y-4">
+            <form onSubmit={handleSignup} className="space-y-4">
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 opacity-50" size={20}/>
                 <input type="text" placeholder="Your Name" className={`${inputClasses} pl-12`} value={name} onChange={(e) => setName(e.target.value)}/>
@@ -111,7 +127,7 @@ const LoginPage = () => {
           <>
             <h2 className="text-4xl font-black uppercase tracking-tighter mb-2">Welcome Back</h2>
             <p className="font-bold opacity-70 mb-8 italic">Ready for some Portuguese?</p>
-            <form onSubmit={handleNotImplemented} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 opacity-50" size={20}/>
                 <input type="email" placeholder="Email Address" className={`${inputClasses} pl-12`} value={email} onChange={(e) => setEmail(e.target.value)}/>
