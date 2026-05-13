@@ -4,15 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Page Not Found</title>
-  <script>
+<script>
     // GitHub Pages SPA redirect fix
     (function() {
       var path = window.location.pathname;
       var hash = window.location.hash;
       var search = window.location.search;
       
-      // Redirect to root with path in hash for SPA routing
-      window.location.replace('/' + '?p=' + encodeURIComponent(path) + search + hash);
+      // Redirect to base path with path in query for SPA routing
+      var basePath = '/multi-lingo-ai';
+      var newPath = basePath + '/?p=' + encodeURIComponent(path) + search + hash;
+      window.location.replace(newPath);
     })();
   </script>
 </head>
