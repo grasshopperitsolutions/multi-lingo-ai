@@ -11,8 +11,8 @@
       var hash = window.location.hash;
       var search = window.location.search;
       
-      // Redirect to base path with path in query for SPA routing
-      var basePath = '/multi-lingo-ai';
+      // Redirect to root with path in query for SPA routing
+      var basePath = '';
       var newPath = basePath + '/?p=' + encodeURIComponent(path) + search + hash;
       window.location.replace(newPath);
     })();
