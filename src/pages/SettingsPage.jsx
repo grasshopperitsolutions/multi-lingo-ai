@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
 import NeoDropdown from "../components/NeoDropdown";
 import { ArrowLeft, User, Mail, Sun, Moon, Globe, Save, LogOut, Trash2 } from "lucide-react";
+import { updateUserProfile } from "../services/userService";
+import { getCurrentUser } from "../services/authService";
 
 const LANGUAGE_OPTIONS = [
   { value: "en", label: "English" },
@@ -17,22 +19,49 @@ const LANGUAGE_OPTIONS = [
 ];
 
 const SettingsPage = () => {
-  const { isDarkMode, setIsDarkMode, user, setUser, logoutUser, showAlert } = useAppContext();
+  const { isDarkMode, setIsDarkMode, user, logoutUser, showAlert, refreshUser } = useAppContext();
   const navigate = useNavigate();
 
   const [displayName, setDisplayName] = useState(user?.displayName || "");
-  const [interfaceLang, setInterfaceLang] = useState("en");
+  const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Sync form fields if context user updates after initial render
+  useEffect(() => {
+    if (user?.displayName) setDisplayName(user.displayName);
+    if (user?.interfaceLang) setInterfaceLang(user.interfaceLang);
+  }, [user?.displayName, user?.interfaceLang]);
 
   const handleSave = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-    // Optimistically update context user
-    setUser((prev) => ({ ...prev, displayName }));
-    setTimeout(() => {
+    try {
+      const authUser = await getCurrentUser();
+      if (!authUser?.token || !authUser?.uid) {
+        showAlert("error", "You must be signed in to save settings.");
+        return;
+      }
+
+      await updateUserProfile(authUser.token, authUser.uid, {
+        displayName,
+        interfaceLang,
+        theme: isDarkMode ? "dark" : "light",
+      });
+
+      // Sync updated profile back into context
+      await refreshUser();
+      showAlert("success", "Settings saved successfully!");
+    } catch (err) {
+      const isNetwork = err instanceof TypeError && err.message === 'Failed to fetch';
+      showAlert(
+        "error",
+        isNetwork
+          ? "Could not reach the server. Please check your connection and try again."
+          : err.message || "Failed to save settings. Please try again."
+      );
+    } finally {
       setIsSaving(false);
-      showAlert("success", "Settings saved!");
-    }, 600);
+    }
   };
 
   const handleLogout = async () => {
@@ -43,7 +72,7 @@ const SettingsPage = () => {
   };
 
   const handleDeleteAccount = () => {
-    showAlert("error", "Account deletion isn't implemented yet");
+    showAlert("error", "Account deletion isn't implemented yet.");
   };
 
   const inputClasses = `w-full px-4 py-3 rounded-xl border-4 font-bold outline-none transition-all
@@ -92,7 +121,6 @@ const SettingsPage = () => {
           }`}>
             Profile
           </h2>
-
           <div className="space-y-5">
             <div>
               <label className={labelClasses}>
@@ -107,7 +135,6 @@ const SettingsPage = () => {
                 className={inputClasses}
               />
             </div>
-
             <div>
               <label className={labelClasses}>
                 <Mail size={12} className="inline mr-1" />
@@ -135,7 +162,6 @@ const SettingsPage = () => {
           }`}>
             Preferences
           </h2>
-
           <div className="space-y-6">
             {/* Theme toggle */}
             <div className="flex items-center justify-between">
