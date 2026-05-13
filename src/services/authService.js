@@ -1,5 +1,5 @@
 import { 
-  signInWithPopup, 
+  signInWithPopup,
   signInWithCustomToken,
   signOut as firebaseSignOut,
   GoogleAuthProvider 
@@ -9,28 +9,20 @@ import { auth } from '../firebase';
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 
 /**
- * Login with Google using Firebase popup and proxy verification
+ * Login with Google using Firebase popup and proxy verification.
+ * First-time users are automatically registered via the API.
  * @returns {Promise<Object>} User data including uid, email, displayName
  */
 export const loginWithGoogle = async () => {
   try {
-    // Step 1: Sign in with Google popup to get Google ID token
     const provider = new GoogleAuthProvider();
     const googleResult = await signInWithPopup(auth, provider);
-    
-    // Get the Google ID token
     const googleIdToken = await googleResult.user.getIdToken();
-    
-    // Step 2: Send ID token to proxy for verification and get custom token
+
     const response = await fetch(`${PROXY_URL}/api/auth`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'google',
-        idToken: googleIdToken,
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'google', idToken: googleIdToken }),
     });
 
     if (!response.ok) {
@@ -40,104 +32,13 @@ export const loginWithGoogle = async () => {
 
     const { customToken, ...userData } = await response.json();
 
-    // Step 3: Sign in with custom token to establish Firebase session
-    // This ensures the user is properly authenticated in the Firebase client
     if (customToken) {
       await signInWithCustomToken(auth, customToken);
     }
 
-    return {
-      success: true,
-      user: userData,
-    };
+    return { success: true, user: userData };
   } catch (error) {
     console.error('Google login error:', error);
-    throw error;
-  }
-};
-
-/**
- * Login with email and password
- * @param {string} email - User's email
- * @param {string} password - User's password
- * @returns {Promise<Object>} User data
- */
-export const loginWithEmail = async (email, password) => {
-  try {
-    const response = await fetch(`${PROXY_URL}/api/auth`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'login',
-        email,
-        password,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Login failed');
-    }
-
-    const { customToken, ...userData } = await response.json();
-
-    // Sign in with custom token if provided
-    if (customToken) {
-      await signInWithCustomToken(auth, customToken);
-    }
-
-    return {
-      success: true,
-      user: userData,
-    };
-  } catch (error) {
-    console.error('Email login error:', error);
-    throw error;
-  }
-};
-
-/**
- * Register a new user with email and password
- * @param {string} email - User's email
- * @param {string} password - User's password
- * @param {string} displayName - User's display name
- * @returns {Promise<Object>} User data
- */
-export const register = async (email, password, displayName) => {
-  try {
-    const response = await fetch(`${PROXY_URL}/api/auth`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        action: 'register',
-        email,
-        password,
-        displayName,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Registration failed');
-    }
-
-    const { customToken, ...userData } = await response.json();
-
-    // Sign in with custom token if provided
-    if (customToken) {
-      await signInWithCustomToken(auth, customToken);
-    }
-
-    return {
-      success: true,
-      user: userData,
-    };
-  } catch (error) {
-    console.error('Registration error:', error);
     throw error;
   }
 };
@@ -165,7 +66,6 @@ export const getCurrentUser = () => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       unsubscribe();
       if (firebaseUser) {
-        // Get fresh ID token
         const token = await firebaseUser.getIdToken();
         resolve({
           uid: firebaseUser.uid,
