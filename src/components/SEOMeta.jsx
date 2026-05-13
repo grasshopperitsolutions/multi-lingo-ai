@@ -1,4 +1,3 @@
-import React from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 
 const SEOMeta = ({ title, description, path = '' }) => {
@@ -9,11 +8,7 @@ const SEOMeta = ({ title, description, path = '' }) => {
       <html lang="en-US" />
       <title>{title}</title>
       <meta name="description" content={description} />
-      
-      {/* Canonical URL */}
       <link rel="canonical" href={`${baseUrl}${path}`} />
-      
-      {/* Open Graph */}
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:locale" content="en_US" />
@@ -22,6 +17,7 @@ const SEOMeta = ({ title, description, path = '' }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const SEOProvider = ({ children }) => (
   <HelmetProvider>
     {children}

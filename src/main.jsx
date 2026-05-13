@@ -1,13 +1,13 @@
-import React from 'react'
+import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import { SEOProvider } from './components/SEOMeta'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+  <StrictMode>
     <SEOProvider>
       <App />
     </SEOProvider>
-  </React.StrictMode>,
+  </StrictMode>,
 )

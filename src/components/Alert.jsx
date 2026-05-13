@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { AlertTriangle, CheckCircle, Info, X } from "lucide-react";
 
 const AlertMessage = ({ alert, onClose }) => {

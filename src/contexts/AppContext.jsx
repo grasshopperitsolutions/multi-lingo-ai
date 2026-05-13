@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { loginWithGoogle, logout as logoutUserService, getCurrentUser } from '../services/authService';
 import { getUserProfile } from '../services/userService';
 
@@ -17,19 +17,13 @@ export const AppProvider = ({ children }) => {
     setAlert((prev) => ({ ...prev, show: false }));
   };
 
-  /**
-   * Fetch the Firestore profile for the given auth user and merge
-   * persisted preferences (displayName, interfaceLang, theme) into state.
-   */
   const loadUserProfile = async (authUser) => {
     if (!authUser?.token || !authUser?.uid) return;
     try {
       const profile = await getUserProfile(authUser.token, authUser.uid);
-      // Restore persisted theme
       if (profile?.theme) {
         setIsDarkMode(profile.theme === 'dark');
       }
-      // Merge Firestore fields on top of Firebase Auth fields
       setUser((prev) => ({
         ...prev,
         displayName: profile?.displayName ?? prev?.displayName,
@@ -38,15 +32,10 @@ export const AppProvider = ({ children }) => {
         photoURL: profile?.photoURL ?? prev?.photoURL,
       }));
     } catch (err) {
-      // Non-fatal: user is still logged in, preferences just won't be restored
       showAlert('error', `Could not load your profile: ${err.message}`);
     }
   };
 
-  /**
-   * Re-fetch the Firestore profile and sync into context.
-   * Call this after a successful settings save.
-   */
   const refreshUser = async () => {
     const authUser = await getCurrentUser();
     if (authUser) {
@@ -108,4 +97,5 @@ export const AppProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAppContext = () => useContext(AppContext);
