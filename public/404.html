@@ -4,17 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Page Not Found</title>
-<script>
-    // GitHub Pages SPA redirect fix
+  <script>
+    // GitHub Pages SPA redirect fix for BrowserRouter
+    // Encodes the requested path into a ?p= query param and redirects to /
+    // The redirect is then read by index.html and restored via history.replaceState
     (function() {
       var path = window.location.pathname;
-      var hash = window.location.hash;
       var search = window.location.search;
-      
-      // Redirect to root with path in query for SPA routing
-      var basePath = '';
-      var newPath = basePath + '/?p=' + encodeURIComponent(path) + search + hash;
-      window.location.replace(newPath);
+      var hash = window.location.hash;
+
+      // Avoid redirect loop: only redirect if path is not already /
+      if (path !== '/') {
+        var newUrl = '/?p=' + encodeURIComponent(path)
+          + (search ? '&' + search.slice(1) : '')
+          + hash;
+        window.location.replace(newUrl);
+      }
     })();
   </script>
 </head>
