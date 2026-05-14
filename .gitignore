@@ -114,5 +114,6 @@ proguard-rules.pro
 
 # Vite
 .vite/
+.vite-ssg-temp/
 
 *-ignore*

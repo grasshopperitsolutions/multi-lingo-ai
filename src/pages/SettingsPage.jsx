@@ -1,8 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
 import NeoDropdown from "../components/NeoDropdown";
-import { ArrowLeft, User, Mail, Sun, Moon, Globe, Save, LogOut, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  User,
+  Mail,
+  Sun,
+  Moon,
+  Globe,
+  Save,
+  LogOut,
+  Trash2,
+} from "lucide-react";
 import { updateUserProfile } from "../services/userService";
 import { getCurrentUser } from "../services/authService";
 
@@ -19,17 +29,26 @@ const LANGUAGE_OPTIONS = [
 ];
 
 const SettingsPage = () => {
-  const { isDarkMode, setIsDarkMode, user, logoutUser, showAlert, refreshUser } = useAppContext();
+  const {
+    isDarkMode,
+    setIsDarkMode,
+    user,
+    logoutUser,
+    showAlert,
+    refreshUser,
+  } = useAppContext();
   const navigate = useNavigate();
 
   const [displayName, setDisplayName] = useState(user?.displayName || "");
-  const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en");
+  const [interfaceLang, setInterfaceLang] = useState(
+    user?.interfaceLang || "en",
+  );
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    if (user?.displayName) setDisplayName(user.displayName);
-    if (user?.interfaceLang) setInterfaceLang(user.interfaceLang);
-  }, [user?.displayName, user?.interfaceLang]);
+  // useEffect(() => {
+  //   if (user?.displayName) setDisplayName(user.displayName);
+  //   if (user?.interfaceLang) setInterfaceLang(user.interfaceLang);
+  // }, [user?.displayName, user?.interfaceLang]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -48,12 +67,13 @@ const SettingsPage = () => {
       await refreshUser();
       showAlert("success", "Settings saved successfully!");
     } catch (err) {
-      const isNetwork = err instanceof TypeError && err.message === 'Failed to fetch';
+      const isNetwork =
+        err instanceof TypeError && err.message === "Failed to fetch";
       showAlert(
         "error",
         isNetwork
           ? "Could not reach the server. Please check your connection and try again."
-          : err.message || "Failed to save settings. Please try again."
+          : err.message || "Failed to save settings. Please try again.",
       );
     } finally {
       setIsSaving(false);
@@ -94,25 +114,33 @@ const SettingsPage = () => {
       <button
         onClick={() => navigate("/dashboard")}
         className={`flex items-center gap-2 mb-8 font-black uppercase tracking-widest text-sm transition-all hover:-translate-x-1 ${
-          isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
+          isDarkMode
+            ? "text-slate-400 hover:text-white"
+            : "text-slate-500 hover:text-slate-900"
         }`}
       >
         <ArrowLeft size={16} />
         Back to Dashboard
       </button>
 
-      <h1 className={`text-4xl font-black uppercase tracking-tighter mb-8 ${
-        isDarkMode ? "text-white" : "text-slate-900"
-      }`}>
+      <h1
+        className={`text-4xl font-black uppercase tracking-tighter mb-8 ${
+          isDarkMode ? "text-white" : "text-slate-900"
+        }`}
+      >
         Settings
       </h1>
 
       <form onSubmit={handleSave}>
         {/* Profile Section */}
         <div className={sectionClasses}>
-          <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${
-            isDarkMode ? "text-white" : "text-slate-900"
-          }`}>Profile</h2>
+          <h2
+            className={`text-lg font-black uppercase tracking-widest mb-6 ${
+              isDarkMode ? "text-white" : "text-slate-900"
+            }`}
+          >
+            Profile
+          </h2>
 
           <div className="space-y-5">
             <div>
@@ -143,14 +171,22 @@ const SettingsPage = () => {
 
         {/* Appearance Section */}
         <div className={sectionClasses}>
-          <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${
-            isDarkMode ? "text-white" : "text-slate-900"
-          }`}>Appearance</h2>
+          <h2
+            className={`text-lg font-black uppercase tracking-widest mb-6 ${
+              isDarkMode ? "text-white" : "text-slate-900"
+            }`}
+          >
+            Appearance
+          </h2>
 
           <div className="space-y-5">
             <div>
               <label className={labelClasses}>
-                {isDarkMode ? <Moon size={12} className="inline mr-1" /> : <Sun size={12} className="inline mr-1" />}
+                {isDarkMode ? (
+                  <Moon size={12} className="inline mr-1" />
+                ) : (
+                  <Sun size={12} className="inline mr-1" />
+                )}
                 App Theme
               </label>
               <button
@@ -190,8 +226,8 @@ const SettingsPage = () => {
             isSaving
               ? "opacity-60 cursor-not-allowed bg-slate-400 border-slate-500 text-white"
               : isDarkMode
-              ? "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1"
-              : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1"
+                ? "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1"
+                : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1"
           }`}
         >
           <Save size={20} />
@@ -201,9 +237,13 @@ const SettingsPage = () => {
 
       {/* Account Actions */}
       <div className={sectionClasses}>
-        <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${
-          isDarkMode ? "text-white" : "text-slate-900"
-        }`}>Account</h2>
+        <h2
+          className={`text-lg font-black uppercase tracking-widest mb-6 ${
+            isDarkMode ? "text-white" : "text-slate-900"
+          }`}
+        >
+          Account
+        </h2>
         <div className="space-y-3">
           <button
             onClick={handleLogout}
