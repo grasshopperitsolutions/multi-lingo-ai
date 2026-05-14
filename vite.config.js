@@ -6,12 +6,14 @@ export default defineConfig({
   plugins: [react()],
   base: "/",
   ssgOptions: {
-    // Only pre-render public routes — dashboard/settings stay client-rendered
+    // Pre-render only public-facing routes.
+    // Auth-gated routes (login, dashboard, settings) stay client-rendered.
+    // Terms and Privacy are included: they are public, linkable, and benefit
+    // from being indexed by search engines.
     includedRoutes(paths) {
       return paths.filter((p) =>
-        ["/", "/login", "/terms", "/privacy", "/contact"].includes(p)
+        ["/", "/contact", "/terms", "/privacy"].includes(p)
       );
     },
-    formatting: "minify",
   },
 });
