@@ -4,6 +4,24 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/barcelos-rooster.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- GitHub Pages SPA: restore path from ?p= query param set by 404.html -->
+    <script>
+      (function() {
+        var redirect = window.location.search;
+        if (redirect.startsWith('?p=')) {
+          var path = decodeURIComponent(redirect.slice(3));
+          // Preserve any additional query params or hash after the encoded path
+          var rest = redirect.indexOf('&') !== -1
+            ? redirect.slice(redirect.indexOf('&'))
+            : '';
+          window.history.replaceState(
+            null, null,
+            path + rest + window.location.hash
+          );
+        }
+      })();
+    </script>
     
     <!-- SEO Meta Tags -->
     <title>Multi Lingo AI | Learn any language with AI</title>
