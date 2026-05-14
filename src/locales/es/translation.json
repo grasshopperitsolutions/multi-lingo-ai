@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "contact": "Contacto",
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "dashboard": "Panel",
+    "settings": "Ajustes"
+  },
+  "home": {
+    "badge": "LA REVOLUCIÓN DE LA IA YA ESTÁ AQUÍ",
+    "hero_line1": "Pregúntale todo a la IA",
+    "hero_highlight": "Todo",
+    "hero_line2": "sobre el Portugués",
+    "subtitle": "La primera plataforma que te enseña Portugués Europeo desde cualquier idioma o dialecto que hables. Con IA y apoyo humano.",
+    "cta_start": "Empieza a Aprender Ahora",
+    "marquee": ["APRENDE PORTUGUÉS RÁPIDO", "SIN GRAMÁTICA ABURRIDA", "CON IA", "JERGA NATIVA"],
+    "features": {
+      "voice_tutor": "Tutor de Voz IA 24/7",
+      "urban_dictionary": "Diccionario Urbano",
+      "smart_scheduler": "Agenda Inteligente",
+      "human_sessions": "Sesiones con Tutor Humano"
+    },
+    "universal_input": {
+      "title": "El Input Universal",
+      "subtitle": "¿Aprendes desde el irlandés? ¿Gaélico? ¿Mandarín? Escríbelo. Nuestra IA tiende el puente."
+    }
+  },
+  "login": {
+    "title": "Iniciar sesión",
+    "subtitle": "Elige tu método de autenticación preferido para continuar.",
+    "google": "Continuar con Google",
+    "apple": "Continuar con Apple",
+    "facebook": "Continuar con Facebook",
+    "x": "Continuar con X",
+    "terms_note": "Al iniciar sesión aceptas nuestros",
+    "terms": "Términos",
+    "privacy": "Política de Privacidad",
+    "not_available": "Este método de autenticación aún no está disponible — ¡vuelve pronto!"
+  },
+  "contact": {
+    "title": "Contáctanos",
+    "subtitle": "¿Tienes preguntas sobre el Portugués Europeo? Nuestro equipo está aquí para ayudarte.",
+    "email_label": "Escríbenos",
+    "whatsapp_label": "WhatsApp (respuesta más rápida)",
+    "location_label": "Ubicación",
+    "location_value": "🌍 100% Remoto y Mundial",
+    "hours_label": "Horario",
+    "hours_value": "🟢 24h/7 días / 365 días",
+    "form": {
+      "name": "Nombre completo",
+      "name_placeholder": "Nuno Silva",
+      "email": "Correo electrónico",
+      "email_placeholder": "nuno@ejemplo.com",
+      "phone": "Teléfono (Opcional)",
+      "subject": "Asunto",
+      "message": "Mensaje",
+      "message_placeholder": "¿Qué tienes en mente?",
+      "submit": "Enviar mensaje",
+      "sending": "Enviando...",
+      "success": "¡Mensaje enviado con éxito! Te responderemos pronto.",
+      "error": "Por favor rellena todos los campos obligatorios"
+    }
+  },
+  "footer": {
+    "tagline": "Portugués Europeo con IA para todos.",
+    "links": "Enlaces",
+    "legal": "Legal",
+    "terms": "Términos de Servicio",
+    "privacy": "Política de Privacidad",
+    "contact": "Contacto",
+    "rights": "Todos los derechos reservados."
+  },
+  "terms": {
+    "title": "Términos de Servicio"
+  },
+  "privacy": {
+    "title": "Política de Privacidad"
+  }
+}

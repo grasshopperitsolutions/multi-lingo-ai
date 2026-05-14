@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "contact": "Contact",
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "dashboard": "Tableau de bord",
+    "settings": "Paramètres"
+  },
+  "home": {
+    "badge": "LA RÉVOLUTION DE L'IA EST LÀ",
+    "hero_line1": "Demande tout à l'IA",
+    "hero_highlight": "Tout",
+    "hero_line2": "sur le Portugais",
+    "subtitle": "La première plateforme qui t'enseigne le Portugais Européen depuis n'importe quelle langue ou dialecte. Propulsée par l'IA, soutenue par des humains.",
+    "cta_start": "Commencer à apprendre",
+    "marquee": ["APPRENDS LE PORTUGAIS VITE", "SANS GRAMMAIRE ENNUYEUSE", "IA POWERED", "ARGOT NATIF"],
+    "features": {
+      "voice_tutor": "Tuteur vocal IA 24h/24",
+      "urban_dictionary": "Dictionnaire urbain",
+      "smart_scheduler": "Agenda intelligent",
+      "human_sessions": "Sessions avec tuteur humain"
+    },
+    "universal_input": {
+      "title": "L'Input Universel",
+      "subtitle": "Tu apprends depuis l'irlandais ? Le gaélique ? Le mandarin ? Écris-le. Notre IA fait le pont."
+    }
+  },
+  "login": {
+    "title": "Se connecter",
+    "subtitle": "Choisis ta méthode de connexion préférée pour continuer.",
+    "google": "Continuer avec Google",
+    "apple": "Continuer avec Apple",
+    "facebook": "Continuer avec Facebook",
+    "x": "Continuer avec X",
+    "terms_note": "En te connectant tu acceptes nos",
+    "terms": "Conditions",
+    "privacy": "Politique de confidentialité",
+    "not_available": "Cette méthode de connexion n'est pas encore disponible — reviens bientôt !"
+  },
+  "contact": {
+    "title": "Nous contacter",
+    "subtitle": "Des questions sur le Portugais Européen ? Notre équipe est là pour t'aider.",
+    "email_label": "Écris-nous",
+    "whatsapp_label": "WhatsApp (réponse la plus rapide)",
+    "location_label": "Localisation",
+    "location_value": "🌍 100% Distanciel & Mondial",
+    "hours_label": "Horaires",
+    "hours_value": "🟢 24h/24 / 365 jours",
+    "form": {
+      "name": "Nom complet",
+      "name_placeholder": "Nuno Silva",
+      "email": "Email",
+      "email_placeholder": "nuno@exemple.fr",
+      "phone": "Téléphone (Optionnel)",
+      "subject": "Sujet",
+      "message": "Message",
+      "message_placeholder": "Qu'as-tu en tête ?",
+      "submit": "Envoyer le message",
+      "sending": "Envoi en cours...",
+      "success": "Message envoyé avec succès ! Nous te répondrons bientôt.",
+      "error": "Merci de remplir tous les champs obligatoires"
+    }
+  },
+  "footer": {
+    "tagline": "Le Portugais Européen par l'IA pour tous.",
+    "links": "Liens",
+    "legal": "Mentions légales",
+    "terms": "Conditions d'utilisation",
+    "privacy": "Politique de confidentialité",
+    "contact": "Contact",
+    "rights": "Tous droits réservés."
+  },
+  "terms": {
+    "title": "Conditions d'utilisation"
+  },
+  "privacy": {
+    "title": "Politique de confidentialité"
+  }
+}

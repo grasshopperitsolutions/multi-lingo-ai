@@ -1,10 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/0.9">
-  <url><loc>https://multi-lingo.online/</loc><priority>1.0</priority></url>
-  <url><loc>https://multi-lingo.online/login</loc><priority>0.5</priority></url>
-  <url><loc>https://multi-lingo.online/dashboard</loc><priority>0.6</priority></url>
-  <url><loc>https://multi-lingo.online/settings</loc><priority>0.4</priority></url>
-  <url><loc>https://multi-lingo.online/terms</loc><priority>0.3</priority></url>
-  <url><loc>https://multi-lingo.online/privacy</loc><priority>0.3</priority></url>
-  <url><loc>https://multi-lingo.online/contact</loc><priority>0.5</priority></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <url>
+    <loc>https://grasshoppersolutions.online/multi-lingo-ai/</loc>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en"        href="https://grasshoppersolutions.online/multi-lingo-ai/"/>
+    <xhtml:link rel="alternate" hreflang="pt-PT"    href="https://grasshoppersolutions.online/multi-lingo-ai/"/>
+    <xhtml:link rel="alternate" hreflang="es"        href="https://grasshoppersolutions.online/multi-lingo-ai/"/>
+    <xhtml:link rel="alternate" hreflang="fr"        href="https://grasshoppersolutions.online/multi-lingo-ai/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://grasshoppersolutions.online/multi-lingo-ai/"/>
+  </url>
+  <url>
+    <loc>https://grasshoppersolutions.online/multi-lingo-ai/login</loc>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://grasshoppersolutions.online/multi-lingo-ai/contact</loc>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://grasshoppersolutions.online/multi-lingo-ai/terms</loc>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://grasshoppersolutions.online/multi-lingo-ai/privacy</loc>
+    <priority>0.3</priority>
+  </url>
+
 </urlset>

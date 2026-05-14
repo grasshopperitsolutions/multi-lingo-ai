@@ -1,19 +1,30 @@
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import PropTypes from "prop-types";
 
-const SEOMeta = ({ title, description, path = '' }) => {
-  const baseUrl = import.meta.env.VITE_SITE_URL || 'https://nunoslavi.com';
+const SEOMeta = ({ title, description, path = '', lang = 'en' }) => {
+  const baseUrl = 'https://grasshoppersolutions.online/multi-lingo-ai';
 
   return (
     <Helmet>
-      <html lang="en-US" />
+      <html lang={lang} />
       <title>{title}</title>
       <meta name="description" content={description} />
+
+      {/* Canonical URL */}
       <link rel="canonical" href={`${baseUrl}${path}`} />
-      <meta property="og:title" content={title} />
+
+      {/* hreflang alternates */}
+      <link rel="alternate" hreflang="en"        href={`${baseUrl}${path}`} />
+      <link rel="alternate" hreflang="pt-PT"    href={`${baseUrl}${path}`} />
+      <link rel="alternate" hreflang="es"        href={`${baseUrl}${path}`} />
+      <link rel="alternate" hreflang="fr"        href={`${baseUrl}${path}`} />
+      <link rel="alternate" hreflang="x-default" href={`${baseUrl}${path}`} />
+
+      {/* Open Graph */}
+      <meta property="og:title"       content={title} />
       <meta property="og:description" content={description} />
-      <meta property="og:locale" content="en_US" />
-      <meta property="og:url" content={`${baseUrl}${path}`} />
+      <meta property="og:locale"      content={lang.replace('-', '_')} />
+      <meta property="og:url"         content={`${baseUrl}${path}`} />
     </Helmet>
   );
 };

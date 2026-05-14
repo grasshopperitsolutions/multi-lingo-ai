@@ -1,0 +1,80 @@
+{
+  "nav": {
+    "home": "Home",
+    "contact": "Contact",
+    "login": "Sign In",
+    "logout": "Sign Out",
+    "dashboard": "Dashboard",
+    "settings": "Settings"
+  },
+  "home": {
+    "badge": "THE AI REVOLUTION IS HERE",
+    "hero_line1": "Ask AI",
+    "hero_highlight": "Everything",
+    "hero_line2": "about Portuguese",
+    "subtitle": "The first platform that teaches you European Portuguese from any language or dialect you speak. AI-powered, human-supported.",
+    "cta_start": "Start Learning Now",
+    "marquee": ["LEARN PORTUGUESE FAST", "NO BORING GRAMMAR", "AI POWERED", "NATIVE SLANG"],
+    "features": {
+      "voice_tutor": "24/7 AI Voice Tutor",
+      "urban_dictionary": "Urban Dictionary",
+      "smart_scheduler": "Smart Scheduler",
+      "human_sessions": "Human Tutor Sessions"
+    },
+    "universal_input": {
+      "title": "The Universal Input",
+      "subtitle": "Learning from Irish? Irish Gaelic? Mandarin? Just type it. Our AI bridges the gap."
+    }
+  },
+  "login": {
+    "title": "Sign In",
+    "subtitle": "Choose your preferred sign-in method to continue.",
+    "google": "Continue with Google",
+    "apple": "Continue with Apple",
+    "facebook": "Continue with Facebook",
+    "x": "Continue with X",
+    "terms_note": "By signing in you agree to our",
+    "terms": "Terms",
+    "privacy": "Privacy Policy",
+    "not_available": "This sign-in method isn't available yet — check back soon!"
+  },
+  "contact": {
+    "title": "Get in Touch",
+    "subtitle": "Got questions about European Portuguese? Our flock is here to help you soar.",
+    "email_label": "Email us",
+    "whatsapp_label": "WhatsApp (fastest reply)",
+    "location_label": "Location",
+    "location_value": "🌍 Fully Remote & Worldwide",
+    "hours_label": "Working Hours",
+    "hours_value": "🟢 24/7 / 365 Days",
+    "form": {
+      "name": "Full Name",
+      "name_placeholder": "Nuno Silva",
+      "email": "Email",
+      "email_placeholder": "nuno@example.com",
+      "phone": "Phone (Optional)",
+      "subject": "Subject",
+      "message": "Message",
+      "message_placeholder": "What's on your mind?",
+      "submit": "Send Message",
+      "sending": "Sending...",
+      "success": "Message sent successfully! We'll get back to you soon.",
+      "error": "Please fill all required fields"
+    }
+  },
+  "footer": {
+    "tagline": "AI-powered European Portuguese for everyone.",
+    "links": "Links",
+    "legal": "Legal",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "contact": "Contact",
+    "rights": "All rights reserved."
+  },
+  "terms": {
+    "title": "Terms of Service"
+  },
+  "privacy": {
+    "title": "Privacy Policy"
+  }
+}
