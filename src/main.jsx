@@ -6,7 +6,8 @@ import './i18n.js';
 export const createRoot = ViteReactSSG(
   {
     routes: [
-      { path: '/*', Component: App },
+      { path: '/', Component: App },
     ],
+    basename: import.meta.env.BASE_URL,
   },
 );
