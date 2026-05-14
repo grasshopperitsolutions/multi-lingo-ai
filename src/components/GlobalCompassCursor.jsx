@@ -1,8 +1,8 @@
-import React from "react";
 import { Compass } from "lucide-react";
+import PropTypes from "prop-types";
 
 const GlobalCompassCursor = ({ x, y, isDarkMode }) => {
-  const rotation = (x + y) % 360; // Dynamic rotation based on movement
+  const rotation = (x + y) % 360;
   return (
     <div
       className="fixed pointer-events-none z-[9999] flex items-center justify-center"
@@ -20,6 +20,12 @@ const GlobalCompassCursor = ({ x, y, isDarkMode }) => {
       </div>
     </div>
   );
+};
+
+GlobalCompassCursor.propTypes = {
+  x: PropTypes.number.isRequired,
+  y: PropTypes.number.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
 };
 
 export default GlobalCompassCursor;

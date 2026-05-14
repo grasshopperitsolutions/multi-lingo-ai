@@ -1,4 +1,3 @@
-import React from "react";
 import { ArrowRight, Mic, MessageSquare, Calendar, Users, Globe, Sparkles, Zap } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import FeatureCard from "../components/FeatureCard";

@@ -1,5 +1,5 @@
-import React from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
+import PropTypes from "prop-types";
 
 const SEOMeta = ({ title, description, path = '', lang = 'en' }) => {
   const baseUrl = 'https://grasshoppersolutions.online/multi-lingo-ai';
@@ -14,11 +14,11 @@ const SEOMeta = ({ title, description, path = '', lang = 'en' }) => {
       <link rel="canonical" href={`${baseUrl}${path}`} />
 
       {/* hreflang alternates */}
-      <link rel="alternate" hreflang="en"        href={`${baseUrl}${path}`} />
-      <link rel="alternate" hreflang="pt-PT"    href={`${baseUrl}${path}`} />
-      <link rel="alternate" hreflang="es"        href={`${baseUrl}${path}`} />
-      <link rel="alternate" hreflang="fr"        href={`${baseUrl}${path}`} />
-      <link rel="alternate" hreflang="x-default" href={`${baseUrl}${path}`} />
+      <link rel="alternate" hrefLang="en"        href={`${baseUrl}${path}`} />
+      <link rel="alternate" hrefLang="pt-PT"    href={`${baseUrl}${path}`} />
+      <link rel="alternate" hrefLang="es"        href={`${baseUrl}${path}`} />
+      <link rel="alternate" hrefLang="fr"        href={`${baseUrl}${path}`} />
+      <link rel="alternate" hrefLang="x-default" href={`${baseUrl}${path}`} />
 
       {/* Open Graph */}
       <meta property="og:title"       content={title} />
@@ -29,10 +29,20 @@ const SEOMeta = ({ title, description, path = '', lang = 'en' }) => {
   );
 };
 
+SEOMeta.propTypes = {
+  title: PropTypes.string.isRequired,
+  description: PropTypes.string.isRequired,
+  path: PropTypes.string,
+};
+
 export const SEOProvider = ({ children }) => (
   <HelmetProvider>
     {children}
   </HelmetProvider>
 );
+
+SEOProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 export default SEOMeta;

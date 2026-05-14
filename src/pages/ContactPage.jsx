@@ -1,16 +1,14 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useAppContext } from "../contexts/AppContext";
 import {
-  ArrowRight,
   Mail,
   MapPin,
-  Phone,
   Send,
   Clock,
   MessageCircle,
+  HelpCircle,
   ChevronDown,
   ChevronUp,
-  HelpCircle,
 } from "lucide-react";
 import NeoDropdown from "../components/NeoDropdown";
 
@@ -276,7 +274,7 @@ const ContactPage = () => {
       </div>
 
       {/* FAQ Section */}
-      <div className="mt-24 hidden">
+      <div className="mt-24">
         <h2 className="text-4xl font-black uppercase tracking-tighter mb-12 text-center">
           Frequently Asked Questions
         </h2>

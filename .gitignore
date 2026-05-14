@@ -114,5 +114,7 @@ proguard-rules.pro
 
 # Vite
 .vite/
+.vite-ssg-temp/
+.vite-react-ssg-temp/
 
 *-ignore*

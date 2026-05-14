@@ -1,4 +1,3 @@
-import React from "react";
 import { useAppContext } from "../contexts/AppContext";
 import { Link, useNavigate } from "react-router-dom";
 import BarcelosRooster from "../components/BarcelosRooster";

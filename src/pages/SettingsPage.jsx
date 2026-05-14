@@ -1,8 +1,20 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
 import NeoDropdown from "../components/NeoDropdown";
-import { ArrowLeft, User, Mail, Sun, Moon, Globe, Save, LogOut, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  User,
+  Mail,
+  Sun,
+  Moon,
+  Globe,
+  Save,
+  LogOut,
+  Trash2,
+} from "lucide-react";
+import { updateUserProfile } from "../services/userService";
+import { getCurrentUser } from "../services/authService";
 
 const LANGUAGE_OPTIONS = [
   { value: "en", label: "English" },
@@ -17,22 +29,55 @@ const LANGUAGE_OPTIONS = [
 ];
 
 const SettingsPage = () => {
-  const { isDarkMode, setIsDarkMode, user, setUser, logoutUser, showAlert } = useAppContext();
+  const {
+    isDarkMode,
+    setIsDarkMode,
+    user,
+    logoutUser,
+    showAlert,
+    refreshUser,
+  } = useAppContext();
   const navigate = useNavigate();
 
   const [displayName, setDisplayName] = useState(user?.displayName || "");
-  const [interfaceLang, setInterfaceLang] = useState("en");
+  const [interfaceLang, setInterfaceLang] = useState(
+    user?.interfaceLang || "en",
+  );
   const [isSaving, setIsSaving] = useState(false);
+
+  // useEffect(() => {
+  //   if (user?.displayName) setDisplayName(user.displayName);
+  //   if (user?.interfaceLang) setInterfaceLang(user.interfaceLang);
+  // }, [user?.displayName, user?.interfaceLang]);
 
   const handleSave = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-    // Optimistically update context user
-    setUser((prev) => ({ ...prev, displayName }));
-    setTimeout(() => {
+    try {
+      const authUser = await getCurrentUser();
+      if (!authUser?.token || !authUser?.uid) {
+        showAlert("error", "You must be signed in to save settings.");
+        return;
+      }
+      await updateUserProfile(authUser.token, authUser.uid, {
+        displayName,
+        interfaceLang,
+        theme: isDarkMode ? "dark" : "light",
+      });
+      await refreshUser();
+      showAlert("success", "Settings saved successfully!");
+    } catch (err) {
+      const isNetwork =
+        err instanceof TypeError && err.message === "Failed to fetch";
+      showAlert(
+        "error",
+        isNetwork
+          ? "Could not reach the server. Please check your connection and try again."
+          : err.message || "Failed to save settings. Please try again.",
+      );
+    } finally {
       setIsSaving(false);
-      showAlert("success", "Settings saved!");
-    }, 600);
+    }
   };
 
   const handleLogout = async () => {
@@ -43,7 +88,7 @@ const SettingsPage = () => {
   };
 
   const handleDeleteAccount = () => {
-    showAlert("error", "Account deletion isn't implemented yet");
+    showAlert("error", "Account deletion isn't implemented yet.");
   };
 
   const inputClasses = `w-full px-4 py-3 rounded-xl border-4 font-bold outline-none transition-all
@@ -65,53 +110,54 @@ const SettingsPage = () => {
   }`;
 
   return (
-    <main className="flex-grow px-4 md:px-8 py-10 max-w-2xl mx-auto w-full">
-      {/* Back navigation */}
+    <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-10">
       <button
         onClick={() => navigate("/dashboard")}
-        className={`flex items-center gap-2 mb-8 font-black uppercase tracking-widest text-sm transition-all hover:-translate-x-1 active:scale-95
-        ${
-          isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
+        className={`flex items-center gap-2 mb-8 font-black uppercase tracking-widest text-sm transition-all hover:-translate-x-1 ${
+          isDarkMode
+            ? "text-slate-400 hover:text-white"
+            : "text-slate-500 hover:text-slate-900"
         }`}
       >
-        <ArrowLeft size={18} />
+        <ArrowLeft size={16} />
         Back to Dashboard
       </button>
 
-      <h1 className={`text-4xl md:text-5xl font-black uppercase tracking-tighter mb-8 ${
-        isDarkMode ? "text-white" : "text-slate-900"
-      }`}>
+      <h1
+        className={`text-4xl font-black uppercase tracking-tighter mb-8 ${
+          isDarkMode ? "text-white" : "text-slate-900"
+        }`}
+      >
         Settings
       </h1>
 
       <form onSubmit={handleSave}>
         {/* Profile Section */}
         <div className={sectionClasses}>
-          <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${
-            isDarkMode ? "text-white" : "text-slate-900"
-          }`}>
+          <h2
+            className={`text-lg font-black uppercase tracking-widest mb-6 ${
+              isDarkMode ? "text-white" : "text-slate-900"
+            }`}
+          >
             Profile
           </h2>
 
           <div className="space-y-5">
             <div>
               <label className={labelClasses}>
-                <User size={12} className="inline mr-1" />
-                Display Name
+                <User size={12} className="inline mr-1" /> Display Name
               </label>
               <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Your name"
                 className={inputClasses}
+                placeholder="Your display name"
               />
             </div>
-
             <div>
               <label className={labelClasses}>
-                <Mail size={12} className="inline mr-1" />
-                Email
+                <Mail size={12} className="inline mr-1" /> Email
               </label>
               <input
                 type="email"
@@ -119,61 +165,49 @@ const SettingsPage = () => {
                 disabled
                 className={`${inputClasses} opacity-50 cursor-not-allowed`}
               />
-              <p className={`text-xs font-bold mt-1 ${
-                isDarkMode ? "text-slate-500" : "text-slate-400"
-              }`}>
-                Email cannot be changed
-              </p>
             </div>
           </div>
         </div>
 
-        {/* Preferences Section */}
+        {/* Appearance Section */}
         <div className={sectionClasses}>
-          <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${
-            isDarkMode ? "text-white" : "text-slate-900"
-          }`}>
-            Preferences
+          <h2
+            className={`text-lg font-black uppercase tracking-widest mb-6 ${
+              isDarkMode ? "text-white" : "text-slate-900"
+            }`}
+          >
+            Appearance
           </h2>
 
-          <div className="space-y-6">
-            {/* Theme toggle */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`font-black uppercase text-sm tracking-widest ${
-                  isDarkMode ? "text-white" : "text-slate-900"
-                }`}>
-                  App Theme
-                </p>
-                <p className={`text-xs font-bold uppercase tracking-widest mt-0.5 ${
-                  isDarkMode ? "text-slate-400" : "text-slate-500"
-                }`}>
-                  {isDarkMode ? "Dark Mode" : "Light Mode"}
-                </p>
-              </div>
+          <div className="space-y-5">
+            <div>
+              <label className={labelClasses}>
+                {isDarkMode ? (
+                  <Moon size={12} className="inline mr-1" />
+                ) : (
+                  <Sun size={12} className="inline mr-1" />
+                )}
+                App Theme
+              </label>
               <button
                 type="button"
                 onClick={() => setIsDarkMode(!isDarkMode)}
-                className={`p-3 rounded-full border-4 transition-all active:scale-95 hover:scale-110
-                ${
+                className={`w-full flex items-center justify-between px-5 py-3 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95 ${
                   isDarkMode
-                    ? "bg-slate-700 border-yellow-400 shadow-[3px_3px_0px_0px_#fbbf24]"
-                    : "bg-yellow-400 border-slate-900 shadow-[3px_3px_0px_0px_#0f172a]"
+                    ? "bg-slate-700 border-yellow-400 text-yellow-400 shadow-[4px_4px_0px_0px_#ca8a04]"
+                    : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
                 }`}
               >
-                {isDarkMode ? (
-                  <Sun size={20} className="text-yellow-400" />
-                ) : (
-                  <Moon size={20} className="text-slate-900" />
-                )}
+                <span>{isDarkMode ? "Dark Mode" : "Light Mode"}</span>
+                {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
               </button>
             </div>
 
-            {/* Interface Language */}
             <div>
+              <label className={labelClasses}>
+                <Globe size={12} className="inline mr-1" /> Interface Language
+              </label>
               <NeoDropdown
-                label="Interface Language"
-                icon={Globe}
                 options={LANGUAGE_OPTIONS}
                 value={interfaceLang}
                 onChange={setInterfaceLang}
@@ -188,56 +222,47 @@ const SettingsPage = () => {
         <button
           type="submit"
           disabled={isSaving}
-          className={`w-full py-4 rounded-xl border-4 font-black uppercase tracking-widest text-base transition-all active:scale-95 hover:-translate-y-1 flex items-center justify-center gap-3 mb-6
-          ${
+          className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl border-4 font-black uppercase tracking-widest text-lg transition-all active:scale-95 mb-6 ${
             isSaving
-              ? "opacity-60 cursor-not-allowed bg-yellow-400 border-slate-900 text-slate-900"
-              : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:shadow-[6px_6px_0px_0px_#0f172a]"
+              ? "opacity-60 cursor-not-allowed bg-slate-400 border-slate-500 text-white"
+              : isDarkMode
+                ? "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1"
+                : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1"
           }`}
         >
-          <Save size={18} />
-          {isSaving ? "Saving..." : "Save Changes"}
+          <Save size={20} />
+          {isSaving ? "Saving..." : "Save Settings"}
         </button>
       </form>
 
       {/* Account Actions */}
       <div className={sectionClasses}>
-        <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${
-          isDarkMode ? "text-white" : "text-slate-900"
-        }`}>
+        <h2
+          className={`text-lg font-black uppercase tracking-widest mb-6 ${
+            isDarkMode ? "text-white" : "text-slate-900"
+          }`}
+        >
           Account
         </h2>
         <div className="space-y-3">
           <button
             onClick={handleLogout}
-            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95 hover:-translate-y-0.5
-            ${
+            className={`w-full flex items-center justify-center gap-3 py-3 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95 ${
               isDarkMode
-                ? "bg-slate-700 border-slate-600 text-white hover:border-rose-500 shadow-[3px_3px_0px_0px_#1e293b]"
-                : "bg-white border-slate-900 text-slate-900 hover:border-rose-500 shadow-[3px_3px_0px_0px_#0f172a]"
+                ? "bg-slate-700 border-slate-600 text-white shadow-[4px_4px_0px_0px_#1e293b] hover:bg-slate-600"
+                : "bg-white border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:bg-slate-100"
             }`}
           >
-            <span className="flex items-center gap-3"><LogOut size={16} /> Sign Out</span>
-            <ArrowLeft size={16} className="rotate-180" />
+            <LogOut size={18} />
+            Sign Out
           </button>
-
-          {/* Danger Zone */}
-          <div className={`mt-4 pt-4 border-t-4 border-dashed ${
-            isDarkMode ? "border-slate-700" : "border-slate-200"
-          }`}>
-            <p className={`text-xs font-black uppercase tracking-widest mb-3 ${
-              isDarkMode ? "text-rose-400" : "text-rose-500"
-            }`}>
-              Danger Zone
-            </p>
-            <button
-              onClick={handleDeleteAccount}
-              className="w-full flex items-center justify-between px-5 py-4 rounded-xl border-4 border-rose-500 font-black uppercase tracking-widest text-sm text-rose-500 hover:bg-rose-500 hover:text-white transition-all active:scale-95 hover:-translate-y-0.5 shadow-[3px_3px_0px_0px_#f43f5e]"
-            >
-              <span className="flex items-center gap-3"><Trash2 size={16} /> Delete Account</span>
-              <ArrowLeft size={16} className="rotate-180" />
-            </button>
-          </div>
+          <button
+            onClick={handleDeleteAccount}
+            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border-4 border-rose-500 font-black uppercase tracking-widest text-rose-500 transition-all active:scale-95 hover:bg-rose-500 hover:text-white shadow-[4px_4px_0px_0px_#f43f5e]"
+          >
+            <Trash2 size={18} />
+            Delete Account
+          </button>
         </div>
       </div>
     </main>

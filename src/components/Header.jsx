@@ -1,4 +1,3 @@
-import React from "react";
 import { Sun, Moon, Settings, LogOut } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { Link, useNavigate } from "react-router-dom";

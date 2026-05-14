@@ -1,5 +1,4 @@
-import React from "react";
-
+import PropTypes from "prop-types";
 const BarcelosRooster = ({ className }) => (
   <svg
     viewBox="0 0 100 100"
@@ -21,16 +20,12 @@ const BarcelosRooster = ({ className }) => (
       strokeWidth="4"
       strokeLinecap="round"
     />
-    {/* Comb (Crista) */}
-    <path d="M45 15C45 5 65 5 65 15" fill="#E11D48" />
+    {/* Comb (Crista) */} <path d="M45 15C45 5 65 5 65 15" fill="#E11D48" />
     <circle cx="55" cy="8" r="4" fill="#E11D48" />
-    <circle cx="62" cy="12" r="3" fill="#E11D48" />
-    {/* Beak */}
-    <path d="M78 35L88 38L78 41Z" fill="#FACC15" />
-    {/* Eye */}
+    <circle cx="62" cy="12" r="3" fill="#E11D48" /> {/* Beak */}
+    <path d="M78 35L88 38L78 41Z" fill="#FACC15" /> {/* Eye */}
     <circle cx="70" cy="35" r="3" fill="white" />
-    <circle cx="71" cy="35" r="1.5" fill="black" />
-    {/* Iconic Hearts/Dots */}
+    <circle cx="71" cy="35" r="1.5" fill="black" /> {/* Iconic Hearts/Dots */}
     <path
       d="M35 45C35 42 38 40 40 40C42 40 45 42 45 45C45 48 40 52 40 52C40 52 35 48 35 45Z"
       fill="#E11D48"
@@ -50,5 +45,5 @@ const BarcelosRooster = ({ className }) => (
     />
   </svg>
 );
-
+BarcelosRooster.propTypes = { className: PropTypes.string.isRequired };
 export default BarcelosRooster;

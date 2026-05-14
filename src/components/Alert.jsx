@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { AlertTriangle, CheckCircle, Info, X } from "lucide-react";
+import PropTypes from "prop-types";
 
 const AlertMessage = ({ alert, onClose }) => {
   useEffect(() => {
@@ -42,6 +43,15 @@ const AlertMessage = ({ alert, onClose }) => {
       </div>
     </div>
   );
+};
+
+AlertMessage.propTypes = {
+  alert: PropTypes.shape({
+    show: PropTypes.bool.isRequired,
+    type: PropTypes.string,
+    message: PropTypes.string,
+  }).isRequired,
+  onClose: PropTypes.func.isRequired,
 };
 
 export default AlertMessage;
