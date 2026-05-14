@@ -1,14 +1,12 @@
-import { ViteSSG } from 'vite-ssg';
+import { ViteReactSSG } from 'vite-react-ssg';
 import App from './App.jsx';
 import './index.css';
 import './i18n.js';
-import { SEOProvider } from './components/SEOMeta';
 
-export const createApp = ViteSSG(
-  App,
+export const createRoot = ViteReactSSG(
   {
     routes: [
-      { path: '/' },
+      { path: '/', Component: App },
       { path: '/login' },
       { path: '/terms' },
       { path: '/privacy' },
@@ -16,8 +14,5 @@ export const createApp = ViteSSG(
       { path: '/dashboard' },
       { path: '/settings' },
     ],
-  },
-  ({ app }) => {
-    app.component('SEOProvider', SEOProvider);
   },
 );
