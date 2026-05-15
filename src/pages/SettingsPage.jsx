@@ -15,7 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { updateUserProfile } from "../services/userService";
-import { getCurrentUser } from "../services/authService";
+import { auth } from "../firebase";
 
 const LANGUAGE_OPTIONS = [
   { value: "en", label: "English" },
@@ -29,12 +29,20 @@ const LANGUAGE_OPTIONS = [
   { value: "ar", label: "Arabic" },
 ];
 
-const SettingsForm = ({ user, isDarkMode, setIsDarkMode, isSaving, handleSave }) => {
-  const [displayName, setDisplayName] = useState(user?.displayName || "");
-  const [interfaceLang, setInterfaceLang] = useState(
-    user?.interfaceLang || "en",
-  );
-
+// Fully controlled — no internal state, no useEffect.
+// All values come from SettingsPage which re-renders whenever context user updates.
+const SettingsForm = ({
+  user,
+  isDarkMode,
+  displayName,
+  setDisplayName,
+  interfaceLang,
+  setInterfaceLang,
+  draftDarkMode,
+  setDraftDarkMode,
+  isSaving,
+  handleSave,
+}) => {
   const inputClasses = `w-full px-4 py-3 rounded-xl border-4 font-bold outline-none transition-all
     ${
       isDarkMode
@@ -53,13 +61,8 @@ const SettingsForm = ({ user, isDarkMode, setIsDarkMode, isSaving, handleSave })
     isDarkMode ? "text-slate-400" : "text-slate-500"
   }`;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    handleSave(e, { displayName, interfaceLang });
-  };
-
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSave}>
       {/* Profile Section */}
       <div className={sectionClasses}>
         <h2
@@ -110,7 +113,7 @@ const SettingsForm = ({ user, isDarkMode, setIsDarkMode, isSaving, handleSave })
         <div className="space-y-5">
           <div>
             <label className={labelClasses}>
-              {isDarkMode ? (
+              {draftDarkMode ? (
                 <Moon size={12} className="inline mr-1" />
               ) : (
                 <Sun size={12} className="inline mr-1" />
@@ -119,15 +122,15 @@ const SettingsForm = ({ user, isDarkMode, setIsDarkMode, isSaving, handleSave })
             </label>
             <button
               type="button"
-              onClick={() => setIsDarkMode(!isDarkMode)}
+              onClick={() => setDraftDarkMode(!draftDarkMode)}
               className={`w-full flex items-center justify-between px-5 py-3 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95 ${
-                isDarkMode
+                draftDarkMode
                   ? "bg-slate-700 border-yellow-400 text-yellow-400 shadow-[4px_4px_0px_0px_#ca8a04]"
                   : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
               }`}
             >
-              <span>{isDarkMode ? "Dark Mode" : "Light Mode"}</span>
-              {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
+              <span>{draftDarkMode ? "Dark Mode" : "Light Mode"}</span>
+              {draftDarkMode ? <Moon size={20} /> : <Sun size={20} />}
             </button>
           </div>
 
@@ -173,7 +176,12 @@ SettingsForm.propTypes = {
     interfaceLang: PropTypes.string,
   }),
   isDarkMode: PropTypes.bool.isRequired,
-  setIsDarkMode: PropTypes.func.isRequired,
+  displayName: PropTypes.string.isRequired,
+  setDisplayName: PropTypes.func.isRequired,
+  interfaceLang: PropTypes.string.isRequired,
+  setInterfaceLang: PropTypes.func.isRequired,
+  draftDarkMode: PropTypes.bool.isRequired,
+  setDraftDarkMode: PropTypes.func.isRequired,
   isSaving: PropTypes.bool.isRequired,
   handleSave: PropTypes.func.isRequired,
 };
@@ -189,21 +197,33 @@ const SettingsPage = () => {
   } = useAppContext();
   const navigate = useNavigate();
 
+  // Lifted form state — initialised from context user at render time.
+  // SettingsPage re-renders whenever context user updates, so these are
+  // always fresh without needing a useEffect sync.
+  const [displayName, setDisplayName] = useState(user?.displayName || "");
+  const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en");
+  // draftDarkMode: local copy of theme that the toggle mutates.
+  // Only committed to global context on successful save.
+  const [draftDarkMode, setDraftDarkMode] = useState(isDarkMode);
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = async (e, { displayName, interfaceLang }) => {
+  const handleSave = async (e) => {
+    e.preventDefault();
     setIsSaving(true);
     try {
-      const authUser = await getCurrentUser();
-      if (!authUser?.token || !authUser?.uid) {
+      const firebaseUser = auth?.currentUser;
+      if (!firebaseUser) {
         showAlert("error", "You must be signed in to save settings.");
         return;
       }
-      await updateUserProfile(authUser.token, authUser.uid, {
+      const token = await firebaseUser.getIdToken();
+      await updateUserProfile(token, firebaseUser.uid, {
         displayName,
         interfaceLang,
-        theme: isDarkMode ? "dark" : "light",
+        theme: draftDarkMode ? "dark" : "light",
       });
+      // Commit draft theme to global context only after a successful save
+      setIsDarkMode(draftDarkMode);
       await refreshUser();
       showAlert("success", "Settings saved successfully!");
     } catch (err) {
@@ -261,10 +281,14 @@ const SettingsPage = () => {
       </h1>
 
       <SettingsForm
-        key={user?.uid || "no-user"}
         user={user}
         isDarkMode={isDarkMode}
-        setIsDarkMode={setIsDarkMode}
+        displayName={displayName}
+        setDisplayName={setDisplayName}
+        interfaceLang={interfaceLang}
+        setInterfaceLang={setInterfaceLang}
+        draftDarkMode={draftDarkMode}
+        setDraftDarkMode={setDraftDarkMode}
         isSaving={isSaving}
         handleSave={handleSave}
       />
