@@ -40,6 +40,8 @@ export const AppProvider = ({ children }) => {
   const refreshUser = async () => {
     const authUser = await getCurrentUser();
     if (authUser) {
+      // Update auth fields (including fresh token) before merging Firestore profile
+      setUser((prev) => ({ ...prev, ...authUser }));
       await loadUserProfile(authUser);
     }
   };

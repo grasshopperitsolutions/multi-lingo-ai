@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
 import NeoDropdown from "../components/NeoDropdown";
@@ -28,6 +29,155 @@ const LANGUAGE_OPTIONS = [
   { value: "ar", label: "Arabic" },
 ];
 
+const SettingsForm = ({ user, isDarkMode, setIsDarkMode, isSaving, handleSave }) => {
+  const [displayName, setDisplayName] = useState(user?.displayName || "");
+  const [interfaceLang, setInterfaceLang] = useState(
+    user?.interfaceLang || "en",
+  );
+
+  const inputClasses = `w-full px-4 py-3 rounded-xl border-4 font-bold outline-none transition-all
+    ${
+      isDarkMode
+        ? "bg-slate-700 border-slate-600 text-white focus:border-yellow-400 placeholder-slate-400"
+        : "bg-white border-slate-900 text-slate-900 focus:border-blue-600 placeholder-slate-400"
+    }`;
+
+  const sectionClasses = `p-8 rounded-[2rem] border-4 mb-6
+    ${
+      isDarkMode
+        ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
+        : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
+    }`;
+
+  const labelClasses = `block font-black uppercase text-xs tracking-widest mb-2 ${
+    isDarkMode ? "text-slate-400" : "text-slate-500"
+  }`;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleSave(e, { displayName, interfaceLang });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Profile Section */}
+      <div className={sectionClasses}>
+        <h2
+          className={`text-lg font-black uppercase tracking-widest mb-6 ${
+            isDarkMode ? "text-white" : "text-slate-900"
+          }`}
+        >
+          Profile
+        </h2>
+
+        <div className="space-y-5">
+          <div>
+            <label className={labelClasses}>
+              <User size={12} className="inline mr-1" /> Display Name
+            </label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className={inputClasses}
+              placeholder="Your display name"
+            />
+          </div>
+          <div>
+            <label className={labelClasses}>
+              <Mail size={12} className="inline mr-1" /> Email
+            </label>
+            <input
+              type="email"
+              value={user?.email || ""}
+              disabled
+              className={`${inputClasses} opacity-50 cursor-not-allowed`}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Appearance Section */}
+      <div className={sectionClasses}>
+        <h2
+          className={`text-lg font-black uppercase tracking-widest mb-6 ${
+            isDarkMode ? "text-white" : "text-slate-900"
+          }`}
+        >
+          Appearance
+        </h2>
+
+        <div className="space-y-5">
+          <div>
+            <label className={labelClasses}>
+              {isDarkMode ? (
+                <Moon size={12} className="inline mr-1" />
+              ) : (
+                <Sun size={12} className="inline mr-1" />
+              )}
+              App Theme
+            </label>
+            <button
+              type="button"
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={`w-full flex items-center justify-between px-5 py-3 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95 ${
+                isDarkMode
+                  ? "bg-slate-700 border-yellow-400 text-yellow-400 shadow-[4px_4px_0px_0px_#ca8a04]"
+                  : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
+              }`}
+            >
+              <span>{isDarkMode ? "Dark Mode" : "Light Mode"}</span>
+              {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
+            </button>
+          </div>
+
+          <div>
+            <label className={labelClasses}>
+              <Globe size={12} className="inline mr-1" /> Interface Language
+            </label>
+            <NeoDropdown
+              options={LANGUAGE_OPTIONS}
+              value={interfaceLang}
+              onChange={setInterfaceLang}
+              isDarkMode={isDarkMode}
+              className="w-full"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Save Button */}
+      <button
+        type="submit"
+        disabled={isSaving}
+        className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl border-4 font-black uppercase tracking-widest text-lg transition-all active:scale-95 mb-6 ${
+          isSaving
+            ? "opacity-60 cursor-not-allowed bg-slate-400 border-slate-500 text-white"
+            : isDarkMode
+              ? "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1"
+              : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1"
+        }`}
+      >
+        <Save size={20} />
+        {isSaving ? "Saving..." : "Save Settings"}
+      </button>
+    </form>
+  );
+};
+
+SettingsForm.propTypes = {
+  user: PropTypes.shape({
+    uid: PropTypes.string,
+    email: PropTypes.string,
+    displayName: PropTypes.string,
+    interfaceLang: PropTypes.string,
+  }),
+  isDarkMode: PropTypes.bool.isRequired,
+  setIsDarkMode: PropTypes.func.isRequired,
+  isSaving: PropTypes.bool.isRequired,
+  handleSave: PropTypes.func.isRequired,
+};
+
 const SettingsPage = () => {
   const {
     isDarkMode,
@@ -39,19 +189,9 @@ const SettingsPage = () => {
   } = useAppContext();
   const navigate = useNavigate();
 
-  const [displayName, setDisplayName] = useState(user?.displayName || "");
-  const [interfaceLang, setInterfaceLang] = useState(
-    user?.interfaceLang || "en",
-  );
   const [isSaving, setIsSaving] = useState(false);
 
-  // useEffect(() => {
-  //   if (user?.displayName) setDisplayName(user.displayName);
-  //   if (user?.interfaceLang) setInterfaceLang(user.interfaceLang);
-  // }, [user?.displayName, user?.interfaceLang]);
-
-  const handleSave = async (e) => {
-    e.preventDefault();
+  const handleSave = async (e, { displayName, interfaceLang }) => {
     setIsSaving(true);
     try {
       const authUser = await getCurrentUser();
@@ -91,23 +231,12 @@ const SettingsPage = () => {
     showAlert("error", "Account deletion isn't implemented yet.");
   };
 
-  const inputClasses = `w-full px-4 py-3 rounded-xl border-4 font-bold outline-none transition-all
-    ${
-      isDarkMode
-        ? "bg-slate-700 border-slate-600 text-white focus:border-yellow-400 placeholder-slate-400"
-        : "bg-white border-slate-900 text-slate-900 focus:border-blue-600 placeholder-slate-400"
-    }`;
-
   const sectionClasses = `p-8 rounded-[2rem] border-4 mb-6
     ${
       isDarkMode
         ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
         : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
     }`;
-
-  const labelClasses = `block font-black uppercase text-xs tracking-widest mb-2 ${
-    isDarkMode ? "text-slate-400" : "text-slate-500"
-  }`;
 
   return (
     <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-10">
@@ -131,109 +260,14 @@ const SettingsPage = () => {
         Settings
       </h1>
 
-      <form onSubmit={handleSave}>
-        {/* Profile Section */}
-        <div className={sectionClasses}>
-          <h2
-            className={`text-lg font-black uppercase tracking-widest mb-6 ${
-              isDarkMode ? "text-white" : "text-slate-900"
-            }`}
-          >
-            Profile
-          </h2>
-
-          <div className="space-y-5">
-            <div>
-              <label className={labelClasses}>
-                <User size={12} className="inline mr-1" /> Display Name
-              </label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className={inputClasses}
-                placeholder="Your display name"
-              />
-            </div>
-            <div>
-              <label className={labelClasses}>
-                <Mail size={12} className="inline mr-1" /> Email
-              </label>
-              <input
-                type="email"
-                value={user?.email || ""}
-                disabled
-                className={`${inputClasses} opacity-50 cursor-not-allowed`}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Appearance Section */}
-        <div className={sectionClasses}>
-          <h2
-            className={`text-lg font-black uppercase tracking-widest mb-6 ${
-              isDarkMode ? "text-white" : "text-slate-900"
-            }`}
-          >
-            Appearance
-          </h2>
-
-          <div className="space-y-5">
-            <div>
-              <label className={labelClasses}>
-                {isDarkMode ? (
-                  <Moon size={12} className="inline mr-1" />
-                ) : (
-                  <Sun size={12} className="inline mr-1" />
-                )}
-                App Theme
-              </label>
-              <button
-                type="button"
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className={`w-full flex items-center justify-between px-5 py-3 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95 ${
-                  isDarkMode
-                    ? "bg-slate-700 border-yellow-400 text-yellow-400 shadow-[4px_4px_0px_0px_#ca8a04]"
-                    : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
-                }`}
-              >
-                <span>{isDarkMode ? "Dark Mode" : "Light Mode"}</span>
-                {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
-              </button>
-            </div>
-
-            <div>
-              <label className={labelClasses}>
-                <Globe size={12} className="inline mr-1" /> Interface Language
-              </label>
-              <NeoDropdown
-                options={LANGUAGE_OPTIONS}
-                value={interfaceLang}
-                onChange={setInterfaceLang}
-                isDarkMode={isDarkMode}
-                className="w-full"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Save Button */}
-        <button
-          type="submit"
-          disabled={isSaving}
-          className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl border-4 font-black uppercase tracking-widest text-lg transition-all active:scale-95 mb-6 ${
-            isSaving
-              ? "opacity-60 cursor-not-allowed bg-slate-400 border-slate-500 text-white"
-              : isDarkMode
-                ? "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1"
-                : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1"
-          }`}
-        >
-          <Save size={20} />
-          {isSaving ? "Saving..." : "Save Settings"}
-        </button>
-      </form>
+      <SettingsForm
+        key={user?.uid || "no-user"}
+        user={user}
+        isDarkMode={isDarkMode}
+        setIsDarkMode={setIsDarkMode}
+        isSaving={isSaving}
+        handleSave={handleSave}
+      />
 
       {/* Account Actions */}
       <div className={sectionClasses}>

@@ -11,7 +11,7 @@ const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.
 /**
  * Login with Google using Firebase popup and proxy verification.
  * First-time users are automatically registered via the API.
- * @returns {Promise<Object>} User data including uid, email, displayName
+ * @returns {Promise<Object>} User data including uid, email, displayName, token
  */
 export const loginWithGoogle = async () => {
   try {
@@ -33,10 +33,15 @@ export const loginWithGoogle = async () => {
     const { customToken, ...userData } = await response.json();
 
     if (customToken) {
-      await signInWithCustomToken(auth, customToken);
+      const cred = await signInWithCustomToken(auth, customToken);
+      // Get a fresh ID token from the signed-in custom-token session
+      const token = await cred.user.getIdToken();
+      return { success: true, user: { ...userData, uid: cred.user.uid, token } };
     }
 
-    return { success: true, user: userData };
+    // Fallback: re-fetch token from current auth state
+    const token = await googleResult.user.getIdToken(true);
+    return { success: true, user: { ...userData, token } };
   } catch (error) {
     console.error('Google login error:', error);
     throw error;
