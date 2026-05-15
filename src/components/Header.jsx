@@ -48,8 +48,8 @@ const Header = () => {
           </button>
 
           {user ? (
-            /* Authenticated nav */
             <>
+              {/* Desktop: text buttons */}
               <Link
                 to="/settings"
                 className={`hidden md:flex items-center gap-2 px-5 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95 hover:-translate-y-0.5
@@ -74,20 +74,65 @@ const Header = () => {
                 <LogOut size={16} />
                 Logout
               </button>
+
+              {/* Mobile: icon-only buttons */}
+              <Link
+                to="/settings"
+                aria-label="Settings"
+                className={`flex md:hidden w-11 h-11 items-center justify-center rounded-full border-2 transition-all active:scale-95 hover:scale-110
+                ${
+                  isDarkMode
+                    ? "bg-slate-700 border-slate-600 text-white shadow-[2px_2px_0px_0px_#1e293b]"
+                    : "bg-white border-slate-900 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
+                }`}
+              >
+                <Settings size={18} />
+              </Link>
+              <button
+                onClick={handleLogout}
+                aria-label="Sign out"
+                className={`flex md:hidden w-11 h-11 items-center justify-center rounded-full border-2 transition-all active:scale-95 hover:scale-110
+                ${
+                  isDarkMode
+                    ? "bg-slate-700 border-slate-600 text-rose-400 hover:border-rose-500 shadow-[2px_2px_0px_0px_#1e293b]"
+                    : "bg-white border-slate-900 text-rose-500 hover:border-rose-500 shadow-[2px_2px_0px_0px_#0f172a]"
+                }`}
+              >
+                <LogOut size={18} />
+              </button>
             </>
           ) : (
-            /* Guest nav */
-            <Link
-              to="/login"
-              className={`hidden md:flex px-8 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95
-              ${
-                isDarkMode
-                  ? "bg-blue-600 border-slate-900 text-white hover-neo-dark"
-                  : "bg-blue-600 border-slate-900 text-white hover-neo-light"
-              }`}
-            >
-              Login
-            </Link>
+            <>
+              {/* Desktop: full text login button */}
+              <Link
+                to="/login"
+                className={`hidden md:flex px-8 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95
+                ${
+                  isDarkMode
+                    ? "bg-blue-600 border-slate-900 text-white hover-neo-dark"
+                    : "bg-blue-600 border-slate-900 text-white hover-neo-light"
+                }`}
+              >
+                Login
+              </Link>
+
+              {/* Mobile: icon-only login button */}
+              <Link
+                to="/login"
+                aria-label="Login"
+                className={`flex md:hidden w-11 h-11 items-center justify-center rounded-full border-2 bg-blue-600 border-slate-900 transition-all active:scale-95 hover:scale-110 shadow-[2px_2px_0px_0px_#0f172a]`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="white"
+                  className="w-5 h-5"
+                  aria-hidden="true"
+                >
+                  <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                </svg>
+              </Link>
+            </>
           )}
         </div>
       </div>

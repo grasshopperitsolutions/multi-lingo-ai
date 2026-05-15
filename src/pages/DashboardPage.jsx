@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
 import FeatureCard from "../components/FeatureCard";
+import Loader from "../components/Loader";
 import {
   Mic,
   MessageSquare,
@@ -66,6 +67,17 @@ const ActivityRow = ({ flag, title, date, score, isDarkMode }) => (
 const DashboardPage = () => {
   const { isDarkMode, user, logoutUser } = useAppContext();
   const navigate = useNavigate();
+
+  // Show loader while auth + Firestore profile are still being populated
+  if (!user) {
+    return (
+      <Loader
+        fullScreen
+        message="Loading your dashboard…"
+        isDarkMode={isDarkMode}
+      />
+    );
+  }
 
   const handleLogout = async () => {
     const result = await logoutUser();
