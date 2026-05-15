@@ -1,6 +1,7 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import NeoDropdown from "../components/NeoDropdown";
 import {
@@ -19,14 +20,9 @@ import { auth } from "../firebase";
 
 const LANGUAGE_OPTIONS = [
   { value: "en", label: "English" },
-  { value: "pt", label: "Portuguese" },
+  { value: "pt-PT", label: "Portuguese" },
   { value: "es", label: "Spanish" },
   { value: "fr", label: "French" },
-  { value: "de", label: "German" },
-  { value: "it", label: "Italian" },
-  { value: "zh", label: "Mandarin" },
-  { value: "ja", label: "Japanese" },
-  { value: "ar", label: "Arabic" },
 ];
 
 // Fully controlled — no internal state, no useEffect.
@@ -43,6 +39,8 @@ const SettingsForm = ({
   isSaving,
   handleSave,
 }) => {
+  const { t } = useTranslation();
+
   const inputClasses = `w-full px-4 py-3 rounded-xl border-4 font-bold outline-none transition-all
     ${
       isDarkMode
@@ -70,25 +68,25 @@ const SettingsForm = ({
             isDarkMode ? "text-white" : "text-slate-900"
           }`}
         >
-          Profile
+          {t("settings.profile")}
         </h2>
 
         <div className="space-y-5">
           <div>
             <label className={labelClasses}>
-              <User size={12} className="inline mr-1" /> Display Name
+              <User size={12} className="inline mr-1" /> {t("settings.display_name")}
             </label>
             <input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               className={inputClasses}
-              placeholder="Your display name"
+              placeholder={t("settings.display_name_placeholder")}
             />
           </div>
           <div>
             <label className={labelClasses}>
-              <Mail size={12} className="inline mr-1" /> Email
+              <Mail size={12} className="inline mr-1" /> {t("settings.email")}
             </label>
             <input
               type="email"
@@ -107,7 +105,7 @@ const SettingsForm = ({
             isDarkMode ? "text-white" : "text-slate-900"
           }`}
         >
-          Appearance
+          {t("settings.appearance")}
         </h2>
 
         <div className="space-y-5">
@@ -118,7 +116,7 @@ const SettingsForm = ({
               ) : (
                 <Sun size={12} className="inline mr-1" />
               )}
-              App Theme
+              {t("settings.app_theme")}
             </label>
             <button
               type="button"
@@ -129,14 +127,14 @@ const SettingsForm = ({
                   : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
               }`}
             >
-              <span>{draftDarkMode ? "Dark Mode" : "Light Mode"}</span>
+              <span>{draftDarkMode ? t("settings.dark_mode") : t("settings.light_mode")}</span>
               {draftDarkMode ? <Moon size={20} /> : <Sun size={20} />}
             </button>
           </div>
 
           <div>
             <label className={labelClasses}>
-              <Globe size={12} className="inline mr-1" /> Interface Language
+              <Globe size={12} className="inline mr-1" /> {t("settings.interface_language")}
             </label>
             <NeoDropdown
               options={LANGUAGE_OPTIONS}
@@ -162,7 +160,7 @@ const SettingsForm = ({
         }`}
       >
         <Save size={20} />
-        {isSaving ? "Saving..." : "Save Settings"}
+        {isSaving ? t("settings.saving") : t("settings.save_settings")}
       </button>
     </form>
   );
@@ -194,14 +192,18 @@ const SettingsPage = () => {
     logoutUser,
     showAlert,
     refreshUser,
+    changeLanguage,
   } = useAppContext();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // Lifted form state — initialised from context user at render time.
   // SettingsPage re-renders whenever context user updates, so these are
   // always fresh without needing a useEffect sync.
   const [displayName, setDisplayName] = useState(user?.displayName || "");
-  const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en");
+  const [interfaceLang, setInterfaceLang] = useState(
+    user?.interfaceLang || "en",
+  );
   // draftDarkMode: local copy of theme that the toggle mutates.
   // Only committed to global context on successful save.
   const [draftDarkMode, setDraftDarkMode] = useState(isDarkMode);
@@ -213,7 +215,7 @@ const SettingsPage = () => {
     try {
       const firebaseUser = auth?.currentUser;
       if (!firebaseUser) {
-        showAlert("error", "You must be signed in to save settings.");
+        showAlert("error", t("settings.errors.not_signed_in"));
         return;
       }
       const token = await firebaseUser.getIdToken();
@@ -222,18 +224,19 @@ const SettingsPage = () => {
         interfaceLang,
         theme: draftDarkMode ? "dark" : "light",
       });
-      // Commit draft theme to global context only after a successful save
+      // Apply language and theme changes immediately to UI
+      changeLanguage(interfaceLang);
       setIsDarkMode(draftDarkMode);
       await refreshUser();
-      showAlert("success", "Settings saved successfully!");
+      showAlert("success", t("settings.success_message"));
     } catch (err) {
       const isNetwork =
         err instanceof TypeError && err.message === "Failed to fetch";
       showAlert(
         "error",
         isNetwork
-          ? "Could not reach the server. Please check your connection and try again."
-          : err.message || "Failed to save settings. Please try again.",
+          ? t("settings.errors.network_error")
+          : t("settings.errors.save_failed"),
       );
     } finally {
       setIsSaving(false);
@@ -248,7 +251,7 @@ const SettingsPage = () => {
   };
 
   const handleDeleteAccount = () => {
-    showAlert("error", "Account deletion isn't implemented yet.");
+    showAlert("error", t("settings.delete_not_implemented"));
   };
 
   const sectionClasses = `p-8 rounded-[2rem] border-4 mb-6
@@ -269,7 +272,7 @@ const SettingsPage = () => {
         }`}
       >
         <ArrowLeft size={16} />
-        Back to Dashboard
+        {t("settings.back_to_dashboard")}
       </button>
 
       <h1
@@ -277,7 +280,7 @@ const SettingsPage = () => {
           isDarkMode ? "text-white" : "text-slate-900"
         }`}
       >
-        Settings
+        {t("settings.title")}
       </h1>
 
       <SettingsForm
@@ -300,7 +303,7 @@ const SettingsPage = () => {
             isDarkMode ? "text-white" : "text-slate-900"
           }`}
         >
-          Account
+          {t("settings.account")}
         </h2>
         <div className="space-y-3">
           <button
@@ -312,14 +315,14 @@ const SettingsPage = () => {
             }`}
           >
             <LogOut size={18} />
-            Sign Out
+            {t("settings.sign_out")}
           </button>
           <button
             onClick={handleDeleteAccount}
             className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border-4 border-rose-500 font-black uppercase tracking-widest text-rose-500 transition-all active:scale-95 hover:bg-rose-500 hover:text-white shadow-[4px_4px_0px_0px_#f43f5e]"
           >
             <Trash2 size={18} />
-            Delete Account
+            {t("settings.delete_account")}
           </button>
         </div>
       </div>

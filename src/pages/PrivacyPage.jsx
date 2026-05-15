@@ -1,9 +1,11 @@
 import PropTypes from "prop-types";
+import { useTranslation } from "react-i18next";
 
 const PrivacyPage = () => {
+  const { t } = useTranslation();
   return (
     <div className="max-w-4xl mx-auto px-4 py-16">
-      <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
+      <h1 className="text-4xl font-bold mb-8">{t('privacy.title')}</h1>
 
       <div className="space-y-8">
         <section>

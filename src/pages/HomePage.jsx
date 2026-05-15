@@ -1,9 +1,14 @@
 import { ArrowRight, Mic, MessageSquare, Calendar, Users, Globe, Sparkles, Zap } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import FeatureCard from "../components/FeatureCard";
 
 const HomePage = () => {
   const { isDarkMode } = useAppContext();
+  const { t } = useTranslation();
+
+  const languagePills = t('home.language_pills', { returnObjects: true });
+  const marqueeItems = t('home.marquee', { returnObjects: true });
 
   return (
     <>
@@ -29,22 +34,22 @@ const HomePage = () => {
               size={18}
               className={isDarkMode ? "text-yellow-400" : "text-blue-600"}
             />
-            <span>THE AI REVOLUTION IS HERE</span>
+            <span>{t('home.badge')}</span>
           </div>
 
           <h1 className="text-6xl md:text-8xl lg:text-9xl font-black mb-8 tracking-tighter leading-[0.9]">
-            <span className="block">Ask AI</span>
+            <span className="block">{t('home.hero_line1')}</span>
             <span
               className={`block my-2 mx-auto w-fit px-4 border-4 -rotate-2 hover:rotate-2 transition-transform duration-300
               ${isDarkMode ? "bg-yellow-400 text-slate-900 border-slate-900" : "bg-blue-600 text-white border-slate-900 neo-shadow-light"}`}
             >
-              Everything
+              {t('home.hero_highlight')}
             </span>
-            <span className="block">about Portuguese</span>
+            <span className="block">{t('home.hero_line2')}</span>
           </h1>
 
           <p className="text-xl md:text-3xl font-semibold mb-12 max-w-3xl mx-auto leading-relaxed opacity-90">
-            The first platform that teaches you European Portuguese from any language or dialect you speak. AI-powered, human-supported.
+            {t('home.subtitle')}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-6 sm:space-y-0 sm:space-x-6">
@@ -56,7 +61,7 @@ const HomePage = () => {
                   : "bg-yellow-400 border-slate-900 text-slate-900 hover-neo-light"
               }`}
             >
-              Start Learning Now
+              {t('home.cta_start')}
               <ArrowRight className="ml-3 w-8 h-8 group-hover:translate-x-3 transition-transform" />
             </button>
           </div>
@@ -70,21 +75,12 @@ const HomePage = () => {
       >
         <div className="marquee-container">
           <div className="marquee-content font-black text-3xl uppercase tracking-widest flex space-x-12">
-            <span>LEARN PORTUGUESE FAST</span>
-            <span>•</span>
-            <span>NO BORING GRAMMAR</span>
-            <span>•</span>
-            <span>AI POWERED</span>
-            <span>•</span>
-            <span>NATIVE SLANG</span>
-            <span>•</span>
-            <span>LEARN PORTUGUESE FAST</span>
-            <span>•</span>
-            <span>NO BORING GRAMMAR</span>
-            <span>•</span>
-            <span>AI POWERED</span>
-            <span>•</span>
-            <span>NATIVE SLANG</span>
+            {Array.isArray(marqueeItems) && marqueeItems.map((text, idx) => (
+              <span key={idx}>{idx > 0 && idx % 2 === 1 ? '•' : text}</span>
+            ))}
+            {Array.isArray(marqueeItems) && marqueeItems.map((text, idx) => (
+              <span key={`repeat-${idx}`}>{idx > 0 && idx % 2 === 1 ? '•' : text}</span>
+            ))}
           </div>
         </div>
       </div>
@@ -94,25 +90,25 @@ const HomePage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <FeatureCard
             icon={Mic}
-            title="24/7 AI Voice Tutor"
+            title={t('home.features.voice_tutor')}
             delay="0s"
             color="bg-yellow-400 text-slate-900"
           />
           <FeatureCard
             icon={MessageSquare}
-            title="Urban Dictionary"
+            title={t('home.features.urban_dictionary')}
             delay="0.2s"
             color="bg-blue-400 text-slate-900"
           />
           <FeatureCard
             icon={Calendar}
-            title="Smart Scheduler"
+            title={t('home.features.smart_scheduler')}
             delay="0.4s"
             color="bg-pink-400 text-slate-900"
           />
           <FeatureCard
             icon={Users}
-            title="Human Tutor Sessions"
+            title={t('home.features.human_sessions')}
             delay="0.6s"
             color="bg-green-400 text-slate-900"
           />
@@ -130,19 +126,13 @@ const HomePage = () => {
             style={{ animationDuration: "10s" }}
           />
           <h3 className="text-4xl md:text-5xl font-black mb-6 uppercase">
-            The Universal Input
+            {t('home.universal_input.title')}
           </h3>
           <p className="text-xl md:text-2xl font-semibold mb-10 max-w-2xl opacity-80">
-            Learning from Irish? Irish Gaelic? Mandarin? Just type it. Our AI
-            bridges the gap.
+            {t('home.universal_input.subtitle')}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            {[
-              "Gaelic ➜ PT",
-              "US English ➜ PT",
-              "Thai ➜ PT",
-              "Aussie Slang ➜ PT",
-            ].map((item, i) => (
+            {Array.isArray(languagePills) && languagePills.map((item, i) => (
               <span
                 key={i}
                 className={`px-6 py-3 font-bold border-2 rounded-full text-lg wiggle-hover cursor-pointer

@@ -24,7 +24,8 @@
     "universal_input": {
       "title": "L'Input Universel",
       "subtitle": "Tu apprends depuis l'irlandais ? Le gaélique ? Le mandarin ? Écris-le. Notre IA fait le pont."
-    }
+    },
+    "language_pills": ["Gaélique ➜ PT", "Anglais US ➜ PT", "Thaï ➜ PT", "Argot Australien ➜ PT"]
   },
   "login": {
     "title": "Se connecter",
@@ -36,24 +37,42 @@
     "terms_note": "En te connectant tu acceptes nos",
     "terms": "Conditions",
     "privacy": "Politique de confidentialité",
-    "not_available": "Cette méthode de connexion n'est pas encore disponible — reviens bientôt !"
+    "not_available": "Cette méthode de connexion n'est pas encore disponible — reviens bientôt !",
+    "signing_in": "Connexion avec Google…",
+    "back_home": "Retour à l'accueil"
   },
   "contact": {
     "title": "Nous contacter",
     "subtitle": "Des questions sur le Portugais Européen ? Notre équipe est là pour t'aider.",
+    "title_touch": "Touch",
     "email_label": "Écris-nous",
     "whatsapp_label": "WhatsApp (réponse la plus rapide)",
     "location_label": "Localisation",
     "location_value": "🌍 100% Distanciel & Mondial",
     "hours_label": "Horaires",
     "hours_value": "🟢 24h/24 / 365 jours",
+    "faq_title": "Questions Fréquentes",
+    "faq_q1": "À quelle vitesse vais-je recevoir une réponse ?",
+    "faq_a1": "Nous répondons généralement sous 24 heures en jours ouvrés. Pour les urgences, utilise WhatsApp pour une réponse plus rapide.",
+    "faq_q2": "Proposez-vous des plans personnalisés pour les écoles ?",
+    "faq_a2": "Oui ! Nous avons des forfaits éducatifs spéciaux pour les écoles et les instituts de langues. Envoyez-nous un message pour discuter de vos besoins.",
+    "faq_q3": "Puis-je demander de nouvelles fonctionnalités ?",
+    "faq_a3": "Absolument ! Nous adorons entendre les suggestions des utilisateurs. Beaucoup de nos meilleures fonctionnalités proviennent directement des demandes des utilisateurs.",
+    "faq_q4": "Multi Lingo AI est-il vraiment 100 % à distance ?",
+    "faq_a4": "Oui ! Nous sommes une équipe entièrement distribuée travaillant depuis des plages, des cafés et des espaces de coworking dans le monde entier. Pas de bureau, pas de code vestimentaire, juste un excellent apprentissage des langues.",
     "form": {
       "name": "Nom complet",
       "name_placeholder": "Nuno Silva",
       "email": "Email",
       "email_placeholder": "nuno@exemple.fr",
       "phone": "Téléphone (Optionnel)",
+      "phone_placeholder": "+33 6 12 34 56 78",
       "subject": "Sujet",
+      "subject_general": "Question Générale",
+      "subject_support": "Support Technique",
+      "subject_feedback": "Retour d'expérience",
+      "subject_business": "Demande Commerciale",
+      "subject_bug": "Signaler un bug",
       "message": "Message",
       "message_placeholder": "Qu'as-tu en tête ?",
       "submit": "Envoyer le message",
@@ -76,5 +95,58 @@
   },
   "privacy": {
     "title": "Politique de confidentialité"
+  },
+  "settings": {
+    "back_to_dashboard": "Retour au tableau de bord",
+    "title": "Paramètres",
+    "profile": "Profil",
+    "display_name": "Nom d'affichage",
+    "display_name_placeholder": "Ton nom d'affichage",
+    "email": "E-mail",
+    "appearance": "Apparence",
+    "app_theme": "Thème de l'application",
+    "dark_mode": "Mode sombre",
+    "light_mode": "Mode clair",
+    "interface_language": "Langue de l'interface",
+    "save_settings": "Enregistrer les paramètres",
+    "saving": "Enregistrement en cours...",
+    "account": "Compte",
+    "sign_out": "Se déconnecter",
+    "delete_account": "Supprimer le compte",
+    "errors": {
+      "not_signed_in": "Tu dois être connecté pour enregistrer les paramètres.",
+      "save_failed": "Impossible d'enregistrer les paramètres. Veuillez réessayer.",
+      "network_error": "Impossible d'atteindre le serveur. Vérifiez votre connexion et réessayez."
+    },
+    "success_message": "Paramètres enregistrés avec succès !",
+    "delete_not_implemented": "La suppression du compte n'est pas encore implémentée."
+  },
+  "dashboard": {
+    "loading": "Chargement de ton tableau de bord…",
+    "welcome": "Salut, {{name}} 👋",
+    "welcome_subtitle": "Bienvenue dans ton centre d'apprentissage linguistique",
+    "your_progress": "Ton Progrès",
+    "languages": "Langues",
+    "sessions": "Sessions",
+    "day_streak": "Série du jour",
+    "words": "Mots",
+    "recent_activity": "Activité récente",
+    "spanish_conversation": "Conversation en espagnol",
+    "french_vocabulary": "Vocabulaire français",
+    "japanese_basics": "Notions de base du japonais",
+    "today": "Aujourd'hui",
+    "yesterday": "Hier",
+    "two_days_ago": "Il y a 2 jours",
+    "what_you_can_do": "Ce que tu peux faire",
+    "voice_practice": "Pratique vocale",
+    "voice_practice_desc": "Parle et reçois des commentaires instantanés d'une IA sur ta prononciation.",
+    "ai_conversation": "Conversation avec l'IA",
+    "ai_conversation_desc": "Discute avec un tuteur IA dans ta langue cible.",
+    "daily_challenges": "Défis quotidiens",
+    "daily_challenges_desc": "De nouveaux exercices chaque jour pour maintenir ta série.",
+    "community": "Communauté",
+    "community_desc": "Pratique avec des locuteurs natifs et d'autres apprenants.",
+    "quick_actions": "Actions rapides",
+    "start_session": "Commencer une session"
   }
 }

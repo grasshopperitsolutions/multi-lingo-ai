@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -7,12 +8,13 @@ import Loader from "../components/Loader";
 
 const LoginPage = () => {
   const { isDarkMode, showAlert, loginGoogle } = useAppContext();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleNotImplemented = (e) => {
     e.preventDefault();
-    showAlert("error", "This sign-in method isn't available yet — check back soon!");
+    showAlert("error", t('login.not_available'));
   };
 
   const handleGoogle = async () => {
@@ -33,7 +35,7 @@ const LoginPage = () => {
       {isLoading && (
         <Loader
           fullScreen
-          message="Signing in with Google…"
+          message={t('login.signing_in')}
           isDarkMode={isDarkMode}
         />
       )}
@@ -52,7 +54,7 @@ const LoginPage = () => {
               }`}
           >
             <ArrowLeft size={16} />
-            Back Home
+            {t('login.back_home')}
           </button>
         </div>
 
@@ -74,10 +76,10 @@ const LoginPage = () => {
 
           {/* Heading */}
           <h1 className="text-4xl font-black uppercase tracking-tighter text-center mb-2">
-            Sign In
+            {t('login.title')}
           </h1>
           <p className="text-center font-bold opacity-60 mb-10 italic">
-            Choose your preferred sign-in method to continue.
+            {t('login.subtitle')}
           </p>
 
           {/* Social Buttons — icon-only, horizontal row */}
@@ -86,7 +88,7 @@ const LoginPage = () => {
             <button
               onClick={handleGoogle}
               disabled={isLoading}
-              aria-label="Continue with Google"
+              aria-label={t('login.google')}
               className={`w-16 h-16 flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
               ${
                 isDarkMode
@@ -106,7 +108,7 @@ const LoginPage = () => {
             <button
               onClick={handleNotImplemented}
               disabled={isLoading}
-              aria-label="Continue with Apple"
+              aria-label={t('login.apple')}
               className={`w-16 h-16 flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
               ${
                 isDarkMode
@@ -123,7 +125,7 @@ const LoginPage = () => {
             <button
               onClick={handleNotImplemented}
               disabled={isLoading}
-              aria-label="Continue with Facebook"
+              aria-label={t('login.facebook')}
               className={`w-16 h-16 flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
               ${
                 isDarkMode
@@ -140,7 +142,7 @@ const LoginPage = () => {
             <button
               onClick={handleNotImplemented}
               disabled={isLoading}
-              aria-label="Continue with X"
+              aria-label={t('login.x')}
               className={`w-16 h-16 flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
               ${
                 isDarkMode
@@ -156,10 +158,10 @@ const LoginPage = () => {
 
           {/* Footer note */}
           <p className="mt-10 text-center text-sm font-bold opacity-50">
-            By signing in you agree to our{" "}
-            <Link to="/terms" className="underline hover:opacity-100">Terms</Link>
-            {" "}&amp;{" "}
-            <Link to="/privacy" className="underline hover:opacity-100">Privacy Policy</Link>.
+            {t('login.terms_note')}{" "}
+            <Link to="/terms" className="underline hover:opacity-100">{t('login.terms')}</Link>
+            {" "}&{" "}
+            <Link to="/privacy" className="underline hover:opacity-100">{t('login.privacy')}</Link>.
           </p>
         </div>
       </main>

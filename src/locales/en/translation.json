@@ -24,7 +24,8 @@
     "universal_input": {
       "title": "The Universal Input",
       "subtitle": "Learning from Irish? Irish Gaelic? Mandarin? Just type it. Our AI bridges the gap."
-    }
+    },
+    "language_pills": ["Gaelic ➜ PT", "US English ➜ PT", "Thai ➜ PT", "Aussie Slang ➜ PT"]
   },
   "login": {
     "title": "Sign In",
@@ -36,24 +37,42 @@
     "terms_note": "By signing in you agree to our",
     "terms": "Terms",
     "privacy": "Privacy Policy",
-    "not_available": "This sign-in method isn't available yet — check back soon!"
+    "not_available": "This sign-in method isn't available yet — check back soon!",
+    "signing_in": "Signing in with Google…",
+    "back_home": "Back Home"
   },
   "contact": {
     "title": "Get in Touch",
     "subtitle": "Got questions about European Portuguese? Our flock is here to help you soar.",
+    "title_touch": "Touch",
     "email_label": "Email us",
     "whatsapp_label": "WhatsApp (fastest reply)",
     "location_label": "Location",
     "location_value": "🌍 Fully Remote & Worldwide",
     "hours_label": "Working Hours",
     "hours_value": "🟢 24/7 / 365 Days",
+    "faq_title": "Frequently Asked Questions",
+    "faq_q1": "How quickly will I get a reply?",
+    "faq_a1": "We usually reply within 24 hours during business days. For urgent matters, use WhatsApp for fastest response.",
+    "faq_q2": "Do you offer custom plans for schools?",
+    "faq_a2": "Yes! We have special educational packages for schools and language institutes. Send us a message to discuss your needs.",
+    "faq_q3": "Can I request new features?",
+    "faq_a3": "Absolutely! We love hearing user suggestions. Many of our best features came directly from user requests.",
+    "faq_q4": "Is Multi Lingo AI really 100% remote?",
+    "faq_a4": "Yes! We are a fully distributed team working from beaches, cafes and co-working spaces around the world. No office, no dress code, just great language learning.",
     "form": {
       "name": "Full Name",
       "name_placeholder": "Nuno Silva",
       "email": "Email",
       "email_placeholder": "nuno@example.com",
       "phone": "Phone (Optional)",
+      "phone_placeholder": "+33 6 12 34 56 78",
       "subject": "Subject",
+      "subject_general": "General Question",
+      "subject_support": "Technical Support",
+      "subject_feedback": "Feedback",
+      "subject_business": "Business Enquiry",
+      "subject_bug": "Bug Report",
       "message": "Message",
       "message_placeholder": "What's on your mind?",
       "submit": "Send Message",
@@ -76,5 +95,58 @@
   },
   "privacy": {
     "title": "Privacy Policy"
+  },
+  "settings": {
+    "back_to_dashboard": "Back to Dashboard",
+    "title": "Settings",
+    "profile": "Profile",
+    "display_name": "Display Name",
+    "display_name_placeholder": "Your display name",
+    "email": "Email",
+    "appearance": "Appearance",
+    "app_theme": "App Theme",
+    "dark_mode": "Dark Mode",
+    "light_mode": "Light Mode",
+    "interface_language": "Interface Language",
+    "save_settings": "Save Settings",
+    "saving": "Saving...",
+    "account": "Account",
+    "sign_out": "Sign Out",
+    "delete_account": "Delete Account",
+    "errors": {
+      "not_signed_in": "You must be signed in to save settings.",
+      "save_failed": "Failed to save settings. Please try again.",
+      "network_error": "Could not reach the server. Please check your connection and try again."
+    },
+    "success_message": "Settings saved successfully!",
+    "delete_not_implemented": "Account deletion isn't implemented yet."
+  },
+  "dashboard": {
+    "loading": "Loading your dashboard…",
+    "welcome": "Hey, {{name}} 👋",
+    "welcome_subtitle": "Welcome back to your language hub",
+    "your_progress": "Your Progress",
+    "languages": "Languages",
+    "sessions": "Sessions",
+    "day_streak": "Day Streak",
+    "words": "Words",
+    "recent_activity": "Recent Activity",
+    "spanish_conversation": "Spanish Conversation",
+    "french_vocabulary": "French Vocabulary",
+    "japanese_basics": "Japanese Basics",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "two_days_ago": "2 days ago",
+    "what_you_can_do": "What You Can Do",
+    "voice_practice": "Voice Practice",
+    "voice_practice_desc": "Speak and get instant AI feedback on your pronunciation.",
+    "ai_conversation": "AI Conversation",
+    "ai_conversation_desc": "Chat with an AI tutor in your target language.",
+    "daily_challenges": "Daily Challenges",
+    "daily_challenges_desc": "New exercises every day to keep your streak alive.",
+    "community": "Community",
+    "community_desc": "Practice with native speakers and fellow learners.",
+    "quick_actions": "Quick Actions",
+    "start_session": "Start Session"
   }
 }

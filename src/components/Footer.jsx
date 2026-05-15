@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import BarcelosRooster from "./BarcelosRooster";
 
 const Footer = () => {
   const { isDarkMode } = useAppContext();
+  const { t } = useTranslation();
 
   return (
     <footer
@@ -19,25 +21,25 @@ const Footer = () => {
             Multi Lingo AI
           </span>
         </div>
-        <p className="opacity-70">© 2026 Multi Lingo AI. Built for language learners worldwide.</p>
+        <p className="opacity-70">{t('footer.tagline')}</p>
         <div className="flex space-x-6">
           <Link
             to="/privacy"
             className="hover:text-blue-600 hover:-translate-y-1 transition-transform"
           >
-            Privacy
+            {t('footer.privacy')}
           </Link>
           <Link
             to="/terms"
             className="hover:text-blue-600 hover:-translate-y-1 transition-transform"
           >
-            Terms
+            {t('footer.terms')}
           </Link>
           <Link
             to="/contact"
             className="hover:text-blue-600 hover:-translate-y-1 transition-transform"
           >
-            Contact
+            {t('footer.contact')}
           </Link>
         </div>
       </div>

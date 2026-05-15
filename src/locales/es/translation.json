@@ -24,7 +24,8 @@
     "universal_input": {
       "title": "El Input Universal",
       "subtitle": "¿Aprendes desde el irlandés? ¿Gaélico? ¿Mandarín? Escríbelo. Nuestra IA tiende el puente."
-    }
+    },
+    "language_pills": ["Gaélico ➜ PT", "Inglés EE. UU. ➜ PT", "Tailandés ➜ PT", "Jerga Australiana ➜ PT"]
   },
   "login": {
     "title": "Iniciar sesión",
@@ -36,24 +37,42 @@
     "terms_note": "Al iniciar sesión aceptas nuestros",
     "terms": "Términos",
     "privacy": "Política de Privacidad",
-    "not_available": "Este método de autenticación aún no está disponible — ¡vuelve pronto!"
+    "not_available": "Este método de autenticación aún no está disponible — ¡vuelve pronto!",
+    "signing_in": "Iniciando sesión con Google…",
+    "back_home": "Volver al Inicio"
   },
   "contact": {
     "title": "Contáctanos",
     "subtitle": "¿Tienes preguntas sobre el Portugués Europeo? Nuestro equipo está aquí para ayudarte.",
+    "title_touch": "Touch",
     "email_label": "Escríbenos",
     "whatsapp_label": "WhatsApp (respuesta más rápida)",
     "location_label": "Ubicación",
     "location_value": "🌍 100% Remoto y Mundial",
     "hours_label": "Horario",
     "hours_value": "🟢 24h/7 días / 365 días",
+    "faq_title": "Preguntas Frecuentes",
+    "faq_q1": "¿Qué tan rápido obtendré una respuesta?",
+    "faq_a1": "Normalmente respondemos dentro de las 24 horas en días hábiles. Para asuntos urgentes, usa WhatsApp para obtener la respuesta más rápida.",
+    "faq_q2": "¿Ofrecen planes personalizados para escuelas?",
+    "faq_a2": "¡Sí! Tenemos paquetes educativos especiales para escuelas e institutos de idiomas. Envíanos un mensaje para discutir tus necesidades.",
+    "faq_q3": "¿Puedo solicitar nuevas funciones?",
+    "faq_a3": "¡Por supuesto! Nos encanta escuchar sugerencias de los usuarios. Muchas de nuestras mejores funciones provinieron directamente de las solicitudes de los usuarios.",
+    "faq_q4": "¿Multi Lingo AI es realmente 100% remoto?",
+    "faq_a4": "¡Sí! Somos un equipo totalmente distribuido que trabaja desde playas, cafeterías y espacios de coworking alrededor del mundo. Sin oficina, sin código de vestimenta, solo un gran aprendizaje de idiomas.",
     "form": {
       "name": "Nombre completo",
       "name_placeholder": "Nuno Silva",
       "email": "Correo electrónico",
       "email_placeholder": "nuno@ejemplo.com",
       "phone": "Teléfono (Opcional)",
+      "phone_placeholder": "+33 6 12 34 56 78",
       "subject": "Asunto",
+      "subject_general": "Pregunta General",
+      "subject_support": "Soporte Técnico",
+      "subject_feedback": "Comentarios",
+      "subject_business": "Consulta Comercial",
+      "subject_bug": "Reportar Error",
       "message": "Mensaje",
       "message_placeholder": "¿Qué tienes en mente?",
       "submit": "Enviar mensaje",
@@ -76,5 +95,58 @@
   },
   "privacy": {
     "title": "Política de Privacidad"
+  },
+  "settings": {
+    "back_to_dashboard": "Volver al Panel",
+    "title": "Configuración",
+    "profile": "Perfil",
+    "display_name": "Nombre Mostrado",
+    "display_name_placeholder": "Tu nombre mostrado",
+    "email": "Correo",
+    "appearance": "Apariencia",
+    "app_theme": "Tema de la Aplicación",
+    "dark_mode": "Modo Oscuro",
+    "light_mode": "Modo Claro",
+    "interface_language": "Idioma de Interfaz",
+    "save_settings": "Guardar Configuración",
+    "saving": "Guardando...",
+    "account": "Cuenta",
+    "sign_out": "Cerrar Sesión",
+    "delete_account": "Eliminar Cuenta",
+    "errors": {
+      "not_signed_in": "Debes iniciar sesión para guardar la configuración.",
+      "save_failed": "Error al guardar la configuración. Inténtalo de nuevo.",
+      "network_error": "No se pudo alcanzar el servidor. Verifica tu conexión e intenta de nuevo."
+    },
+    "success_message": "¡Configuración guardada exitosamente!",
+    "delete_not_implemented": "La eliminación de cuenta aún no está implementada."
+  },
+  "dashboard": {
+    "loading": "Cargando tu panel…",
+    "welcome": "Hola, {{name}} 👋",
+    "welcome_subtitle": "Bienvenido de vuelta a tu centro de idiomas",
+    "your_progress": "Tu Progreso",
+    "languages": "Idiomas",
+    "sessions": "Sesiones",
+    "day_streak": "Racha de Días",
+    "words": "Palabras",
+    "recent_activity": "Actividad Reciente",
+    "spanish_conversation": "Conversación en Español",
+    "french_vocabulary": "Vocabulario en Francés",
+    "japanese_basics": "Conceptos Básicos de Japonés",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "two_days_ago": "Hace 2 días",
+    "what_you_can_do": "Lo Que Puedes Hacer",
+    "voice_practice": "Práctica de Voz",
+    "voice_practice_desc": "Habla y obtén retroalimentación instantánea de IA sobre tu pronunciación.",
+    "ai_conversation": "Conversación con IA",
+    "ai_conversation_desc": "Chatea con un tutor de IA en tu idioma de destino.",
+    "daily_challenges": "Desafíos Diarios",
+    "daily_challenges_desc": "Nuevos ejercicios cada día para mantener viva tu racha.",
+    "community": "Comunidad",
+    "community_desc": "Practica con hablantes nativos y compañeros aprendices.",
+    "quick_actions": "Acciones Rápidas",
+    "start_session": "Iniciar Sesión"
   }
 }

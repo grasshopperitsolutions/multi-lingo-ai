@@ -24,9 +24,9 @@ i18n
     },
     detection: {
       // Detect from browser navigator, then html lang attribute
-      order: ['navigator', 'htmlTag'],
-      // No caching — avoids localStorage (blocked in SSG/sandboxed contexts)
-      caches: [],
+      order: ['localStorage', 'navigator', 'htmlTag'],
+      // Cache in localStorage for persistence between sessions
+      caches: ['localStorage'],
     },
   });
 

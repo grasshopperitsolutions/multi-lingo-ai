@@ -24,7 +24,8 @@
     "universal_input": {
       "title": "O Input Universal",
       "subtitle": "Estás a aprender do Irlandês? Gaélico? Mandarim? Escreve e pronto. A nossa IA faz a ponte."
-    }
+    },
+    "language_pills": ["Gaélico ➜ PT", "Inglês EUA ➜ PT", "Tailandês ➜ PT", "Calão Australiano ➜ PT"]
   },
   "login": {
     "title": "Entrar",
@@ -36,24 +37,42 @@
     "terms_note": "Ao entrar, concordas com os nossos",
     "terms": "Termos",
     "privacy": "Política de Privacidade",
-    "not_available": "Este método de autenticação ainda não está disponível — volta em breve!"
+    "not_available": "Este método de autenticação ainda não está disponível — volta em breve!",
+    "signing_in": "A entrar com o Google…",
+    "back_home": "Voltar ao Início"
   },
   "contact": {
     "title": "Fala Connosco",
     "subtitle": "Tens dúvidas sobre Português Europeu? O nosso bando está aqui para te ajudar.",
+    "title_touch": "Touch",
     "email_label": "Email",
     "whatsapp_label": "WhatsApp (resposta mais rápida)",
     "location_label": "Localização",
     "location_value": "🌍 100% Remoto & Mundial",
     "hours_label": "Horário",
     "hours_value": "🟢 24h/7 dias / 365 Dias",
+    "faq_title": "Perguntas Frequentes",
+    "faq_q1": "Quão rápido vou receber resposta?",
+    "faq_a1": "Normalmente respondemos dentro de 24 horas em dias úteis. Para assuntos urgentes, usa o WhatsApp para a resposta mais rápida.",
+    "faq_q2": "Oferecem planos personalizados para escolas?",
+    "faq_a2": "Sim! Temos pacotes educativos especiais para escolas e institutos de línguas. Envia-nos uma mensagem para discutir as tuas necessidades.",
+    "faq_q3": "Posso solicitar novas funcionalidades?",
+    "faq_a3": "Claro! Adoramos ouvir sugestões dos utilizadores. Muitas das nossas melhores funcionalidades vieram diretamente de pedidos de utilizadores.",
+    "faq_q4": "O Multi Lingo AI é realmente 100% remoto?",
+    "faq_a4": "Sim! Somos uma equipa totalmente distribuída a trabalhar de praias, cafés e espaços de coworking em todo o mundo. Sem escritório, sem código de vestuário, apenas grande aprendizagem de línguas.",
     "form": {
       "name": "Nome Completo",
       "name_placeholder": "Nuno Silva",
       "email": "Email",
       "email_placeholder": "nuno@exemplo.pt",
       "phone": "Telefone (Opcional)",
+      "phone_placeholder": "+33 6 12 34 56 78",
       "subject": "Assunto",
+      "subject_general": "Pergunta Geral",
+      "subject_support": "Suporte Técnico",
+      "subject_feedback": "Feedback",
+      "subject_business": "Consulta Comercial",
+      "subject_bug": "Reportar Erro",
       "message": "Mensagem",
       "message_placeholder": "O que tens em mente?",
       "submit": "Enviar Mensagem",
@@ -76,5 +95,58 @@
   },
   "privacy": {
     "title": "Política de Privacidade"
+  },
+  "settings": {
+    "back_to_dashboard": "Voltar ao Painel",
+    "title": "Definições",
+    "profile": "Perfil",
+    "display_name": "Nome de Exibição",
+    "display_name_placeholder": "O teu nome de exibição",
+    "email": "E-mail",
+    "appearance": "Aparência",
+    "app_theme": "Tema da Aplicação",
+    "dark_mode": "Modo Escuro",
+    "light_mode": "Modo Claro",
+    "interface_language": "Idioma da Interface",
+    "save_settings": "Guardar Definições",
+    "saving": "A guardar...",
+    "account": "Conta",
+    "sign_out": "Sair",
+    "delete_account": "Eliminar Conta",
+    "errors": {
+      "not_signed_in": "Debes estar autenticado para guardar as definições.",
+      "save_failed": "Falha ao guardar as definições. Tenta novamente.",
+      "network_error": "Não foi possível alcançar o servidor. Verifica a tua ligação e tenta novamente."
+    },
+    "success_message": "Definições guardadas com sucesso!",
+    "delete_not_implemented": "A eliminação de conta ainda não está implementada."
+  },
+  "dashboard": {
+    "loading": "A carregar o teu painel…",
+    "welcome": "Olá, {{name}} 👋",
+    "welcome_subtitle": "Bem-vindo de volta ao teu centro de aprendizagem linguística",
+    "your_progress": "O Teu Progresso",
+    "languages": "Idiomas",
+    "sessions": "Sessões",
+    "day_streak": "Série de Dias",
+    "words": "Palavras",
+    "recent_activity": "Atividade Recente",
+    "spanish_conversation": "Conversa em Espanhol",
+    "french_vocabulary": "Vocabulário em Francês",
+    "japanese_basics": "Conceitos Básicos de Japonês",
+    "today": "Hoje",
+    "yesterday": "Ontem",
+    "two_days_ago": "Há 2 dias",
+    "what_you_can_do": "O Que Podes Fazer",
+    "voice_practice": "Prática de Voz",
+    "voice_practice_desc": "Fala e recebe feedback instantâneo de IA sobre a tua pronúncia.",
+    "ai_conversation": "Conversa com a IA",
+    "ai_conversation_desc": "Conversa com um tutor de IA no teu idioma alvo.",
+    "daily_challenges": "Desafios Diários",
+    "daily_challenges_desc": "Novos exercícios todos os dias para manter viva a tua série.",
+    "community": "Comunidade",
+    "community_desc": "Pratica com falantes nativos e outros aprendizes.",
+    "quick_actions": "Ações Rápidas",
+    "start_session": "Iniciar Sessão"
   }
 }

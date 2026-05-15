@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import FeatureCard from "../components/FeatureCard";
 import Loader from "../components/Loader";
@@ -66,6 +67,7 @@ const ActivityRow = ({ flag, title, date, score, isDarkMode }) => (
 
 const DashboardPage = () => {
   const { isDarkMode, user, logoutUser } = useAppContext();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   // Show loader while auth + Firestore profile are still being populated
@@ -73,7 +75,7 @@ const DashboardPage = () => {
     return (
       <Loader
         fullScreen
-        message="Loading your dashboard…"
+        message={t("dashboard.loading")}
         isDarkMode={isDarkMode}
       />
     );
@@ -85,23 +87,23 @@ const DashboardPage = () => {
   };
 
   const stats = [
-    { icon: BookOpen, label: "Languages", value: "3", color: "text-blue-500" },
-    { icon: Zap, label: "Sessions", value: "24", color: "text-yellow-500" },
-    { icon: Flame, label: "Day Streak", value: "7", color: "text-rose-500" },
-    { icon: Star, label: "Words", value: "312", color: "text-emerald-500" },
+    { icon: BookOpen, label: t("dashboard.languages"), value: "3", color: "text-blue-500" },
+    { icon: Zap, label: t("dashboard.sessions"), value: "24", color: "text-yellow-500" },
+    { icon: Flame, label: t("dashboard.day_streak"), value: "7", color: "text-rose-500" },
+    { icon: Star, label: t("dashboard.words"), value: "312", color: "text-emerald-500" },
   ];
 
   const activity = [
-    { flag: "🇪🇸", title: "Spanish Conversation", date: "Today", score: 92 },
-    { flag: "🇫🇷", title: "French Vocabulary", date: "Yesterday", score: 74 },
-    { flag: "🇯🇵", title: "Japanese Basics", date: "2 days ago", score: 58 },
+    { flag: "🇪🇸", title: t("dashboard.spanish_conversation"), date: t("dashboard.today"), score: 92 },
+    { flag: "🇫🇷", title: t("dashboard.french_vocabulary"), date: t("dashboard.yesterday"), score: 74 },
+    { flag: "🇯🇵", title: t("dashboard.japanese_basics"), date: t("dashboard.two_days_ago"), score: 58 },
   ];
 
   const features = [
-    { icon: Mic, title: "Voice Practice", description: "Speak and get instant AI feedback on your pronunciation." },
-    { icon: MessageSquare, title: "AI Conversation", description: "Chat with an AI tutor in your target language." },
-    { icon: Calendar, title: "Daily Challenges", description: "New exercises every day to keep your streak alive." },
-    { icon: Users, title: "Community", description: "Practice with native speakers and fellow learners." },
+    { icon: Mic, title: t("dashboard.voice_practice"), description: t("dashboard.voice_practice_desc") },
+    { icon: MessageSquare, title: t("dashboard.ai_conversation"), description: t("dashboard.ai_conversation_desc") },
+    { icon: Calendar, title: t("dashboard.daily_challenges"), description: t("dashboard.daily_challenges_desc") },
+    { icon: Users, title: t("dashboard.community"), description: t("dashboard.community_desc") },
   ];
 
   return (
@@ -112,11 +114,11 @@ const DashboardPage = () => {
           <h1 className={`text-4xl font-black uppercase tracking-tighter ${
             isDarkMode ? "text-white" : "text-slate-900"
           }`}>
-            Hey, {user?.displayName?.split(" ")[0] || "Learner"} 👋
+            {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || "Learner" })}
           </h1>
           <p className={`font-bold uppercase tracking-widest text-sm mt-1 ${
             isDarkMode ? "text-slate-400" : "text-slate-500"
-          }`}>Welcome back to your language hub</p>
+          }`}>{t("dashboard.welcome_subtitle")}</p>
         </div>
         <div className="flex gap-3">
           <button
@@ -126,7 +128,7 @@ const DashboardPage = () => {
                 ? "bg-slate-800 border-slate-700 text-white shadow-[4px_4px_0px_0px_#1e293b]"
                 : "bg-white border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
             }`}
-            aria-label="Settings"
+            aria-label={t("nav.settings")}
           >
             <Settings size={20} />
           </button>
@@ -137,7 +139,7 @@ const DashboardPage = () => {
                 ? "bg-slate-800 border-slate-700 text-rose-400 shadow-[4px_4px_0px_0px_#1e293b]"
                 : "bg-white border-slate-900 text-rose-500 shadow-[4px_4px_0px_0px_#0f172a]"
             }`}
-            aria-label="Sign out"
+            aria-label={t("nav.logout")}
           >
             <LogOut size={20} />
           </button>
@@ -148,7 +150,7 @@ const DashboardPage = () => {
       <section>
         <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
           isDarkMode ? "text-slate-400" : "text-slate-500"
-        }`}>Your Progress</h2>
+        }`}>{t("dashboard.your_progress")}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {stats.map((s) => (
             <StatCard key={s.label} {...s} isDarkMode={isDarkMode} />
@@ -160,7 +162,7 @@ const DashboardPage = () => {
       <section>
         <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
           isDarkMode ? "text-slate-400" : "text-slate-500"
-        }`}>Recent Activity</h2>
+        }`}>{t("dashboard.recent_activity")}</h2>
         <div className="space-y-3">
           {activity.map((a) => (
             <ActivityRow key={a.title} {...a} isDarkMode={isDarkMode} />
@@ -172,7 +174,7 @@ const DashboardPage = () => {
       <section>
         <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
           isDarkMode ? "text-slate-400" : "text-slate-500"
-        }`}>What You Can Do</h2>
+        }`}>{t("dashboard.what_you_can_do")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {features.map((f) => (
             <FeatureCard key={f.title} {...f} isDarkMode={isDarkMode} />
@@ -184,13 +186,13 @@ const DashboardPage = () => {
       <section>
         <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
           isDarkMode ? "text-slate-400" : "text-slate-500"
-        }`}>Quick Actions</h2>
+        }`}>{t("dashboard.quick_actions")}</h2>
         <div className="flex flex-col sm:flex-row gap-4">
           <button
             className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl border-4 font-black uppercase tracking-widest text-lg transition-all active:scale-95 hover:-translate-y-1
               bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a]`}
           >
-            <Zap size={22} /> Start Session
+            <Zap size={22} /> {t("dashboard.start_session")}
           </button>
           <button
             onClick={() => navigate("/settings")}
@@ -200,7 +202,7 @@ const DashboardPage = () => {
                 : "bg-white border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
             }`}
           >
-            <ArrowRight size={22} /> Explore Languages
+            <ArrowRight size={22} /> {t("nav.settings")}
           </button>
         </div>
       </section>

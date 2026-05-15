@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import {
   Mail,
@@ -14,6 +15,7 @@ import NeoDropdown from "../components/NeoDropdown";
 
 const ContactPage = () => {
   const { isDarkMode, showAlert } = useAppContext();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
   const [formData, setFormData] = useState({
@@ -28,7 +30,7 @@ const ContactPage = () => {
     e.preventDefault();
 
     if (!formData.name || !formData.email || !formData.message) {
-      showAlert("error", "Please fill all required fields");
+      showAlert("error", t('contact.form.error'));
       return;
     }
 
@@ -39,7 +41,7 @@ const ContactPage = () => {
       setIsLoading(false);
       showAlert(
         "success",
-        "Message sent successfully! We'll get back to you soon.",
+        t('contact.form.success'),
       );
       setFormData({
         name: "",
@@ -60,24 +62,20 @@ const ContactPage = () => {
 
   const faqs = [
     {
-      question: "How quickly will I get a reply?",
-      answer:
-        "We usually reply within 24 hours during business days. For urgent matters, use WhatsApp for fastest response.",
+      question: t('contact.faq_q1'),
+      answer: t('contact.faq_a1'),
     },
     {
-      question: "Do you offer custom plans for schools?",
-      answer:
-        "Yes! We have special educational packages for schools and language institutes. Send us a message to discuss your needs.",
+      question: t('contact.faq_q2'),
+      answer: t('contact.faq_a2'),
     },
     {
-      question: "Can I request new features?",
-      answer:
-        "Absolutely! We love hearing user suggestions. Many of our best features came directly from user requests.",
+      question: t('contact.faq_q3'),
+      answer: t('contact.faq_a3'),
     },
     {
-      question: "Is Multi Lingo AI really 100% remote?",
-      answer:
-        "Yes! We are a fully distributed team working from beaches, cafes and co-working spaces around the world. No office, no dress code, just great language learning.",
+      question: t('contact.faq_q4'),
+      answer: t('contact.faq_a4'),
     },
   ];
 
@@ -87,16 +85,15 @@ const ContactPage = () => {
         {/* Contact Info */}
         <div className="space-y-8">
           <h1 className="text-6xl md:text-7xl font-black uppercase tracking-tighter leading-none">
-            Get in <br />
+            {t('contact.title')} <br />
             <span
               className={`px-4 border-4 inline-block -rotate-2 hover:rotate-2 transition-transform duration-300 ${isDarkMode ? "bg-yellow-400 text-slate-900 border-slate-900" : "bg-blue-600 text-white border-slate-900 neo-shadow-light"}`}
             >
-              Touch
+              {t('contact.title_touch')}
             </span>
           </h1>
           <p className="text-xl font-bold italic opacity-80">
-            Got questions about European Portuguese? Our flock is here to help
-            you soar.
+            {t('contact.subtitle')}
           </p>
 
           <div className="space-y-4 pt-4">
@@ -109,7 +106,7 @@ const ContactPage = () => {
               </div>
               <div>
                 <p className="text-xs font-black uppercase opacity-50">
-                  Email us
+                  {t('contact.email_label')}
                 </p>
                 <p className="text-lg font-black tracking-tight">
                   grasshopper.it.solutions@gmail.com
@@ -128,7 +125,7 @@ const ContactPage = () => {
               </div>
               <div>
                 <p className="text-xs font-black uppercase opacity-50">
-                  WhatsApp (fastest reply)
+                  {t('contact.whatsapp_label')}
                 </p>
                 <p className="text-lg font-black tracking-tight">
                   +33 7 67 83 45 76
@@ -144,10 +141,10 @@ const ContactPage = () => {
               </div>
               <div>
                 <p className="text-xs font-black uppercase opacity-50">
-                  Location
+                  {t('contact.location_label')}
                 </p>
                 <p className="text-lg font-black tracking-tight">
-                  🌍 Fully Remote & Worldwide
+                  {t('contact.location_value')}
                 </p>
               </div>
             </div>
@@ -160,10 +157,10 @@ const ContactPage = () => {
               </div>
               <div>
                 <p className="text-xs font-black uppercase opacity-50">
-                  Working Hours
+                  {t('contact.hours_label')}
                 </p>
                 <p className="text-lg font-black tracking-tight">
-                  🟢 24/7 / 365 Days
+                  {t('contact.hours_value')}
                 </p>
               </div>
             </div>
@@ -177,11 +174,11 @@ const ContactPage = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label className="font-black uppercase text-xs tracking-widest ml-1">
-                Full Name <span className="text-rose-500">*</span>
+                {t('contact.form.name')} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
-                placeholder="Nuno Silva"
+                placeholder={t('contact.form.name_placeholder')}
                 className={inputClasses}
                 value={formData.name}
                 onChange={(e) =>
@@ -192,11 +189,11 @@ const ContactPage = () => {
 
             <div className="space-y-2">
               <label className="font-black uppercase text-xs tracking-widest ml-1">
-                Email <span className="text-rose-500">*</span>
+                {t('contact.form.email')} <span className="text-rose-500">*</span>
               </label>
               <input
                 type="email"
-                placeholder="nuno@exemplo.pt"
+                placeholder={t('contact.form.email_placeholder')}
                 className={inputClasses}
                 value={formData.email}
                 onChange={(e) =>
@@ -207,11 +204,11 @@ const ContactPage = () => {
 
             <div className="space-y-2">
               <label className="font-black uppercase text-xs tracking-widest ml-1">
-                Phone (Optional)
+                {t('contact.form.phone')}
               </label>
               <input
                 type="tel"
-                placeholder="+33 6 12 34 56 78"
+                placeholder={t('contact.form.phone_placeholder')}
                 className={inputClasses}
                 value={formData.phone}
                 onChange={(e) =>
@@ -221,27 +218,27 @@ const ContactPage = () => {
             </div>
 
             <NeoDropdown
-              label="Subject"
+              label={t('contact.form.subject')}
               isDarkMode={isDarkMode}
               value={formData.subject}
               onChange={(val) => setFormData({ ...formData, subject: val })}
               icon={HelpCircle}
               options={[
-                { value: "general", label: "General Question" },
-                { value: "support", label: "Technical Support" },
-                { value: "feedback", label: "Feedback" },
-                { value: "business", label: "Business Enquiry" },
-                { value: "bug", label: "Bug Report" },
+                { value: "general", label: t('contact.form.subject_general') },
+                { value: "support", label: t('contact.form.subject_support') },
+                { value: "feedback", label: t('contact.form.subject_feedback') },
+                { value: "business", label: t('contact.form.subject_business') },
+                { value: "bug", label: t('contact.form.subject_bug') },
               ]}
             />
 
             <div className="space-y-2">
               <label className="font-black uppercase text-xs tracking-widest ml-1">
-                Message <span className="text-rose-500">*</span>
+                {t('contact.form.message')} <span className="text-rose-500">*</span>
               </label>
               <textarea
                 rows="4"
-                placeholder="What's on your mind?"
+                placeholder={t('contact.form.message_placeholder')}
                 className={`${inputClasses} resize-none`}
                 value={formData.message}
                 onChange={(e) =>
@@ -258,10 +255,10 @@ const ContactPage = () => {
               ${isDarkMode ? "bg-yellow-400 border-slate-900 text-slate-900 hover-neo-dark" : "bg-blue-600 border-slate-900 text-white hover-neo-light"}`}
             >
               {isLoading ? (
-                "Sending..."
+                t('contact.form.sending')
               ) : (
                 <>
-                  Send Message{" "}
+                  {t('contact.form.submit')}{" "}
                   <Send
                     size={20}
                     className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"
@@ -276,7 +273,7 @@ const ContactPage = () => {
       {/* FAQ Section */}
       <div className="mt-24">
         <h2 className="text-4xl font-black uppercase tracking-tighter mb-12 text-center">
-          Frequently Asked Questions
+          {t('contact.faq_title')}
         </h2>
 
         <div className="max-w-3xl mx-auto space-y-4">
