@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { loginWithGoogle, logout as logoutUserService, getCurrentUser } from '../services/authService';
+import { loginWithGoogle, logout as logoutUserService } from '../services/authService';
 import { getUserProfile } from '../services/userService';
+import { auth } from '../firebase';
 import PropTypes from "prop-types";
 
 const AppContext = createContext();
@@ -38,21 +39,44 @@ export const AppProvider = ({ children }) => {
   };
 
   const refreshUser = async () => {
-    const authUser = await getCurrentUser();
-    if (authUser) {
-      // Update auth fields (including fresh token) before merging Firestore profile
-      setUser((prev) => ({ ...prev, ...authUser }));
-      await loadUserProfile(authUser);
-    }
+    const firebaseUser = auth?.currentUser;
+    if (!firebaseUser) return;
+    const token = await firebaseUser.getIdToken(true);
+    const authUser = {
+      uid: firebaseUser.uid,
+      email: firebaseUser.email,
+      displayName: firebaseUser.displayName,
+      photoURL: firebaseUser.photoURL,
+      emailVerified: firebaseUser.emailVerified,
+      token,
+    };
+    setUser((prev) => ({ ...prev, ...authUser }));
+    await loadUserProfile(authUser);
   };
 
+  // Persistent auth listener — stays alive for the app lifetime so token
+  // refreshes, custom-token re-auth, and session changes are always reflected.
   useEffect(() => {
-    getCurrentUser().then((authUser) => {
-      if (authUser) {
-        setUser(authUser);
+    if (!auth) return; // guard for SSG build where Firebase is not initialised
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser) {
+        const token = await firebaseUser.getIdToken();
+        const authUser = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+          emailVerified: firebaseUser.emailVerified,
+          token,
+        };
+        setUser((prev) => ({ ...prev, ...authUser }));
         loadUserProfile(authUser);
+      } else {
+        setUser(null);
+        setIsDarkMode(false);
       }
     });
+    return () => unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -13,6 +13,19 @@ import SettingsPage from "./pages/SettingsPage";
 import AlertMessage from "./components/Alert";
 import GlobalCompassCursor from "./components/GlobalCompassCursor";
 
+const PublicLayout = () => (
+  <>
+    <Header />
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+    </Routes>
+    <Footer />
+  </>
+);
+
 const AppLayout = () => {
   const { isDarkMode, alert, closeAlert } = useAppContext();
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
@@ -42,18 +55,15 @@ const AppLayout = () => {
         className={`min-h-screen transition-colors duration-500 flex flex-col overflow-x-hidden
         ${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-blue-50 text-slate-900"}`}
       >
-        <Header />
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          {/* Public pages — with Header and Footer */}
+          <Route path="/*" element={<PublicLayout />} />
+
+          {/* App pages — no Header or Footer */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/contact" element={<ContactPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<HomePage />} />
         </Routes>
-        <Footer />
       </div>
     </>
   );
