@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -256,13 +256,18 @@ const SettingsPage = () => {
   const [draftDarkMode, setDraftDarkMode] = useState(isDarkMode);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Sync form fields whenever the context user resolves (async Firestore load)
-  // or when the header theme toggle changes isDarkMode while on this page.
-  useEffect(() => {
+  // Track a composite key of all context values that should reset the form.
+  // When any of these change (e.g. async profile load resolves, header theme toggle),
+  // we adjust state during render — the pattern React docs recommend instead of
+  // calling setState inside an effect.
+  const [prevSyncKey, setPrevSyncKey] = useState("");
+  const syncKey = `${user?.uid || ""}-${user?.displayName || ""}-${user?.interfaceLang || ""}-${isDarkMode}`;
+  if (syncKey !== prevSyncKey) {
+    setPrevSyncKey(syncKey);
     if (user?.displayName) setDisplayName(user.displayName);
     if (user?.interfaceLang) setInterfaceLang(user.interfaceLang);
     setDraftDarkMode(isDarkMode);
-  }, [user?.displayName, user?.interfaceLang, isDarkMode]);
+  }
 
   const handleSave = async (e) => {
     e.preventDefault();
