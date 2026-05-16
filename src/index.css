@@ -39,6 +39,10 @@
   display: inline-block;
   animation: marquee 15s linear infinite;
 }
+.marquee-content-reverse {
+  display: inline-block;
+  animation: marquee-reverse 15s linear infinite;
+}
 
 @keyframes float {
   0% { transform: translateY(0px) rotate(0deg); }
@@ -52,4 +56,8 @@
 @keyframes marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+@keyframes marquee-reverse {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
 }

@@ -109,7 +109,7 @@ const ContactPage = () => {
                   {t('contact.email_label')}
                 </p>
                 <p className="text-lg font-black tracking-tight">
-                  grasshopper.it.solutions@gmail.com
+                  general@grasshoppersolutions.online
                 </p>
               </div>
             </a>
