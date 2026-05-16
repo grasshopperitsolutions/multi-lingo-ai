@@ -270,8 +270,8 @@ const ContactPage = () => {
         </div>
       </div>
 
-      {/* FAQ Section */}
-      <div className="mt-24">
+      {/* FAQ Section - keep this hidden untill specificaly asked to change */}
+      <div className="mt-24 hidden">
         <h2 className="text-4xl font-black uppercase tracking-tighter mb-12 text-center">
           {t('contact.faq_title')}
         </h2>
