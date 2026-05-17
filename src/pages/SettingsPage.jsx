@@ -411,7 +411,7 @@ const SettingsPage = () => {
           await uploadProfileImage(token, firebaseUser.uid, pendingFile);
           setPendingFile(null);
           setPreviewUrl(null);
-        } catch (uploadErr) {
+        } catch  {
           showAlert("error", "Failed to upload profile image. Please try again.");
           return;
         } finally {
