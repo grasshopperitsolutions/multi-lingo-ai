@@ -68,16 +68,31 @@ export const AppProvider = ({ children }) => {
     saveThemeToLocalStorage(isDark);
   };
 
+  /**
+   * Load the Firestore profile and merge it into user state.
+   *
+   * Priority for displayName and photoURL:
+   *   1. Firestore value  — set by the user in Settings (custom name / uploaded avatar)
+   *   2. Auth provider    — Google / Facebook / Apple / X display name and photo
+   *
+   * All other profile fields (theme, interfaceLang) have no provider fallback
+   * and come from Firestore only.
+   *
+   * @param {object} authUser - The raw Firebase Auth user object fields + token.
+   *                            Used as fallback source for displayName and photoURL.
+   */
   const loadUserProfile = async (authUser) => {
     if (!authUser?.token || !authUser?.uid) return;
     try {
       const profile = await getUserProfile(authUser.token, authUser.uid);
-      // Load theme from Firebase profile
+
+      // Theme — Firestore is source of truth; localStorage is fallback for guests
       if (profile?.theme) {
         setIsDarkMode(profile.theme === "dark");
         saveThemeToLocalStorage(profile.theme === "dark");
       }
-      // Load language from Firebase profile or fallback to localStorage/browser
+
+      // Language — Firestore → localStorage → default
       const lang =
         profile?.interfaceLang || localStorage.getItem("interfaceLang") || "en";
       setInterfaceLang(lang);
@@ -89,10 +104,12 @@ export const AppProvider = ({ children }) => {
 
       setUser((prev) => ({
         ...prev,
-        displayName: profile?.displayName ?? prev?.displayName,
+        // displayName: Firestore → auth provider → keep previous
+        displayName: profile?.displayName || authUser?.displayName || prev?.displayName,
+        // photoURL: Firestore → auth provider → keep previous
+        photoURL: profile?.photoURL || authUser?.photoURL || prev?.photoURL,
         interfaceLang: lang,
         theme: profile?.theme ?? "light",
-        photoURL: profile?.photoURL ?? prev?.photoURL,
       }));
     } catch (err) {
       showAlert("error", `Could not load your profile: ${err.message}`);
@@ -111,7 +128,15 @@ export const AppProvider = ({ children }) => {
       emailVerified: firebaseUser.emailVerified,
       token,
     };
-    setUser((prev) => ({ ...prev, ...authUser }));
+    // Only set non-profile fields immediately — displayName and photoURL
+    // are resolved by loadUserProfile (Firestore first, auth provider fallback)
+    setUser((prev) => ({
+      ...prev,
+      uid: authUser.uid,
+      email: authUser.email,
+      emailVerified: authUser.emailVerified,
+      token: authUser.token,
+    }));
     await loadUserProfile(authUser);
   };
 
@@ -124,7 +149,6 @@ export const AppProvider = ({ children }) => {
 
   // Persistent auth listener — stays alive for the app lifetime so token
   // refreshes, custom-token re-auth, and session changes are always reflected.
-  // Also loads saved preferences from localStorage on mount.
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
@@ -138,11 +162,18 @@ export const AppProvider = ({ children }) => {
           emailVerified: firebaseUser.emailVerified,
           token,
         };
-        setUser((prev) => ({ ...prev, ...authUser }));
+        // Only set non-profile fields immediately — displayName and photoURL
+        // are resolved by loadUserProfile (Firestore first, auth provider fallback)
+        setUser((prev) => ({
+          ...prev,
+          uid: authUser.uid,
+          email: authUser.email,
+          emailVerified: authUser.emailVerified,
+          token: authUser.token,
+        }));
         loadUserProfile(authUser);
       } else {
         setUser(null);
-        // On logout, use saved preferences from localStorage instead of hardcoding
         const savedTheme = getSavedTheme();
         setIsDarkMode(savedTheme);
       }
@@ -155,8 +186,7 @@ export const AppProvider = ({ children }) => {
     try {
       const result = await loginWithGoogle();
       // Do NOT call setUser or loadUserProfile here — onAuthStateChanged fires
-      // immediately after signInWithCustomToken and handles both, avoiding a
-      // double render and a redundant Firestore fetch.
+      // immediately after signInWithCustomToken and handles both.
       return result;
     } catch (e) {
       showAlert("error", e.message);
