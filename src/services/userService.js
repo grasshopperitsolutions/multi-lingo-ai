@@ -4,6 +4,12 @@ const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.
 
 /**
  * Fetch the user's Firestore profile.
+ *
+ * The API returns:
+ *   { success: true, data: { id, data: { ...fields }, collection } }
+ *
+ * We unwrap to json.data.data so callers receive the flat document fields:
+ *   { displayName, photoURL, theme, interfaceLang, email, ... }
  */
 export const getUserProfile = async (token, uid) => {
   const response = await fetch(
@@ -18,7 +24,9 @@ export const getUserProfile = async (token, uid) => {
   );
   const json = await response.json();
   if (!response.ok) throw new Error(json?.error || json?.message || 'Failed to load profile');
-  return json?.data || {};
+  // json.data        = { id, data: { ...fields }, collection }
+  // json.data.data   = { displayName, photoURL, theme, interfaceLang, ... }
+  return json?.data?.data ?? {};
 };
 
 /**
