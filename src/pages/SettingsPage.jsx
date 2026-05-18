@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import NeoDropdown from "../components/NeoDropdown";
+import Avatar from "../components/Avatar";
 import {
   ArrowLeft,
   User,
@@ -28,20 +29,6 @@ const LANGUAGE_OPTIONS = [
   { value: "es", label: "Spanish" },
   { value: "fr", label: "French" },
 ];
-
-// ── Placeholder SVG ──────────────────────────────────────────────────────────
-const AvatarPlaceholder = ({ size = 64, className = "" }) => (
-  <svg
-    width={size} height={size} viewBox="0 0 64 64"
-    fill="none" xmlns="http://www.w3.org/2000/svg"
-    className={className} aria-hidden="true"
-  >
-    <circle cx="32" cy="32" r="32" fill="#e2e8f0" />
-    <circle cx="32" cy="26" r="10" fill="#94a3b8" />
-    <ellipse cx="32" cy="50" rx="16" ry="10" fill="#94a3b8" />
-  </svg>
-);
-AvatarPlaceholder.propTypes = { size: PropTypes.number, className: PropTypes.string };
 
 // ── Delete Confirmation Modal ─────────────────────────────────────────────────
 const DeleteModal = ({ isDarkMode, onConfirm, onCancel, isDeleting }) => (
@@ -141,17 +128,13 @@ const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading 
         className="relative shrink-0 group focus:outline-none"
       >
         {/* Avatar */}
-        <div className="w-20 h-20 rounded-full border-4 border-slate-900 overflow-hidden shadow-[4px_4px_0px_0px_#facc15]">
-          {displaySrc ? (
-            <img
-              src={displaySrc}
-              alt={user?.displayName || "Profile photo"}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <AvatarPlaceholder size={80} />
-          )}
-        </div>
+        <Avatar
+          src={displaySrc}
+          alt={user?.displayName || "Profile photo"}
+          size={80}
+          isDarkMode={false}
+          className="shadow-[4px_4px_0px_0px_#facc15]"
+        />
 
         {/* Overlay — camera icon on hover or while uploading */}
         <div className={`absolute inset-0 rounded-full flex items-center justify-center

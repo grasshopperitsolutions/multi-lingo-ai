@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import FeatureCard from "../components/FeatureCard";
 import Loader from "../components/Loader";
+import Avatar from "../components/Avatar";
 import {
   Mic,
   MessageSquare,
@@ -14,7 +15,6 @@ import {
   BookOpen,
   Flame,
   Star,
-  ArrowRight,
 } from "lucide-react";
 import PropTypes from "prop-types";
 
@@ -110,15 +110,23 @@ const DashboardPage = () => {
     <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-10 space-y-10">
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-4xl font-black uppercase tracking-tighter ${
-            isDarkMode ? "text-white" : "text-slate-900"
-          }`}>
-            {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || "Learner" })}
-          </h1>
-          <p className={`font-bold uppercase tracking-widest text-sm mt-1 ${
-            isDarkMode ? "text-slate-400" : "text-slate-500"
-          }`}>{t("dashboard.welcome_subtitle")}</p>
+        <div className="flex items-center gap-4">
+          <Avatar
+            src={user?.photoURL}
+            alt={user?.displayName || "Profile"}
+            size={48}
+            isDarkMode={isDarkMode}
+          />
+          <div>
+            <h1 className={`text-4xl font-black uppercase tracking-tighter ${
+              isDarkMode ? "text-white" : "text-slate-900"
+            }`}>
+              {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || "Learner" })}
+            </h1>
+            <p className={`font-bold uppercase tracking-widest text-sm mt-1 ${
+              isDarkMode ? "text-slate-400" : "text-slate-500"
+            }`}>{t("dashboard.welcome_subtitle")}</p>
+          </div>
         </div>
         <div className="flex gap-3">
           <button
@@ -182,30 +190,6 @@ const DashboardPage = () => {
         </div>
       </section>
 
-      {/* Quick Actions */}
-      <section>
-        <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
-          isDarkMode ? "text-slate-400" : "text-slate-500"
-        }`}>{t("dashboard.quick_actions")}</h2>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <button
-            className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl border-4 font-black uppercase tracking-widest text-lg transition-all active:scale-95 hover:-translate-y-1
-              bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a]`}
-          >
-            <Zap size={22} /> {t("dashboard.start_session")}
-          </button>
-          <button
-            onClick={() => navigate("/settings")}
-            className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl border-4 font-black uppercase tracking-widest text-lg transition-all active:scale-95 hover:-translate-y-1 ${
-              isDarkMode
-                ? "bg-slate-800 border-slate-700 text-white shadow-[6px_6px_0px_0px_#1e293b]"
-                : "bg-white border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
-            }`}
-          >
-            <ArrowRight size={22} /> {t("nav.settings")}
-          </button>
-        </div>
-      </section>
     </main>
   );
 };
