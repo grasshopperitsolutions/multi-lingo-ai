@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
@@ -15,6 +16,7 @@ import {
   BookOpen,
   Flame,
   Star,
+  ArrowLeft,
 } from "lucide-react";
 import PropTypes from "prop-types";
 
@@ -42,9 +44,10 @@ const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
 );
 
 const DashboardPage = () => {
-  const { isDarkMode, user, logoutUser } = useAppContext();
+  const { isDarkMode, user, logoutUser, showAlert } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [selectedFeature, setSelectedFeature] = useState(null);
 
   // Show loader while auth + Firestore profile are still being populated
   if (!user) {
@@ -62,6 +65,15 @@ const DashboardPage = () => {
     if (result?.success) navigate("/");
   };
 
+  const handleFeatureClick = (feature) => {
+    setSelectedFeature(feature);
+    showAlert("error", t("dashboard.not_implemented"));
+  };
+
+  const handleBackToDashboard = () => {
+    setSelectedFeature(null);
+  };
+
   const stats = [
     { icon: BookOpen, label: t("dashboard.languages"), value: "3", color: "text-blue-500" },
     { icon: Zap, label: t("dashboard.sessions"), value: "24", color: "text-yellow-500" },
@@ -70,10 +82,30 @@ const DashboardPage = () => {
   ];
 
   const features = [
-    { icon: Mic, title: t("dashboard.voice_practice"), description: t("dashboard.voice_practice_desc") },
-    { icon: MessageSquare, title: t("dashboard.ai_conversation"), description: t("dashboard.ai_conversation_desc") },
-    { icon: Calendar, title: t("dashboard.daily_challenges"), description: t("dashboard.daily_challenges_desc") },
-    { icon: Users, title: t("dashboard.community"), description: t("dashboard.community_desc") },
+    {
+      icon: Mic,
+      title: t("dashboard.voice_practice"),
+      description: t("dashboard.voice_practice_desc"),
+      color: "text-purple-500",
+    },
+    {
+      icon: MessageSquare,
+      title: t("dashboard.ai_conversation"),
+      description: t("dashboard.ai_conversation_desc"),
+      color: "text-blue-500",
+    },
+    {
+      icon: Calendar,
+      title: t("dashboard.daily_challenges"),
+      description: t("dashboard.daily_challenges_desc"),
+      color: "text-yellow-500",
+    },
+    {
+      icon: Users,
+      title: t("dashboard.community"),
+      description: t("dashboard.community_desc"),
+      color: "text-emerald-500",
+    },
   ];
 
   return (
@@ -124,30 +156,98 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Stats */}
-      <section>
-        <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
-          isDarkMode ? "text-slate-400" : "text-slate-500"
-        }`}>{t("dashboard.your_progress")}</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {stats.map((s) => (
-            <StatCard key={s.label} {...s} isDarkMode={isDarkMode} />
-          ))}
-        </div>
-      </section>
+      {/* Selected Feature Section — shown only when a feature is selected */}
+      {selectedFeature && (
+        <section className="space-y-6">
+          {/* Back button */}
+          <button
+            onClick={handleBackToDashboard}
+            className={`flex items-center gap-2 font-black uppercase tracking-widest text-sm transition-all hover:-translate-x-1 ${
+              isDarkMode
+                ? "text-slate-400 hover:text-white"
+                : "text-slate-500 hover:text-slate-900"
+            }`}
+          >
+            <ArrowLeft size={16} />
+            {t("dashboard.back")}
+          </button>
 
-      {/* Features */}
-      <section>
-        <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
-          isDarkMode ? "text-slate-400" : "text-slate-500"
-        }`}>{t("dashboard.what_you_can_do")}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {features.map((f) => (
-            <FeatureCard key={f.title} {...f} isDarkMode={isDarkMode} />
-          ))}
-        </div>
-      </section>
+          {/* Feature detail card */}
+          <div
+            className={`p-10 rounded-2xl border-4 flex flex-col items-center text-center gap-6 ${
+              isDarkMode
+                ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
+                : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
+            }`}
+          >
+            <div
+              className={`w-20 h-20 rounded-full flex items-center justify-center border-2 border-current shadow-[4px_4px_0px_0px_currentColor] ${selectedFeature.color}`}
+            >
+              <selectedFeature.icon className="w-10 h-10" />
+            </div>
+            <div>
+              <h2 className={`text-3xl font-black uppercase tracking-tighter mb-2 ${
+                isDarkMode ? "text-white" : "text-slate-900"
+              }`}>
+                {selectedFeature.title}
+              </h2>
+              <p className={`font-bold ${
+                isDarkMode ? "text-slate-400" : "text-slate-500"
+              }`}>
+                {selectedFeature.description}
+              </p>
+            </div>
+            <div
+              className={`w-full rounded-xl border-4 p-5 flex items-center gap-4 ${
+                isDarkMode
+                  ? "bg-slate-900 border-rose-500/40 text-rose-400"
+                  : "bg-rose-50 border-rose-300 text-rose-600"
+              }`}
+            >
+              <span className="text-2xl" aria-hidden="true">🚧</span>
+              <p className="font-black uppercase tracking-widest text-sm text-left">
+                {t("dashboard.not_implemented")}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
+      {/* Stats + Features — hidden when a feature is selected */}
+      {!selectedFeature && (
+        <>
+          {/* Stats */}
+          <section>
+            <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
+              isDarkMode ? "text-slate-400" : "text-slate-500"
+            }`}>{t("dashboard.your_progress")}</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {stats.map((s) => (
+                <StatCard key={s.label} {...s} isDarkMode={isDarkMode} />
+              ))}
+            </div>
+          </section>
+
+          {/* Features */}
+          <section>
+            <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
+              isDarkMode ? "text-slate-400" : "text-slate-500"
+            }`}>{t("dashboard.what_you_can_do")}</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {features.map((f) => (
+                <FeatureCard
+                  key={f.title}
+                  icon={f.icon}
+                  title={f.title}
+                  color={f.color}
+                  isDarkMode={isDarkMode}
+                  onClick={() => handleFeatureClick(f)}
+                />
+              ))}
+            </div>
+          </section>
+        </>
+      )}
     </main>
   );
 };

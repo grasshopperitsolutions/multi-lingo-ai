@@ -1,12 +1,13 @@
 import PropTypes from "prop-types";
 
-const FeatureCard = ({ icon: Icon, title, delay, color, isDarkMode }) => {
+const FeatureCard = ({ icon: Icon, title, delay, color, isDarkMode, onClick }) => {
   return (
-    <div
-      className={`p-6 rounded-2xl border-4 transition-all duration-200 wiggle-hover flex flex-col items-center text-center ${
+    <button
+      onClick={onClick}
+      className={`p-6 rounded-2xl border-4 transition-all duration-200 wiggle-hover flex flex-col items-center text-center w-full cursor-pointer ${
         isDarkMode
-          ? "bg-slate-800 border-slate-700 neo-shadow-dark text-slate-100"
-          : "bg-white border-slate-900 neo-shadow-light text-slate-900"
+          ? "bg-slate-800 border-slate-700 neo-shadow-dark text-slate-100 hover:-translate-y-1 active:scale-95"
+          : "bg-white border-slate-900 neo-shadow-light text-slate-900 hover:-translate-y-1 active:scale-95"
       }`}
       style={{ animationDelay: delay }}
     >
@@ -16,7 +17,7 @@ const FeatureCard = ({ icon: Icon, title, delay, color, isDarkMode }) => {
         <Icon className="w-8 h-8" />
       </div>
       <h3 className="font-extrabold text-xl uppercase">{title}</h3>
-    </div>
+    </button>
   );
 };
 
@@ -26,6 +27,12 @@ FeatureCard.propTypes = {
   delay: PropTypes.string,
   color: PropTypes.string.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
+  onClick: PropTypes.func,
+};
+
+FeatureCard.defaultProps = {
+  onClick: undefined,
+  delay: undefined,
 };
 
 export default FeatureCard;
