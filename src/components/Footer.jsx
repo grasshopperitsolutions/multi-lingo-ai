@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
+import PropTypes from "prop-types";
 import BarcelosRooster from "./BarcelosRooster";
 
 const GrasshopperLogo = ({ className }) => (
@@ -85,6 +86,10 @@ const Footer = () => {
       </div>
     </footer>
   );
+};
+
+GrasshopperLogo.propTypes = {
+  className: PropTypes.string,
 };
 
 export default Footer;
