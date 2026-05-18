@@ -5,7 +5,10 @@
     "login": "Sign In",
     "logout": "Sign Out",
     "dashboard": "Dashboard",
-    "settings": "Settings"
+    "settings": "Settings",
+    "light_mode": "Light Mode",
+    "dark_mode": "Dark Mode",
+    "language": "Language"
   },
   "home": {
     "badge": "THE AI REVOLUTION IS HERE",
@@ -26,6 +29,7 @@
       "subtitle": "Learning from Irish? Irish Gaelic? Mandarin? Just type it. Our AI bridges the gap."
     },
     "language_pills": ["Gaelic ➜ PT", "US English ➜ PT", "Thai ➜ PT", "Aussie Slang ➜ PT"],
+    "wall_of_love_heading": "Wall of Love",
     "reviews": [
       { "name": "Nadja", "date": "February 10, 2026", "quote": "Nuno is an amazing tutor, he adapts the lessons to the students needs and is very helpful." },
       { "name": "Claudia", "date": "January 16, 2026", "quote": "Nuno is an exceptional teacher who is accelerating my Portuguese learning. His fun and effective method is boosting my confidence and skills." },
