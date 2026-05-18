@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import PropTypes from "prop-types";
 
+// ── StatCard ──────────────────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
   <div
     className={`p-6 rounded-2xl border-4 flex flex-col gap-3 transition-all hover:-translate-y-1
@@ -47,6 +48,67 @@ const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
   </div>
 );
 
+StatCard.propTypes = {
+  icon: PropTypes.elementType.isRequired,
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
+  color: PropTypes.string.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+};
+
+// ── TooltipButton ─────────────────────────────────────────────────────────────
+// A thin wrapper that adds a tooltip above any icon button.
+const TooltipButton = ({ tooltip, isDarkMode, children }) => {
+  // Tooltip theme
+  const tooltipClasses = isDarkMode
+    ? "bg-slate-900 border-yellow-400 text-yellow-400"
+    : "bg-white border-slate-900 text-slate-900";
+
+  return (
+    <div className="relative group">
+      {children}
+      <div
+        role="tooltip"
+        className={[
+          "absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2",
+          "px-3 py-1.5 rounded-lg border-2 text-xs font-black uppercase tracking-widest whitespace-nowrap",
+          "pointer-events-none select-none",
+          "opacity-0 group-hover:opacity-100 -translate-y-1 group-hover:translate-y-0",
+          "transition-all duration-150",
+          tooltipClasses,
+        ].join(" ")}
+      >
+        {tooltip}
+        {/* Arrow — dark: single border span; light: two-span bordered arrow */}
+        {isDarkMode ? (
+          <span
+            className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"
+            aria-hidden="true"
+          />
+        ) : (
+          <>
+            <span
+              className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-slate-900"
+              aria-hidden="true"
+            />
+            <span
+              className="absolute top-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-t-white"
+              aria-hidden="true"
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+TooltipButton.propTypes = {
+  tooltip: PropTypes.string.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+  children: PropTypes.node.isRequired,
+};
+
+// ── DashboardPage ─────────────────────────────────────────────────────────────
 const DashboardPage = () => {
   const { isDarkMode, user, logoutUser } = useAppContext();
   const { t } = useTranslation();
@@ -77,8 +139,8 @@ const DashboardPage = () => {
   };
 
   const stats = [
-    { icon: BookOpen, label: t("dashboard.languages"), value: "3", color: "text-blue-500" },
-    { icon: Zap,      label: t("dashboard.sessions"),  value: "24", color: "text-yellow-500" },
+    { icon: BookOpen, label: t("dashboard.languages"), value: "3",   color: "text-blue-500" },
+    { icon: Zap,      label: t("dashboard.sessions"),  value: "24",  color: "text-yellow-500" },
     { icon: Flame,    label: t("dashboard.day_streak"), value: "7",  color: "text-rose-500" },
     { icon: Star,     label: t("dashboard.words"),      value: "312", color: "text-emerald-500" },
   ];
@@ -162,29 +224,36 @@ const DashboardPage = () => {
             }`}>{t("dashboard.welcome_subtitle")}</p>
           </div>
         </div>
+
+        {/* Action buttons */}
         <div className="flex gap-3">
-          <button
-            onClick={() => navigate("/settings")}
-            className={`p-3 rounded-xl border-4 transition-all hover:-translate-y-0.5 active:scale-95 ${
-              isDarkMode
-                ? "bg-slate-800 border-slate-700 text-white shadow-[4px_4px_0px_0px_#1e293b]"
-                : "bg-white border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
-            }`}
-            aria-label={t("nav.settings")}
-          >
-            <Settings size={20} />
-          </button>
-          <button
-            onClick={handleLogout}
-            className={`p-3 rounded-xl border-4 transition-all hover:-translate-y-0.5 active:scale-95 ${
-              isDarkMode
-                ? "bg-slate-800 border-slate-700 text-rose-400 shadow-[4px_4px_0px_0px_#1e293b]"
-                : "bg-white border-slate-900 text-rose-500 shadow-[4px_4px_0px_0px_#0f172a]"
-            }`}
-            aria-label={t("nav.logout")}
-          >
-            <LogOut size={20} />
-          </button>
+          <TooltipButton tooltip={t("nav.settings")} isDarkMode={isDarkMode}>
+            <button
+              onClick={() => navigate("/settings")}
+              className={`p-3 rounded-xl border-4 transition-all hover:-translate-y-0.5 active:scale-95 ${
+                isDarkMode
+                  ? "bg-slate-800 border-slate-700 text-white shadow-[4px_4px_0px_0px_#1e293b]"
+                  : "bg-white border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
+              }`}
+              aria-label={t("nav.settings")}
+            >
+              <Settings size={20} />
+            </button>
+          </TooltipButton>
+
+          <TooltipButton tooltip={t("nav.logout")} isDarkMode={isDarkMode}>
+            <button
+              onClick={handleLogout}
+              className={`p-3 rounded-xl border-4 transition-all hover:-translate-y-0.5 active:scale-95 ${
+                isDarkMode
+                  ? "bg-slate-800 border-slate-700 text-rose-400 shadow-[4px_4px_0px_0px_#1e293b]"
+                  : "bg-white border-slate-900 text-rose-500 shadow-[4px_4px_0px_0px_#0f172a]"
+              }`}
+              aria-label={t("nav.logout")}
+            >
+              <LogOut size={20} />
+            </button>
+          </TooltipButton>
         </div>
       </div>
 
@@ -279,14 +348,6 @@ const DashboardPage = () => {
       )}
     </main>
   );
-};
-
-StatCard.propTypes = {
-  icon: PropTypes.elementType.isRequired,
-  label: PropTypes.string.isRequired,
-  value: PropTypes.string.isRequired,
-  color: PropTypes.string.isRequired,
-  isDarkMode: PropTypes.bool.isRequired,
 };
 
 export default DashboardPage;
