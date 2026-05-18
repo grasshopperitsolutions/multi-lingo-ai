@@ -13,7 +13,7 @@ const RotatingReviews = ({ reviews }) => {
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % reviews.length);
-    }, 6000); // 6 seconds rotation
+    }, 6000);
 
     return () => clearInterval(interval);
   }, [isHovered, reviews]);
@@ -22,7 +22,6 @@ const RotatingReviews = ({ reviews }) => {
     return null;
   }
 
-  // Always display 3 reviews at a time (cycling through all reviews)
   const getReviewAtIndex = (index) => {
     return reviews[(currentIndex + index) % reviews.length];
   };
@@ -39,8 +38,55 @@ const RotatingReviews = ({ reviews }) => {
         </h2>
       </div>
 
+      {/* ── MOBILE: single card, navigated via dots ───────────────────── */}
       <div
-        className="grid grid-cols-1 md:grid-cols-3 gap-8"
+        className="block md:hidden"
+        onTouchStart={() => setIsHovered(true)}
+        onTouchEnd={() => setIsHovered(false)}
+      >
+        {(() => {
+          const review = reviews[currentIndex];
+          return (
+            <div
+              className={`p-8 rounded-[2rem] border-4 transition-all duration-500
+              ${isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900"}`}
+            >
+              <div className="flex gap-1 mb-4 text-yellow-400">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} fill="currentColor" size={20} />
+                ))}
+              </div>
+              <p className="font-bold text-lg mb-6 line-clamp-4">&quot;{review.quote}&quot;</p>
+              <div>
+                <h4 className="font-black uppercase tracking-tight">{review.name}</h4>
+                <p className="text-sm font-bold opacity-60">{review.date}</p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Mobile dot navigation */}
+        <div className="flex justify-center gap-2 mt-8">
+          {reviews.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentIndex(idx)}
+              className={`h-3 rounded-full transition-all duration-300 ${
+                idx === currentIndex
+                  ? "bg-yellow-400 w-8"
+                  : isDarkMode
+                  ? "bg-slate-600 w-3"
+                  : "bg-slate-300 w-3"
+              }`}
+              aria-label={`Go to review ${idx + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* ── DESKTOP: 3-column rotating grid ──────────────────────────── */}
+      <div
+        className="hidden md:grid grid-cols-3 gap-8"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -63,7 +109,7 @@ const RotatingReviews = ({ reviews }) => {
 
         {/* Review Card 2 */}
         <div
-          className={`p-8 rounded-[2rem] border-4 transition-all duration-500 opacity-100 transform -rotate-2 hover:rotate-1 mt-4 md:mt-8
+          className={`p-8 rounded-[2rem] border-4 transition-all duration-500 opacity-100 transform -rotate-2 hover:rotate-1 mt-8
           ${isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900"}`}
         >
           <div className="flex gap-1 mb-4 text-yellow-400">
@@ -96,14 +142,18 @@ const RotatingReviews = ({ reviews }) => {
         </div>
       </div>
 
-      {/* Progress indicators */}
-      <div className="flex justify-center gap-2 mt-12">
+      {/* Desktop progress indicators */}
+      <div className="hidden md:flex justify-center gap-2 mt-12">
         {reviews.map((_, idx) => (
           <button
             key={idx}
             onClick={() => setCurrentIndex(idx)}
-            className={`w-3 h-3 rounded-full transition-all duration-300 ${
-              idx === currentIndex ? "bg-yellow-400 w-8" : isDarkMode ? "bg-slate-600" : "bg-slate-300"
+            className={`h-3 rounded-full transition-all duration-300 ${
+              idx === currentIndex
+                ? "bg-yellow-400 w-8"
+                : isDarkMode
+                ? "bg-slate-600 w-3"
+                : "bg-slate-300 w-3"
             }`}
             aria-label={`Go to review ${idx + 1}`}
           />
