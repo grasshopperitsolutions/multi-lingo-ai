@@ -48,7 +48,7 @@ const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
 );
 
 const DashboardPage = () => {
-  const { isDarkMode, user, logoutUser, showAlert } = useAppContext();
+  const { isDarkMode, user, logoutUser } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [selectedFeature, setSelectedFeature] = useState(null);
