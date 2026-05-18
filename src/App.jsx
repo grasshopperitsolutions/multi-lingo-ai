@@ -30,26 +30,35 @@ const AppLayout = () => {
   const { isDarkMode, alert, closeAlert } = useAppContext();
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
+  // Detect touch/mobile devices — compass cursor is mouse-only
+  const isTouchDevice =
+    typeof window !== "undefined" &&
+    (navigator.maxTouchPoints > 0 || "ontouchstart" in window);
+
   useEffect(() => {
+    if (isTouchDevice) return; // skip mouse tracking on mobile
+
     const handleMouseMove = (e) => {
       setCursorPos({ x: e.clientX, y: e.clientY });
     };
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
+  }, [isTouchDevice]);
 
   return (
     <>
-      <style>{`
-        * { cursor: none !important; }
-      `}</style>
+      {!isTouchDevice && (
+        <style>{`* { cursor: none !important; }`}</style>
+      )}
       <AlertMessage alert={alert} onClose={closeAlert} />
 
-      <GlobalCompassCursor
-        x={cursorPos.x}
-        y={cursorPos.y}
-        isDarkMode={isDarkMode}
-      />
+      {!isTouchDevice && (
+        <GlobalCompassCursor
+          x={cursorPos.x}
+          y={cursorPos.y}
+          isDarkMode={isDarkMode}
+        />
+      )}
 
       <div
         className={`min-h-screen transition-colors duration-500 flex flex-col overflow-x-hidden
