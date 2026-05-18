@@ -174,7 +174,7 @@ const Header = () => {
             className={`w-full flex items-center justify-between px-5 py-4 font-black uppercase tracking-wide text-sm border-b-2 transition-colors
               ${isDarkMode ? "border-slate-700 hover:bg-slate-700" : "border-slate-100 hover:bg-slate-50"}`}
           >
-            <span>{isDarkMode ? t("nav.light_mode") || "Light Mode" : t("nav.dark_mode") || "Dark Mode"}</span>
+            <span>{isDarkMode ? t("nav.light_mode") : t("nav.dark_mode")}</span>
             <div className={`p-2 rounded-full border-2
               ${isDarkMode ? "bg-slate-600 border-yellow-400" : "bg-yellow-400 border-slate-900"}`}
             >
@@ -192,7 +192,7 @@ const Header = () => {
               ${isDarkMode ? "text-slate-400" : "text-slate-400"}`}
             >
               <Globe size={12} className="inline mr-1 mb-0.5" />
-              {t("nav.language") || "Language"}
+              {t("nav.language")}
             </p>
             <div className="grid grid-cols-2 gap-2 px-4 pb-4">
               {languages.map((lang) => (

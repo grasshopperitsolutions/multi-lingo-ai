@@ -5,7 +5,10 @@
     "login": "Entrar",
     "logout": "Sair",
     "dashboard": "Painel",
-    "settings": "Definições"
+    "settings": "Definições",
+    "light_mode": "Modo Claro",
+    "dark_mode": "Modo Escuro",
+    "language": "Idioma"
   },
   "home": {
     "badge": "A REVOLUÇÃO DA IA JÁ CHEGOU",

@@ -5,7 +5,10 @@
     "login": "Se connecter",
     "logout": "Se déconnecter",
     "dashboard": "Tableau de bord",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "light_mode": "Mode clair",
+    "dark_mode": "Mode sombre",
+    "language": "Langue"
   },
   "home": {
     "badge": "LA RÉVOLUTION DE L'IA EST LÀ",

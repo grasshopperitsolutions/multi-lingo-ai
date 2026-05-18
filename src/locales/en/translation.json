@@ -5,7 +5,10 @@
     "login": "Sign In",
     "logout": "Sign Out",
     "dashboard": "Dashboard",
-    "settings": "Settings"
+    "settings": "Settings",
+    "light_mode": "Light Mode",
+    "dark_mode": "Dark Mode",
+    "language": "Language"
   },
   "home": {
     "badge": "THE AI REVOLUTION IS HERE",
