@@ -53,7 +53,6 @@ const DashboardPage = () => {
   const navigate = useNavigate();
   const [selectedFeature, setSelectedFeature] = useState(null);
 
-  // Show loader while auth + Firestore profile are still being populated
   if (!user) {
     return (
       <Loader
@@ -80,64 +79,64 @@ const DashboardPage = () => {
 
   const stats = [
     { icon: BookOpen, label: t("dashboard.languages"), value: "3", color: "text-blue-500" },
-    { icon: Zap, label: t("dashboard.sessions"), value: "24", color: "text-yellow-500" },
-    { icon: Flame, label: t("dashboard.day_streak"), value: "7", color: "text-rose-500" },
-    { icon: Star, label: t("dashboard.words"), value: "312", color: "text-emerald-500" },
+    { icon: Zap,      label: t("dashboard.sessions"),  value: "24", color: "text-yellow-500" },
+    { icon: Flame,    label: t("dashboard.day_streak"), value: "7",  color: "text-rose-500" },
+    { icon: Star,     label: t("dashboard.words"),      value: "312", color: "text-emerald-500" },
   ];
 
   const features = [
     {
       icon: Languages,
-      title: "Translator",
-      description: "Instantly translate text between any two languages with context-aware AI.",
+      title: t("dashboard.translator"),
+      description: t("dashboard.translator_desc"),
       color: "text-sky-500",
     },
     {
       icon: BookMarked,
-      title: "Dictionary",
-      description: "Look up words, meanings, examples, and conjugations in any language.",
+      title: t("dashboard.dictionary"),
+      description: t("dashboard.dictionary_desc"),
       color: "text-violet-500",
     },
     {
       icon: PenLine,
-      title: "Grammar",
-      description: "Check and correct your grammar, get explanations and writing tips.",
+      title: t("dashboard.grammar"),
+      description: t("dashboard.grammar_desc"),
       color: "text-amber-500",
     },
     {
       icon: BotMessageSquare,
-      title: "AI Tutor",
-      description: "Chat with an AI language tutor for practice, corrections, and feedback.",
+      title: t("dashboard.ai_tutor"),
+      description: t("dashboard.ai_tutor_desc"),
       color: "text-blue-500",
     },
     {
       icon: UserRound,
-      title: "Real Person Tutor",
-      description: "Book a live session with a certified native-speaker tutor.",
+      title: t("dashboard.real_person_tutor"),
+      description: t("dashboard.real_person_tutor_desc"),
       color: "text-emerald-500",
     },
     {
       icon: Video,
-      title: "Voice Practice",
-      description: "Record yourself speaking and get AI-powered pronunciation feedback.",
+      title: t("dashboard.voice_practice"),
+      description: t("dashboard.voice_practice_desc"),
       color: "text-purple-500",
     },
     {
       icon: BookOpen,
-      title: "Story Generator",
-      description: "Read and listen to AI-generated stories tailored to your level.",
+      title: t("dashboard.story_generator"),
+      description: t("dashboard.story_generator_desc"),
       color: "text-rose-500",
     },
     {
       icon: Landmark,
-      title: "History & Culture",
-      description: "Explore the history, customs, and culture behind the language you're learning.",
+      title: t("dashboard.history_culture"),
+      description: t("dashboard.history_culture_desc"),
       color: "text-orange-500",
     },
     {
       icon: Swords,
-      title: "Challenges",
-      description: "Test your skills with mini-games, quizzes, and daily language challenges.",
+      title: t("dashboard.challenges"),
+      description: t("dashboard.challenges_desc"),
       color: "text-yellow-500",
     },
   ];
@@ -190,10 +189,9 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Selected Feature Section — shown only when a feature is selected */}
+      {/* Selected Feature Section */}
       {selectedFeature && (
         <section className="space-y-6">
-          {/* Back button */}
           <button
             onClick={handleBackToDashboard}
             className={`flex items-center gap-2 font-black uppercase tracking-widest text-sm transition-all hover:-translate-x-1 ${
@@ -206,7 +204,6 @@ const DashboardPage = () => {
             {t("dashboard.back")}
           </button>
 
-          {/* Feature detail card */}
           <div
             className={`p-10 rounded-2xl border-4 flex flex-col items-center text-center gap-6 ${
               isDarkMode
@@ -250,7 +247,6 @@ const DashboardPage = () => {
       {/* Stats + Features — hidden when a feature is selected */}
       {!selectedFeature && (
         <>
-          {/* Stats */}
           <section>
             <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"
@@ -262,7 +258,6 @@ const DashboardPage = () => {
             </div>
           </section>
 
-          {/* Features */}
           <section>
             <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"
@@ -273,6 +268,7 @@ const DashboardPage = () => {
                   key={f.title}
                   icon={f.icon}
                   title={f.title}
+                  description={f.description}
                   color={f.color}
                   isDarkMode={isDarkMode}
                   onClick={() => handleFeatureClick(f)}
