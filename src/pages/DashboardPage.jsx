@@ -41,30 +41,6 @@ const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
   </div>
 );
 
-const ActivityRow = ({ flag, title, date, score, isDarkMode }) => (
-  <div
-    className={`flex items-center justify-between px-5 py-4 rounded-xl border-4 transition-all hover:-translate-y-0.5
-    ${
-      isDarkMode
-        ? "bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]"
-        : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
-    }`}
-  >
-    <div className="flex items-center gap-4">
-      <span className="text-2xl">{flag}</span>
-      <div>
-        <p className={`font-black uppercase tracking-tight text-sm ${isDarkMode ? "text-white" : "text-slate-900"}`}>{title}</p>
-        <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>{date}</p>
-      </div>
-    </div>
-    <span className={`px-3 py-1 rounded-full border-2 border-current font-black text-xs uppercase tracking-widest ${
-      score >= 80 ? "text-emerald-500" : score >= 60 ? "text-yellow-500" : "text-rose-500"
-    }`}>
-      {score}%
-    </span>
-  </div>
-);
-
 const DashboardPage = () => {
   const { isDarkMode, user, logoutUser } = useAppContext();
   const { t } = useTranslation();
@@ -91,12 +67,6 @@ const DashboardPage = () => {
     { icon: Zap, label: t("dashboard.sessions"), value: "24", color: "text-yellow-500" },
     { icon: Flame, label: t("dashboard.day_streak"), value: "7", color: "text-rose-500" },
     { icon: Star, label: t("dashboard.words"), value: "312", color: "text-emerald-500" },
-  ];
-
-  const activity = [
-    { flag: "🇪🇸", title: t("dashboard.spanish_conversation"), date: t("dashboard.today"), score: 92 },
-    { flag: "🇫🇷", title: t("dashboard.french_vocabulary"), date: t("dashboard.yesterday"), score: 74 },
-    { flag: "🇯🇵", title: t("dashboard.japanese_basics"), date: t("dashboard.two_days_ago"), score: 58 },
   ];
 
   const features = [
@@ -166,18 +136,6 @@ const DashboardPage = () => {
         </div>
       </section>
 
-      {/* Recent Activity */}
-      <section>
-        <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
-          isDarkMode ? "text-slate-400" : "text-slate-500"
-        }`}>{t("dashboard.recent_activity")}</h2>
-        <div className="space-y-3">
-          {activity.map((a) => (
-            <ActivityRow key={a.title} {...a} isDarkMode={isDarkMode} />
-          ))}
-        </div>
-      </section>
-
       {/* Features */}
       <section>
         <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
@@ -199,14 +157,6 @@ StatCard.propTypes = {
   label: PropTypes.string.isRequired,
   value: PropTypes.string.isRequired,
   color: PropTypes.string.isRequired,
-  isDarkMode: PropTypes.bool.isRequired,
-};
-
-ActivityRow.propTypes = {
-  flag: PropTypes.string.isRequired,
-  title: PropTypes.string.isRequired,
-  date: PropTypes.string.isRequired,
-  score: PropTypes.number.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
 };
 
