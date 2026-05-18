@@ -31,13 +31,7 @@ const RotatingReviews = ({ reviews }) => {
   const review3 = getReviewAtIndex(2);
 
   return (
-    <section className="max-w-7xl mx-auto px-4 py-20 relative z-10">
-      <div className="text-center mb-16">
-        <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter inline-block border-b-8 border-pink-400 pb-2">
-          Wall of Love
-        </h2>
-      </div>
-
+    <>
       {/* ── MOBILE: single card, navigated via dots ───────────────────── */}
       <div
         className="block md:hidden"
@@ -159,7 +153,7 @@ const RotatingReviews = ({ reviews }) => {
           />
         ))}
       </div>
-    </section>
+    </>
   );
 };
 
