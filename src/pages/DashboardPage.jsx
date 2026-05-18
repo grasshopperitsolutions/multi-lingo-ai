@@ -70,7 +70,6 @@ const DashboardPage = () => {
 
   const handleFeatureClick = (feature) => {
     setSelectedFeature(feature);
-    showAlert("error", t("dashboard.not_implemented"));
   };
 
   const handleBackToDashboard = () => {
