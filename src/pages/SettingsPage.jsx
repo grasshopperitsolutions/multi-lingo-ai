@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import NeoDropdown from "../components/NeoDropdown";
 import Avatar from "../components/Avatar";
+import FloatingActionButton from "../components/FloatingActionButton";
 import {
   ArrowLeft,
   User,
@@ -155,7 +156,6 @@ const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading 
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) onFileSelect(file);
-          // Reset so re-selecting same file still fires onChange
           e.target.value = "";
         }}
       />
@@ -301,7 +301,7 @@ const SettingsForm = ({
         </div>
       </div>
 
-      {/* Save */}
+      {/* Save button — bottom of form (kept as-is) */}
       <button
         type="submit"
         disabled={isBusy}
@@ -354,15 +354,15 @@ const SettingsPage = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   // Avatar upload state
-  const [pendingFile, setPendingFile] = useState(null);      // File object waiting to be saved
-  const [previewUrl, setPreviewUrl] = useState(null);        // Local blob URL for preview
+  const [pendingFile, setPendingFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
 
   // Delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Sync form when context user changes (same pattern as before)
+  // Sync form when context user changes
   const [prevSyncKey, setPrevSyncKey] = useState("");
   const syncKey = `${user?.uid || ""}-${user?.displayName || ""}-${user?.interfaceLang || ""}-${isDarkMode}`;
   if (syncKey !== prevSyncKey) {
@@ -378,7 +378,7 @@ const SettingsPage = () => {
   };
 
   const handleSave = async (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     const firebaseUser = auth?.currentUser;
     if (!firebaseUser) {
       showAlert("error", t("settings.errors.not_signed_in"));
@@ -387,14 +387,13 @@ const SettingsPage = () => {
     const token = await firebaseUser.getIdToken();
 
     try {
-      // Upload image first if one was selected
       if (pendingFile) {
         setIsUploading(true);
         try {
           await uploadProfileImage(token, firebaseUser.uid, pendingFile);
           setPendingFile(null);
           setPreviewUrl(null);
-        } catch  {
+        } catch {
           showAlert("error", "Failed to upload profile image. Please try again.");
           return;
         } finally {
@@ -402,7 +401,6 @@ const SettingsPage = () => {
         }
       }
 
-      // Save text fields
       setIsSaving(true);
       await updateUserProfile(token, firebaseUser.uid, {
         displayName,
@@ -444,6 +442,8 @@ const SettingsPage = () => {
     }
   };
 
+  const isBusy = isSaving || isUploading;
+
   const sectionClasses = `p-8 rounded-[2rem] border-4 mb-6
     ${ isDarkMode
       ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
@@ -461,6 +461,17 @@ const SettingsPage = () => {
           isDeleting={isDeleting}
         />
       )}
+
+      {/* Floating Save Button */}
+      <FloatingActionButton
+        onClick={handleSave}
+        icon={<Save size={22} />}
+        label={t("settings.save_settings")}
+        showLabel
+        isLoading={isBusy}
+        isDarkMode={isDarkMode}
+        position="bottom-6 right-6"
+      />
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-10">
         <button
@@ -518,6 +529,9 @@ const SettingsPage = () => {
             </button>
           </div>
         </div>
+
+        {/* Bottom spacer so FAB never covers the last button */}
+        <div className="h-24" aria-hidden="true" />
       </main>
     </>
   );
