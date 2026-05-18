@@ -17,10 +17,10 @@ const PublicLayout = () => (
   <>
     <Header />
     <Routes>
-      <Route path="/" element={<HomePage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/contact" element={<ContactPage />} />
+      <Route path="/*" element={<HomePage />} />
     </Routes>
     <Footer />
   </>
