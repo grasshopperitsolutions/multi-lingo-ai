@@ -3,6 +3,9 @@ import PropTypes from "prop-types";
 /**
  * Reusable neo-brutalist loader/spinner.
  *
+ * Uses a "Bouncing Neo-Blocks" design with three coloured blocks that
+ * bounce in a staggered rhythm.
+ *
  * Props:
  *   message    {string}  — text shown below the spinner  (default: "Loading...")
  *   isDarkMode {bool}    — adapts colours to dark/light mode
@@ -19,15 +22,29 @@ const Loader = ({ message = "Loading...", isDarkMode = false, fullScreen = false
             : "bg-white border-slate-900 shadow-[8px_8px_0px_0px_#0f172a]"
         }`}
     >
-      {/* Spinner ring */}
-      <div
-        className={`w-14 h-14 rounded-full border-4 animate-spin
-          ${
-            isDarkMode
-              ? "border-slate-600 border-t-yellow-400"
-              : "border-slate-200 border-t-yellow-400"
-          }`}
-      />
+      {/* Injected keyframes for self-contained animations */}
+      <style>{`
+        @keyframes loader-neo-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-12px); }
+        }
+        .loader-neo-bounce-1 {
+          animation: loader-neo-bounce 0.8s infinite 0s ease-in-out;
+        }
+        .loader-neo-bounce-2 {
+          animation: loader-neo-bounce 0.8s infinite 0.15s ease-in-out;
+        }
+        .loader-neo-bounce-3 {
+          animation: loader-neo-bounce 0.8s infinite 0.3s ease-in-out;
+        }
+      `}</style>
+
+      {/* Bouncing Neo-Blocks */}
+      <div className="flex gap-2.5 h-14 items-center justify-center" role="presentation">
+        <div className="w-5 h-5 border-4 border-slate-900 rounded-md bg-yellow-400 loader-neo-bounce-1" />
+        <div className="w-5 h-5 border-4 border-slate-900 rounded-md bg-blue-400 loader-neo-bounce-2" />
+        <div className="w-5 h-5 border-4 border-slate-900 rounded-md bg-pink-400 loader-neo-bounce-3" />
+      </div>
 
       {/* Message */}
       {message && (
