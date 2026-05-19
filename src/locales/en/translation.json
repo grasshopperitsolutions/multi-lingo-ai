@@ -207,5 +207,23 @@
     "history_culture_desc": "Explore the history, customs, and culture behind the language you're learning.",
     "challenges": "Challenges",
     "challenges_desc": "Test your skills with mini-games, quizzes, and daily language challenges."
+  },
+  "challenges": {
+    "title": "Challenges",
+    "crosswords": "Crosswords",
+    "crosswords_desc": "Test your vocabulary with daily Portuguese crosswords.",
+    "hangman": "HangMan",
+    "hangman_desc": "Guess the slang before the stickman drops.",
+    "crossword_crushed": "CROSSWORD CRUSHED!",
+    "you_survived": "YOU SURVIVED!",
+    "hung_up": "HUNG UP!",
+    "play_again": "Play Again",
+    "clues": "CLUES",
+    "across": "ACROSS",
+    "down": "DOWN",
+    "clue_bread": "Essential bakery item (Bread)",
+    "clue_father": "Family member (Father)",
+    "submit": "Submit",
+    "try_again": "Not quite — try again!"
   }
 }

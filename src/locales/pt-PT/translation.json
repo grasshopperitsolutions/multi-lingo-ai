@@ -207,5 +207,23 @@
     "history_culture_desc": "Explora a história, costumes e cultura da língua que estás a aprender.",
     "challenges": "Desafios",
     "challenges_desc": "Testa as tuas competências com mini-jogos, questionários e desafios diários."
+  },
+  "challenges": {
+    "title": "Desafios",
+    "crosswords": "Palavras Cruzadas",
+    "crosswords_desc": "Testa o teu vocabulário com palavras cruzadas portuguesas diárias.",
+    "hangman": "Forca",
+    "hangman_desc": "Adivinha a gíria antes do boneco cair.",
+    "crossword_crushed": "CRUZADAS CONQUISTADAS!",
+    "you_survived": "SOBREVIVESTE!",
+    "hung_up": "ENFORCADO!",
+    "play_again": "Jogar Novamente",
+    "clues": "PISTAS",
+    "across": "HORIZONTAIS",
+    "down": "VERTICAIS",
+    "clue_bread": "Item essencial de padaria (Pão)",
+    "clue_father": "Membro da família (Pai)",
+    "submit": "Submeter",
+    "try_again": "Não é bem — tenta de novo!"
   }
 }

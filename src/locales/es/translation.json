@@ -207,5 +207,23 @@
     "history_culture_desc": "Explora la historia, costumbres y cultura detrás del idioma que aprendes.",
     "challenges": "Desafíos",
     "challenges_desc": "Pon a prueba tus habilidades con minijuegos, cuestionarios y desafíos diarios."
+  },
+  "challenges": {
+    "title": "Desafíos",
+    "crosswords": "Crucigramas",
+    "crosswords_desc": "Pon a prueba tu vocabulario con crucigramas portugueses diarios.",
+    "hangman": "Ahorcado",
+    "hangman_desc": "Adivina la jerga antes de que caiga el muñeco.",
+    "crossword_crushed": "¡CRUCIGRAMA CONQUISTADO!",
+    "you_survived": "¡SOBREVIVISTE!",
+    "hung_up": "¡COLGADO!",
+    "play_again": "Jugar de Nuevo",
+    "clues": "PISTAS",
+    "across": "HORIZONTALES",
+    "down": "VERTICALES",
+    "clue_bread": "Artículo esencial de panadería (Pan)",
+    "clue_father": "Miembro de la familia (Padre)",
+    "submit": "Enviar",
+    "try_again": "¡No es correcto — inténtalo de nuevo!"
   }
 }

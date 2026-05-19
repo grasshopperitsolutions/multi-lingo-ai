@@ -5,6 +5,9 @@ import { useAppContext } from "../contexts/AppContext";
 import FeatureCard from "../components/FeatureCard";
 import Loader from "../components/Loader";
 import Avatar from "../components/Avatar";
+import ChallengesMenu from "../components/ChallengesMenu";
+import HangmanGame from "../components/HangmanGame";
+import CrosswordsGame from "../components/CrosswordsGame";
 import {
   Languages,
   BookMarked,
@@ -14,7 +17,7 @@ import {
   Video,
   BookOpen,
   Landmark,
-  Swords,
+  Gamepad2,
   Settings,
   LogOut,
   Zap,
@@ -112,6 +115,7 @@ const DashboardPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [selectedFeature, setSelectedFeature] = useState(null);
+  const [challengeView, setChallengeView] = useState(null);
 
   if (!user) {
     return (
@@ -134,6 +138,7 @@ const DashboardPage = () => {
 
   const handleBackToDashboard = () => {
     setSelectedFeature(null);
+    setChallengeView(null);
   };
 
   const stats = [
@@ -143,7 +148,6 @@ const DashboardPage = () => {
     { icon: Star,     label: t("dashboard.words"),      value: "312", color: "text-emerald-500" },
   ];
 
-  // To hide the badge when a feature is ready, set statusBadgeLabel to undefined.
   const features = [
     {
       icon: Languages,
@@ -202,11 +206,10 @@ const DashboardPage = () => {
       statusBadgeLabel: "In progress...",
     },
     {
-      icon: Swords,
+      icon: Gamepad2,
       title: t("dashboard.challenges"),
       description: t("dashboard.challenges_desc"),
       color: "text-yellow-500",
-      statusBadgeLabel: "In progress...",
     },
   ];
 
@@ -265,8 +268,8 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Selected Feature Section */}
-      {selectedFeature && (
+      {/* Selected Feature Section (non-challenges) */}
+      {selectedFeature && selectedFeature.title !== t("dashboard.challenges") && (
         <section className="space-y-6">
           <button
             onClick={handleBackToDashboard}
@@ -320,8 +323,33 @@ const DashboardPage = () => {
         </section>
       )}
 
-      {/* Stats + Features — hidden when a feature is selected */}
-      {!selectedFeature && (
+      {/* Challenges Menu */}
+      {selectedFeature && selectedFeature.title === t("dashboard.challenges") && !challengeView && (
+        <ChallengesMenu
+          isDarkMode={isDarkMode}
+          onBack={handleBackToDashboard}
+          onSelect={setChallengeView}
+        />
+      )}
+
+      {/* Hangman Game */}
+      {challengeView === "hangman" && (
+        <HangmanGame
+          isDarkMode={isDarkMode}
+          onBack={() => setChallengeView(null)}
+        />
+      )}
+
+      {/* Crosswords Game */}
+      {challengeView === "crosswords" && (
+        <CrosswordsGame
+          isDarkMode={isDarkMode}
+          onBack={() => setChallengeView(null)}
+        />
+      )}
+
+      {/* Stats + Features — hidden when a feature or challenge is active */}
+      {!selectedFeature && !challengeView && (
         <>
           <section>
             <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
