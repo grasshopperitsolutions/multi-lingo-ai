@@ -59,7 +59,6 @@ StatCard.propTypes = {
 // ── TooltipButton ─────────────────────────────────────────────────────────────
 // A thin wrapper that adds a tooltip above any icon button.
 const TooltipButton = ({ tooltip, isDarkMode, children }) => {
-  // Tooltip theme
   const tooltipClasses = isDarkMode
     ? "bg-slate-900 border-yellow-400 text-yellow-400"
     : "bg-white border-slate-900 text-slate-900";
@@ -79,7 +78,6 @@ const TooltipButton = ({ tooltip, isDarkMode, children }) => {
         ].join(" ")}
       >
         {tooltip}
-        {/* Arrow — dark: single border span; light: two-span bordered arrow */}
         {isDarkMode ? (
           <span
             className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"
@@ -145,60 +143,70 @@ const DashboardPage = () => {
     { icon: Star,     label: t("dashboard.words"),      value: "312", color: "text-emerald-500" },
   ];
 
+  // To hide the badge when a feature is ready, set statusBadgeLabel to undefined.
   const features = [
     {
       icon: Languages,
       title: t("dashboard.translator"),
       description: t("dashboard.translator_desc"),
       color: "text-sky-500",
+      statusBadgeLabel: "In progress...",
     },
     {
       icon: BookMarked,
       title: t("dashboard.dictionary"),
       description: t("dashboard.dictionary_desc"),
       color: "text-violet-500",
+      statusBadgeLabel: "In progress...",
     },
     {
       icon: PenLine,
       title: t("dashboard.grammar"),
       description: t("dashboard.grammar_desc"),
       color: "text-amber-500",
+      statusBadgeLabel: "In progress...",
     },
     {
       icon: BotMessageSquare,
       title: t("dashboard.ai_tutor"),
       description: t("dashboard.ai_tutor_desc"),
       color: "text-blue-500",
+      statusBadgeLabel: "In progress...",
     },
     {
       icon: UserRound,
       title: t("dashboard.real_person_tutor"),
       description: t("dashboard.real_person_tutor_desc"),
       color: "text-emerald-500",
+      statusBadgeLabel: "In progress...",
     },
     {
       icon: Video,
       title: t("dashboard.voice_practice"),
       description: t("dashboard.voice_practice_desc"),
       color: "text-purple-500",
+      statusBadgeLabel: "In progress...",
     },
     {
       icon: BookOpen,
       title: t("dashboard.story_generator"),
       description: t("dashboard.story_generator_desc"),
       color: "text-rose-500",
+      statusBadgeLabel: "In progress...",
     },
     {
       icon: Landmark,
       title: t("dashboard.history_culture"),
       description: t("dashboard.history_culture_desc"),
       color: "text-orange-500",
+      statusBadgeLabel: "In progress...",
     },
     {
       icon: Swords,
       title: t("dashboard.challenges"),
       description: t("dashboard.challenges_desc"),
       color: "text-yellow-500",
+      statusBadgeLabel: "In progress...",
     },
   ];
 
@@ -340,6 +348,7 @@ const DashboardPage = () => {
                   color={f.color}
                   isDarkMode={isDarkMode}
                   onClick={() => handleFeatureClick(f)}
+                  statusBadgeLabel={f.statusBadgeLabel}
                 />
               ))}
             </div>
