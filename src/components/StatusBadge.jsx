@@ -3,20 +3,23 @@ import PropTypes from "prop-types";
 /**
  * StatusBadge — small corner badge for feature cards.
  *
+ * Mirrors the project's isDarkMode pattern (same as every other component).
+ *
  * Usage:
- *   <StatusBadge label="In progress..." />
+ *   <StatusBadge label="In progress..." isDarkMode={isDarkMode} />
  *
  * To hide it when a feature is ready, simply stop passing the
  * `statusBadgeLabel` prop to FeatureCard (or set it to undefined/null).
  */
-const StatusBadge = ({ label, className = "" }) => {
+const StatusBadge = ({ label, isDarkMode, className = "" }) => {
   return (
     <span
       className={[
-        "absolute top-3 right-3 z-10 inline-flex items-center rounded-full border px-2.5 py-1",
-        "text-[11px] font-bold uppercase tracking-[0.12em] shadow-sm pointer-events-none",
-        "bg-amber-100 text-amber-800 border-amber-300",
-        "dark:bg-amber-500/15 dark:text-amber-200 dark:border-amber-400/40",
+        "absolute top-3 right-3 z-10 inline-flex items-center rounded-full border-2 px-2.5 py-1",
+        "text-[11px] font-black uppercase tracking-[0.12em] pointer-events-none",
+        isDarkMode
+          ? "bg-amber-500/15 text-amber-300 border-amber-400/50"
+          : "bg-amber-100 text-amber-800 border-amber-400",
         className,
       ]
         .filter(Boolean)
@@ -30,6 +33,8 @@ const StatusBadge = ({ label, className = "" }) => {
 StatusBadge.propTypes = {
   /** Text shown inside the badge */
   label: PropTypes.string.isRequired,
+  /** Passed from parent — follows the project-wide isDarkMode pattern */
+  isDarkMode: PropTypes.bool.isRequired,
   /** Optional extra Tailwind classes */
   className: PropTypes.string,
 };

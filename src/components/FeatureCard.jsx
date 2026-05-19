@@ -21,7 +21,9 @@ const FeatureCard = ({ icon: Icon, title, description, delay, color, isDarkMode,
         }`}
         style={{ animationDelay: delay }}
       >
-        {statusBadgeLabel && <StatusBadge label={statusBadgeLabel} />}
+        {statusBadgeLabel && (
+          <StatusBadge label={statusBadgeLabel} isDarkMode={isDarkMode} />
+        )}
         <div
           className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 border-2 border-current shadow-[4px_4px_0px_0px_currentColor] float-1 ${color}`}
         >
