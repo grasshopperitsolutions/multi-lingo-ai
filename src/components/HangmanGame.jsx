@@ -37,6 +37,13 @@ const HangmanGame = ({ isDarkMode }) => {
         {t("challenges.hangman")}
       </h2>
 
+      {/* Word Description */}
+      <p className={`mb-6 text-center text-sm sm:text-base font-medium italic px-4 ${
+        isDarkMode ? "text-slate-400" : "text-slate-600"
+      }`}>
+        {t("challenges.hangman_azulejo_desc")}
+      </p>
+
       {/* Hangman Graphic */}
       <div
         className={`w-48 h-48 mb-8 rounded-2xl border-4 flex items-center justify-center relative ${
