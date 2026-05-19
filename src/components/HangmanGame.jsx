@@ -5,7 +5,7 @@ import { Trophy, Skull } from "lucide-react";
 
 const HangmanGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
-  const word = "AZULEJO";
+  const word = "AZULEJO".toUpperCase();
   const [guessed, setGuessed] = useState(new Set());
   const [wrongCount, setWrongCount] = useState(0);
 
