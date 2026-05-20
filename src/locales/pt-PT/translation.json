@@ -175,7 +175,21 @@
       "network_error": "Não foi possível contactar o servidor. Verifica a tua ligação e tenta novamente."
     },
     "success_message": "Definições guardadas com sucesso!",
-    "delete_not_implemented": "A eliminação de conta ainda não está implementada."
+    "delete_not_implemented": "A eliminação de conta ainda não está implementada.",
+    "language_learning": "Aprendizagem de Idiomas",
+    "learning_language": "Idioma de Aprendizagem",
+    "learning_locked_hint": "Bloqueado — o Português Europeu é atualmente o único idioma disponível.",
+    "native_language": "Idioma Nativo",
+    "interests": "Interesses",
+    "interests_hint": "Seleciona tópicos que gostes para personalizar a tua experiência de aprendizagem.",
+    "categories": {
+      "general": "Geral",
+      "food": "Comida",
+      "travel": "Viagens",
+      "sports": "Desportos",
+      "tech": "Tecnologia",
+      "nature": "Natureza"
+    }
   },
   "dashboard": {
     "loading": "A carregar o teu painel...",
@@ -230,6 +244,8 @@
     "clue_bread": "Item essencial de padaria (Pão)",
     "clue_father": "Membro da família (Pai)",
     "submit": "Submeter",
-    "try_again": "Não é bem — tenta de novo!"
+    "try_again": "Não é bem — tenta de novo!",
+    "word_fetch_error": "Falha ao carregar a palavra. Por favor tenta novamente.",
+    "loading_word": "A escolher uma palavra..."
   }
 }

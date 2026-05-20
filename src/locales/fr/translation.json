@@ -175,7 +175,21 @@
       "network_error": "Impossible de joindre le serveur. Vérifie ta connexion et réessaie."
     },
     "success_message": "Paramètres enregistrés avec succès !",
-    "delete_not_implemented": "La suppression de compte n'est pas encore implémentée."
+    "delete_not_implemented": "La suppression de compte n'est pas encore implémentée.",
+    "language_learning": "Apprentissage des Langues",
+    "learning_language": "Langue d'Apprentissage",
+    "learning_locked_hint": "Verrouillé — le Portugais Européen est actuellement la seule langue proposée.",
+    "native_language": "Langue Maternelle",
+    "interests": "Centres d'Intérêt",
+    "interests_hint": "Sélectionne les sujets que tu aimes pour personnaliser ton expérience d'apprentissage.",
+    "categories": {
+      "general": "Général",
+      "food": "Cuisine",
+      "travel": "Voyages",
+      "sports": "Sports",
+      "tech": "Tech",
+      "nature": "Nature"
+    }
   },
   "dashboard": {
     "loading": "Chargement de ton tableau de bord...",
@@ -230,6 +244,8 @@
     "clue_bread": "Article de boulangerie essentiel (Pain)",
     "clue_father": "Membre de la famille (Père)",
     "submit": "Soumettre",
-    "try_again": "Pas tout à fait — réessaie !"
+    "try_again": "Pas tout à fait — réessaie !",
+    "word_fetch_error": "Échec du chargement du mot. Veuillez réessayer.",
+    "loading_word": "Sélection d'un mot..."
   }
 }

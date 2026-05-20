@@ -175,7 +175,21 @@
       "network_error": "No se pudo conectar con el servidor. Verifica tu conexión e inténtalo de nuevo."
     },
     "success_message": "¡Ajustes guardados correctamente!",
-    "delete_not_implemented": "La eliminación de cuenta aún no está implementada."
+    "delete_not_implemented": "La eliminación de cuenta aún no está implementada.",
+    "language_learning": "Aprendizaje de Idiomas",
+    "learning_language": "Idioma de Aprendizaje",
+    "learning_locked_hint": "Bloqueado — el Portugués Europeo es actualmente el único idioma ofrecido.",
+    "native_language": "Idioma Nativo",
+    "interests": "Intereses",
+    "interests_hint": "Selecciona temas que te gusten para personalizar tu experiencia de aprendizaje.",
+    "categories": {
+      "general": "General",
+      "food": "Comida",
+      "travel": "Viajes",
+      "sports": "Deportes",
+      "tech": "Tecnología",
+      "nature": "Naturaleza"
+    }
   },
   "dashboard": {
     "loading": "Cargando tu panel...",
@@ -230,6 +244,8 @@
     "clue_bread": "Artículo esencial de panadería (Pan)",
     "clue_father": "Miembro de la familia (Padre)",
     "submit": "Enviar",
-    "try_again": "¡No es correcto — inténtalo de nuevo!"
+    "try_again": "¡No es correcto — inténtalo de nuevo!",
+    "word_fetch_error": "Error al cargar la palabra. Inténtalo de nuevo.",
+    "loading_word": "Seleccionando una palabra..."
   }
 }
