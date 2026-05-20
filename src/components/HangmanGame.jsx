@@ -55,7 +55,7 @@ const HangmanGame = ({ isDarkMode }) => {
   const [wrongCount, setWrongCount]   = useState(0);
 
   // ── Loading / error state ──
-  const [loading, setLoading]   = useState(false);
+  const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
 
   const maxWrong  = 6;
@@ -110,8 +110,40 @@ const HangmanGame = ({ isDarkMode }) => {
     }
   }, [user, t]);
 
-  // Fetch on mount
-  useEffect(() => { fetchWord(); }, [fetchWord]);
+  // Fetch on mount — uses promise chains so setState calls happen in
+  // microtask callbacks rather than synchronously in the effect body,
+  // avoiding the cascading-render anti-pattern.
+  useEffect(() => {
+    if (!user) return;
+
+    let cancelled = false;
+
+    getHangmanWord({
+      uid: user.uid,
+      token: user.token,
+      userDialect: user.nativeDialect ?? "en",
+      learningDialect: user.learningDialect ?? "pt-PT",
+      category: user.interests?.[0] ?? "general",
+    })
+      .then((result) => {
+        if (cancelled) return;
+        setWord(result.word.toUpperCase());
+        setHint(result.hint);
+        setWordId(result.wordId);
+        setSource(result.source);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err.message ?? t("challenges.word_fetch_error"));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+    // Intentionally run only on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Guess handler ──
   const handleGuess = (char) => {
