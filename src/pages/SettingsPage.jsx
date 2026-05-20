@@ -20,6 +20,8 @@ import {
   Loader2,
   AlertTriangle,
   X,
+  Lock,
+  BookOpen,
 } from "lucide-react";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
 import { auth } from "../firebase";
@@ -29,6 +31,15 @@ const LANGUAGE_OPTIONS = [
   { value: "pt-PT", label: "Portuguese" },
   { value: "es", label: "Spanish" },
   { value: "fr", label: "French" },
+];
+
+const INTEREST_CATEGORIES = [
+  { value: "general", labelKey: "categories.general" },
+  { value: "food",    labelKey: "categories.food" },
+  { value: "travel",  labelKey: "categories.travel" },
+  { value: "sports",  labelKey: "categories.sports" },
+  { value: "tech",    labelKey: "categories.tech" },
+  { value: "nature",  labelKey: "categories.nature" },
 ];
 
 // ── Delete Confirmation Modal ─────────────────────────────────────────────────
@@ -191,11 +202,58 @@ AvatarUpload.propTypes = {
   isUploading: PropTypes.bool.isRequired,
 };
 
+// ── Interest Pills ────────────────────────────────────────────────────────────
+const InterestPills = ({ selected, onChange, isDarkMode, t }) => {
+  const toggle = (value) => {
+    onChange(
+      selected.includes(value)
+        ? selected.filter((v) => v !== value)
+        : [...selected, value]
+    );
+  };
+
+  return (
+    <div className="flex flex-wrap gap-2" role="group" aria-label={t("settings.interests")}>
+      {INTEREST_CATEGORIES.map(({ value, labelKey }) => {
+        const isSelected = selected.includes(value);
+        return (
+          <button
+            key={value}
+            type="button"
+            onClick={() => toggle(value)}
+            aria-pressed={isSelected}
+            className={`px-4 py-2 rounded-full border-2 font-black uppercase text-xs tracking-widest
+              transition-all active:scale-95
+              ${ isSelected
+                ? isDarkMode
+                  ? "bg-yellow-400 border-yellow-400 text-slate-900 shadow-[3px_3px_0px_0px_#854d0e]"
+                  : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[3px_3px_0px_0px_#0f172a]"
+                : isDarkMode
+                  ? "bg-transparent border-slate-600 text-slate-400 hover:border-slate-400 hover:text-slate-200"
+                  : "bg-transparent border-slate-300 text-slate-500 hover:border-slate-900 hover:text-slate-900"
+              }`}
+          >
+            {t(labelKey)}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+InterestPills.propTypes = {
+  selected: PropTypes.arrayOf(PropTypes.string).isRequired,
+  onChange: PropTypes.func.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+  t: PropTypes.func.isRequired,
+};
+
 // ── Settings Form ─────────────────────────────────────────────────────────────
 const SettingsForm = ({
   user, isDarkMode,
   displayName, setDisplayName,
   interfaceLang, setInterfaceLang,
+  nativeDialect, setNativeDialect,
+  interests, setInterests,
   draftDarkMode, setDraftDarkMode,
   isSaving, isUploading, handleSave,
   previewUrl, onFileSelect,
@@ -221,7 +279,7 @@ const SettingsForm = ({
 
   return (
     <form onSubmit={handleSave}>
-      {/* Profile */}
+      {/* ── Profile ──────────────────────────────────────────────────────── */}
       <div className={sectionClasses}>
         <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
           {t("settings.profile")}
@@ -262,7 +320,7 @@ const SettingsForm = ({
         </div>
       </div>
 
-      {/* Appearance */}
+      {/* ── Appearance ───────────────────────────────────────────────────── */}
       <div className={sectionClasses}>
         <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
           {t("settings.appearance")}
@@ -301,7 +359,76 @@ const SettingsForm = ({
         </div>
       </div>
 
-      {/* Save button — bottom of form (kept as-is) */}
+      {/* ── Language Learning ─────────────────────────────────────────────── */}
+      <div className={sectionClasses}>
+        <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
+          <BookOpen size={16} className="inline mr-2" />
+          {t("settings.language_learning")}
+        </h2>
+
+        <div className="space-y-6">
+          {/* Learning Language — locked */}
+          <div>
+            <label className={labelClasses}>
+              <Lock size={12} className="inline mr-1" /> {t("settings.learning_language")}
+            </label>
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border-4 cursor-not-allowed
+              ${ isDarkMode
+                ? "bg-slate-700/50 border-slate-600 text-slate-400"
+                : "bg-slate-50 border-slate-200 text-slate-500"
+              }`}>
+              <span className="text-xl" aria-hidden="true">🇵🇹</span>
+              <div>
+                <p className={`font-black text-sm ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
+                  Portuguese (Portugal)
+                </p>
+                <p className={`text-xs font-bold uppercase tracking-widest
+                  ${ isDarkMode ? "text-slate-500" : "text-slate-400" }`}>
+                  pt-PT
+                </p>
+              </div>
+              <Lock size={14} className="ml-auto opacity-40" />
+            </div>
+            <p className={`mt-2 text-xs font-bold uppercase tracking-widest
+              ${ isDarkMode ? "text-slate-600" : "text-slate-400" }`}>
+              {t("settings.learning_locked_hint")}
+            </p>
+          </div>
+
+          {/* Native Language */}
+          <div>
+            <label className={labelClasses}>
+              <Globe size={12} className="inline mr-1" /> {t("settings.native_language")}
+            </label>
+            <NeoDropdown
+              options={LANGUAGE_OPTIONS}
+              value={nativeDialect}
+              onChange={setNativeDialect}
+              isDarkMode={isDarkMode}
+              className="w-full"
+            />
+          </div>
+
+          {/* Interests */}
+          <div>
+            <label className={labelClasses}>
+              {t("settings.interests")}
+            </label>
+            <p className={`text-xs font-semibold mb-3
+              ${ isDarkMode ? "text-slate-500" : "text-slate-400" }`}>
+              {t("settings.interests_hint")}
+            </p>
+            <InterestPills
+              selected={interests}
+              onChange={setInterests}
+              isDarkMode={isDarkMode}
+              t={t}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Save button ───────────────────────────────────────────────────── */}
       <button
         type="submit"
         disabled={isBusy}
@@ -327,12 +454,19 @@ SettingsForm.propTypes = {
     displayName: PropTypes.string,
     photoURL: PropTypes.string,
     interfaceLang: PropTypes.string,
+    nativeDialect: PropTypes.string,
+    learningDialect: PropTypes.string,
+    interests: PropTypes.arrayOf(PropTypes.string),
   }),
   isDarkMode: PropTypes.bool.isRequired,
   displayName: PropTypes.string.isRequired,
   setDisplayName: PropTypes.func.isRequired,
   interfaceLang: PropTypes.string.isRequired,
   setInterfaceLang: PropTypes.func.isRequired,
+  nativeDialect: PropTypes.string.isRequired,
+  setNativeDialect: PropTypes.func.isRequired,
+  interests: PropTypes.arrayOf(PropTypes.string).isRequired,
+  setInterests: PropTypes.func.isRequired,
   draftDarkMode: PropTypes.bool.isRequired,
   setDraftDarkMode: PropTypes.func.isRequired,
   isSaving: PropTypes.bool.isRequired,
@@ -348,27 +482,40 @@ const SettingsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [displayName, setDisplayName] = useState(user?.displayName || "");
+  const [displayName, setDisplayName]     = useState(user?.displayName || "");
   const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en");
+  const [nativeDialect, setNativeDialect] = useState(user?.nativeDialect || user?.interfaceLang || "en");
+  const [interests, setInterests]         = useState(user?.interests || []);
   const [draftDarkMode, setDraftDarkMode] = useState(isDarkMode);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsSaving]           = useState(false);
 
   // Avatar upload state
-  const [pendingFile, setPendingFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [pendingFile, setPendingFile]   = useState(null);
+  const [previewUrl, setPreviewUrl]     = useState(null);
+  const [isUploading, setIsUploading]   = useState(false);
 
   // Delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleting, setIsDeleting]           = useState(false);
 
-  // Sync form when context user changes
+  // Sync form when context user changes (e.g. after refreshUser)
   const [prevSyncKey, setPrevSyncKey] = useState("");
-  const syncKey = `${user?.uid || ""}-${user?.displayName || ""}-${user?.interfaceLang || ""}-${isDarkMode}`;
+  const syncKey = [
+    user?.uid || "",
+    user?.displayName || "",
+    user?.interfaceLang || "",
+    user?.nativeDialect || "",
+    (user?.interests || []).join(","),
+    isDarkMode,
+  ].join("|");
+
   if (syncKey !== prevSyncKey) {
     setPrevSyncKey(syncKey);
-    if (user?.displayName) setDisplayName(user.displayName);
+    if (user?.displayName)   setDisplayName(user.displayName);
     if (user?.interfaceLang) setInterfaceLang(user.interfaceLang);
+    // nativeDialect: Firestore value → fallback to interfaceLang
+    setNativeDialect(user?.nativeDialect || user?.interfaceLang || "en");
+    setInterests(Array.isArray(user?.interests) ? user.interests : []);
     setDraftDarkMode(isDarkMode);
   }
 
@@ -406,6 +553,9 @@ const SettingsPage = () => {
         displayName,
         interfaceLang,
         theme: draftDarkMode ? "dark" : "light",
+        nativeDialect,
+        learningDialect: "pt-PT",
+        interests,
       });
       changeLanguage(interfaceLang);
       setIsDarkMode(draftDarkMode);
@@ -494,6 +644,10 @@ const SettingsPage = () => {
           setDisplayName={setDisplayName}
           interfaceLang={interfaceLang}
           setInterfaceLang={setInterfaceLang}
+          nativeDialect={nativeDialect}
+          setNativeDialect={setNativeDialect}
+          interests={interests}
+          setInterests={setInterests}
           draftDarkMode={draftDarkMode}
           setDraftDarkMode={setDraftDarkMode}
           isSaving={isSaving}
