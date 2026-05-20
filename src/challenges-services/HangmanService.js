@@ -236,31 +236,22 @@ async function _patchPoolMeta(poolId, token) {
  * @returns {Promise<Array<{ id: string, word: string, hints: Record<string, string>, usedCount: number }>>}
  */
 async function _fetchAllWords(wordsCollection, token) {
-  const allWords = [];
-  let lastDocumentId = null;
-  let hasMore = true;
+  // NOTE: Pagination is intentionally omitted — a single query with a limit of
+  // 100 is sufficient for current pool sizes. If pools grow beyond 100 words
+  // per dialect+category, add cursor-based pagination here using the last
+  // document's `createdAt` timestamp (not its document ID) as the cursor.
+  const result = await queryCollection(
+    wordsCollection,
+    {},
+    {
+      orderBy: 'createdAt',
+      order: 'asc',
+      limit: WORDS_PAGE_SIZE,
+    },
+    token
+  );
 
-  while (hasMore) {
-    const result = await queryCollection(
-      wordsCollection,
-      {},
-      {
-        orderBy: 'createdAt',
-        order: 'asc',
-        limit: WORDS_PAGE_SIZE,
-        ...(lastDocumentId ? { startAfter: lastDocumentId } : {}),
-      },
-      token
-    );
-
-    const docs = result?.documents ?? [];
-    allWords.push(...docs);
-
-    hasMore = result?.hasMore === true && docs.length === WORDS_PAGE_SIZE;
-    lastDocumentId = result?.lastDocumentId ?? null;
-  }
-
-  return allWords;
+  return result?.documents ?? [];
 }
 
 /**

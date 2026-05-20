@@ -110,9 +110,9 @@ const HangmanGame = ({ isDarkMode }) => {
     }
   }, [user, t]);
 
-  // Fetch on mount — uses promise chains so setState calls happen in
-  // microtask callbacks rather than synchronously in the effect body,
-  // avoiding the cascading-render anti-pattern.
+  // Fetch a word on mount — calls getHangmanWord directly and uses promise
+  // chains so setState calls happen in microtask callbacks rather than
+  // synchronously in the effect body, satisfying react-hooks/set-state-in-effect.
   useEffect(() => {
     if (!user) return;
 
@@ -141,7 +141,8 @@ const HangmanGame = ({ isDarkMode }) => {
       });
 
     return () => { cancelled = true; };
-    // Intentionally run only on mount.
+    // Intentionally run only on mount — defaults are kept in sync with
+    // fetchWord's defaults via the useCallback below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

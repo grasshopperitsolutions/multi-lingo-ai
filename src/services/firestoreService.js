@@ -75,14 +75,17 @@ export async function getDocument(collection, id, token) {
 export async function queryCollection(collection, filters = {}, options = {}, token) {
   const idToken = token ?? (await getToken());
 
-  const { orderBy = 'createdAt', order = 'desc', limit = 100, startAfter } = options;
+  // NOTE: orderBy, order, and limit default to undefined — they are only sent
+  // when explicitly provided. Without ordering, Firestore returns documents in
+  // document ID order without needing composite indexes, which is faster.
+  const { orderBy, order, limit=1000, startAfter } = options;
 
   const url = new URL(`${PROXY_URL}/api/firestore`);
   url.searchParams.set('collection', collection);
   url.searchParams.set('query', JSON.stringify(filters));
-  url.searchParams.set('orderBy', orderBy);
-  url.searchParams.set('order', order);
-  url.searchParams.set('limit', String(limit));
+  if (orderBy) url.searchParams.set('orderBy', orderBy);
+  if (order) url.searchParams.set('order', order);
+  if (limit !== undefined) url.searchParams.set('limit', String(limit));
   if (startAfter) url.searchParams.set('startAfter', startAfter);
 
   const response = await fetch(url.toString(), {
