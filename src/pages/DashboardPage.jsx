@@ -5,6 +5,7 @@ import { useAppContext } from "../contexts/AppContext";
 import FeatureCard from "../components/FeatureCard";
 import Loader from "../components/Loader";
 import Avatar from "../components/Avatar";
+import ChallengesMenu from "../components/ChallengesMenu";
 import {
   Languages,
   BookMarked,
@@ -14,7 +15,7 @@ import {
   Video,
   BookOpen,
   Landmark,
-  Swords,
+  Gamepad2,
   Settings,
   LogOut,
   Zap,
@@ -143,8 +144,13 @@ const DashboardPage = () => {
     { icon: Star,     label: t("dashboard.words"),      value: "312", color: "text-emerald-500" },
   ];
 
-  // To hide the badge when a feature is ready, set statusBadgeLabel to undefined.
   const features = [
+    {
+      icon: Gamepad2,
+      title: t("dashboard.challenges"),
+      description: t("dashboard.challenges_desc"),
+      color: "text-yellow-500",
+    },
     {
       icon: Languages,
       title: t("dashboard.translator"),
@@ -199,13 +205,6 @@ const DashboardPage = () => {
       title: t("dashboard.history_culture"),
       description: t("dashboard.history_culture_desc"),
       color: "text-orange-500",
-      statusBadgeLabel: "In progress...",
-    },
-    {
-      icon: Swords,
-      title: t("dashboard.challenges"),
-      description: t("dashboard.challenges_desc"),
-      color: "text-yellow-500",
       statusBadgeLabel: "In progress...",
     },
   ];
@@ -265,8 +264,8 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Selected Feature Section */}
-      {selectedFeature && (
+      {/* Selected Feature Section (non-challenges) */}
+      {selectedFeature && selectedFeature.title !== t("dashboard.challenges") && (
         <section className="space-y-6">
           <button
             onClick={handleBackToDashboard}
@@ -320,7 +319,15 @@ const DashboardPage = () => {
         </section>
       )}
 
-      {/* Stats + Features — hidden when a feature is selected */}
+      {/* Challenges Hub */}
+      {selectedFeature && selectedFeature.title === t("dashboard.challenges") && (
+        <ChallengesMenu
+          isDarkMode={isDarkMode}
+          onBack={handleBackToDashboard}
+        />
+      )}
+
+      {/* Stats + Features — hidden when a feature is active */}
       {!selectedFeature && (
         <>
           <section>

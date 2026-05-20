@@ -175,7 +175,21 @@
       "network_error": "Could not reach the server. Please check your connection and try again."
     },
     "success_message": "Settings saved successfully!",
-    "delete_not_implemented": "Account deletion isn't implemented yet."
+    "delete_not_implemented": "Account deletion isn't implemented yet.",
+    "language_learning": "Language Learning",
+    "learning_language": "Learning Language",
+    "learning_locked_hint": "Locked — European Portuguese is currently the only language offered.",
+    "native_language": "Native Language",
+    "interests": "Interests",
+    "interests_hint": "Select topics you enjoy to personalize your learning experience.",
+    "categories": {
+      "general": "General",
+      "food": "Food",
+      "travel": "Travel",
+      "sports": "Sports",
+      "tech": "Tech",
+      "nature": "Nature"
+    }
   },
   "dashboard": {
     "loading": "Loading your dashboard…",
@@ -207,5 +221,31 @@
     "history_culture_desc": "Explore the history, customs, and culture behind the language you're learning.",
     "challenges": "Challenges",
     "challenges_desc": "Test your skills with mini-games, quizzes, and daily language challenges."
+  },
+  "challenges": {
+    "title": "Challenge Hub",
+    "coming_soon": "Coming soon...",
+    "crosswords": "Crosswords",
+    "crosswords_desc": "Test your vocabulary with daily Portuguese crosswords.",
+    "hangman": "Hangman",
+    "hangman_desc": "Guess the slang before the man drops.",
+    "hangman_azulejo_desc": "A traditional Portuguese ceramic tile, often blue and white.",
+    "word_quiz": "Word Quiz",
+    "word_quiz_desc": "Quick vocabulary questions to sharpen your skills.",
+    "word_search": "Word Search",
+    "word_search_desc": "Find Portuguese words hidden in the grid.",
+    "crossword_crushed": "CROSSWORD CRUSHED!",
+    "you_survived": "YOU SURVIVED!",
+    "hung_up": "HUNG UP!",
+    "play_again": "Play Again",
+    "clues": "CLUES",
+    "across": "ACROSS",
+    "down": "DOWN",
+    "clue_bread": "Essential bakery item (Bread)",
+    "clue_father": "Family member (Father)",
+    "submit": "Submit",
+    "try_again": "Not quite — try again!",
+    "word_fetch_error": "Failed to load the word. Please try again.",
+    "loading_word": "Picking a word..."
   }
 }
