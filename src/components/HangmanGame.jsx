@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Trophy, Skull, RefreshCw } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
+import { useAppContext } from "../contexts/AppContext";
 import { getHangmanWord } from "../challenges-services/HangmanService";
 
 // ---------------------------------------------------------------------------
@@ -39,7 +39,10 @@ HangmanScaffold.propTypes = {
 // ---------------------------------------------------------------------------
 const HangmanGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
-  const { user, userProfile } = useAuth();
+  // AppContext merges Firestore profile fields directly onto the user object
+  // via loadUserProfile — so learningDialect, nativeDialect, interests, and
+  // token are all available as user.fieldName.
+  const { user } = useAppContext();
 
   // ── Word state ──
   const [word, setWord]       = useState("");
@@ -74,13 +77,18 @@ const HangmanGame = ({ isDarkMode }) => {
     setSource(null);
 
     try {
-      const token = await user.getIdToken();
+      // user.token is the plain ID token string kept fresh by AppContext's
+      // onAuthStateChanged listener. No need to call getIdToken() here.
+      const token = user.token;
 
-      // Derive dialect + category from userProfile; fall back to sensible defaults.
-      const learningDialect = userProfile?.learningDialect ?? "es-MX";
-      const userDialect     = userProfile?.nativeDialect   ?? "en-US";
-      // Map user interests to a WordCategory; default to 'general'.
-      const category = userProfile?.interests?.[0] ?? "general";
+      if (!token) throw new Error(t("challenges.word_fetch_error"));
+
+      // Profile fields merged into user by AppContext.loadUserProfile.
+      // Fall back to pt-PT / en defaults if not yet loaded.
+      const learningDialect = user.learningDialect ?? "pt-PT";
+      const userDialect     = user.nativeDialect   ?? "en";
+      // Use first interest as category; default to 'general'.
+      const category = user.interests?.[0] ?? "general";
 
       /** @type {import('../challenges-services/types').WordResult} */
       const result = await getHangmanWord({
@@ -100,7 +108,7 @@ const HangmanGame = ({ isDarkMode }) => {
     } finally {
       setLoading(false);
     }
-  }, [user, userProfile, t]);
+  }, [user, t]);
 
   // Fetch on mount
   useEffect(() => { fetchWord(); }, [fetchWord]);
