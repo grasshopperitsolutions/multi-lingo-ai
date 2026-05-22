@@ -209,12 +209,21 @@ function _resolveHint(hints, userDialect) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Fetch up to POOL_LIMIT "ready" concepts from wordPool.
+ * Sends a structured filters array — the API owns all Firestore query
+ * construction; the frontend just declares intent.
+ *
  * @param {string} token
  * @returns {Promise<Array<{ id: string, sourceWord: string, normalizedKey: string }>>}
  */
 async function _fetchReadyConcepts(token) {
+  const params = new URLSearchParams({
+    collection: 'wordPool',
+    filters: JSON.stringify([{ field: 'status', op: '==', value: 'ready' }]),
+    limit: String(POOL_LIMIT),
+  });
   const response = await fetch(
-    `${PROXY_URL}/api/firestore?collection=wordPool&filters=${encodeURIComponent(JSON.stringify([{ field: 'status', op: '==', value: 'ready' }]))}&limit=${POOL_LIMIT}`,
+    `${PROXY_URL}/api/firestore?${params}`,
     { method: 'GET', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
   );
   const json = await response.json();
