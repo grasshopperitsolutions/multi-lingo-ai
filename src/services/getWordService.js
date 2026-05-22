@@ -28,13 +28,7 @@
  *     region: string | null       // e.g. "PT"
  *     script: string | null       // e.g. "Latn"
  *     word: string                // localized answer word
- *     hints: {                    // hint keyed by the viewer's native locale
- *       "en-US": string,
- *       "pt-PT": string,
- *       "fr-FR": string,
- *       "es-MX": string,
- *       ...
- *     }
+ *     hints: Record<string,string> // hint keyed by viewer's native locale (open-ended map)
  *     normalizedWord: string      // for comparisons
  *     graphemes: string[]         // pre-split for Hangman / letter-based games
  *     source: string              // "human" | "ai" | "seed"
@@ -43,18 +37,29 @@
  *     createdAt: Timestamp
  *     updatedAt: Timestamp
  *
+ * Hint strategy:
+ *   - The hints map is open-ended. No locale list is hardcoded here.
+ *   - When a translation is fetched, _resolveHint() picks the best available
+ *     hint for userDialect using a 4-step fallback chain.
+ *   - If no hint exists for userDialect, _generateHintForDialect() asks the AI
+ *     for exactly one hint in that language and _patchHint() merges it into
+ *     the existing Firestore document without overwriting other keys.
+ *   - When the AI creates a brand-new translation it only generates
+ *     hints[userDialect] — nothing else. Other dialects are populated on demand
+ *     the first time a user of that language encounters the word.
+ *
  * Flow:
  *   1. Query wordPool where status == "ready", limit 200.
  *   2. Find the first concept whose ID is not in seenConceptIds.
  *
  *   BRANCH A — Unseen concept found:
  *     a. Fetch translations/{learningDialect} for that concept.
- *     b. Translation exists → resolve hint from hints map → return immediately.
- *     c. Translation missing → call AI to generate word + hints map,
- *        write translations/{learningDialect}, return.
+ *     b. Translation exists → resolve hint → patch if missing → return.
+ *     c. Translation missing → AI generates word + hints[userDialect],
+ *        write full translation doc, return.
  *
  *   BRANCH B — All concepts seen (pool exhausted for this user):
- *     a. Call AI to generate a brand-new concept + translation.
+ *     a. AI generates a brand-new concept + translation with hints[userDialect].
  *     b. Write wordPool/{newConceptId} + translations/{learningDialect}.
  *     c. Return the fresh word.
  *
@@ -75,10 +80,10 @@
 
 /**
  * @typedef {Object} WordResult
- * @property {string}   word        - Localized answer word
- * @property {string}   hint        - Hint in the user's native language
- * @property {string[]} graphemes   - Pre-split grapheme array
- * @property {string}   conceptId   - wordPool document ID
+ * @property {string}    word       - Localized answer word
+ * @property {string}    hint       - Hint in the user's native language
+ * @property {string[]}  graphemes  - Pre-split grapheme array
+ * @property {string}    conceptId  - wordPool document ID
  * @property {'db'|'ai'} source
  */
 
@@ -90,12 +95,6 @@ const PROXY_URL    = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-a
 const GEMINI_MODEL = 'gemini-2.0-flash';
 const POOL_LIMIT   = 200;
 
-/**
- * Locales for which we always pre-generate hints.
- * Extend this list when new interface languages are added.
- */
-const HINT_LOCALES = ['en-US', 'pt-PT', 'fr-FR', 'es-MX'];
-
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -103,28 +102,13 @@ const HINT_LOCALES = ['en-US', 'pt-PT', 'fr-FR', 'es-MX'];
 /**
  * Return the next unseen word for the given dialect.
  *
- * The caller owns progress tracking:
- *   1. Call userService.getUserGameProgress() to get seenConceptIds.
- *   2. Call getWord() with those IDs.
- *   3. Call userService.markConceptSeen() with the returned conceptId.
- *
  * @param {GetWordParams} params
  * @returns {Promise<WordResult>}
- *
- * @example
- * const progress = await getUserGameProgress(token, uid, 'hangman', 'pt-PT');
- * const result   = await getWord({
- *   token,
- *   userDialect:     'en-US',
- *   learningDialect: 'pt-PT',
- *   seenConceptIds:  progress?.seenConceptIds ?? [],
- * });
- * await markConceptSeen(token, uid, 'hangman', 'pt-PT', result.conceptId, progress);
  */
 export async function getWord({ token, userDialect, learningDialect, seenConceptIds }) {
   const seenSet = new Set(seenConceptIds ?? []);
 
-  // ── Step 1: Query ready concepts from wordPool ────────────────────────────
+  // ── Step 1: Query ready concepts ─────────────────────────────────────────
   const concepts = await _fetchReadyConcepts(token);
 
   // ── Step 2: Find first unseen concept ────────────────────────────────────
@@ -135,16 +119,27 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
     const translation = await _fetchTranslation(unseenConcept.id, learningDialect, token);
 
     if (translation) {
+      const hint = _resolveHint(translation.hints, userDialect);
+
+      // Patch missing hint for this dialect on demand (fire-and-forget)
+      if (!hint) {
+        _generateHintForDialect(unseenConcept.sourceWord, userDialect, token)
+          .then((newHint) =>
+            _patchHint(unseenConcept.id, learningDialect, userDialect, newHint, token)
+          )
+          .catch((err) => console.warn('[getWordService] hint patch failed:', err));
+      }
+
       return {
         word:      translation.word,
-        hint:      _resolveHint(translation.hints, userDialect),
+        hint:      hint || '',
         graphemes: translation.graphemes ?? _splitGraphemes(translation.word),
         conceptId: unseenConcept.id,
         source:    'db',
       };
     }
 
-    // Translation missing — generate it via AI and persist
+    // Translation missing — generate word + hint for userDialect only
     const generated = await _generateTranslation(
       unseenConcept.sourceWord,
       { userDialect, learningDialect },
@@ -154,7 +149,7 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
 
     return {
       word:      generated.word,
-      hint:      _resolveHint(generated.hints, userDialect),
+      hint:      generated.hints[userDialect] || '',
       graphemes: generated.graphemes,
       conceptId: unseenConcept.id,
       source:    'ai',
@@ -172,7 +167,7 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
 
   return {
     word:      generated.word,
-    hint:      _resolveHint(generated.hints, userDialect),
+    hint:      generated.hints[userDialect] || '',
     graphemes: generated.graphemes,
     conceptId,
     source:    'ai',
@@ -187,33 +182,30 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
  * Pick the best available hint for the user's native dialect.
  *
  * Fallback chain:
- *   1. Exact match:       hints["es-MX"]
- *   2. Language match:    hints["es-ES"]  (same language, different region)
- *   3. English fallback:  hints["en-US"]
- *   4. Any available:     first value in the map
- *   5. Empty string       (should never happen in practice)
+ *   1. Exact match        hints["es-MX"]
+ *   2. Language match     hints["es-ES"]  (same language tag, different region)
+ *   3. English fallback   hints["en-US"]
+ *   4. Any available      first value in the map
+ *
+ * Returns an empty string when the map is empty or undefined —
+ * the caller should treat that as a signal to generate and patch.
  *
  * @param {Record<string, string> | undefined} hints
- * @param {string} userDialect  - BCP-47, e.g. "es-MX"
+ * @param {string} userDialect
  * @returns {string}
  */
 function _resolveHint(hints, userDialect) {
   if (!hints || typeof hints !== 'object') return '';
 
-  // 1. Exact match
   if (hints[userDialect]) return hints[userDialect];
 
-  // 2. Language-only match (e.g. "es" matches "es-ES" when user has "es-MX")
-  const lang = userDialect.split('-')[0];
+  const lang      = userDialect.split('-')[0];
   const langMatch = Object.keys(hints).find((k) => k.startsWith(`${lang}-`));
   if (langMatch) return hints[langMatch];
 
-  // 3. English fallback
   if (hints['en-US']) return hints['en-US'];
 
-  // 4. Any available hint
-  const first = Object.values(hints)[0];
-  return first ?? '';
+  return Object.values(hints)[0] ?? '';
 }
 
 // ---------------------------------------------------------------------------
@@ -221,18 +213,13 @@ function _resolveHint(hints, userDialect) {
 // ---------------------------------------------------------------------------
 
 /**
- * Query wordPool for status == "ready", up to POOL_LIMIT concepts.
- *
  * @param {string} token
  * @returns {Promise<Array<{ id: string, sourceWord: string, normalizedKey: string }>>}
  */
 async function _fetchReadyConcepts(token) {
   const response = await fetch(
     `${PROXY_URL}/api/firestore?collection=wordPool&filters=${encodeURIComponent(JSON.stringify([{ field: 'status', op: '==', value: 'ready' }]))}&limit=${POOL_LIMIT}`,
-    {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    }
+    { method: 'GET', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
   );
   const json = await response.json();
   if (!response.ok) throw new Error(json?.error || json?.message || 'Failed to fetch word pool');
@@ -240,9 +227,6 @@ async function _fetchReadyConcepts(token) {
 }
 
 /**
- * Fetch a single translation subdocument.
- * Returns null when the translation doesn't exist yet.
- *
  * @param {string} conceptId
  * @param {string} locale
  * @param {string} token
@@ -252,10 +236,7 @@ async function _fetchTranslation(conceptId, locale, token) {
   const col      = `wordPool/${conceptId}/translations`;
   const response = await fetch(
     `${PROXY_URL}/api/firestore?collection=${encodeURIComponent(col)}&id=${encodeURIComponent(locale)}`,
-    {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    }
+    { method: 'GET', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
   );
   if (response.status === 404) return null;
   const json = await response.json();
@@ -264,7 +245,7 @@ async function _fetchTranslation(conceptId, locale, token) {
 }
 
 /**
- * Write (create or overwrite) a translation subdocument.
+ * Write a full translation subdocument (create or overwrite).
  *
  * @param {string} conceptId
  * @param {string} locale
@@ -272,15 +253,14 @@ async function _fetchTranslation(conceptId, locale, token) {
  * @param {string} token
  */
 async function _writeTranslation(conceptId, locale, data, token) {
-  const col = `wordPool/${conceptId}/translations`;
-  const now = new Date().toISOString();
-
+  const col      = `wordPool/${conceptId}/translations`;
+  const now      = new Date().toISOString();
   const response = await fetch(`${PROXY_URL}/api/firestore`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    method:  'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       collection: col,
-      id: locale,
+      id:   locale,
       data: {
         locale,
         language:      locale.split('-')[0],
@@ -303,6 +283,35 @@ async function _writeTranslation(conceptId, locale, data, token) {
 }
 
 /**
+ * Merge a single new hint key into an existing translation document
+ * without touching any other fields (uses PATCH / merge semantics).
+ *
+ * @param {string} conceptId
+ * @param {string} learningLocale
+ * @param {string} hintLocale      - e.g. "es-MX"
+ * @param {string} hintText
+ * @param {string} token
+ */
+async function _patchHint(conceptId, learningLocale, hintLocale, hintText, token) {
+  const col      = `wordPool/${conceptId}/translations`;
+  const now      = new Date().toISOString();
+  const response = await fetch(`${PROXY_URL}/api/firestore`, {
+    method:  'PATCH',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      collection: col,
+      id:   learningLocale,
+      data: {
+        [`hints.${hintLocale}`]: hintText,
+        updatedAt:               now,
+      },
+    }),
+  });
+  const json = await response.json();
+  if (!response.ok) throw new Error(json?.error || json?.message || 'Failed to patch hint');
+}
+
+/**
  * Write a new concept document + its first translation subdocument.
  *
  * @param {{ sourceWord: string, word: string, hints: Record<string,string>, graphemes: string[] }} generated
@@ -314,8 +323,8 @@ async function _writeNewConcept(generated, learningDialect, token) {
   const now = new Date().toISOString();
 
   const conceptResponse = await fetch(`${PROXY_URL}/api/firestore`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    method:  'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       collection: 'wordPool',
       data: {
@@ -347,7 +356,7 @@ async function _writeNewConcept(generated, learningDialect, token) {
 // ---------------------------------------------------------------------------
 
 /**
- * Ask AI to generate a translation (word + hints map) for an existing concept.
+ * Ask AI to translate an existing concept and generate a hint for userDialect only.
  *
  * @param {string} sourceWord
  * @param {{ userDialect: string, learningDialect: string }} params
@@ -355,20 +364,16 @@ async function _writeNewConcept(generated, learningDialect, token) {
  * @returns {Promise<{ word: string, hints: Record<string,string>, graphemes: string[] }>}
  */
 async function _generateTranslation(sourceWord, { userDialect, learningDialect }, token) {
-  const hintLocaleList = HINT_LOCALES.join(', ');
-
   const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    method:  'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       prompt: [
         `You are a language learning assistant.`,
         `Translate the English word "${sourceWord}" into ${learningDialect}.`,
         `Return a JSON object with:`,
-        `  - "word": the translated word in ${learningDialect}, lowercase, no leading/trailing spaces.`,
-        `  - "hints": an object with one hint sentence per locale key: ${hintLocaleList}.`,
-        `    Each hint describes the word without saying it, suitable for a guessing game.`,
-        `    Each hint must be written in its corresponding locale's language.`,
+        `  - "word": the translated word in ${learningDialect}, lowercase, no extra spaces.`,
+        `  - "hint": one sentence in ${userDialect} describing the word without saying it, suitable for a guessing game.`,
         `Return ONLY valid JSON. No markdown, no explanation.`,
       ].join('\n'),
       providerParams: {
@@ -379,14 +384,10 @@ async function _generateTranslation(sourceWord, { userDialect, learningDialect }
         responseSchema: {
           type: 'object',
           properties: {
-            word:  { type: 'string' },
-            hints: {
-              type: 'object',
-              properties: Object.fromEntries(HINT_LOCALES.map((l) => [l, { type: 'string' }])),
-              required: HINT_LOCALES,
-            },
+            word: { type: 'string' },
+            hint: { type: 'string' },
           },
-          required: ['word', 'hints'],
+          required: ['word', 'hint'],
         },
       },
     }),
@@ -395,34 +396,74 @@ async function _generateTranslation(sourceWord, { userDialect, learningDialect }
   if (!response.ok) throw new Error(json?.error || json?.message || 'AI translation failed');
 
   const parsed = _parseAIJson(json?.text ?? json?.data?.text);
-  if (!parsed?.word || !parsed?.hints)
-    throw new Error('[getWordService] AI response missing word or hints');
-
-  // Ensure the user's own dialect is in the hints even if AI missed it
-  if (userDialect && !parsed.hints[userDialect]) {
-    parsed.hints[userDialect] = parsed.hints['en-US'] ?? Object.values(parsed.hints)[0];
-  }
+  if (!parsed?.word || !parsed?.hint)
+    throw new Error('[getWordService] AI response missing word or hint');
 
   const word = parsed.word.trim().toLowerCase();
-  return { word, hints: parsed.hints, graphemes: _splitGraphemes(word) };
+  return {
+    word,
+    hints:     { [userDialect]: parsed.hint.trim() },
+    graphemes: _splitGraphemes(word),
+  };
 }
 
 /**
- * Ask AI to generate a brand-new concept + translation with a full hints map.
+ * Ask AI to generate one hint sentence for a given dialect.
+ * Used to patch a missing hint key on an existing translation document.
+ *
+ * @param {string} sourceWord  - Canonical English word
+ * @param {string} userDialect - The locale to generate the hint in
+ * @param {string} token
+ * @returns {Promise<string>}
+ */
+async function _generateHintForDialect(sourceWord, userDialect, token) {
+  const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
+    method:  'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt: [
+        `You are a language learning assistant.`,
+        `Write exactly one sentence in ${userDialect} that describes the word "${sourceWord}" without saying it.`,
+        `The sentence should be suitable as a hint in a word-guessing game.`,
+        `Return a JSON object with a single "hint" field.`,
+        `Return ONLY valid JSON. No markdown, no explanation.`,
+      ].join('\n'),
+      providerParams: {
+        provider:    'gemini',
+        model:       GEMINI_MODEL,
+        temperature: 0.7,
+        jsonMode:    true,
+        responseSchema: {
+          type:       'object',
+          properties: { hint: { type: 'string' } },
+          required:   ['hint'],
+        },
+      },
+    }),
+  });
+  const json = await response.json();
+  if (!response.ok) throw new Error(json?.error || json?.message || 'AI hint generation failed');
+
+  const parsed = _parseAIJson(json?.text ?? json?.data?.text);
+  if (!parsed?.hint) throw new Error('[getWordService] AI response missing hint');
+  return parsed.hint.trim();
+}
+
+/**
+ * Ask AI to generate a brand-new concept + translation with hints[userDialect] only.
  *
  * @param {{ userDialect: string, learningDialect: string, knownWords: string[] }} params
  * @param {string} token
  * @returns {Promise<{ sourceWord: string, word: string, hints: Record<string,string>, graphemes: string[] }>}
  */
 async function _generateNewConcept({ userDialect, learningDialect, knownWords }, token) {
-  const avoidList    = knownWords.length > 0
+  const avoidList = knownWords.length > 0
     ? `Do NOT use any of these (already in the database): ${knownWords.join(', ')}`
     : '';
-  const hintLocaleList = HINT_LOCALES.join(', ');
 
   const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    method:  'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       prompt: [
         `You are a language learning assistant.`,
@@ -430,9 +471,7 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords },
         `Return a JSON object with:`,
         `  - "sourceWord": the English label for the concept, lowercase.`,
         `  - "word": the translation in ${learningDialect}, lowercase.`,
-        `  - "hints": an object with one hint sentence per locale key: ${hintLocaleList}.`,
-        `    Each hint describes the word without saying it, suitable for a guessing game.`,
-        `    Each hint must be written in its corresponding locale's language.`,
+        `  - "hint": one sentence in ${userDialect} describing the word without saying it, suitable for a guessing game.`,
         avoidList,
         `Return ONLY valid JSON. No markdown, no explanation.`,
       ].filter(Boolean).join('\n'),
@@ -446,13 +485,9 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords },
           properties: {
             sourceWord: { type: 'string' },
             word:       { type: 'string' },
-            hints: {
-              type: 'object',
-              properties: Object.fromEntries(HINT_LOCALES.map((l) => [l, { type: 'string' }])),
-              required: HINT_LOCALES,
-            },
+            hint:       { type: 'string' },
           },
-          required: ['sourceWord', 'word', 'hints'],
+          required: ['sourceWord', 'word', 'hint'],
         },
       },
     }),
@@ -461,19 +496,14 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords },
   if (!response.ok) throw new Error(json?.error || json?.message || 'AI concept generation failed');
 
   const parsed = _parseAIJson(json?.text ?? json?.data?.text);
-  if (!parsed?.sourceWord || !parsed?.word || !parsed?.hints)
+  if (!parsed?.sourceWord || !parsed?.word || !parsed?.hint)
     throw new Error('[getWordService] AI response missing required fields');
-
-  // Ensure the user's own dialect is in the hints even if AI missed it
-  if (userDialect && !parsed.hints[userDialect]) {
-    parsed.hints[userDialect] = parsed.hints['en-US'] ?? Object.values(parsed.hints)[0];
-  }
 
   const word = parsed.word.trim().toLowerCase();
   return {
     sourceWord: parsed.sourceWord.trim().toLowerCase(),
     word,
-    hints:      parsed.hints,
+    hints:      { [userDialect]: parsed.hint.trim() },
     graphemes:  _splitGraphemes(word),
   };
 }
