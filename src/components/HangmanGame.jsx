@@ -66,8 +66,7 @@ const HangmanGame = ({ isDarkMode }) => {
   const maxWrong = 6;
   const keyboard = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-  // Derive normalized letter array from the raw word.
-  // Each entry is the display character; comparison uses normalizeChar.
+  // Derive letter array from the raw word (uppercased).
   const letters = useMemo(
     () => word.toUpperCase().split(""),
     [word]
@@ -79,8 +78,13 @@ const HangmanGame = ({ isDarkMode }) => {
     [letters]
   );
 
+  // Win condition: all non-space letters have been guessed
   const isWinner = useMemo(
-    () => normalizedLetters.length > 0 && normalizedLetters.every((l) => guessed.has(l)),
+    () =>
+      normalizedLetters.length > 0 &&
+      normalizedLetters
+        .filter((l) => l !== " ")
+        .every((l) => guessed.has(l)),
     [normalizedLetters, guessed]
   );
 
@@ -133,14 +137,13 @@ const HangmanGame = ({ isDarkMode }) => {
       token, uid, "hangman", learningDialect, result.conceptId, progress
     );
     pendingMarkRef.current.catch((err) =>
-      console.warn('[HangmanGame] markConceptSeen failed:', err)
+      console.warn("[HangmanGame] markConceptSeen failed:", err)
     );
 
     return { word: result.word.toUpperCase(), hint: result.hint };
   }, [user, t]);
 
   // ── Combined fetch function used by Play Again / Try Again ──
-  // (Callers have already called resetGame() synchronously before invoking this)
   const fetchWord = useCallback(async () => {
     try {
       const data = await fetchWordData();
@@ -153,9 +156,7 @@ const HangmanGame = ({ isDarkMode }) => {
     }
   }, [fetchWordData, t]);
 
-  // Fetch word on mount — setState only in .then/.catch/.finally callbacks,
-  // never synchronously within the effect body.
-  // loading is already true from useState(true), so no setLoading needed here.
+  // Fetch word on mount
   useEffect(() => {
     let cancelled = false;
     fetchWordData()
@@ -177,8 +178,8 @@ const HangmanGame = ({ isDarkMode }) => {
   }, [fetchWordData, t]);
 
   // ── Guess handler ──
-  // Incoming char is always A–Z (from keyboard). We check against
-  // normalizedLetters so accented chars are revealed by the base letter.
+  // Spaces are never in the keyboard so they can never be guessed directly —
+  // they are auto-revealed in the word display below.
   const handleGuess = (char) => {
     if (isLoser || isWinner || guessed.has(char) || letters.length === 0) return;
     const next = new Set(guessed).add(char);
@@ -249,11 +250,25 @@ const HangmanGame = ({ isDarkMode }) => {
         <HangmanScaffold wrongCount={wrongCount} isDarkMode={isDarkMode} />
       </div>
 
-      {/* Word Display — show original letter (with accent) when guessed */}
-      <div className="flex gap-1 sm:gap-2 mb-8">
+      {/* Word Display
+          - Regular letters: bordered tile, revealed when guessed or on loss
+          - Space characters: wider spacer, always visible, no tile border     */}
+      <div className="flex flex-wrap justify-center gap-1 sm:gap-2 mb-8 px-4">
         {letters.map((letter, i) => {
+          const isSpace    = letter === " ";
           const normalized = normalizeChar(letter);
-          const revealed   = guessed.has(normalized) || isLoser;
+          const revealed   = isSpace || guessed.has(normalized) || isLoser;
+
+          if (isSpace) {
+            return (
+              <div
+                key={`space-${i}`}
+                className="w-5 sm:w-6"
+                aria-hidden="true"
+              />
+            );
+          }
+
           return (
             <div
               key={`${letter}-${i}`}
