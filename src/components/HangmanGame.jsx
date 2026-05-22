@@ -7,8 +7,21 @@ import { getUserGameProgress, markConceptSeen } from "../services/userService";
 import { getWord } from "../services/getWordService";
 
 // ---------------------------------------------------------------------------
+// Keyboard layout config
+// base  — always shown (both modes)
+// accented — shown only in Hard mode; keyed by learningDialect
+// ---------------------------------------------------------------------------
+const KEYBOARD_LAYOUTS = {
+  base: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
+  accented: {
+    "pt-PT": ["\u00C1", "\u00C2", "\u00C3", "\u00C0", "\u00C9", "\u00CA", "\u00CD", "\u00D3", "\u00D4", "\u00D5", "\u00DA", "\u00DC", "\u00C7"],
+    // future dialects: "es": [...], "fr": [...]
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Normalize a single character — strips NFD diacritics and uppercases.
-// Allows the A–Z keyboard to match accented letters (á→A, ê→E, etc.)
+// Used in Easy mode to match accented letters via their base letter.
 // ---------------------------------------------------------------------------
 const normalizeChar = (c) =>
   c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
@@ -48,6 +61,13 @@ const HangmanGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const { user } = useAppContext();
 
+  // Read dialects from context — fallbacks live in AppContext.loadUserProfile
+  const learningDialect = user?.learningDialect ?? "pt-PT";
+  const nativeDialect   = user?.nativeDialect   ?? "en-US";
+
+  // ── Difficulty mode ──
+  const [hardMode, setHardMode] = useState(false);
+
   // ── Word state ──
   const [word, setWord] = useState("");
   const [hint, setHint] = useState("");
@@ -64,29 +84,53 @@ const HangmanGame = ({ isDarkMode }) => {
   const pendingMarkRef = useRef(null);
 
   const maxWrong = 6;
-  const keyboard = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-  // Derive letter array from the raw word (uppercased).
+  // Keyboard rows
+  const baseKeys     = KEYBOARD_LAYOUTS.base;
+  const accentedKeys = KEYBOARD_LAYOUTS.accented[learningDialect] ?? [];
+
+  // Derive letter array from the raw word (uppercased)
   const letters = useMemo(
     () => word.toUpperCase().split(""),
     [word]
   );
 
-  // Normalized version of every letter for guess comparison
-  const normalizedLetters = useMemo(
-    () => letters.map(normalizeChar),
-    [letters]
+  // ---------------------------------------------------------------------------
+  // Easy mode  — each key represents its normalized (base) letter.
+  //              A hit on "A" reveals every á/â/ã in the word.
+  // Hard mode  — each key is matched literally (uppercased).
+  //              "A" only reveals un-accented A; Á only reveals Á.
+  // ---------------------------------------------------------------------------
+  const keyMatchesLetter = useCallback(
+    (key, letter) => {
+      if (letter === " ") return false;
+      if (hardMode) return key === letter.toUpperCase();
+      return key === normalizeChar(letter);
+    },
+    [hardMode]
   );
 
-  // Win condition: all non-space letters have been guessed
-  const isWinner = useMemo(
-    () =>
-      normalizedLetters.length > 0 &&
-      normalizedLetters
-        .filter((l) => l !== " ")
-        .every((l) => guessed.has(l)),
-    [normalizedLetters, guessed]
-  );
+  // The set of normalized (for easy) or exact (for hard) letters in the word
+  const wordKeySet = useMemo(() => {
+    const set = new Set();
+    letters.forEach((letter) => {
+      if (letter !== " ") {
+        set.add(hardMode ? letter.toUpperCase() : normalizeChar(letter));
+      }
+    });
+    return set;
+  }, [letters, hardMode]);
+
+  // Win condition: all non-space letters revealed
+  const isWinner = useMemo(() => {
+    if (letters.length === 0) return false;
+    return letters
+      .filter((l) => l !== " ")
+      .every((letter) => {
+        const key = hardMode ? letter.toUpperCase() : normalizeChar(letter);
+        return guessed.has(key);
+      });
+  }, [letters, guessed, hardMode]);
 
   const isLoser = useMemo(
     () => wrongCount >= maxWrong,
@@ -107,32 +151,24 @@ const HangmanGame = ({ isDarkMode }) => {
   const fetchWordData = useCallback(async () => {
     if (!user) throw new Error(t("challenges.word_fetch_error"));
 
-    // Wait for any in-flight markConceptSeen before fetching,
-    // so the next progress fetch sees the latest seenConceptIds.
     if (pendingMarkRef.current) {
       await pendingMarkRef.current.catch(() => {});
       pendingMarkRef.current = null;
     }
 
-    const { token, uid }  = user;
-    const learningDialect = user.learningDialect ?? "pt-PT";
-    const userDialect     = user.nativeDialect   ?? "en-US";
-
+    const { token, uid } = user;
     if (!token) throw new Error(t("challenges.word_fetch_error"));
 
-    // Step 1 — fetch this game's progress to get seen concept IDs
     const progress = await getUserGameProgress(token, uid, "hangman", learningDialect);
 
-    // Step 2 — fetch the next unseen word
     /** @type {import('../services/getWordService').WordResult} */
     const result = await getWord({
       token,
-      userDialect,
+      userDialect:    nativeDialect,
       learningDialect,
       seenConceptIds: progress?.seenConceptIds ?? [],
     });
 
-    // Step 3 — mark concept as seen; store promise so fetchWordData can await it
     pendingMarkRef.current = markConceptSeen(
       token, uid, "hangman", learningDialect, result.conceptId, progress
     );
@@ -141,7 +177,7 @@ const HangmanGame = ({ isDarkMode }) => {
     );
 
     return { word: result.word.toUpperCase(), hint: result.hint };
-  }, [user, t]);
+  }, [user, learningDialect, nativeDialect, t]);
 
   // ── Combined fetch function used by Play Again / Try Again ──
   const fetchWord = useCallback(async () => {
@@ -167,9 +203,7 @@ const HangmanGame = ({ isDarkMode }) => {
         }
       })
       .catch((err) => {
-        if (!cancelled) {
-          setError(err.message ?? t("challenges.word_fetch_error"));
-        }
+        if (!cancelled) setError(err.message ?? t("challenges.word_fetch_error"));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -178,14 +212,22 @@ const HangmanGame = ({ isDarkMode }) => {
   }, [fetchWordData, t]);
 
   // ── Guess handler ──
-  // Spaces are never in the keyboard so they can never be guessed directly —
-  // they are auto-revealed in the word display below.
+  // char is always uppercased (base A–Z or accented Á/Â/Ç etc.)
+  // In Easy mode guessed keys are normalized base letters;
+  // in Hard mode they are exact uppercased chars.
   const handleGuess = (char) => {
     if (isLoser || isWinner || guessed.has(char) || letters.length === 0) return;
     const next = new Set(guessed).add(char);
     setGuessed(next);
-    const isCorrect = normalizedLetters.includes(char);
+    const isCorrect = wordKeySet.has(char);
     if (!isCorrect) setWrongCount((p) => p + 1);
+  };
+
+  // Determine display state of a keyboard key
+  const keyState = (char) => {
+    if (!guessed.has(char)) return "idle";
+    if (wordKeySet.has(char)) return "correct";
+    return "wrong";
   };
 
   // ── Render: loading ──
@@ -230,9 +272,45 @@ const HangmanGame = ({ isDarkMode }) => {
   // ── Render: game ──
   return (
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in zoom-in-95">
-      <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-8">
+      <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-4">
         {t("challenges.hangman")}
       </h2>
+
+      {/* Easy / Hard toggle */}
+      <div className={`flex mb-6 rounded-full border-4 overflow-hidden ${
+        isDarkMode ? "border-slate-700" : "border-slate-900"
+      }`}>
+        <button
+          type="button"
+          onClick={() => setHardMode(false)}
+          className={`px-5 py-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
+            !hardMode
+              ? isDarkMode
+                ? "bg-yellow-400 text-slate-900"
+                : "bg-slate-900 text-white"
+              : isDarkMode
+                ? "bg-transparent text-slate-400 hover:text-white"
+                : "bg-transparent text-slate-500 hover:text-slate-900"
+          }`}
+        >
+          Easy
+        </button>
+        <button
+          type="button"
+          onClick={() => setHardMode(true)}
+          className={`px-5 py-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
+            hardMode
+              ? isDarkMode
+                ? "bg-yellow-400 text-slate-900"
+                : "bg-slate-900 text-white"
+              : isDarkMode
+                ? "bg-transparent text-slate-400 hover:text-white"
+                : "bg-transparent text-slate-500 hover:text-slate-900"
+          }`}
+        >
+          Hard
+        </button>
+      </div>
 
       {/* Hint */}
       {hint && (
@@ -255,9 +333,9 @@ const HangmanGame = ({ isDarkMode }) => {
           - Space characters: wider spacer, always visible, no tile border     */}
       <div className="flex flex-wrap justify-center gap-1 sm:gap-2 mb-8 px-4">
         {letters.map((letter, i) => {
-          const isSpace    = letter === " ";
-          const normalized = normalizeChar(letter);
-          const revealed   = isSpace || guessed.has(normalized) || isLoser;
+          const isSpace  = letter === " ";
+          const key      = hardMode ? letter.toUpperCase() : normalizeChar(letter);
+          const revealed = isSpace || guessed.has(key) || isLoser;
 
           if (isSpace) {
             return (
@@ -294,34 +372,60 @@ const HangmanGame = ({ isDarkMode }) => {
         </div>
       )}
 
-      {/* Keyboard */}
-      <div className="flex flex-wrap justify-center gap-2 max-w-md">
-        {keyboard.map((char) => {
-          const isGuessed = guessed.has(char);
-          const isCorrect = isGuessed && normalizedLetters.includes(char);
-          const isWrong   = isGuessed && !normalizedLetters.includes(char);
+      {/* Keyboard — base row always shown; accented row only in Hard mode */}
+      <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-wrap justify-center gap-2 max-w-md">
+          {baseKeys.map((char) => {
+            const state = keyState(char);
+            let btnClass = isDarkMode
+              ? "bg-slate-800 border-slate-700 text-white"
+              : "bg-white border-slate-900 text-slate-900";
+            if (state === "correct") btnClass = "bg-emerald-400 border-slate-900 text-slate-900";
+            if (state === "wrong")   btnClass = "bg-slate-400 border-slate-900 text-slate-900 opacity-50";
+            return (
+              <button
+                key={char}
+                onClick={() => handleGuess(char)}
+                disabled={state !== "idle" || isLoser || isWinner}
+                className={`w-10 h-12 rounded-lg border-4 font-black text-lg transition-all
+                  ${ state === "idle" && !isLoser && !isWinner
+                    ? isDarkMode ? "hover-neo-dark active-neo" : "hover-neo-light active-neo"
+                    : "" }
+                  ${btnClass}`}
+              >
+                {char}
+              </button>
+            );
+          })}
+        </div>
 
-          let btnClass = isDarkMode
-            ? "bg-slate-800 border-slate-700 text-white"
-            : "bg-white border-slate-900 text-slate-900";
-          if (isCorrect) btnClass = "bg-emerald-400 border-slate-900 text-slate-900";
-          if (isWrong)   btnClass = "bg-slate-400 border-slate-900 text-slate-900 opacity-50";
-
-          return (
-            <button
-              key={char}
-              onClick={() => handleGuess(char)}
-              disabled={isGuessed || isLoser || isWinner}
-              className={`w-10 h-12 rounded-lg border-4 font-black text-lg transition-all
-                ${ !isGuessed && !isLoser && !isWinner
-                  ? isDarkMode ? "hover-neo-dark active-neo" : "hover-neo-light active-neo"
-                  : "" }
-                ${btnClass}`}
-            >
-              {char}
-            </button>
-          );
-        })}
+        {/* Accented row — Hard mode only */}
+        {hardMode && accentedKeys.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2 max-w-md mt-1">
+            {accentedKeys.map((char) => {
+              const state = keyState(char);
+              let btnClass = isDarkMode
+                ? "bg-slate-700 border-slate-600 text-yellow-300"
+                : "bg-yellow-50 border-slate-700 text-slate-900";
+              if (state === "correct") btnClass = "bg-emerald-400 border-slate-900 text-slate-900";
+              if (state === "wrong")   btnClass = "bg-slate-400 border-slate-900 text-slate-900 opacity-50";
+              return (
+                <button
+                  key={char}
+                  onClick={() => handleGuess(char)}
+                  disabled={state !== "idle" || isLoser || isWinner}
+                  className={`w-10 h-12 rounded-lg border-4 font-black text-lg transition-all
+                    ${ state === "idle" && !isLoser && !isWinner
+                      ? isDarkMode ? "hover-neo-dark active-neo" : "hover-neo-light active-neo"
+                      : "" }
+                    ${btnClass}`}
+                >
+                  {char}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Play Again */}
