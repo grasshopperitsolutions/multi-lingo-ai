@@ -30,7 +30,7 @@
  *     word: string                // localized answer word
  *     hints: Record<string,string> // hint keyed by viewer's native locale (open-ended map)
  *     normalizedWord: string      // for comparisons
- *     graphemes: string[]         // pre-split for Hangman / letter-based games
+ *     graphemes: string[]         // pre-split for legacy; no longer consumed by the frontend
  *     source: string              // "human" | "ai" | "seed"
  *     verified: boolean
  *     qualityScore: number | null
@@ -82,7 +82,6 @@
  * @typedef {Object} WordResult
  * @property {string}    word       - Localized answer word
  * @property {string}    hint       - Hint in the user's native language
- * @property {string[]}  graphemes  - Pre-split grapheme array
  * @property {string}    conceptId  - wordPool document ID
  * @property {'db'|'ai'} source
  */
@@ -133,7 +132,6 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
       return {
         word:      translation.word,
         hint:      hint || '',
-        graphemes: translation.graphemes ?? _splitGraphemes(translation.word),
         conceptId: unseenConcept.id,
         source:    'db',
       };
@@ -150,7 +148,6 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
     return {
       word:      generated.word,
       hint:      generated.hints[userDialect] || '',
-      graphemes: generated.graphemes,
       conceptId: unseenConcept.id,
       source:    'ai',
     };
@@ -168,7 +165,6 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
   return {
     word:      generated.word,
     hint:      generated.hints[userDialect] || '',
-    graphemes: generated.graphemes,
     conceptId,
     source:    'ai',
   };
@@ -230,7 +226,7 @@ async function _fetchReadyConcepts(token) {
  * @param {string} conceptId
  * @param {string} locale
  * @param {string} token
- * @returns {Promise<{ word: string, hints: Record<string,string>, graphemes: string[] } | null>}
+ * @returns {Promise<{ word: string, hints: Record<string,string> } | null>}
  */
 async function _fetchTranslation(conceptId, locale, token) {
   const col      = `wordPool/${conceptId}/translations`;
@@ -249,7 +245,7 @@ async function _fetchTranslation(conceptId, locale, token) {
  *
  * @param {string} conceptId
  * @param {string} locale
- * @param {{ word: string, hints: Record<string,string>, graphemes: string[] }} data
+ * @param {{ word: string, hints: Record<string,string> }} data
  * @param {string} token
  */
 async function _writeTranslation(conceptId, locale, data, token) {
@@ -269,7 +265,6 @@ async function _writeTranslation(conceptId, locale, data, token) {
         word:          data.word,
         hints:         data.hints,
         normalizedWord: data.word.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(),
-        graphemes:     data.graphemes,
         source:        'ai',
         verified:      false,
         qualityScore:  null,
@@ -314,7 +309,7 @@ async function _patchHint(conceptId, learningLocale, hintLocale, hintText, token
 /**
  * Write a new concept document + its first translation subdocument.
  *
- * @param {{ sourceWord: string, word: string, hints: Record<string,string>, graphemes: string[] }} generated
+ * @param {{ sourceWord: string, word: string, hints: Record<string,string> }} generated
  * @param {string} learningDialect
  * @param {string} token
  * @returns {Promise<string>} The new conceptId
@@ -361,7 +356,7 @@ async function _writeNewConcept(generated, learningDialect, token) {
  * @param {string} sourceWord
  * @param {{ userDialect: string, learningDialect: string }} params
  * @param {string} token
- * @returns {Promise<{ word: string, hints: Record<string,string>, graphemes: string[] }>}
+ * @returns {Promise<{ word: string, hints: Record<string,string> }>}
  */
 async function _generateTranslation(sourceWord, { userDialect, learningDialect }, token) {
   const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
@@ -402,8 +397,7 @@ async function _generateTranslation(sourceWord, { userDialect, learningDialect }
   const word = parsed.word.trim().toLowerCase();
   return {
     word,
-    hints:     { [userDialect]: parsed.hint.trim() },
-    graphemes: _splitGraphemes(word),
+    hints: { [userDialect]: parsed.hint.trim() },
   };
 }
 
@@ -454,7 +448,7 @@ async function _generateHintForDialect(sourceWord, userDialect, token) {
  *
  * @param {{ userDialect: string, learningDialect: string, knownWords: string[] }} params
  * @param {string} token
- * @returns {Promise<{ sourceWord: string, word: string, hints: Record<string,string>, graphemes: string[] }>}
+ * @returns {Promise<{ sourceWord: string, word: string, hints: Record<string,string> }>}
  */
 async function _generateNewConcept({ userDialect, learningDialect, knownWords }, token) {
   const avoidList = knownWords.length > 0
@@ -503,8 +497,7 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords },
   return {
     sourceWord: parsed.sourceWord.trim().toLowerCase(),
     word,
-    hints:      { [userDialect]: parsed.hint.trim() },
-    graphemes:  _splitGraphemes(word),
+    hints: { [userDialect]: parsed.hint.trim() },
   };
 }
 
@@ -528,19 +521,4 @@ function _parseAIJson(text) {
     console.error('[getWordService] Failed to parse AI JSON:', text);
     return null;
   }
-}
-
-/**
- * Split a word into its grapheme clusters.
- * Uses Intl.Segmenter when available (modern browsers) and falls back
- * to Array.from() which correctly handles most Unicode characters.
- *
- * @param {string} word
- * @returns {string[]}
- */
-function _splitGraphemes(word) {
-  if (typeof Intl !== 'undefined' && Intl.Segmenter) {
-    return [...new Intl.Segmenter().segment(word)].map((s) => s.segment);
-  }
-  return Array.from(word);
 }

@@ -1,10 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Trophy, Skull, RefreshCw } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { getUserGameProgress, markConceptSeen } from "../services/userService";
 import { getWord } from "../services/getWordService";
+
+// ---------------------------------------------------------------------------
+// Normalize a single character — strips NFD diacritics and uppercases.
+// Allows the A–Z keyboard to match accented letters (á→A, ê→E, etc.)
+// ---------------------------------------------------------------------------
+const normalizeChar = (c) =>
+  c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
 // ---------------------------------------------------------------------------
 // Hangman scaffold — draws body parts progressively as wrongCount increases
@@ -42,10 +49,8 @@ const HangmanGame = ({ isDarkMode }) => {
   const { user } = useAppContext();
 
   // ── Word state ──
-  const [word, setWord]           = useState("");
-  const [graphemes, setGraphemes] = useState([]);
-  const [hint, setHint]           = useState("");
-  const [conceptId, setConceptId] = useState(null);
+  const [word, setWord] = useState("");
+  const [hint, setHint] = useState("");
 
   // ── Game state ──
   const [guessed, setGuessed]       = useState(new Set());
@@ -55,28 +60,57 @@ const HangmanGame = ({ isDarkMode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
 
+  // ── Pending markConceptSeen promise ref (prevents race on Play Again) ──
+  const pendingMarkRef = useRef(null);
+
   const maxWrong = 6;
-  const isLoser  = wrongCount >= maxWrong;
-  const isWinner = graphemes.length > 0 && graphemes.every((g) => guessed.has(g.toUpperCase()));
   const keyboard = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+  // Derive normalized letter array from the raw word.
+  // Each entry is the display character; comparison uses normalizeChar.
+  const letters = useMemo(
+    () => word.toUpperCase().split(""),
+    [word]
+  );
+
+  // Normalized version of every letter for guess comparison
+  const normalizedLetters = useMemo(
+    () => letters.map(normalizeChar),
+    [letters]
+  );
+
+  const isWinner = useMemo(
+    () => normalizedLetters.length > 0 && normalizedLetters.every((l) => guessed.has(l)),
+    [normalizedLetters, guessed]
+  );
+
+  const isLoser = useMemo(
+    () => wrongCount >= maxWrong,
+    [wrongCount]
+  );
 
   // ── Core fetch function ──
   const fetchWord = useCallback(async () => {
     if (!user) return;
+
+    // Wait for any in-flight markConceptSeen before resetting state,
+    // so the next progress fetch sees the latest seenConceptIds.
+    if (pendingMarkRef.current) {
+      await pendingMarkRef.current.catch(() => {});
+      pendingMarkRef.current = null;
+    }
 
     setLoading(true);
     setError(null);
     setGuessed(new Set());
     setWrongCount(0);
     setWord("");
-    setGraphemes([]);
     setHint("");
-    setConceptId(null);
 
     try {
-      const { token, uid }     = user;
-      const learningDialect    = user.learningDialect ?? "pt-PT";
-      const userDialect        = user.nativeDialect   ?? "en";
+      const { token, uid }  = user;
+      const learningDialect = user.learningDialect ?? "pt-PT";
+      const userDialect     = user.nativeDialect   ?? "en-US";
 
       if (!token) throw new Error(t("challenges.word_fetch_error"));
 
@@ -92,14 +126,16 @@ const HangmanGame = ({ isDarkMode }) => {
         seenConceptIds: progress?.seenConceptIds ?? [],
       });
 
-      // Step 3 — mark concept as seen (fire-and-forget, non-blocking)
-      markConceptSeen(token, uid, "hangman", learningDialect, result.conceptId, progress)
-        .catch((err) => console.warn('[HangmanGame] markConceptSeen failed:', err));
+      // Step 3 — mark concept as seen; store promise so fetchWord can await it
+      pendingMarkRef.current = markConceptSeen(
+        token, uid, "hangman", learningDialect, result.conceptId, progress
+      );
+      pendingMarkRef.current.catch((err) =>
+        console.warn('[HangmanGame] markConceptSeen failed:', err)
+      );
 
       setWord(result.word.toUpperCase());
-      setGraphemes(result.graphemes.map((g) => g.toUpperCase()));
       setHint(result.hint);
-      setConceptId(result.conceptId);
     } catch (err) {
       setError(err.message ?? t("challenges.word_fetch_error"));
     } finally {
@@ -107,19 +143,19 @@ const HangmanGame = ({ isDarkMode }) => {
     }
   }, [user, t]);
 
-  // Fetch on mount
+  // Fetch on mount and whenever fetchWord identity changes (user/t change)
   useEffect(() => {
     fetchWord();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchWord]);
 
-  // ── Guess handler — uses graphemes for correctness check ──
+  // ── Guess handler ──
+  // Incoming char is always A–Z (from keyboard). We check against
+  // normalizedLetters so accented chars are revealed by the base letter.
   const handleGuess = (char) => {
-    if (isLoser || isWinner || guessed.has(char) || !word) return;
+    if (isLoser || isWinner || guessed.has(char) || letters.length === 0) return;
     const next = new Set(guessed).add(char);
     setGuessed(next);
-    // A guess is correct if it matches any grapheme in the word
-    const isCorrect = graphemes.some((g) => g.toUpperCase() === char);
+    const isCorrect = normalizedLetters.includes(char);
     if (!isCorrect) setWrongCount((p) => p + 1);
   };
 
@@ -185,18 +221,22 @@ const HangmanGame = ({ isDarkMode }) => {
         <HangmanScaffold wrongCount={wrongCount} isDarkMode={isDarkMode} />
       </div>
 
-      {/* Word Display — driven by graphemes array */}
+      {/* Word Display — show original letter (with accent) when guessed */}
       <div className="flex gap-1 sm:gap-2 mb-8">
-        {graphemes.map((grapheme, i) => (
-          <div
-            key={`${grapheme}-${i}`}
-            className={`w-7 sm:w-12 h-8 sm:h-14 border-b-4 sm:border-b-8 flex items-center justify-center text-xl sm:text-3xl font-black ${
-              isDarkMode ? "border-yellow-400 text-white" : "border-slate-900 text-slate-900"
-            }`}
-          >
-            {guessed.has(grapheme) || isLoser ? grapheme : ""}
-          </div>
-        ))}
+        {letters.map((letter, i) => {
+          const normalized = normalizeChar(letter);
+          const revealed   = guessed.has(normalized) || isLoser;
+          return (
+            <div
+              key={`${letter}-${i}`}
+              className={`w-7 sm:w-12 h-8 sm:h-14 border-b-4 sm:border-b-8 flex items-center justify-center text-xl sm:text-3xl font-black ${
+                isDarkMode ? "border-yellow-400 text-white" : "border-slate-900 text-slate-900"
+              }`}
+            >
+              {revealed ? letter : ""}
+            </div>
+          );
+        })}
       </div>
 
       {/* Status Messages */}
@@ -215,8 +255,8 @@ const HangmanGame = ({ isDarkMode }) => {
       <div className="flex flex-wrap justify-center gap-2 max-w-md">
         {keyboard.map((char) => {
           const isGuessed = guessed.has(char);
-          const isCorrect = isGuessed && graphemes.some((g) => g.toUpperCase() === char);
-          const isWrong   = isGuessed && !graphemes.some((g) => g.toUpperCase() === char);
+          const isCorrect = isGuessed && normalizedLetters.includes(char);
+          const isWrong   = isGuessed && !normalizedLetters.includes(char);
 
           let btnClass = isDarkMode
             ? "bg-slate-800 border-slate-700 text-white"
