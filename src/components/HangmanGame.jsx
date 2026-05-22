@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Trophy, Skull, RefreshCw } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
-import { getHangmanWord } from "../challenges-services/HangmanService";
+import { getWord } from "../services/getWordService";
 
 // ---------------------------------------------------------------------------
 // Hangman scaffold — draws body parts progressively as wrongCount increases
@@ -63,7 +63,7 @@ const HangmanGame = ({ isDarkMode }) => {
   const isWinner  = word.length > 0 && word.split("").every((c) => guessed.has(c));
   const keyboard  = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-  // ── Fetch a new word from HangmanService ──
+  // ── Fetch a new word from getWordService ──
   const fetchWord = useCallback(async () => {
     if (!user) return;
 
@@ -77,23 +77,19 @@ const HangmanGame = ({ isDarkMode }) => {
     setSource(null);
 
     try {
-      // user.token is the plain ID token string kept fresh by AppContext's
-      // onAuthStateChanged listener. No need to call getIdToken() here.
       const token = user.token;
 
       if (!token) throw new Error(t("challenges.word_fetch_error"));
 
-      // Profile fields merged into user by AppContext.loadUserProfile.
-      // Fall back to pt-PT / en defaults if not yet loaded.
       const learningDialect = user.learningDialect ?? "pt-PT";
       const userDialect     = user.nativeDialect   ?? "en";
-      // Use first interest as category; default to 'general'.
-      const category = user.interests?.[0] ?? "general";
+      const category        = user.interests?.[0]  ?? "general";
 
-      /** @type {import('../challenges-services/types').WordResult} */
-      const result = await getHangmanWord({
+      /** @type {import('../services/getWordService').WordResult} */
+      const result = await getWord({
         uid: user.uid,
         token,
+        gameId: "hangman",
         userDialect,
         learningDialect,
         category,
@@ -110,17 +106,16 @@ const HangmanGame = ({ isDarkMode }) => {
     }
   }, [user, t]);
 
-  // Fetch a word on mount — calls getHangmanWord directly and uses promise
-  // chains so setState calls happen in microtask callbacks rather than
-  // synchronously in the effect body, satisfying react-hooks/set-state-in-effect.
+  // Fetch a word on mount
   useEffect(() => {
     if (!user) return;
 
     let cancelled = false;
 
-    getHangmanWord({
+    getWord({
       uid: user.uid,
       token: user.token,
+      gameId: "hangman",
       userDialect: user.nativeDialect ?? "en",
       learningDialect: user.learningDialect ?? "pt-PT",
       category: user.interests?.[0] ?? "general",
@@ -141,8 +136,6 @@ const HangmanGame = ({ isDarkMode }) => {
       });
 
     return () => { cancelled = true; };
-    // Intentionally run only on mount — defaults are kept in sync with
-    // fetchWord's defaults via the useCallback below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -220,7 +213,7 @@ const HangmanGame = ({ isDarkMode }) => {
       <div className="flex gap-1 sm:gap-2 mb-8">
         {word.split("").map((char, i) => (
           <div
-            key={i}
+            key={`${char}-${i}`}
             className={`w-7 sm:w-12 h-8 sm:h-14 border-b-4 sm:border-b-8 flex items-center justify-center text-xl sm:text-3xl font-black ${
               isDarkMode ? "border-yellow-400 text-white" : "border-slate-900 text-slate-900"
             }`}
@@ -282,13 +275,6 @@ const HangmanGame = ({ isDarkMode }) => {
         >
           {t("challenges.play_again")}
         </button>
-      )}
-
-      {/* Dev badge — remove before production */}
-      {source && (
-        <span className={`mt-4 text-xs opacity-30 font-mono`}>
-          source: {source} · id: {wordId}
-        </span>
       )}
     </div>
   );
