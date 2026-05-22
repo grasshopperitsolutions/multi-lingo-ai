@@ -8,7 +8,7 @@ import { getWord } from "../services/getWordService";
 
 // ---------------------------------------------------------------------------
 // Keyboard layout config
-// base  — always shown (both modes)
+// base     — always shown (both modes)
 // accented — shown only in Hard mode; keyed by learningDialect
 // ---------------------------------------------------------------------------
 const KEYBOARD_LAYOUTS = {
@@ -96,21 +96,10 @@ const HangmanGame = ({ isDarkMode }) => {
   );
 
   // ---------------------------------------------------------------------------
-  // Easy mode  — each key represents its normalized (base) letter.
-  //              A hit on "A" reveals every á/â/ã in the word.
-  // Hard mode  — each key is matched literally (uppercased).
-  //              "A" only reveals un-accented A; Á only reveals Á.
+  // The set of keys that count as a "hit" in the current word.
+  // Easy mode  — keys are normalized base letters (A covers Á/Â/Ã)
+  // Hard mode  — keys are exact uppercased chars (Á only covers Á)
   // ---------------------------------------------------------------------------
-  const keyMatchesLetter = useCallback(
-    (key, letter) => {
-      if (letter === " ") return false;
-      if (hardMode) return key === letter.toUpperCase();
-      return key === normalizeChar(letter);
-    },
-    [hardMode]
-  );
-
-  // The set of normalized (for easy) or exact (for hard) letters in the word
   const wordKeySet = useMemo(() => {
     const set = new Set();
     letters.forEach((letter) => {
