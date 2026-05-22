@@ -89,64 +89,92 @@ const HangmanGame = ({ isDarkMode }) => {
     [wrongCount]
   );
 
-  // ── Core fetch function ──
-  const fetchWord = useCallback(async () => {
-    if (!user) return;
-
-    // Wait for any in-flight markConceptSeen before resetting state,
-    // so the next progress fetch sees the latest seenConceptIds.
-    if (pendingMarkRef.current) {
-      await pendingMarkRef.current.catch(() => {});
-      pendingMarkRef.current = null;
-    }
-
+  // ── Reset game state (used before fetching a new word) ──
+  const resetGame = useCallback(() => {
     setLoading(true);
     setError(null);
     setGuessed(new Set());
     setWrongCount(0);
     setWord("");
     setHint("");
+  }, []);
 
+  // ── Core fetch function (returns data instead of setting state) ──
+  const fetchWordData = useCallback(async () => {
+    if (!user) throw new Error(t("challenges.word_fetch_error"));
+
+    // Wait for any in-flight markConceptSeen before fetching,
+    // so the next progress fetch sees the latest seenConceptIds.
+    if (pendingMarkRef.current) {
+      await pendingMarkRef.current.catch(() => {});
+      pendingMarkRef.current = null;
+    }
+
+    const { token, uid }  = user;
+    const learningDialect = user.learningDialect ?? "pt-PT";
+    const userDialect     = user.nativeDialect   ?? "en-US";
+
+    if (!token) throw new Error(t("challenges.word_fetch_error"));
+
+    // Step 1 — fetch this game's progress to get seen concept IDs
+    const progress = await getUserGameProgress(token, uid, "hangman", learningDialect);
+
+    // Step 2 — fetch the next unseen word
+    /** @type {import('../services/getWordService').WordResult} */
+    const result = await getWord({
+      token,
+      userDialect,
+      learningDialect,
+      seenConceptIds: progress?.seenConceptIds ?? [],
+    });
+
+    // Step 3 — mark concept as seen; store promise so fetchWordData can await it
+    pendingMarkRef.current = markConceptSeen(
+      token, uid, "hangman", learningDialect, result.conceptId, progress
+    );
+    pendingMarkRef.current.catch((err) =>
+      console.warn('[HangmanGame] markConceptSeen failed:', err)
+    );
+
+    return { word: result.word.toUpperCase(), hint: result.hint };
+  }, [user, t]);
+
+  // ── Combined fetch function used by Play Again / Try Again ──
+  // (Callers have already called resetGame() synchronously before invoking this)
+  const fetchWord = useCallback(async () => {
     try {
-      const { token, uid }  = user;
-      const learningDialect = user.learningDialect ?? "pt-PT";
-      const userDialect     = user.nativeDialect   ?? "en-US";
-
-      if (!token) throw new Error(t("challenges.word_fetch_error"));
-
-      // Step 1 — fetch this game's progress to get seen concept IDs
-      const progress = await getUserGameProgress(token, uid, "hangman", learningDialect);
-
-      // Step 2 — fetch the next unseen word
-      /** @type {import('../services/getWordService').WordResult} */
-      const result = await getWord({
-        token,
-        userDialect,
-        learningDialect,
-        seenConceptIds: progress?.seenConceptIds ?? [],
-      });
-
-      // Step 3 — mark concept as seen; store promise so fetchWord can await it
-      pendingMarkRef.current = markConceptSeen(
-        token, uid, "hangman", learningDialect, result.conceptId, progress
-      );
-      pendingMarkRef.current.catch((err) =>
-        console.warn('[HangmanGame] markConceptSeen failed:', err)
-      );
-
-      setWord(result.word.toUpperCase());
-      setHint(result.hint);
+      const data = await fetchWordData();
+      setWord(data.word);
+      setHint(data.hint);
     } catch (err) {
       setError(err.message ?? t("challenges.word_fetch_error"));
     } finally {
       setLoading(false);
     }
-  }, [user, t]);
+  }, [fetchWordData, t]);
 
-  // Fetch on mount and whenever fetchWord identity changes (user/t change)
+  // Fetch word on mount — setState only in .then/.catch/.finally callbacks,
+  // never synchronously within the effect body.
+  // loading is already true from useState(true), so no setLoading needed here.
   useEffect(() => {
-    fetchWord();
-  }, [fetchWord]);
+    let cancelled = false;
+    fetchWordData()
+      .then((data) => {
+        if (!cancelled) {
+          setWord(data.word);
+          setHint(data.hint);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err.message ?? t("challenges.word_fetch_error"));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [fetchWordData, t]);
 
   // ── Guess handler ──
   // Incoming char is always A–Z (from keyboard). We check against
@@ -187,7 +215,7 @@ const HangmanGame = ({ isDarkMode }) => {
         </h2>
         <p className="text-rose-500 font-semibold text-center px-4">{error}</p>
         <button
-          onClick={fetchWord}
+          onClick={() => { resetGame(); fetchWord(); }}
           className={`px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${
             isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
           }`}
@@ -284,7 +312,7 @@ const HangmanGame = ({ isDarkMode }) => {
       {/* Play Again */}
       {(isWinner || isLoser) && (
         <button
-          onClick={fetchWord}
+          onClick={() => { resetGame(); fetchWord(); }}
           className={`mt-6 px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${
             isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
           }`}
