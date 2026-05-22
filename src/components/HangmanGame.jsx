@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Trophy, Skull, RefreshCw } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
+import { getUserGameProgress, markConceptSeen } from "../services/userService";
 import { getWord } from "../services/getWordService";
 
 // ---------------------------------------------------------------------------
@@ -15,7 +16,6 @@ const HangmanScaffold = ({ wrongCount, isDarkMode }) => (
     strokeLinecap="square"
     aria-label={`Hangman drawing: ${wrongCount} wrong guesses`}
   >
-    {/* Scaffold */}
     <path
       d="M10,90 L40,90 M25,90 L25,10 L60,10 L60,20"
       className={isDarkMode ? "text-white" : "text-slate-900"}
@@ -39,31 +39,28 @@ HangmanScaffold.propTypes = {
 // ---------------------------------------------------------------------------
 const HangmanGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
-  // AppContext merges Firestore profile fields directly onto the user object
-  // via loadUserProfile — so learningDialect, nativeDialect, interests, and
-  // token are all available as user.fieldName.
   const { user } = useAppContext();
 
   // ── Word state ──
-  const [word, setWord]       = useState("");
-  const [hint, setHint]       = useState("");
-  const [wordId, setWordId]   = useState(null);
-  const [source, setSource]   = useState(null); // 'db' | 'ai'
+  const [word, setWord]           = useState("");
+  const [graphemes, setGraphemes] = useState([]);
+  const [hint, setHint]           = useState("");
+  const [conceptId, setConceptId] = useState(null);
 
   // ── Game state ──
-  const [guessed, setGuessed]         = useState(new Set());
-  const [wrongCount, setWrongCount]   = useState(0);
+  const [guessed, setGuessed]       = useState(new Set());
+  const [wrongCount, setWrongCount] = useState(0);
 
   // ── Loading / error state ──
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
 
-  const maxWrong  = 6;
-  const isLoser   = wrongCount >= maxWrong;
-  const isWinner  = word.length > 0 && word.split("").every((c) => guessed.has(c));
-  const keyboard  = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  const maxWrong = 6;
+  const isLoser  = wrongCount >= maxWrong;
+  const isWinner = graphemes.length > 0 && graphemes.every((g) => guessed.has(g.toUpperCase()));
+  const keyboard = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-  // ── Fetch a new word from getWordService ──
+  // ── Core fetch function ──
   const fetchWord = useCallback(async () => {
     if (!user) return;
 
@@ -72,33 +69,37 @@ const HangmanGame = ({ isDarkMode }) => {
     setGuessed(new Set());
     setWrongCount(0);
     setWord("");
+    setGraphemes([]);
     setHint("");
-    setWordId(null);
-    setSource(null);
+    setConceptId(null);
 
     try {
-      const token = user.token;
+      const { token, uid }     = user;
+      const learningDialect    = user.learningDialect ?? "pt-PT";
+      const userDialect        = user.nativeDialect   ?? "en";
 
       if (!token) throw new Error(t("challenges.word_fetch_error"));
 
-      const learningDialect = user.learningDialect ?? "pt-PT";
-      const userDialect     = user.nativeDialect   ?? "en";
-      const category        = user.interests?.[0]  ?? "general";
+      // Step 1 — fetch this game's progress to get seen concept IDs
+      const progress = await getUserGameProgress(token, uid, "hangman", learningDialect);
 
+      // Step 2 — fetch the next unseen word
       /** @type {import('../services/getWordService').WordResult} */
       const result = await getWord({
-        uid: user.uid,
         token,
-        gameId: "hangman",
         userDialect,
         learningDialect,
-        category,
+        seenConceptIds: progress?.seenConceptIds ?? [],
       });
 
+      // Step 3 — mark concept as seen (fire-and-forget, non-blocking)
+      markConceptSeen(token, uid, "hangman", learningDialect, result.conceptId, progress)
+        .catch((err) => console.warn('[HangmanGame] markConceptSeen failed:', err));
+
       setWord(result.word.toUpperCase());
+      setGraphemes(result.graphemes.map((g) => g.toUpperCase()));
       setHint(result.hint);
-      setWordId(result.wordId);
-      setSource(result.source);
+      setConceptId(result.conceptId);
     } catch (err) {
       setError(err.message ?? t("challenges.word_fetch_error"));
     } finally {
@@ -106,45 +107,20 @@ const HangmanGame = ({ isDarkMode }) => {
     }
   }, [user, t]);
 
-  // Fetch a word on mount
+  // Fetch on mount
   useEffect(() => {
-    if (!user) return;
-
-    let cancelled = false;
-
-    getWord({
-      uid: user.uid,
-      token: user.token,
-      gameId: "hangman",
-      userDialect: user.nativeDialect ?? "en",
-      learningDialect: user.learningDialect ?? "pt-PT",
-      category: user.interests?.[0] ?? "general",
-    })
-      .then((result) => {
-        if (cancelled) return;
-        setWord(result.word.toUpperCase());
-        setHint(result.hint);
-        setWordId(result.wordId);
-        setSource(result.source);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(err.message ?? t("challenges.word_fetch_error"));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => { cancelled = true; };
+    fetchWord();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Guess handler ──
+  // ── Guess handler — uses graphemes for correctness check ──
   const handleGuess = (char) => {
     if (isLoser || isWinner || guessed.has(char) || !word) return;
     const next = new Set(guessed).add(char);
     setGuessed(next);
-    if (!word.includes(char)) setWrongCount((p) => p + 1);
+    // A guess is correct if it matches any grapheme in the word
+    const isCorrect = graphemes.some((g) => g.toUpperCase() === char);
+    if (!isCorrect) setWrongCount((p) => p + 1);
   };
 
   // ── Render: loading ──
@@ -209,16 +185,16 @@ const HangmanGame = ({ isDarkMode }) => {
         <HangmanScaffold wrongCount={wrongCount} isDarkMode={isDarkMode} />
       </div>
 
-      {/* Word Display */}
+      {/* Word Display — driven by graphemes array */}
       <div className="flex gap-1 sm:gap-2 mb-8">
-        {word.split("").map((char, i) => (
+        {graphemes.map((grapheme, i) => (
           <div
-            key={`${char}-${i}`}
+            key={`${grapheme}-${i}`}
             className={`w-7 sm:w-12 h-8 sm:h-14 border-b-4 sm:border-b-8 flex items-center justify-center text-xl sm:text-3xl font-black ${
               isDarkMode ? "border-yellow-400 text-white" : "border-slate-900 text-slate-900"
             }`}
           >
-            {guessed.has(char) || isLoser ? char : ""}
+            {guessed.has(grapheme) || isLoser ? grapheme : ""}
           </div>
         ))}
       </div>
@@ -239,8 +215,8 @@ const HangmanGame = ({ isDarkMode }) => {
       <div className="flex flex-wrap justify-center gap-2 max-w-md">
         {keyboard.map((char) => {
           const isGuessed = guessed.has(char);
-          const isCorrect = isGuessed && word.includes(char);
-          const isWrong   = isGuessed && !word.includes(char);
+          const isCorrect = isGuessed && graphemes.some((g) => g.toUpperCase() === char);
+          const isWrong   = isGuessed && !graphemes.some((g) => g.toUpperCase() === char);
 
           let btnClass = isDarkMode
             ? "bg-slate-800 border-slate-700 text-white"
