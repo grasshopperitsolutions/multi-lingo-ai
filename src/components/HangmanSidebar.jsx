@@ -10,15 +10,15 @@ import ConfirmModal from "./ConfirmModal";
 
 /** Format an ISO timestamp as a relative human-readable string. */
 function _relativeTime(isoString, t) {
-  if (!isoString) return t("hangman.sidebar.never");
+  if (!isoString) return t("challenges.sidebar.never");
   const diff = Date.now() - new Date(isoString).getTime();
   const mins  = Math.floor(diff / 60_000);
   const hours = Math.floor(diff / 3_600_000);
   const days  = Math.floor(diff / 86_400_000);
-  if (mins  <  1) return t("hangman.sidebar.just_now");
-  if (mins  < 60) return t("hangman.sidebar.minutes_ago", { count: mins });
-  if (hours < 24) return t("hangman.sidebar.hours_ago",   { count: hours });
-  return t("hangman.sidebar.days_ago", { count: days });
+  if (mins  <  1) return t("challenges.sidebar.just_now");
+  if (mins  < 60) return t("challenges.sidebar.minutes_ago", { count: mins });
+  if (hours < 24) return t("challenges.sidebar.hours_ago",   { count: hours });
+  return t("challenges.sidebar.days_ago", { count: days });
 }
 
 /** Compute seen-words percentage, capped at 99. */
@@ -94,7 +94,7 @@ const HangmanSidebar = ({ isDarkMode, progress, totalWords, isLoadingStats, onRe
   const toggleBtn = (
     <button
       onClick={() => setCollapsed((v) => !v)}
-      aria-label={collapsed ? t("hangman.sidebar.expand") : t("hangman.sidebar.collapse")}
+      aria-label={collapsed ? t("challenges.sidebar.expand") : t("challenges.sidebar.collapse")}
       className={`flex items-center justify-center w-7 h-7 rounded-lg border-2 transition-colors shrink-0 ${
         isDarkMode
           ? "border-slate-600 text-slate-400 hover:border-yellow-400 hover:text-yellow-400"
@@ -134,10 +134,10 @@ const HangmanSidebar = ({ isDarkMode, progress, totalWords, isLoadingStats, onRe
       {showConfirm && (
         <ConfirmModal
           isDarkMode={isDarkMode}
-          title={t("hangman.sidebar.reset_title")}
-          message={t("hangman.sidebar.reset_message")}
-          warning={t("hangman.sidebar.reset_warning")}
-          confirmLabel={t("hangman.sidebar.reset_confirm")}
+          title={t("challenges.sidebar.reset_title")}
+          message={t("challenges.sidebar.reset_message")}
+          warning={t("challenges.sidebar.reset_warning")}
+          confirmLabel={t("challenges.sidebar.reset_confirm")}
           confirmColor="yellow"
           isLoading={isResetting}
           onConfirm={handleResetConfirm}
@@ -152,7 +152,7 @@ const HangmanSidebar = ({ isDarkMode, progress, totalWords, isLoadingStats, onRe
           <span className={`font-black uppercase text-xs tracking-widest ${
             isDarkMode ? "text-white" : "text-slate-900"
           }`}>
-            {t("hangman.sidebar.title")}
+            {t("challenges.sidebar.title")}
           </span>
           {toggleBtn}
         </div>
@@ -162,7 +162,7 @@ const HangmanSidebar = ({ isDarkMode, progress, totalWords, isLoadingStats, onRe
           <p className={`font-black uppercase text-xs tracking-widest ${
             isDarkMode ? "text-slate-400" : "text-slate-500"
           }`}>
-            {t("hangman.sidebar.words_seen")}
+            {t("challenges.sidebar.words_seen")}
           </p>
 
           {isLoadingStats ? (
@@ -206,19 +206,19 @@ const HangmanSidebar = ({ isDarkMode, progress, totalWords, isLoadingStats, onRe
           {divider}
           <StatRow
             icon={<Trophy size={14} />}
-            label={t("hangman.sidebar.played")}
+            label={t("challenges.sidebar.played")}
             value={String(totalPlayed)}
             isDarkMode={isDarkMode}
           />
           <StatRow
             icon={<Clock size={14} />}
-            label={t("hangman.sidebar.last_played")}
+            label={t("challenges.sidebar.last_played")}
             value={lastPlayed}
             isDarkMode={isDarkMode}
           />
           <StatRow
             icon={<Hash size={14} />}
-            label={t("hangman.sidebar.dialect")}
+            label={t("challenges.sidebar.dialect")}
             value={progress?.learningDialect ?? "—"}
             isDarkMode={isDarkMode}
           />
@@ -236,7 +236,7 @@ const HangmanSidebar = ({ isDarkMode, progress, totalWords, isLoadingStats, onRe
           }`}
         >
           <RotateCcw size={14} />
-          {t("hangman.sidebar.reset_btn")}
+          {t("challenges.sidebar.reset_btn")}
         </button>
       </aside>
 
@@ -249,7 +249,7 @@ const HangmanSidebar = ({ isDarkMode, progress, totalWords, isLoadingStats, onRe
         <p className={`font-black uppercase text-xs tracking-widest mb-3 ${
           isDarkMode ? "text-slate-400" : "text-slate-500"
         }`}>
-          {t("hangman.sidebar.title")}
+          {t("challenges.sidebar.title")}
         </p>
 
         {isLoadingStats ? (
@@ -275,7 +275,7 @@ const HangmanSidebar = ({ isDarkMode, progress, totalWords, isLoadingStats, onRe
               <span className={`font-black text-sm ${
                 isDarkMode ? "text-yellow-400" : "text-slate-900"
               }`}>
-                {pct}% {t("hangman.sidebar.words_seen")}
+                {pct}% {t("challenges.sidebar.words_seen")}
               </span>
               <span className={`text-xs ${ isDarkMode ? "text-slate-500" : "text-slate-400" }`}>
                 {seenCount}/{totalWords ?? "…"}
@@ -285,7 +285,7 @@ const HangmanSidebar = ({ isDarkMode, progress, totalWords, isLoadingStats, onRe
             {/* Inline stats */}
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               <span className={`text-xs font-bold ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`}>
-                <Trophy size={11} className="inline mr-1" />{totalPlayed} {t("hangman.sidebar.played")}
+                <Trophy size={11} className="inline mr-1" />{totalPlayed} {t("challenges.sidebar.played")}
               </span>
               <span className={`text-xs font-bold ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`}>
                 <Clock size={11} className="inline mr-1" />{lastPlayed}
@@ -302,7 +302,7 @@ const HangmanSidebar = ({ isDarkMode, progress, totalWords, isLoadingStats, onRe
                   : "border-slate-300 text-slate-500 hover:border-slate-900 hover:text-slate-900"
               }`}
             >
-              <RotateCcw size={12} /> {t("hangman.sidebar.reset_btn")}
+              <RotateCcw size={12} /> {t("challenges.sidebar.reset_btn")}
             </button>
           </div>
         )}
