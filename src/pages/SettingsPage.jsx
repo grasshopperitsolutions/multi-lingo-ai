@@ -25,11 +25,11 @@ import {
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
 import { auth } from "../firebase";
 
-const LANGUAGE_OPTIONS = [
-  { value: "en",    label: "English" },
-  { value: "pt-PT", label: "Portuguese" },
-  { value: "es",    label: "Spanish" },
-  { value: "fr",    label: "French" },
+const LANGUAGES = [
+  { value: "en-US", labelKey: "nav.lang_en" },
+  { value: "pt-PT", labelKey: "nav.lang_pt" },
+  { value: "es-MX", labelKey: "nav.lang_es" },
+  { value: "fr-FR", labelKey: "nav.lang_fr" },
 ];
 
 const INTEREST_CATEGORIES = [
@@ -42,7 +42,7 @@ const INTEREST_CATEGORIES = [
 ];
 
 // ── Avatar Upload Widget ──────────────────────────────────────────────────────
-const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading }) => {
+const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading, t }) => {
   const fileInputRef = useRef(null);
   const displaySrc = previewUrl || user?.photoURL;
 
@@ -51,12 +51,12 @@ const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading 
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        aria-label="Change profile photo"
+        aria-label={t("settings.change_photo")}
         className="relative shrink-0 group focus:outline-none"
       >
         <Avatar
           src={displaySrc}
-          alt={user?.displayName || "Profile photo"}
+          alt={user?.displayName || t("settings.profile_photo_alt")}
           size={80}
           isDarkMode={false}
           className="shadow-[4px_4px_0px_0px_#facc15]"
@@ -96,7 +96,7 @@ const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading 
           className={`mt-1 text-xs font-black uppercase tracking-widest underline transition-colors
             ${ isDarkMode ? "text-yellow-400 hover:text-yellow-300" : "text-blue-600 hover:text-blue-800" }`}
         >
-          Change photo
+          {t("settings.change_photo")}
         </button>
       </div>
     </div>
@@ -112,6 +112,7 @@ AvatarUpload.propTypes = {
   previewUrl:   PropTypes.string,
   onFileSelect: PropTypes.func.isRequired,
   isUploading:  PropTypes.bool.isRequired,
+  t:            PropTypes.func.isRequired,
 };
 
 // ── Interest Pills ────────────────────────────────────────────────────────────
@@ -202,6 +203,7 @@ const SettingsForm = ({
           previewUrl={previewUrl}
           onFileSelect={onFileSelect}
           isUploading={isUploading}
+          t={t}
         />
         <div className="space-y-5">
           <div>
@@ -259,7 +261,7 @@ const SettingsForm = ({
               <Globe size={12} className="inline mr-1" /> {t("settings.interface_language")}
             </label>
             <NeoDropdown
-              options={LANGUAGE_OPTIONS}
+              options={LANGUAGES.map((l) => ({ value: l.value, label: t(l.labelKey) }))}
               value={interfaceLang}
               onChange={setInterfaceLang}
               isDarkMode={isDarkMode}
@@ -288,7 +290,7 @@ const SettingsForm = ({
               <span className="text-xl" aria-hidden="true">🇵🇹</span>
               <div>
                 <p className={`font-black text-sm ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
-                  Portuguese (Portugal)
+                  {t("settings.portuguese_label")}
                 </p>
                 <p className={`text-xs font-bold uppercase tracking-widest
                   ${ isDarkMode ? "text-slate-500" : "text-slate-400" }`}>
@@ -307,7 +309,7 @@ const SettingsForm = ({
               <Globe size={12} className="inline mr-1" /> {t("settings.native_language")}
             </label>
             <NeoDropdown
-              options={LANGUAGE_OPTIONS}
+              options={LANGUAGES.map((l) => ({ value: l.value, label: t(l.labelKey) }))}
               value={nativeDialect}
               onChange={setNativeDialect}
               isDarkMode={isDarkMode}
@@ -343,7 +345,7 @@ const SettingsForm = ({
           }`}
       >
         {isBusy
-          ? <><Loader2 size={20} className="animate-spin" /> {isUploading ? "Uploading..." : t("settings.saving")}</>
+          ? <><Loader2 size={20} className="animate-spin" /> {isUploading ? t("settings.uploading") : t("settings.saving")}</>
           : <><Save size={20} /> {t("settings.save_settings")}</>
         }
       </button>
@@ -387,8 +389,8 @@ const SettingsPage = () => {
   const navigate = useNavigate();
 
   const [displayName,   setDisplayName]   = useState(user?.displayName || "");
-  const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en");
-  const [nativeDialect, setNativeDialect] = useState(user?.nativeDialect || user?.interfaceLang || "en");
+  const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en-US");
+  const [nativeDialect, setNativeDialect] = useState(user?.nativeDialect || user?.interfaceLang || "en-US");
   const [interests,     setInterests]     = useState(user?.interests || []);
   const [draftDarkMode, setDraftDarkMode] = useState(isDarkMode);
   const [isSaving,      setIsSaving]      = useState(false);
@@ -414,7 +416,7 @@ const SettingsPage = () => {
     setPrevSyncKey(syncKey);
     if (user?.displayName)   setDisplayName(user.displayName);
     if (user?.interfaceLang) setInterfaceLang(user.interfaceLang);
-    setNativeDialect(user?.nativeDialect || user?.interfaceLang || "en");
+    setNativeDialect(user?.nativeDialect || user?.interfaceLang || "en-US");
     setInterests(Array.isArray(user?.interests) ? user.interests : []);
     setDraftDarkMode(isDarkMode);
   }
@@ -441,7 +443,7 @@ const SettingsPage = () => {
           setPendingFile(null);
           setPreviewUrl(null);
         } catch {
-          showAlert("error", "Failed to upload profile image. Please try again.");
+          showAlert("error", t("settings.upload_failed"));
           return;
         } finally {
           setIsUploading(false);
@@ -483,9 +485,9 @@ const SettingsPage = () => {
       await deleteAccount(token);
       await logoutUser();
       navigate("/");
-      showAlert("success", "Your account has been permanently deleted.");
+      showAlert("success", t("settings.account_deleted"));
     } catch (err) {
-      showAlert("error", err.message || "Failed to delete account. Please try again.");
+      showAlert("error", err.message || t("settings.delete_failed"));
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);
@@ -505,13 +507,10 @@ const SettingsPage = () => {
       {showDeleteModal && (
         <ConfirmModal
           isDarkMode={isDarkMode}
-          title="Delete Account"
-          message={
-            <>This will <strong>permanently delete</strong> your account and all associated data
-            — including your profile, uploaded files, and conversation history.</>
-          }
-          warning="⚠ This action cannot be undone."
-          confirmLabel="Yes, delete my account"
+          title={t("settings.delete_confirm_title")}
+          message={t("settings.delete_confirm_message")}
+          warning={t("settings.delete_confirm_warning")}
+          confirmLabel={t("settings.delete_confirm_button")}
           confirmColor="rose"
           icon={<Trash2 size={24} />}
           isLoading={isDeleting}

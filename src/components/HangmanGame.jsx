@@ -28,13 +28,15 @@ const isSessionExpiredError = (err) => {
 // ---------------------------------------------------------------------------
 // HangmanScaffold
 // ---------------------------------------------------------------------------
-const HangmanScaffold = ({ wrongCount, isDarkMode }) => (
-  <svg
-    viewBox="0 0 100 100"
-    className="w-32 h-32 stroke-current stroke-[4] fill-none"
-    strokeLinecap="square"
-    aria-label={`Hangman drawing: ${wrongCount} wrong guesses`}
-  >
+const HangmanScaffold = ({ wrongCount, isDarkMode }) => {
+  const { t } = useTranslation();
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      className="w-32 h-32 stroke-current stroke-[4] fill-none"
+      strokeLinecap="square"
+      aria-label={t("challenges.hangman_drawing_alt", { wrongCount })}
+    >
     <path
       d="M10,90 L40,90 M25,90 L25,10 L60,10 L60,20"
       className={isDarkMode ? "text-white" : "text-slate-900"}
@@ -46,7 +48,8 @@ const HangmanScaffold = ({ wrongCount, isDarkMode }) => (
     {wrongCount > 4 && <path d="M60,65 L45,80" className="text-rose-500" />}
     {wrongCount > 5 && <path d="M60,65 L75,80" className="text-rose-500" />}
   </svg>
-);
+  );
+};
 
 HangmanScaffold.propTypes = {
   wrongCount: PropTypes.number.isRequired,
@@ -184,7 +187,7 @@ const HangmanGame = ({ isDarkMode }) => {
       setHint(data.hint);
     } catch (err) {
       if (isSessionExpiredError(err)) {
-        alert("Session expired. Page will refresh.");
+        alert(t("challenges.session_expired"));
         window.location.reload();
         return;
       }
@@ -206,7 +209,7 @@ const HangmanGame = ({ isDarkMode }) => {
       .catch((err) => {
         if (!cancelled) {
           if (isSessionExpiredError(err)) {
-            alert("Session expired. Page will refresh.");
+            alert(t("challenges.session_expired"));
             window.location.reload();
             return;
           }
@@ -302,7 +305,7 @@ const HangmanGame = ({ isDarkMode }) => {
                 : isDarkMode ? "bg-transparent text-slate-400 hover:text-white" : "bg-transparent text-slate-500 hover:text-slate-900"
             }`}
           >
-            Easy
+            {t("challenges.easy")}
           </button>
           <button
             type="button"
@@ -313,7 +316,7 @@ const HangmanGame = ({ isDarkMode }) => {
                 : isDarkMode ? "bg-transparent text-slate-400 hover:text-white" : "bg-transparent text-slate-500 hover:text-slate-900"
             }`}
           >
-            Hard
+            {t("challenges.hard")}
           </button>
         </div>
 

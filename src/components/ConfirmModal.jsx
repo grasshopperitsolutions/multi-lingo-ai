@@ -1,4 +1,5 @@
 import PropTypes from "prop-types";
+import { useTranslation } from "react-i18next";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 
 /**
@@ -28,6 +29,7 @@ const ConfirmModal = ({
   onConfirm,
   onCancel,
 }) => {
+  const { t } = useTranslation();
   const isRose   = confirmColor === "rose";
   const iconBg   = isRose ? "bg-rose-500" : "bg-yellow-400";
   const iconText = isRose ? "text-white"  : "text-slate-900";
@@ -61,7 +63,7 @@ const ConfirmModal = ({
         <button
           onClick={onCancel}
           disabled={isLoading}
-          aria-label="Close"
+          aria-label={t("common.close")}
           className={`absolute top-5 right-5 p-1 rounded-lg transition-colors disabled:opacity-40 ${
             isDarkMode
               ? "text-slate-400 hover:text-white"
@@ -122,7 +124,7 @@ const ConfirmModal = ({
             className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed ${btnBg}`}
           >
             {isLoading ? (
-              <><Loader2 size={18} className="animate-spin" /> Loading&hellip;</>
+              <><Loader2 size={18} className="animate-spin" /> {t("confirm_modal.loading")}</>
             ) : (
               confirmLabel
             )}
@@ -136,7 +138,7 @@ const ConfirmModal = ({
                 : "bg-white border-slate-900 text-slate-900 hover:bg-slate-100"
             }`}
           >
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       </div>

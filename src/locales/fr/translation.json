@@ -8,7 +8,30 @@
     "settings": "Paramètres",
     "light_mode": "Mode Clair",
     "dark_mode": "Mode Sombre",
-    "language": "Langue"
+    "language": "Langue",
+    "lang_en": "Anglais",
+    "lang_pt": "Portugais",
+    "lang_es": "Espagnol",
+    "lang_fr": "Français",
+    "open_menu": "Ouvrir le menu",
+    "close_menu": "Fermer le menu",
+    "brand": "Multi Lingo AI"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "cancel": "Annuler",
+    "close": "Fermer"
+  },
+  "avatar": {
+    "alt_fallback": "Avatar"
+  },
+  "barcelos_rooster": {
+    "alt": "Coq de Barcelos"
+  },
+  "confirm_modal": {
+    "loading": "Chargement&hellip;",
+    "cancel": "Annuler",
+    "close": "Fermer"
   },
   "home": {
     "badge": "LA RÉVOLUTION DE L'IA EST LÀ",
@@ -144,13 +167,38 @@
     "privacy": "Politique de Confidentialité",
     "contact": "Contact",
     "rights": "Tous droits réservés.",
-    "built_by": "Obtenez votre propre site web génial par Grasshopper IT Solutions"
+    "built_by": "Obtenez votre propre site web génial par Grasshopper IT Solutions",
+    "brand": "Multi Lingo AI"
   },
   "terms": {
-    "title": "Conditions d'Utilisation"
+    "title": "Conditions d'Utilisation",
+    "section1_title": "1. Acceptation des Conditions",
+    "section1_text": "En accédant et en utilisant ce site web, vous acceptez et convenez d'être lié par les termes et dispositions de cet accord. Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser ce site web.",
+    "section2_title": "2. Licence d'Utilisation",
+    "section2_text": "La permission est accordée de visualiser temporairement les matériaux de ce site web pour un usage personnel et non commercial. Ceci est une concession de licence, pas un transfert de titre.",
+    "section3_title": "3. Avertissement",
+    "section3_text": "Les matériaux de ce site web sont fournis 'en l'état'. Nous ne donnons aucune garantie, expresse ou implicite, et déclinons toutes autres garanties.",
+    "section4_title": "4. Limitations",
+    "section4_text": "En aucun cas nous ne serons responsables des dommages (y compris, sans limitation, les dommages pour perte de données ou de profits) découlant de l'utilisation ou de l'incapacité d'utiliser les matériaux de ce site web.",
+    "section5_title": "5. Révisions",
+    "section5_text": "Nous pouvons réviser ces conditions d'utilisation à tout moment sans préavis. En utilisant ce site web, vous acceptez d'être lié par la version actuelle de ces conditions.",
+    "last_updated": "Dernière mise à jour : Avril 2026"
   },
   "privacy": {
-    "title": "Politique de Confidentialité"
+    "title": "Politique de Confidentialité",
+    "section1_title": "1. Informations que Nous Collectons",
+    "section1_text": "Nous pouvons collecter des informations personnelles telles que votre nom, adresse email et toute autre information que vous fournissez volontairement en utilisant notre site web.",
+    "section2_title": "2. Comment Nous Utilisons Vos Informations",
+    "section2_text": "Les informations que nous collectons peuvent être utilisées pour personnaliser votre expérience, améliorer notre site web, envoyer des emails périodiques ou administrer des concours, promotions, enquêtes ou autres fonctionnalités du site.",
+    "section3_title": "3. Cookies",
+    "section3_text": "Ce site web peut utiliser des cookies pour améliorer l'expérience utilisateur. Votre navigateur place des cookies sur votre disque dur à des fins de tenue de registres et parfois pour suivre des informations vous concernant.",
+    "section4_title": "4. Protection des Données",
+    "section4_text": "Nous adoptons des pratiques appropriées de collecte, stockage et traitement des données ainsi que des mesures de sécurité pour protéger contre l'accès non autorisé, l'altération, la divulgation ou la destruction de vos informations personnelles.",
+    "section5_title": "5. Partage de Vos Informations",
+    "section5_text": "Nous ne vendons, n'échangeons ni ne louons vos informations d'identification personnelle à d'autres. Nous pouvons partager des informations démographiques agrégées génériques non liées à des informations d'identification personnelle.",
+    "section6_title": "6. Modifications de Cette Politique",
+    "section6_text": "Nous nous réservons le droit de mettre à jour cette politique de confidentialité à tout moment. Lorsque nous le ferons, nous réviserons la date de mise à jour en bas de cette page.",
+    "last_updated": "Dernière mise à jour : Avril 2026"
   },
   "settings": {
     "back_to_dashboard": "Retour au Tableau de Bord",
@@ -159,6 +207,9 @@
     "display_name": "Nom d'Affichage",
     "display_name_placeholder": "Ton nom d'affichage",
     "email": "Email",
+    "change_photo": "Changer la photo",
+    "uploading": "Téléchargement...",
+    "profile_photo_alt": "Photo de profil",
     "appearance": "Apparence",
     "app_theme": "Thème de l'Application",
     "dark_mode": "Mode Sombre",
@@ -169,6 +220,14 @@
     "account": "Compte",
     "sign_out": "Déconnexion",
     "delete_account": "Supprimer le Compte",
+    "delete_confirm_title": "Supprimer le Compte",
+    "delete_confirm_message": "Cela <1>supprimera définitivement</1> votre compte et toutes les données associées — y compris votre profil, fichiers téléchargés et historique de conversations.",
+    "delete_confirm_warning": "⚠ Cette action ne peut pas être annulée.",
+    "delete_confirm_button": "Oui, supprimer mon compte",
+    "upload_failed": "Échec du téléchargement de l'image de profil. Veuillez réessayer.",
+    "account_deleted": "Votre compte a été définitivement supprimé.",
+    "delete_failed": "Échec de la suppression du compte. Veuillez réessayer.",
+    "portuguese_label": "Portugais (Portugal)",
     "errors": {
       "not_signed_in": "Tu dois être connecté pour enregistrer les paramètres.",
       "save_failed": "Échec de l'enregistrement des paramètres. Veuillez réessayer.",
@@ -203,6 +262,9 @@
     "words": "Mots Appris",
     "back": "Retour au Tableau de Bord",
     "not_implemented": "Cette fonctionnalité sera bientôt disponible — reste à l'affût !",
+    "in_progress": "En cours...",
+    "learner": "Apprenant",
+    "profile_alt": "Profil",
     "translator": "Traducteur",
     "translator_desc": "Traduis instantanément du texte entre deux langues avec une IA contextuelle.",
     "dictionary": "Dictionnaire",
@@ -230,6 +292,10 @@
     "hangman": "Pendu",
     "hangman_desc": "Devine l'argot avant que le bonhomme ne tombe.",
     "hangman_azulejo_desc": "Un carreau de céramique portugais traditionnel, souvent bleu et blanc.",
+    "easy": "Facile",
+    "hard": "Difficile",
+    "session_expired": "Session expirée. La page va se rafraîchir.",
+    "hangman_drawing_alt": "Dessin du pendu : {{wrongCount}} mauvaises réponses",
     "word_quiz": "Quiz de Mots",
     "word_quiz_desc": "Questions de vocabulaire rapides pour aiguiser tes compétences.",
     "word_search": "Recherche de Mots",
@@ -246,6 +312,28 @@
     "submit": "Soumettre",
     "try_again": "Pas tout à fait — réessaie !",
     "word_fetch_error": "Échec du chargement du mot. Veuillez réessayer.",
-    "loading_word": "Sélection d'un mot..."
+    "loading_word": "Sélection d'un mot...",
+    "sidebar": {
+      "never": "Jamais",
+      "just_now": "À l'instant",
+      "minutes_ago": "Il y a {{count}}m",
+      "minutes_ago_plural": "Il y a {{count}}m",
+      "hours_ago": "Il y a {{count}}h",
+      "hours_ago_plural": "Il y a {{count}}h",
+      "days_ago": "Il y a {{count}}j",
+      "days_ago_plural": "Il y a {{count}}j",
+      "expand": "Agrandir la barre latérale",
+      "collapse": "Réduire la barre latérale",
+      "title": "Statistiques du Pendu",
+      "words_seen": "Mots Vus",
+      "played": "Parties",
+      "last_played": "Dernière Partie",
+      "dialect": "Dialecte",
+      "reset_btn": "Réinitialiser la Progression",
+      "reset_title": "Réinitialiser la Progression du Pendu",
+      "reset_message": "Cela effacera tous les mots vus pour le Pendu, vous permettant de revoir les mots déjà joués.",
+      "reset_warning": "⚠ Cette action est irréversible.",
+      "reset_confirm": "Oui, réinitialiser la progression"
+    }
   }
 }

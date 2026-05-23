@@ -8,7 +8,30 @@
     "settings": "Ajustes",
     "light_mode": "Modo Claro",
     "dark_mode": "Modo Oscuro",
-    "language": "Idioma"
+    "language": "Idioma",
+    "lang_en": "Inglés",
+    "lang_pt": "Portugués",
+    "lang_es": "Español",
+    "lang_fr": "Francés",
+    "open_menu": "Abrir menú",
+    "close_menu": "Cerrar menú",
+    "brand": "Multi Lingo AI"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "cancel": "Cancelar",
+    "close": "Cerrar"
+  },
+  "avatar": {
+    "alt_fallback": "Avatar"
+  },
+  "barcelos_rooster": {
+    "alt": "Gallo de Barcelos"
+  },
+  "confirm_modal": {
+    "loading": "Cargando&hellip;",
+    "cancel": "Cancelar",
+    "close": "Cerrar"
   },
   "home": {
     "badge": "LA REVOLUCIÓN DE LA IA ESTÁ AQUÍ",
@@ -144,13 +167,38 @@
     "privacy": "Política de Privacidad",
     "contact": "Contacto",
     "rights": "Todos los derechos reservados.",
-    "built_by": "Obtén tu propio sitio web increíble de Grasshopper IT Solutions"
+    "built_by": "Obtén tu propio sitio web increíble de Grasshopper IT Solutions",
+    "brand": "Multi Lingo AI"
   },
   "terms": {
-    "title": "Términos de Servicio"
+    "title": "Términos de Servicio",
+    "section1_title": "1. Aceptación de los Términos",
+    "section1_text": "Al acceder y usar este sitio web, aceptas y te comprometes a cumplir con los términos y disposiciones de este acuerdo. Si no aceptas estos términos, por favor no uses este sitio web.",
+    "section2_title": "2. Licencia de Uso",
+    "section2_text": "Se concede permiso para ver temporalmente los materiales en este sitio web para visualización personal y no comercial. Esta es una concesión de licencia, no una transferencia de título.",
+    "section3_title": "3. Descargo de Responsabilidad",
+    "section3_text": "Los materiales en este sitio web se proporcionan 'tal cual'. No ofrecemos garantías, expresas o implícitas, y por la presente renunciamos y negamos todas las demás garantías.",
+    "section4_title": "4. Limitaciones",
+    "section4_text": "En ningún caso seremos responsables por daños (incluyendo, sin limitación, daños por pérdida de datos o beneficios) que surjan del uso o la imposibilidad de usar los materiales en este sitio web.",
+    "section5_title": "5. Revisiones",
+    "section5_text": "Podemos revisar estos términos de servicio en cualquier momento sin previo aviso. Al usar este sitio web, aceptas estar sujeto a la versión actual de estos términos.",
+    "last_updated": "Última actualización: Abril 2026"
   },
   "privacy": {
-    "title": "Política de Privacidad"
+    "title": "Política de Privacidad",
+    "section1_title": "1. Información que Recopilamos",
+    "section1_text": "Podemos recopilar información personal como tu nombre, dirección de correo electrónico y cualquier otra información que proporciones voluntariamente al usar nuestro sitio web.",
+    "section2_title": "2. Cómo Usamos Tu Información",
+    "section2_text": "La información que recopilamos puede usarse para personalizar tu experiencia, mejorar nuestro sitio web, enviar correos periódicos o administrar concursos, promociones, encuestas u otras funciones del sitio.",
+    "section3_title": "3. Cookies",
+    "section3_text": "Este sitio web puede usar cookies para mejorar la experiencia del usuario. Tu navegador coloca cookies en tu disco duro con fines de mantenimiento de registros y, a veces, para rastrear información sobre ti.",
+    "section4_title": "4. Protección de Datos",
+    "section4_text": "Adoptamos prácticas apropiadas de recopilación, almacenamiento y procesamiento de datos y medidas de seguridad para proteger contra el acceso no autorizado, alteración, divulgación o destrucción de tu información personal.",
+    "section5_title": "5. Compartir Tu Información",
+    "section5_text": "No vendemos, intercambiamos ni alquilamos tu información de identificación personal a otros. Podemos compartir información demográfica agregada genérica no vinculada a información de identificación personal.",
+    "section6_title": "6. Cambios a Esta Política",
+    "section6_text": "Nos reservamos el derecho de actualizar esta política de privacidad en cualquier momento. Cuando lo hagamos, revisaremos la fecha de actualización en la parte inferior de esta página.",
+    "last_updated": "Última actualización: Abril 2026"
   },
   "settings": {
     "back_to_dashboard": "Volver al Panel",
@@ -159,6 +207,9 @@
     "display_name": "Nombre de Visualización",
     "display_name_placeholder": "Tu nombre de visualización",
     "email": "Email",
+    "change_photo": "Cambiar foto",
+    "uploading": "Subiendo...",
+    "profile_photo_alt": "Foto de perfil",
     "appearance": "Apariencia",
     "app_theme": "Tema de la Aplicación",
     "dark_mode": "Modo Oscuro",
@@ -169,6 +220,14 @@
     "account": "Cuenta",
     "sign_out": "Cerrar Sesión",
     "delete_account": "Eliminar Cuenta",
+    "delete_confirm_title": "Eliminar Cuenta",
+    "delete_confirm_message": "Esto <1>eliminará permanentemente</1> tu cuenta y todos los datos asociados — incluyendo tu perfil, archivos subidos e historial de conversaciones.",
+    "delete_confirm_warning": "⚠ Esta acción no se puede deshacer.",
+    "delete_confirm_button": "Sí, eliminar mi cuenta",
+    "upload_failed": "Error al subir la imagen de perfil. Inténtalo de nuevo.",
+    "account_deleted": "Tu cuenta ha sido eliminada permanentemente.",
+    "delete_failed": "Error al eliminar la cuenta. Inténtalo de nuevo.",
+    "portuguese_label": "Portugués (Portugal)",
     "errors": {
       "not_signed_in": "Debes iniciar sesión para guardar ajustes.",
       "save_failed": "Error al guardar los ajustes. Por favor, inténtalo de nuevo.",
@@ -203,6 +262,9 @@
     "words": "Palabras Aprendidas",
     "back": "Volver al Panel",
     "not_implemented": "Esta función estará disponible pronto — ¡estate atento!",
+    "in_progress": "En progreso...",
+    "learner": "Estudiante",
+    "profile_alt": "Perfil",
     "translator": "Traductor",
     "translator_desc": "Traduce texto entre dos idiomas al instante con IA consciente del contexto.",
     "dictionary": "Diccionario",
@@ -230,6 +292,10 @@
     "hangman": "Ahorcado",
     "hangman_desc": "Adivina la jerga antes de que caiga el muñeco.",
     "hangman_azulejo_desc": "Un azulejo tradicional portugués, a menudo azul y blanco.",
+    "easy": "Fácil",
+    "hard": "Difícil",
+    "session_expired": "Sesión expirada. La página se actualizará.",
+    "hangman_drawing_alt": "Dibujo del ahorcado: {{wrongCount}} intentos fallidos",
     "word_quiz": "Quiz de Palabras",
     "word_quiz_desc": "Preguntas rápidas de vocabulario para afilar tus habilidades.",
     "word_search": "Sopa de Letras",
@@ -246,6 +312,28 @@
     "submit": "Enviar",
     "try_again": "¡No es correcto — inténtalo de nuevo!",
     "word_fetch_error": "Error al cargar la palabra. Inténtalo de nuevo.",
-    "loading_word": "Seleccionando una palabra..."
+    "loading_word": "Seleccionando una palabra...",
+    "sidebar": {
+      "never": "Nunca",
+      "just_now": "Justo ahora",
+      "minutes_ago": "Hace {{count}}m",
+      "minutes_ago_plural": "Hace {{count}}m",
+      "hours_ago": "Hace {{count}}h",
+      "hours_ago_plural": "Hace {{count}}h",
+      "days_ago": "Hace {{count}}d",
+      "days_ago_plural": "Hace {{count}}d",
+      "expand": "Ampliar barra lateral",
+      "collapse": "Colapsar barra lateral",
+      "title": "Estadísticas del Ahorcado",
+      "words_seen": "Palabras Vistas",
+      "played": "Jugadas",
+      "last_played": "Última Partida",
+      "dialect": "Dialecto",
+      "reset_btn": "Restablecer Progreso",
+      "reset_title": "Restablecer Progreso del Ahorcado",
+      "reset_message": "Esto borrará todas las palabras vistas del Ahorcado, permitiéndote ver palabras jugadas anteriormente de nuevo.",
+      "reset_warning": "⚠ Esto no se puede deshacer.",
+      "reset_confirm": "Sí, restablecer progreso"
+    }
   }
 }

@@ -156,56 +156,56 @@ const DashboardPage = () => {
       title: t("dashboard.translator"),
       description: t("dashboard.translator_desc"),
       color: "text-sky-500",
-      statusBadgeLabel: "In progress...",
+      statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
       icon: BookMarked,
       title: t("dashboard.dictionary"),
       description: t("dashboard.dictionary_desc"),
       color: "text-violet-500",
-      statusBadgeLabel: "In progress...",
+      statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
       icon: PenLine,
       title: t("dashboard.grammar"),
       description: t("dashboard.grammar_desc"),
       color: "text-amber-500",
-      statusBadgeLabel: "In progress...",
+      statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
       icon: BotMessageSquare,
       title: t("dashboard.ai_tutor"),
       description: t("dashboard.ai_tutor_desc"),
       color: "text-blue-500",
-      statusBadgeLabel: "In progress...",
+      statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
       icon: UserRound,
       title: t("dashboard.real_person_tutor"),
       description: t("dashboard.real_person_tutor_desc"),
       color: "text-emerald-500",
-      statusBadgeLabel: "In progress...",
+      statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
       icon: Video,
       title: t("dashboard.voice_practice"),
       description: t("dashboard.voice_practice_desc"),
       color: "text-purple-500",
-      statusBadgeLabel: "In progress...",
+      statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
       icon: BookOpen,
       title: t("dashboard.story_generator"),
       description: t("dashboard.story_generator_desc"),
       color: "text-rose-500",
-      statusBadgeLabel: "In progress...",
+      statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
       icon: Landmark,
       title: t("dashboard.history_culture"),
       description: t("dashboard.history_culture_desc"),
       color: "text-orange-500",
-      statusBadgeLabel: "In progress...",
+      statusBadgeLabel: t("dashboard.in_progress"),
     },
   ];
 
@@ -216,7 +216,7 @@ const DashboardPage = () => {
         <div className="flex items-center gap-4">
           <Avatar
             src={user?.photoURL}
-            alt={user?.displayName || "Profile"}
+            alt={user?.displayName || t("dashboard.profile_alt")}
             size={48}
             isDarkMode={isDarkMode}
           />
@@ -224,7 +224,7 @@ const DashboardPage = () => {
             <h1 className={`text-4xl font-black uppercase tracking-tighter ${
               isDarkMode ? "text-white" : "text-slate-900"
             }`}>
-              {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || "Learner" })}
+              {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || t("dashboard.learner") })}
             </h1>
             <p className={`font-bold uppercase tracking-widest text-sm mt-1 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"

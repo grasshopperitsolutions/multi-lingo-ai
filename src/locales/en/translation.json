@@ -8,7 +8,30 @@
     "settings": "Settings",
     "light_mode": "Light Mode",
     "dark_mode": "Dark Mode",
-    "language": "Language"
+    "language": "Language",
+    "lang_en": "English",
+    "lang_pt": "Portuguese",
+    "lang_es": "Spanish",
+    "lang_fr": "French",
+    "open_menu": "Open menu",
+    "close_menu": "Close menu",
+    "brand": "Multi Lingo AI"
+  },
+  "common": {
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "close": "Close"
+  },
+  "avatar": {
+    "alt_fallback": "Avatar"
+  },
+  "barcelos_rooster": {
+    "alt": "Barcelos Rooster"
+  },
+  "confirm_modal": {
+    "loading": "Loading&hellip;",
+    "cancel": "Cancel",
+    "close": "Close"
   },
   "home": {
     "badge": "THE AI REVOLUTION IS HERE",
@@ -144,13 +167,38 @@
     "privacy": "Privacy Policy",
     "contact": "Contact",
     "rights": "All rights reserved.",
-    "built_by": "Get your own awesome website by Grasshopper IT Solutions"
+    "built_by": "Get your own awesome website by Grasshopper IT Solutions",
+    "brand": "Multi Lingo AI"
   },
   "terms": {
-    "title": "Terms of Service"
+    "title": "Terms of Service",
+    "section1_title": "1. Acceptance of Terms",
+    "section1_text": "By accessing and using this website, you accept and agree to be bound by the terms and provisions of this agreement. If you do not agree to abide by these terms, please do not use this website.",
+    "section2_title": "2. Use License",
+    "section2_text": "Permission is granted to temporarily view the materials on this website for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title.",
+    "section3_title": "3. Disclaimer",
+    "section3_text": "The materials on this website are provided on an 'as is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.",
+    "section4_title": "4. Limitations",
+    "section4_text": "In no event shall we be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on this website.",
+    "section5_title": "5. Revisions",
+    "section5_text": "We may revise these terms of service for our website at any time without notice. By using this website, you are agreeing to be bound by the then current version of these terms of service.",
+    "last_updated": "Last updated: April 2026"
   },
   "privacy": {
-    "title": "Privacy Policy"
+    "title": "Privacy Policy",
+    "section1_title": "1. Information We Collect",
+    "section1_text": "We may collect personal information such as your name, email address, and any other information you voluntarily provide when using our website.",
+    "section2_title": "2. How We Use Your Information",
+    "section2_text": "Any information we collect may be used to personalize your experience, improve our website, send periodic emails, or administer contests, promotions, surveys or other site features.",
+    "section3_title": "3. Cookies",
+    "section3_text": "This website may use cookies to enhance user experience. Your web browser places cookies on your hard drive for record-keeping purposes and sometimes to track information about you. You may choose to set your browser to refuse cookies.",
+    "section4_title": "4. Data Protection",
+    "section4_text": "We adopt appropriate data collection, storage and processing practices and security measures to protect against unauthorized access, alteration, disclosure or destruction of your personal information stored on our site.",
+    "section5_title": "5. Sharing Your Information",
+    "section5_text": "We do not sell, trade, or rent your personal identification information to others. We may share generic aggregated demographic information not linked to any personal identification information regarding visitors and users with our business partners and advertisers.",
+    "section6_title": "6. Changes to This Policy",
+    "section6_text": "We have the discretion to update this privacy policy at any time. When we do, we will revise the updated date at the bottom of this page. You acknowledge and agree that it is your responsibility to review this privacy policy periodically and become aware of modifications.",
+    "last_updated": "Last updated: April 2026"
   },
   "settings": {
     "back_to_dashboard": "Back to Dashboard",
@@ -159,6 +207,9 @@
     "display_name": "Display Name",
     "display_name_placeholder": "Your display name",
     "email": "Email",
+    "change_photo": "Change photo",
+    "uploading": "Uploading...",
+    "profile_photo_alt": "Profile photo",
     "appearance": "Appearance",
     "app_theme": "App Theme",
     "dark_mode": "Dark Mode",
@@ -169,6 +220,14 @@
     "account": "Account",
     "sign_out": "Sign Out",
     "delete_account": "Delete Account",
+    "delete_confirm_title": "Delete Account",
+    "delete_confirm_message": "This will <1>permanently delete</1> your account and all associated data — including your profile, uploaded files, and conversation history.",
+    "delete_confirm_warning": "⚠ This action cannot be undone.",
+    "delete_confirm_button": "Yes, delete my account",
+    "upload_failed": "Failed to upload profile image. Please try again.",
+    "account_deleted": "Your account has been permanently deleted.",
+    "delete_failed": "Failed to delete account. Please try again.",
+    "portuguese_label": "Portuguese (Portugal)",
     "errors": {
       "not_signed_in": "You must be signed in to save settings.",
       "save_failed": "Failed to save settings. Please try again.",
@@ -203,6 +262,9 @@
     "what_you_can_do": "What You Can Do",
     "back": "Back to Dashboard",
     "not_implemented": "This feature is coming soon — stay tuned!",
+    "in_progress": "In progress...",
+    "learner": "Learner",
+    "profile_alt": "Profile",
     "translator": "Translator",
     "translator_desc": "Instantly translate text between any two languages with context-aware AI.",
     "dictionary": "Dictionary",
@@ -230,6 +292,10 @@
     "hangman": "Hangman",
     "hangman_desc": "Guess the slang before the man drops.",
     "hangman_azulejo_desc": "A traditional Portuguese ceramic tile, often blue and white.",
+    "easy": "Easy",
+    "hard": "Hard",
+    "session_expired": "Session expired. Page will refresh.",
+    "hangman_drawing_alt": "Hangman drawing: {{wrongCount}} wrong guesses",
     "word_quiz": "Word Quiz",
     "word_quiz_desc": "Quick vocabulary questions to sharpen your skills.",
     "word_search": "Word Search",
@@ -246,6 +312,28 @@
     "submit": "Submit",
     "try_again": "Not quite — try again!",
     "word_fetch_error": "Failed to load the word. Please try again.",
-    "loading_word": "Picking a word..."
+    "loading_word": "Picking a word...",
+    "sidebar": {
+      "never": "Never",
+      "just_now": "Just now",
+      "minutes_ago": "{{count}}m ago",
+      "minutes_ago_plural": "{{count}}m ago",
+      "hours_ago": "{{count}}h ago",
+      "hours_ago_plural": "{{count}}h ago",
+      "days_ago": "{{count}}d ago",
+      "days_ago_plural": "{{count}}d ago",
+      "expand": "Expand sidebar",
+      "collapse": "Collapse sidebar",
+      "title": "Hangman Stats",
+      "words_seen": "Words Seen",
+      "played": "Played",
+      "last_played": "Last Played",
+      "dialect": "Dialect",
+      "reset_btn": "Reset Progress",
+      "reset_title": "Reset Hangman Progress",
+      "reset_message": "This will clear all your seen words for Hangman, allowing you to see previously played words again.",
+      "reset_warning": "⚠ This cannot be undone.",
+      "reset_confirm": "Yes, reset progress"
+    }
   }
 }

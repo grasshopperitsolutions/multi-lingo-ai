@@ -32,9 +32,9 @@ const saveThemeToLocalStorage = (isDark) => {
 const getSavedLanguage = () => {
   try {
     const saved = localStorage.getItem("interfaceLang");
-    return saved || "en";
+    return saved || "en-US";
   } catch {
-    return "en";
+    return "en-US";
   }
 };
 
@@ -94,7 +94,7 @@ export const AppProvider = ({ children }) => {
 
       // Language — Firestore → localStorage → default
       const lang =
-        profile?.interfaceLang || localStorage.getItem("interfaceLang") || "en";
+        profile?.interfaceLang || localStorage.getItem("interfaceLang") || "en-US";
       setInterfaceLang(lang);
       try {
         localStorage.setItem("interfaceLang", lang);
