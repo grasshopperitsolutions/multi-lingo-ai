@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Trophy, Skull, RefreshCw } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
-import { auth } from "../firebase";
 import { getUserGameProgress, markConceptSeen } from "../services/userService";
 import { getWord } from "../services/getWordService";
 
@@ -28,15 +27,12 @@ const normalizeChar = (c) =>
   c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
 // ---------------------------------------------------------------------------
-// Returns true when an error looks like a Firebase token expiry / 401.
+// Returns true when the API rejected the request due to an expired/invalid
+// Firebase ID token (401 from verifyAuth in the proxy API).
 // ---------------------------------------------------------------------------
 const isSessionExpiredError = (err) => {
   const msg = (err?.message ?? "").toLowerCase();
-  return (
-    msg.includes("expired token") ||
-    msg.includes("invalid or expired") ||
-    msg.includes("401")
-  );
+  return msg.includes("expired token") || msg.includes("invalid or expired");
 };
 
 // ---------------------------------------------------------------------------
@@ -158,17 +154,7 @@ const HangmanGame = ({ isDarkMode }) => {
       pendingMarkRef.current = null;
     }
 
-    // Always force-refresh the Firebase ID token before making authenticated
-    // API calls. Cached tokens expire after 1 hour and cause 401 errors.
-    // user is a plain object without getIdToken, so we use auth.currentUser.
-    let token;
-    try {
-      token = await auth.currentUser?.getIdToken(true);
-    } catch {
-      token = user.token; // fallback to cached token if refresh fails
-    }
-
-    const uid = user.uid;
+    const { token, uid } = user;
     if (!token) throw new Error(t("challenges.word_fetch_error"));
 
     const progress = await getUserGameProgress(token, uid, "hangman", learningDialect);
