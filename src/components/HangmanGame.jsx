@@ -27,6 +27,15 @@ const normalizeChar = (c) =>
   c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
 // ---------------------------------------------------------------------------
+// Returns true when the API rejected the request due to an expired/invalid
+// Firebase ID token (401 from verifyAuth in the proxy API).
+// ---------------------------------------------------------------------------
+const isSessionExpiredError = (err) => {
+  const msg = (err?.message ?? "").toLowerCase();
+  return msg.includes("expired token") || msg.includes("invalid or expired");
+};
+
+// ---------------------------------------------------------------------------
 // Hangman scaffold — draws body parts progressively as wrongCount increases
 // ---------------------------------------------------------------------------
 const HangmanScaffold = ({ wrongCount, isDarkMode }) => (
@@ -175,6 +184,11 @@ const HangmanGame = ({ isDarkMode }) => {
       setWord(data.word);
       setHint(data.hint);
     } catch (err) {
+      if (isSessionExpiredError(err)) {
+        alert("Session expired. Page will refresh.");
+        window.location.reload();
+        return;
+      }
       setError(err.message ?? t("challenges.word_fetch_error"));
     } finally {
       setLoading(false);
@@ -192,7 +206,14 @@ const HangmanGame = ({ isDarkMode }) => {
         }
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message ?? t("challenges.word_fetch_error"));
+        if (!cancelled) {
+          if (isSessionExpiredError(err)) {
+            alert("Session expired. Page will refresh.");
+            window.location.reload();
+            return;
+          }
+          setError(err.message ?? t("challenges.word_fetch_error"));
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
