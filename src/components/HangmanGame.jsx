@@ -143,12 +143,37 @@ const HangmanGame = ({ isDarkMode }) => {
     }
   }, [user, learningDialect]);
 
-  // Fetch stats on mount
+  // Fetch stats on mount — inline async logic so setState calls are
+  // inside the effect's own .then handler, not a separate function.
+  // isLoadingStats starts as true (initial state), so we only clear it in
+  // the .finally handler.
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (!user?.token || !user?.uid) return;
+    let cancelled = false;
+    Promise.all([
+      getUserGameProgress(user.token, user.uid, "hangman", learningDialect),
+      getWordPoolCount(user.token),
+    ])
+      .then(([prog, count]) => {
+        if (!cancelled) {
+          setProgress(prog);
+          setTotalWords(count);
+        }
+      })
+      .catch((err) => {
+        console.warn("[HangmanGame] fetchStats failed:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingStats(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, learningDialect]);
 
   // ── Core word fetch ──────────────────────────────────────────────────────
+  // Returns { word, hint, progress } — does NOT set any state, so it is safe
+  // to call from a useEffect without triggering the set-state-in-effect lint.
   const fetchWordData = useCallback(async () => {
     if (!user) throw new Error(t("challenges.word_fetch_error"));
 
@@ -161,7 +186,6 @@ const HangmanGame = ({ isDarkMode }) => {
     if (!token) throw new Error(t("challenges.word_fetch_error"));
 
     const prog = await getUserGameProgress(token, uid, "hangman", learningDialect);
-    setProgress(prog);
 
     const result = await getWord({
       token,
@@ -177,7 +201,7 @@ const HangmanGame = ({ isDarkMode }) => {
       .then(() => fetchStats())
       .catch((err) => console.warn("[HangmanGame] markConceptSeen failed:", err));
 
-    return { word: result.word.toUpperCase(), hint: result.hint };
+    return { word: result.word.toUpperCase(), hint: result.hint, progress: prog };
   }, [user, learningDialect, nativeDialect, t, fetchStats]);
 
   const fetchWord = useCallback(async () => {
@@ -185,6 +209,7 @@ const HangmanGame = ({ isDarkMode }) => {
       const data = await fetchWordData();
       setWord(data.word);
       setHint(data.hint);
+      setProgress(data.progress);
     } catch (err) {
       if (isSessionExpiredError(err)) {
         alert(t("challenges.session_expired"));
@@ -204,6 +229,7 @@ const HangmanGame = ({ isDarkMode }) => {
         if (!cancelled) {
           setWord(data.word);
           setHint(data.hint);
+          setProgress(data.progress);
         }
       })
       .catch((err) => {
