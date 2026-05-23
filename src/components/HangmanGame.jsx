@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Trophy, Skull, RefreshCw } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
+import { auth } from "../firebase";
 import { getUserGameProgress, markConceptSeen } from "../services/userService";
 import { getWord } from "../services/getWordService";
 
@@ -25,6 +26,18 @@ const KEYBOARD_LAYOUTS = {
 // ---------------------------------------------------------------------------
 const normalizeChar = (c) =>
   c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+
+// ---------------------------------------------------------------------------
+// Returns true when an error looks like a Firebase token expiry / 401.
+// ---------------------------------------------------------------------------
+const isSessionExpiredError = (err) => {
+  const msg = (err?.message ?? "").toLowerCase();
+  return (
+    msg.includes("expired token") ||
+    msg.includes("invalid or expired") ||
+    msg.includes("401")
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Hangman scaffold — draws body parts progressively as wrongCount increases
@@ -145,7 +158,17 @@ const HangmanGame = ({ isDarkMode }) => {
       pendingMarkRef.current = null;
     }
 
-    const { token, uid } = user;
+    // Always force-refresh the Firebase ID token before making authenticated
+    // API calls. Cached tokens expire after 1 hour and cause 401 errors.
+    // user is a plain object without getIdToken, so we use auth.currentUser.
+    let token;
+    try {
+      token = await auth.currentUser?.getIdToken(true);
+    } catch {
+      token = user.token; // fallback to cached token if refresh fails
+    }
+
+    const uid = user.uid;
     if (!token) throw new Error(t("challenges.word_fetch_error"));
 
     const progress = await getUserGameProgress(token, uid, "hangman", learningDialect);
@@ -175,6 +198,11 @@ const HangmanGame = ({ isDarkMode }) => {
       setWord(data.word);
       setHint(data.hint);
     } catch (err) {
+      if (isSessionExpiredError(err)) {
+        alert("Session expired. Page will refresh.");
+        window.location.reload();
+        return;
+      }
       setError(err.message ?? t("challenges.word_fetch_error"));
     } finally {
       setLoading(false);
@@ -192,7 +220,14 @@ const HangmanGame = ({ isDarkMode }) => {
         }
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message ?? t("challenges.word_fetch_error"));
+        if (!cancelled) {
+          if (isSessionExpiredError(err)) {
+            alert("Session expired. Page will refresh.");
+            window.location.reload();
+            return;
+          }
+          setError(err.message ?? t("challenges.word_fetch_error"));
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
