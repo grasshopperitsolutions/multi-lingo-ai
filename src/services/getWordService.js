@@ -107,20 +107,16 @@ const POOL_LIMIT   = 200;
 export async function getWord({ token, userDialect, learningDialect, seenConceptIds }) {
   const seenSet = new Set(seenConceptIds ?? []);
 
-  // ── Step 1: Query ready concepts ─────────────────────────────────────────
   const concepts = await _fetchReadyConcepts(token);
 
-  // ── Step 2: Find first unseen concept ────────────────────────────────────
   const unseenConcept = concepts.find((c) => !seenSet.has(c.id));
 
-  // ── BRANCH A: Unseen concept found ────────────────────────────────────────
   if (unseenConcept) {
     const translation = await _fetchTranslation(unseenConcept.id, learningDialect, token);
 
     if (translation) {
       const hint = _resolveHint(translation.hints, userDialect);
 
-      // Patch missing hint for this dialect on demand (fire-and-forget)
       if (!hint) {
         _generateHintForDialect(unseenConcept.sourceWord, userDialect, token)
           .then((newHint) =>
@@ -137,7 +133,6 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
       };
     }
 
-    // Translation missing — generate word + hint for userDialect only
     const generated = await _generateTranslation(
       unseenConcept.sourceWord,
       { userDialect, learningDialect },
@@ -153,7 +148,6 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
     };
   }
 
-  // ── BRANCH B: Pool exhausted — generate a brand-new concept ──────────────
   const knownWords = concepts.map((c) => c.normalizedKey);
   const generated  = await _generateNewConcept(
     { userDialect, learningDialect, knownWords },
@@ -170,37 +164,33 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
   };
 }
 
+/**
+ * Return the total number of "ready" concepts in the word pool.
+ * Used by the sidebar to compute the seen-words percentage.
+ *
+ * This intentionally reuses the same API endpoint as _fetchReadyConcepts
+ * but only extracts the count — keeping all Firestore logic in the frontend
+ * service layer, not the proxy API.
+ *
+ * @param {string} token - Firebase ID token
+ * @returns {Promise<number>}
+ */
+export async function getWordPoolCount(token) {
+  const concepts = await _fetchReadyConcepts(token);
+  return concepts.length;
+}
+
 // ---------------------------------------------------------------------------
 // Hint resolution
 // ---------------------------------------------------------------------------
 
-/**
- * Pick the best available hint for the user's native dialect.
- *
- * Fallback chain:
- *   1. Exact match        hints["es-MX"]
- *   2. Language match     hints["es-ES"]  (same language tag, different region)
- *   3. English fallback   hints["en-US"]
- *   4. Any available      first value in the map
- *
- * Returns an empty string when the map is empty or undefined —
- * the caller should treat that as a signal to generate and patch.
- *
- * @param {Record<string, string> | undefined} hints
- * @param {string} userDialect
- * @returns {string}
- */
 function _resolveHint(hints, userDialect) {
   if (!hints || typeof hints !== 'object') return '';
-
   if (hints[userDialect]) return hints[userDialect];
-
   const lang      = userDialect.split('-')[0];
   const langMatch = Object.keys(hints).find((k) => k.startsWith(`${lang}-`));
   if (langMatch) return hints[langMatch];
-
   if (hints['en-US']) return hints['en-US'];
-
   return Object.values(hints)[0] ?? '';
 }
 
@@ -208,14 +198,6 @@ function _resolveHint(hints, userDialect) {
 // Firestore helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Fetch up to POOL_LIMIT "ready" concepts from wordPool.
- * Sends a structured filters array — the API owns all Firestore query
- * construction; the frontend just declares intent.
- *
- * @param {string} token
- * @returns {Promise<Array<{ id: string, sourceWord: string, normalizedKey: string }>>}
- */
 async function _fetchReadyConcepts(token) {
   const params = new URLSearchParams({
     collection: 'wordPool',
@@ -231,12 +213,6 @@ async function _fetchReadyConcepts(token) {
   return json?.data?.documents ?? [];
 }
 
-/**
- * @param {string} conceptId
- * @param {string} locale
- * @param {string} token
- * @returns {Promise<{ word: string, hints: Record<string,string> } | null>}
- */
 async function _fetchTranslation(conceptId, locale, token) {
   const col      = `wordPool/${conceptId}/translations`;
   const response = await fetch(
@@ -249,14 +225,6 @@ async function _fetchTranslation(conceptId, locale, token) {
   return json?.data?.data ?? null;
 }
 
-/**
- * Write a full translation subdocument (create or overwrite).
- *
- * @param {string} conceptId
- * @param {string} locale
- * @param {{ word: string, hints: Record<string,string> }} data
- * @param {string} token
- */
 async function _writeTranslation(conceptId, locale, data, token) {
   const col      = `wordPool/${conceptId}/translations`;
   const now      = new Date().toISOString();
@@ -286,16 +254,6 @@ async function _writeTranslation(conceptId, locale, data, token) {
   if (!response.ok) throw new Error(json?.error || json?.message || 'Failed to write translation');
 }
 
-/**
- * Merge a single new hint key into an existing translation document
- * without touching any other fields (uses PATCH / merge semantics).
- *
- * @param {string} conceptId
- * @param {string} learningLocale
- * @param {string} hintLocale      - e.g. "es-MX"
- * @param {string} hintText
- * @param {string} token
- */
 async function _patchHint(conceptId, learningLocale, hintLocale, hintText, token) {
   const col      = `wordPool/${conceptId}/translations`;
   const now      = new Date().toISOString();
@@ -315,14 +273,6 @@ async function _patchHint(conceptId, learningLocale, hintLocale, hintText, token
   if (!response.ok) throw new Error(json?.error || json?.message || 'Failed to patch hint');
 }
 
-/**
- * Write a new concept document + its first translation subdocument.
- *
- * @param {{ sourceWord: string, word: string, hints: Record<string,string> }} generated
- * @param {string} learningDialect
- * @param {string} token
- * @returns {Promise<string>} The new conceptId
- */
 async function _writeNewConcept(generated, learningDialect, token) {
   const now = new Date().toISOString();
 
@@ -359,14 +309,6 @@ async function _writeNewConcept(generated, learningDialect, token) {
 // AI helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Ask AI to translate an existing concept and generate a hint for userDialect only.
- *
- * @param {string} sourceWord
- * @param {{ userDialect: string, learningDialect: string }} params
- * @param {string} token
- * @returns {Promise<{ word: string, hints: Record<string,string> }>}
- */
 async function _generateTranslation(sourceWord, { userDialect, learningDialect }, token) {
   const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
     method:  'POST',
@@ -410,15 +352,6 @@ async function _generateTranslation(sourceWord, { userDialect, learningDialect }
   };
 }
 
-/**
- * Ask AI to generate one hint sentence for a given dialect.
- * Used to patch a missing hint key on an existing translation document.
- *
- * @param {string} sourceWord  - Canonical English word
- * @param {string} userDialect - The locale to generate the hint in
- * @param {string} token
- * @returns {Promise<string>}
- */
 async function _generateHintForDialect(sourceWord, userDialect, token) {
   const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
     method:  'POST',
@@ -452,13 +385,6 @@ async function _generateHintForDialect(sourceWord, userDialect, token) {
   return parsed.hint.trim();
 }
 
-/**
- * Ask AI to generate a brand-new concept + translation with hints[userDialect] only.
- *
- * @param {{ userDialect: string, learningDialect: string, knownWords: string[] }} params
- * @param {string} token
- * @returns {Promise<{ sourceWord: string, word: string, hints: Record<string,string> }>}
- */
 async function _generateNewConcept({ userDialect, learningDialect, knownWords }, token) {
   const avoidList = knownWords.length > 0
     ? `Do NOT use any of these (already in the database): ${knownWords.join(', ')}`
@@ -514,13 +440,6 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords },
 // Utilities
 // ---------------------------------------------------------------------------
 
-/**
- * Safely parse a JSON string returned by an AI model.
- * Strips markdown code fences if present despite jsonMode.
- *
- * @param {string | undefined} text
- * @returns {Record<string, unknown> | null}
- */
 function _parseAIJson(text) {
   if (!text) return null;
   try {

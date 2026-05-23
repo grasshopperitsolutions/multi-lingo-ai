@@ -8,7 +8,30 @@
     "settings": "Definições",
     "light_mode": "Modo Claro",
     "dark_mode": "Modo Escuro",
-    "language": "Idioma"
+    "language": "Idioma",
+    "lang_en": "Inglês",
+    "lang_pt": "Português",
+    "lang_es": "Espanhol",
+    "lang_fr": "Francês",
+    "open_menu": "Abrir menu",
+    "close_menu": "Fechar menu",
+    "brand": "Multi Lingo AI"
+  },
+  "common": {
+    "loading": "A carregar...",
+    "cancel": "Cancelar",
+    "close": "Fechar"
+  },
+  "avatar": {
+    "alt_fallback": "Avatar"
+  },
+  "barcelos_rooster": {
+    "alt": "Galo de Barcelos"
+  },
+  "confirm_modal": {
+    "loading": "A carregar&hellip;",
+    "cancel": "Cancelar",
+    "close": "Fechar"
   },
   "home": {
     "badge": "A REVOLUÇÃO DA IA CHEGOU",
@@ -34,7 +57,7 @@
       { "name": "Nadja", "date": "10 de Fevereiro, 2026", "quote": "O Nuno é um tutor incrível, ele adapta as aulas às necessidades dos alunos e é muito útil." },
       { "name": "Claudia", "date": "16 de Janeiro, 2026", "quote": "O Nuno é um professor excecional que está a acelerar a minha aprendizagem de português. O seu método divertido e eficaz está a aumentar a minha confiança e competências." },
       { "name": "Chloe", "date": "15 de Janeiro, 2026", "quote": "ADORO aprender com o Nuno. Ele é inteligente, engraçado, e as aulas dele são muito interessantes. Sinto que aprendo muito e os 50 minutos voam. Sinto-me confiante a aprender com ele." },
-      { "name": "Fabian", "date": "8 de Janeiro, 2026", "quote": "O Nuno é um ótimo professor, é paciente e adapta cada aula às nossas necessidades. O conhecimento dele sobre línguas é vasto e ele explica tudo claramente com exemplos." },
+      { "name": "Fabian", "date": "8 de Janeiro, 2026", "quote": "O Nuno é um ótimo professor, é paciente e está feliz por adaptar cada aula ao que precisamos. O conhecimento dele sobre línguas é vasto e ele explica tudo claramente com exemplos." },
       { "name": "Kelsey", "date": "17 de Dezembro, 2025", "quote": "As aulas do Nuno são fáceis de entender e ele realmente se adapta às tuas necessidades e nível de capacidade. Recomendo definitivamente!" },
       { "name": "Jacob", "date": "15 de Dezembro, 2025", "quote": "O Nuno é um ótimo tutor; ele ouve realmente os seus alunos e, através disso, torna-se um melhor tutor do que muitos outros." },
       { "name": "Erek", "date": "21 de Novembro, 2025", "quote": "Excelente para conversa casual no dia a dia com estrutura verbal e revisão. Bom tipo e acessível, fácil de relacionar." },
@@ -43,7 +66,7 @@
       { "name": "Nia", "date": "7 de Outubro, 2025", "quote": "O Nuno é um professor dedicado que aborda as necessidades individuais e adota uma abordagem prática." },
       { "name": "Mark", "date": "6 de Outubro, 2025", "quote": "Muito simpático." },
       { "name": "Jade", "date": "6 de Outubro, 2025", "quote": "Gosto da abordagem personalizada que o Nuno tem nas suas aulas. Ele vai ao ritmo que precisas/queres sem adicionar demasiada pressão." },
-      { "name": "Ludovica", "date": "2 de Outubro, 2025", "quote": "O Nuno é um ótimo professor. Ele é paciente e focado nas tuas necessidades. Notei progresso depois de apenas algumas aulas. As nossas aulas são uma mistura de leitura, gramática e escrita, o que as torna muito completas." },
+      { "name": "Ludovica", "date": "2 de Outubro, 2025", "quote": "O Nuno é um ótimo professor. Ele é paciente e realmente focado nas tuas necessidades. Notei progresso depois de apenas algumas aulas. As nossas aulas são uma mistura de leitura, gramática e escrita, o que as torna muito completas." },
       { "name": "Andrew", "date": "29 de Janeiro, 2025", "quote": "Trabalhar com o Nuno tem sido ótimo. Já estou a notar progresso depois de apenas duas aulas. Ansioso pela próxima!" },
       { "name": "Michael", "date": "29 de Janeiro, 2025", "quote": "Tenho aprendido português com o Nuno e tem sido uma excelente experiência! Ele é paciente, inteligente e dedica tempo a personalizar a aprendizagem." },
       { "name": "George", "date": "29 de Novembro, 2024", "quote": "A abordagem do Nuno ao ensino é fantástica, envolvente e interessante. Ele fornece orientação e explicações claras e úteis de uma forma descontraída e informal." },
@@ -144,13 +167,38 @@
     "privacy": "Política de Privacidade",
     "contact": "Contacto",
     "rights": "Todos os direitos reservados.",
-    "built_by": "Obtém o teu próprio site incrível pela Grasshopper IT Solutions"
+    "built_by": "Obtém o teu próprio site incrível pela Grasshopper IT Solutions",
+    "brand": "Multi Lingo AI"
   },
   "terms": {
-    "title": "Termos de Serviço"
+    "title": "Termos de Serviço",
+    "section1_title": "1. Aceitação dos Termos",
+    "section1_text": "Ao aceder e utilizar este site, aceitas e concordas em ficar vinculado pelos termos e disposições deste acordo. Se não concordares com estes termos, por favor não utilizes este site.",
+    "section2_title": "2. Licença de Utilização",
+    "section2_text": "É concedida permissão para visualizar temporariamente os materiais deste site para visualização pessoal e não comercial. Esta é uma concessão de licença, não uma transferência de título.",
+    "section3_title": "3. Isenção de Responsabilidade",
+    "section3_text": "Os materiais neste site são fornecidos 'como estão'. Não oferecemos garantias, expressas ou implícitas, e pelo presente renunciamos e negamos todas as outras garantias.",
+    "section4_title": "4. Limitações",
+    "section4_text": "Em caso algum seremos responsáveis por danos (incluindo, sem limitação, danos por perda de dados ou lucros) decorrentes do uso ou da incapacidade de usar os materiais neste site.",
+    "section5_title": "5. Revisões",
+    "section5_text": "Podemos rever estes termos de serviço a qualquer momento sem aviso prévio. Ao usar este site, concordas em ficar vinculado pela versão atual destes termos.",
+    "last_updated": "Última atualização: Abril 2026"
   },
   "privacy": {
-    "title": "Política de Privacidade"
+    "title": "Política de Privacidade",
+    "section1_title": "1. Informações que Recolhemos",
+    "section1_text": "Podemos recolher informações pessoais como o teu nome, endereço de email e qualquer outra informação que forneças voluntariamente ao usar o nosso site.",
+    "section2_title": "2. Como Usamos as Tuas Informações",
+    "section2_text": "As informações que recolhemos podem ser usadas para personalizar a tua experiência, melhorar o nosso site, enviar emails periódicos ou administrar concursos, promoções, inquéritos ou outras funcionalidades do site.",
+    "section3_title": "3. Cookies",
+    "section3_text": "Este site pode usar cookies para melhorar a experiência do utilizador. O teu navegador coloca cookies no teu disco rígido para fins de manutenção de registos e, por vezes, para rastrear informações sobre ti.",
+    "section4_title": "4. Proteção de Dados",
+    "section4_text": "Adotamos práticas apropriadas de recolha, armazenamento e processamento de dados e medidas de segurança para proteger contra acesso não autorizado, alteração, divulgação ou destruição das tuas informações pessoais.",
+    "section5_title": "5. Partilha das Tuas Informações",
+    "section5_text": "Não vendemos, trocamos nem alugamos as tuas informações de identificação pessoal a terceiros. Podemos partilhar informações demográficas agregadas genéricas não vinculadas a informações de identificação pessoal.",
+    "section6_title": "6. Alterações a Esta Política",
+    "section6_text": "Reservamo-nos o direito de atualizar esta política de privacidade a qualquer momento. Quando o fizermos, revisaremos a data de atualização no final desta página.",
+    "last_updated": "Última atualização: Abril 2026"
   },
   "settings": {
     "back_to_dashboard": "Voltar ao Painel",
@@ -159,6 +207,9 @@
     "display_name": "Nome de Exibição",
     "display_name_placeholder": "O teu nome de exibição",
     "email": "Email",
+    "change_photo": "Alterar foto",
+    "uploading": "A enviar...",
+    "profile_photo_alt": "Foto de perfil",
     "appearance": "Aparência",
     "app_theme": "Tema da Aplicação",
     "dark_mode": "Modo Escuro",
@@ -169,6 +220,14 @@
     "account": "Conta",
     "sign_out": "Sair",
     "delete_account": "Eliminar Conta",
+    "delete_confirm_title": "Eliminar Conta",
+    "delete_confirm_message": "Isto <1>eliminará permanentemente</1> a tua conta e todos os dados associados — incluindo o teu perfil, ficheiros enviados e histórico de conversas.",
+    "delete_confirm_warning": "⚠ Esta ação não pode ser desfeita.",
+    "delete_confirm_button": "Sim, eliminar a minha conta",
+    "upload_failed": "Falha ao enviar a imagem de perfil. Por favor tenta novamente.",
+    "account_deleted": "A tua conta foi permanentemente eliminada.",
+    "delete_failed": "Falha ao eliminar a conta. Por favor tenta novamente.",
+    "portuguese_label": "Português (Portugal)",
     "errors": {
       "not_signed_in": "Tens de estar autenticado para guardar definições.",
       "save_failed": "Falha ao guardar definições. Por favor tenta novamente.",
@@ -203,6 +262,9 @@
     "words": "Palavras Aprendidas",
     "back": "Voltar ao Painel",
     "not_implemented": "Esta funcionalidade estará disponível em breve — fica atento!",
+    "in_progress": "Em progresso...",
+    "learner": "Aluno",
+    "profile_alt": "Perfil",
     "translator": "Tradutor",
     "translator_desc": "Traduz texto entre dois idiomas instantaneamente com IA sensível ao contexto.",
     "dictionary": "Dicionário",
@@ -230,6 +292,10 @@
     "hangman": "Forca",
     "hangman_desc": "Adivinha a gíria antes do boneco cair.",
     "hangman_azulejo_desc": "Azulejo tradicional português, geralmente azul e branco.",
+    "easy": "Fácil",
+    "hard": "Difícil",
+    "session_expired": "Sessão expirada. A página será atualizada.",
+    "hangman_drawing_alt": "Desenho da forca: {{wrongCount}} tentativas erradas",
     "word_quiz": "Quiz de Palavras",
     "word_quiz_desc": "Perguntas rápidas de vocabulário para afiar as tuas competências.",
     "word_search": "Sopa de Letras",
@@ -246,6 +312,28 @@
     "submit": "Submeter",
     "try_again": "Não é bem — tenta de novo!",
     "word_fetch_error": "Falha ao carregar a palavra. Por favor tenta novamente.",
-    "loading_word": "A escolher uma palavra..."
+    "loading_word": "A escolher uma palavra...",
+    "sidebar": {
+      "never": "Nunca",
+      "just_now": "Agora mesmo",
+      "minutes_ago": "Há {{count}}m",
+      "minutes_ago_plural": "Há {{count}}m",
+      "hours_ago": "Há {{count}}h",
+      "hours_ago_plural": "Há {{count}}h",
+      "days_ago": "Há {{count}}d",
+      "days_ago_plural": "Há {{count}}d",
+      "expand": "Expandir barra lateral",
+      "collapse": "Colapsar barra lateral",
+      "title": "Estatísticas da Forca",
+      "words_seen": "Palavras Vistas",
+      "played": "Jogadas",
+      "last_played": "Última Vez",
+      "dialect": "Dialeto",
+      "reset_btn": "Repor Progresso",
+      "reset_title": "Repor Progresso da Forca",
+      "reset_message": "Isto irá limpar todas as palavras vistas para a Forca, permitindo-te ver palavras já jogadas novamente.",
+      "reset_warning": "⚠ Isto não pode ser desfeito.",
+      "reset_confirm": "Sim, repor progresso"
+    }
   }
 }

@@ -9,70 +9,52 @@ const PrivacyPage = () => {
 
       <div className="space-y-8">
         <section>
-          <h2 className="text-2xl font-bold mb-4">1. Information We Collect</h2>
+          <h2 className="text-2xl font-bold mb-4">{t("privacy.section1_title")}</h2>
           <p className="leading-relaxed opacity-90">
-            We may collect personal information such as your name, email
-            address, and any other information you voluntarily provide when
-            using our website.
+            {t("privacy.section1_text")}
           </p>
         </section>
 
         <section>
           <h2 className="text-2xl font-bold mb-4">
-            2. How We Use Your Information
+            {t("privacy.section2_title")}
           </h2>
           <p className="leading-relaxed opacity-90">
-            Any information we collect may be used to personalize your
-            experience, improve our website, send periodic emails, or administer
-            contests, promotions, surveys or other site features.
+            {t("privacy.section2_text")}
           </p>
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold mb-4">3. Cookies</h2>
+          <h2 className="text-2xl font-bold mb-4">{t("privacy.section3_title")}</h2>
           <p className="leading-relaxed opacity-90">
-            This website may use cookies to enhance user experience. Your web
-            browser places cookies on your hard drive for record-keeping
-            purposes and sometimes to track information about you. You may
-            choose to set your browser to refuse cookies.
+            {t("privacy.section3_text")}
           </p>
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold mb-4">4. Data Protection</h2>
+          <h2 className="text-2xl font-bold mb-4">{t("privacy.section4_title")}</h2>
           <p className="leading-relaxed opacity-90">
-            We adopt appropriate data collection, storage and processing
-            practices and security measures to protect against unauthorized
-            access, alteration, disclosure or destruction of your personal
-            information stored on our site.
+            {t("privacy.section4_text")}
           </p>
         </section>
 
         <section>
           <h2 className="text-2xl font-bold mb-4">
-            5. Sharing Your Information
+            {t("privacy.section5_title")}
           </h2>
           <p className="leading-relaxed opacity-90">
-            We do not sell, trade, or rent your personal identification
-            information to others. We may share generic aggregated demographic
-            information not linked to any personal identification information
-            regarding visitors and users with our business partners and
-            advertisers.
+            {t("privacy.section5_text")}
           </p>
         </section>
 
         <section>
-          <h2 className="text-2xl font-bold mb-4">6. Changes to This Policy</h2>
+          <h2 className="text-2xl font-bold mb-4">{t("privacy.section6_title")}</h2>
           <p className="leading-relaxed opacity-90">
-            We have the discretion to update this privacy policy at any time.
-            When we do, we will revise the updated date at the bottom of this
-            page. You acknowledge and agree that it is your responsibility to
-            review this privacy policy periodically and become aware of
-            modifications.
+            {t("privacy.section6_text")}
           </p>
         </section>
 
-        <p className="text-sm opacity-70 mt-12">Last updated: April 2026</p>
+        <p className="text-sm opacity-70 mt-12">{t("privacy.last_updated")}</p>
       </div>
     </div>
   );

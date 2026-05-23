@@ -3,48 +3,40 @@ import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Trophy, Skull, RefreshCw } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
-import { getUserGameProgress, markConceptSeen } from "../services/userService";
-import { getWord } from "../services/getWordService";
+import { getUserGameProgress, markConceptSeen, resetSeenWords } from "../services/userService";
+import { getWord, getWordPoolCount } from "../services/getWordService";
+import HangmanSidebar from "./HangmanSidebar";
 
 // ---------------------------------------------------------------------------
 // Keyboard layout config
-// base     — always shown (both modes)
-// accented — shown only in Hard mode; keyed by learningDialect
 // ---------------------------------------------------------------------------
 const KEYBOARD_LAYOUTS = {
   base: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
   accented: {
     "pt-PT": ["\u00C1", "\u00C2", "\u00C3", "\u00C0", "\u00C9", "\u00CA", "\u00CD", "\u00D3", "\u00D4", "\u00D5", "\u00DA", "\u00DC", "\u00C7"],
-    // future dialects: "es": [...], "fr": [...]
   },
 };
 
-// ---------------------------------------------------------------------------
-// Normalize a single character — strips NFD diacritics and uppercases.
-// Used in Easy mode to match accented letters via their base letter.
-// ---------------------------------------------------------------------------
 const normalizeChar = (c) =>
   c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
-// ---------------------------------------------------------------------------
-// Returns true when the API rejected the request due to an expired/invalid
-// Firebase ID token (401 from verifyAuth in the proxy API).
-// ---------------------------------------------------------------------------
 const isSessionExpiredError = (err) => {
   const msg = (err?.message ?? "").toLowerCase();
   return msg.includes("expired token") || msg.includes("invalid or expired");
 };
 
 // ---------------------------------------------------------------------------
-// Hangman scaffold — draws body parts progressively as wrongCount increases
+// HangmanScaffold
 // ---------------------------------------------------------------------------
-const HangmanScaffold = ({ wrongCount, isDarkMode }) => (
-  <svg
-    viewBox="0 0 100 100"
-    className="w-32 h-32 stroke-current stroke-[4] fill-none"
-    strokeLinecap="square"
-    aria-label={`Hangman drawing: ${wrongCount} wrong guesses`}
-  >
+const HangmanScaffold = ({ wrongCount, isDarkMode }) => {
+  const { t } = useTranslation();
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      className="w-32 h-32 stroke-current stroke-[4] fill-none"
+      strokeLinecap="square"
+      aria-label={t("challenges.hangman_drawing_alt", { wrongCount })}
+    >
     <path
       d="M10,90 L40,90 M25,90 L25,10 L60,10 L60,20"
       className={isDarkMode ? "text-white" : "text-slate-900"}
@@ -56,7 +48,8 @@ const HangmanScaffold = ({ wrongCount, isDarkMode }) => (
     {wrongCount > 4 && <path d="M60,65 L45,80" className="text-rose-500" />}
     {wrongCount > 5 && <path d="M60,65 L75,80" className="text-rose-500" />}
   </svg>
-);
+  );
+};
 
 HangmanScaffold.propTypes = {
   wrongCount: PropTypes.number.isRequired,
@@ -70,11 +63,10 @@ const HangmanGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const { user } = useAppContext();
 
-  // Read dialects from context — fallbacks live in AppContext.loadUserProfile
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const nativeDialect   = user?.nativeDialect   ?? "en-US";
 
-  // ── Difficulty mode ──
+  // ── Difficulty ──
   const [hardMode, setHardMode] = useState(false);
 
   // ── Word state ──
@@ -85,30 +77,23 @@ const HangmanGame = ({ isDarkMode }) => {
   const [guessed, setGuessed]       = useState(new Set());
   const [wrongCount, setWrongCount] = useState(0);
 
-  // ── Loading / error state ──
+  // ── Loading / error ──
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
 
-  // ── Pending markConceptSeen promise ref (prevents race on Play Again) ──
-  const pendingMarkRef = useRef(null);
+  // ── Sidebar / stats state ──
+  const [progress,       setProgress]       = useState(null);
+  const [totalWords,     setTotalWords]      = useState(null);
+  const [isLoadingStats, setIsLoadingStats]  = useState(true);
 
+  const pendingMarkRef = useRef(null);
   const maxWrong = 6;
 
-  // Keyboard rows
   const baseKeys     = KEYBOARD_LAYOUTS.base;
   const accentedKeys = KEYBOARD_LAYOUTS.accented[learningDialect] ?? [];
 
-  // Derive letter array from the raw word (uppercased)
-  const letters = useMemo(
-    () => word.toUpperCase().split(""),
-    [word]
-  );
+  const letters = useMemo(() => word.toUpperCase().split(""), [word]);
 
-  // ---------------------------------------------------------------------------
-  // The set of keys that count as a "hit" in the current word.
-  // Easy mode  — keys are normalized base letters (A covers Á/Â/Ã)
-  // Hard mode  — keys are exact uppercased chars (Á only covers Á)
-  // ---------------------------------------------------------------------------
   const wordKeySet = useMemo(() => {
     const set = new Set();
     letters.forEach((letter) => {
@@ -119,7 +104,6 @@ const HangmanGame = ({ isDarkMode }) => {
     return set;
   }, [letters, hardMode]);
 
-  // Win condition: all non-space letters revealed
   const isWinner = useMemo(() => {
     if (letters.length === 0) return false;
     return letters
@@ -130,12 +114,8 @@ const HangmanGame = ({ isDarkMode }) => {
       });
   }, [letters, guessed, hardMode]);
 
-  const isLoser = useMemo(
-    () => wrongCount >= maxWrong,
-    [wrongCount]
-  );
+  const isLoser = useMemo(() => wrongCount >= maxWrong, [wrongCount]);
 
-  // ── Reset game state (used before fetching a new word) ──
   const resetGame = useCallback(() => {
     setLoading(true);
     setError(null);
@@ -145,7 +125,55 @@ const HangmanGame = ({ isDarkMode }) => {
     setHint("");
   }, []);
 
-  // ── Core fetch function (returns data instead of setting state) ──
+  // ── Fetch stats (progress + pool count) ─────────────────────────────────
+  const fetchStats = useCallback(async () => {
+    if (!user?.token || !user?.uid) return;
+    setIsLoadingStats(true);
+    try {
+      const [prog, count] = await Promise.all([
+        getUserGameProgress(user.token, user.uid, "hangman", learningDialect),
+        getWordPoolCount(user.token),
+      ]);
+      setProgress(prog);
+      setTotalWords(count);
+    } catch (err) {
+      console.warn("[HangmanGame] fetchStats failed:", err);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  }, [user, learningDialect]);
+
+  // Fetch stats on mount — inline async logic so setState calls are
+  // inside the effect's own .then handler, not a separate function.
+  // isLoadingStats starts as true (initial state), so we only clear it in
+  // the .finally handler.
+  useEffect(() => {
+    if (!user?.token || !user?.uid) return;
+    let cancelled = false;
+    Promise.all([
+      getUserGameProgress(user.token, user.uid, "hangman", learningDialect),
+      getWordPoolCount(user.token),
+    ])
+      .then(([prog, count]) => {
+        if (!cancelled) {
+          setProgress(prog);
+          setTotalWords(count);
+        }
+      })
+      .catch((err) => {
+        console.warn("[HangmanGame] fetchStats failed:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingStats(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, learningDialect]);
+
+  // ── Core word fetch ──────────────────────────────────────────────────────
+  // Returns { word, hint, progress } — does NOT set any state, so it is safe
+  // to call from a useEffect without triggering the set-state-in-effect lint.
   const fetchWordData = useCallback(async () => {
     if (!user) throw new Error(t("challenges.word_fetch_error"));
 
@@ -157,35 +185,34 @@ const HangmanGame = ({ isDarkMode }) => {
     const { token, uid } = user;
     if (!token) throw new Error(t("challenges.word_fetch_error"));
 
-    const progress = await getUserGameProgress(token, uid, "hangman", learningDialect);
+    const prog = await getUserGameProgress(token, uid, "hangman", learningDialect);
 
-    /** @type {import('../services/getWordService').WordResult} */
     const result = await getWord({
       token,
       userDialect:    nativeDialect,
       learningDialect,
-      seenConceptIds: progress?.seenConceptIds ?? [],
+      seenConceptIds: prog?.seenConceptIds ?? [],
     });
 
     pendingMarkRef.current = markConceptSeen(
-      token, uid, "hangman", learningDialect, result.conceptId, progress
+      token, uid, "hangman", learningDialect, result.conceptId, prog
     );
-    pendingMarkRef.current.catch((err) =>
-      console.warn("[HangmanGame] markConceptSeen failed:", err)
-    );
+    pendingMarkRef.current
+      .then(() => fetchStats())
+      .catch((err) => console.warn("[HangmanGame] markConceptSeen failed:", err));
 
-    return { word: result.word.toUpperCase(), hint: result.hint };
-  }, [user, learningDialect, nativeDialect, t]);
+    return { word: result.word.toUpperCase(), hint: result.hint, progress: prog };
+  }, [user, learningDialect, nativeDialect, t, fetchStats]);
 
-  // ── Combined fetch function used by Play Again / Try Again ──
   const fetchWord = useCallback(async () => {
     try {
       const data = await fetchWordData();
       setWord(data.word);
       setHint(data.hint);
+      setProgress(data.progress);
     } catch (err) {
       if (isSessionExpiredError(err)) {
-        alert("Session expired. Page will refresh.");
+        alert(t("challenges.session_expired"));
         window.location.reload();
         return;
       }
@@ -195,7 +222,6 @@ const HangmanGame = ({ isDarkMode }) => {
     }
   }, [fetchWordData, t]);
 
-  // Fetch word on mount
   useEffect(() => {
     let cancelled = false;
     fetchWordData()
@@ -203,12 +229,13 @@ const HangmanGame = ({ isDarkMode }) => {
         if (!cancelled) {
           setWord(data.word);
           setHint(data.hint);
+          setProgress(data.progress);
         }
       })
       .catch((err) => {
         if (!cancelled) {
           if (isSessionExpiredError(err)) {
-            alert("Session expired. Page will refresh.");
+            alert(t("challenges.session_expired"));
             window.location.reload();
             return;
           }
@@ -221,26 +248,28 @@ const HangmanGame = ({ isDarkMode }) => {
     return () => { cancelled = true; };
   }, [fetchWordData, t]);
 
-  // ── Guess handler ──
-  // char is always uppercased (base A–Z or accented Á/Â/Ç etc.)
-  // In Easy mode guessed keys are normalized base letters;
-  // in Hard mode they are exact uppercased chars.
+  // ── Reset seen words handler ─────────────────────────────────────────────
+  const handleResetSeenWords = useCallback(async () => {
+    if (!user?.token || !user?.uid) return;
+    await resetSeenWords(user.token, user.uid, "hangman", learningDialect);
+    await fetchStats();
+  }, [user, learningDialect, fetchStats]);
+
+  // ── Guess handler ────────────────────────────────────────────────────────
   const handleGuess = (char) => {
     if (isLoser || isWinner || guessed.has(char) || letters.length === 0) return;
     const next = new Set(guessed).add(char);
     setGuessed(next);
-    const isCorrect = wordKeySet.has(char);
-    if (!isCorrect) setWrongCount((p) => p + 1);
+    if (!wordKeySet.has(char)) setWrongCount((p) => p + 1);
   };
 
-  // Determine display state of a keyboard key
   const keyState = (char) => {
     if (!guessed.has(char)) return "idle";
     if (wordKeySet.has(char)) return "correct";
     return "wrong";
   };
 
-  // ── Render: loading ──
+  // ── Loading state ────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in">
@@ -259,7 +288,7 @@ const HangmanGame = ({ isDarkMode }) => {
     );
   }
 
-  // ── Render: error ──
+  // ── Error state ──────────────────────────────────────────────────────────
   if (error) {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in gap-4">
@@ -279,144 +308,102 @@ const HangmanGame = ({ isDarkMode }) => {
     );
   }
 
-  // ── Render: game ──
+  // ── Game render ──────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in zoom-in-95">
-      <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-4">
-        {t("challenges.hangman")}
-      </h2>
+    <div className="flex flex-col lg:flex-row items-start gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95">
 
-      {/* Easy / Hard toggle */}
-      <div className={`flex mb-6 rounded-full border-4 overflow-hidden ${
-        isDarkMode ? "border-slate-700" : "border-slate-900"
-      }`}>
-        <button
-          type="button"
-          onClick={() => setHardMode(false)}
-          className={`px-5 py-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
-            !hardMode
-              ? isDarkMode
-                ? "bg-yellow-400 text-slate-900"
-                : "bg-slate-900 text-white"
-              : isDarkMode
-                ? "bg-transparent text-slate-400 hover:text-white"
-                : "bg-transparent text-slate-500 hover:text-slate-900"
-          }`}
-        >
-          Easy
-        </button>
-        <button
-          type="button"
-          onClick={() => setHardMode(true)}
-          className={`px-5 py-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
-            hardMode
-              ? isDarkMode
-                ? "bg-yellow-400 text-slate-900"
-                : "bg-slate-900 text-white"
-              : isDarkMode
-                ? "bg-transparent text-slate-400 hover:text-white"
-                : "bg-transparent text-slate-500 hover:text-slate-900"
-          }`}
-        >
-          Hard
-        </button>
-      </div>
+      {/* ── Main game column ── */}
+      <div className="flex flex-col items-center flex-1 min-w-0">
+        <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-4">
+          {t("challenges.hangman")}
+        </h2>
 
-      {/* Hint */}
-      {hint && (
-        <p className={`mb-6 text-center text-sm sm:text-base font-medium italic px-4 ${
-          isDarkMode ? "text-slate-400" : "text-slate-600"
+        {/* Easy / Hard toggle */}
+        <div className={`flex mb-6 rounded-full border-4 overflow-hidden ${
+          isDarkMode ? "border-slate-700" : "border-slate-900"
         }`}>
-          {hint}
-        </p>
-      )}
+          <button
+            type="button"
+            onClick={() => setHardMode(false)}
+            className={`px-5 py-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
+              !hardMode
+                ? isDarkMode ? "bg-yellow-400 text-slate-900" : "bg-slate-900 text-white"
+                : isDarkMode ? "bg-transparent text-slate-400 hover:text-white" : "bg-transparent text-slate-500 hover:text-slate-900"
+            }`}
+          >
+            {t("challenges.easy")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setHardMode(true)}
+            className={`px-5 py-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
+              hardMode
+                ? isDarkMode ? "bg-yellow-400 text-slate-900" : "bg-slate-900 text-white"
+                : isDarkMode ? "bg-transparent text-slate-400 hover:text-white" : "bg-transparent text-slate-500 hover:text-slate-900"
+            }`}
+          >
+            {t("challenges.hard")}
+          </button>
+        </div>
 
-      {/* Hangman Graphic */}
-      <div className={`w-48 h-48 mb-8 rounded-2xl border-4 flex items-center justify-center relative ${
-        isDarkMode ? "bg-slate-800 border-slate-700" : "bg-yellow-100 border-slate-900"
-      }`}>
-        <HangmanScaffold wrongCount={wrongCount} isDarkMode={isDarkMode} />
-      </div>
+        {/* Hint */}
+        {hint && (
+          <p className={`mb-6 text-center text-sm sm:text-base font-medium italic px-4 ${
+            isDarkMode ? "text-slate-400" : "text-slate-600"
+          }`}>
+            {hint}
+          </p>
+        )}
 
-      {/* Word Display
-          - Regular letters: bordered tile, revealed when guessed or on loss
-          - Space characters: wider spacer, always visible, no tile border     */}
-      <div className="flex flex-wrap justify-center gap-1 sm:gap-2 mb-8 px-4">
-        {letters.map((letter, i) => {
-          const isSpace  = letter === " ";
-          const key      = hardMode ? letter.toUpperCase() : normalizeChar(letter);
-          const revealed = isSpace || guessed.has(key) || isLoser;
+        {/* Scaffold */}
+        <div className={`w-48 h-48 mb-8 rounded-2xl border-4 flex items-center justify-center relative ${
+          isDarkMode ? "bg-slate-800 border-slate-700" : "bg-yellow-100 border-slate-900"
+        }`}>
+          <HangmanScaffold wrongCount={wrongCount} isDarkMode={isDarkMode} />
+        </div>
 
-          if (isSpace) {
+        {/* Word Display */}
+        <div className="flex flex-wrap justify-center gap-1 sm:gap-2 mb-8 px-4">
+          {letters.map((letter, i) => {
+            const isSpace  = letter === " ";
+            const key      = hardMode ? letter.toUpperCase() : normalizeChar(letter);
+            const revealed = isSpace || guessed.has(key) || isLoser;
+            if (isSpace) {
+              return <div key={`space-${i}`} className="w-5 sm:w-6" aria-hidden="true" />;
+            }
             return (
               <div
-                key={`space-${i}`}
-                className="w-5 sm:w-6"
-                aria-hidden="true"
-              />
-            );
-          }
-
-          return (
-            <div
-              key={`${letter}-${i}`}
-              className={`w-7 sm:w-12 h-8 sm:h-14 border-b-4 sm:border-b-8 flex items-center justify-center text-xl sm:text-3xl font-black ${
-                isDarkMode ? "border-yellow-400 text-white" : "border-slate-900 text-slate-900"
-              }`}
-            >
-              {revealed ? letter : ""}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Status Messages */}
-      {isWinner && (
-        <div className="mb-6 px-6 py-3 bg-emerald-400 border-4 border-slate-900 rounded-full font-black text-slate-900 text-xl flex items-center gap-2 neo-shadow-light">
-          <Trophy /> {t("challenges.you_survived")}
-        </div>
-      )}
-      {isLoser && (
-        <div className="mb-6 px-6 py-3 bg-rose-500 border-4 border-slate-900 rounded-full font-black text-white text-xl flex items-center gap-2 neo-shadow-light">
-          <Skull /> {t("challenges.hung_up")}
-        </div>
-      )}
-
-      {/* Keyboard — base row always shown; accented row only in Hard mode */}
-      <div className="flex flex-col items-center gap-2">
-        <div className="flex flex-wrap justify-center gap-2 max-w-md">
-          {baseKeys.map((char) => {
-            const state = keyState(char);
-            let btnClass = isDarkMode
-              ? "bg-slate-800 border-slate-700 text-white"
-              : "bg-white border-slate-900 text-slate-900";
-            if (state === "correct") btnClass = "bg-emerald-400 border-slate-900 text-slate-900";
-            if (state === "wrong")   btnClass = "bg-slate-400 border-slate-900 text-slate-900 opacity-50";
-            return (
-              <button
-                key={char}
-                onClick={() => handleGuess(char)}
-                disabled={state !== "idle" || isLoser || isWinner}
-                className={`w-10 h-12 rounded-lg border-4 font-black text-lg transition-all
-                  ${ state === "idle" && !isLoser && !isWinner
-                    ? isDarkMode ? "hover-neo-dark active-neo" : "hover-neo-light active-neo"
-                    : "" }
-                  ${btnClass}`}
+                key={`${letter}-${i}`}
+                className={`w-7 sm:w-12 h-8 sm:h-14 border-b-4 sm:border-b-8 flex items-center justify-center text-xl sm:text-3xl font-black ${
+                  isDarkMode ? "border-yellow-400 text-white" : "border-slate-900 text-slate-900"
+                }`}
               >
-                {char}
-              </button>
+                {revealed ? letter : ""}
+              </div>
             );
           })}
         </div>
 
-        {/* Accented row — Hard mode only */}
-        {hardMode && accentedKeys.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-2 max-w-md mt-1">
-            {accentedKeys.map((char) => {
+        {/* Status Messages */}
+        {isWinner && (
+          <div className="mb-6 px-6 py-3 bg-emerald-400 border-4 border-slate-900 rounded-full font-black text-slate-900 text-xl flex items-center gap-2 neo-shadow-light">
+            <Trophy /> {t("challenges.you_survived")}
+          </div>
+        )}
+        {isLoser && (
+          <div className="mb-6 px-6 py-3 bg-rose-500 border-4 border-slate-900 rounded-full font-black text-white text-xl flex items-center gap-2 neo-shadow-light">
+            <Skull /> {t("challenges.hung_up")}
+          </div>
+        )}
+
+        {/* Keyboard */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-wrap justify-center gap-2 max-w-md">
+            {baseKeys.map((char) => {
               const state = keyState(char);
               let btnClass = isDarkMode
-                ? "bg-slate-700 border-slate-600 text-yellow-300"
-                : "bg-yellow-50 border-slate-700 text-slate-900";
+                ? "bg-slate-800 border-slate-700 text-white"
+                : "bg-white border-slate-900 text-slate-900";
               if (state === "correct") btnClass = "bg-emerald-400 border-slate-900 text-slate-900";
               if (state === "wrong")   btnClass = "bg-slate-400 border-slate-900 text-slate-900 opacity-50";
               return (
@@ -424,31 +411,67 @@ const HangmanGame = ({ isDarkMode }) => {
                   key={char}
                   onClick={() => handleGuess(char)}
                   disabled={state !== "idle" || isLoser || isWinner}
-                  className={`w-10 h-12 rounded-lg border-4 font-black text-lg transition-all
-                    ${ state === "idle" && !isLoser && !isWinner
+                  className={`w-10 h-12 rounded-lg border-4 font-black text-lg transition-all ${
+                    state === "idle" && !isLoser && !isWinner
                       ? isDarkMode ? "hover-neo-dark active-neo" : "hover-neo-light active-neo"
-                      : "" }
-                    ${btnClass}`}
+                      : ""
+                  } ${btnClass}`}
                 >
                   {char}
                 </button>
               );
             })}
           </div>
+
+          {hardMode && accentedKeys.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-2 max-w-md mt-1">
+              {accentedKeys.map((char) => {
+                const state = keyState(char);
+                let btnClass = isDarkMode
+                  ? "bg-slate-700 border-slate-600 text-yellow-300"
+                  : "bg-yellow-50 border-slate-700 text-slate-900";
+                if (state === "correct") btnClass = "bg-emerald-400 border-slate-900 text-slate-900";
+                if (state === "wrong")   btnClass = "bg-slate-400 border-slate-900 text-slate-900 opacity-50";
+                return (
+                  <button
+                    key={char}
+                    onClick={() => handleGuess(char)}
+                    disabled={state !== "idle" || isLoser || isWinner}
+                    className={`w-10 h-12 rounded-lg border-4 font-black text-lg transition-all ${
+                      state === "idle" && !isLoser && !isWinner
+                        ? isDarkMode ? "hover-neo-dark active-neo" : "hover-neo-light active-neo"
+                        : ""
+                    } ${btnClass}`}
+                  >
+                    {char}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Play Again */}
+        {(isWinner || isLoser) && (
+          <button
+            onClick={() => { resetGame(); fetchWord(); }}
+            className={`mt-6 px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${
+              isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
+            }`}
+          >
+            {t("challenges.play_again")}
+          </button>
         )}
       </div>
 
-      {/* Play Again */}
-      {(isWinner || isLoser) && (
-        <button
-          onClick={() => { resetGame(); fetchWord(); }}
-          className={`mt-6 px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${
-            isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
-          }`}
-        >
-          {t("challenges.play_again")}
-        </button>
-      )}
+      {/* ── Sidebar ── */}
+      <HangmanSidebar
+        isDarkMode={isDarkMode}
+        progress={progress}
+        totalWords={totalWords}
+        isLoadingStats={isLoadingStats}
+        onReset={handleResetSeenWords}
+      />
     </div>
   );
 };

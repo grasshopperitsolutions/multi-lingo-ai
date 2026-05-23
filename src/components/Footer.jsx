@@ -42,7 +42,7 @@ const Footer = () => {
             <BarcelosRooster className="w-8 h-8" />
           </div>
           <span className="text-xl uppercase tracking-tighter">
-            Multi Lingo AI
+            {t("footer.brand")}
           </span>
         </div>
         <p className="opacity-70">{t('footer.tagline')}</p>

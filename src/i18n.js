@@ -12,13 +12,13 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { translation: enTranslation },
+      'en-US': { translation: enTranslation },
       'pt-PT': { translation: ptPTTranslation },
-      es: { translation: esTranslation },
-      fr: { translation: frTranslation },
+      'es-MX': { translation: esTranslation },
+      'fr-FR': { translation: frTranslation },
     },
-    fallbackLng: 'en',
-    supportedLngs: ['en', 'pt-PT', 'es', 'fr'],
+    fallbackLng: 'en-US',
+    supportedLngs: ['en-US', 'pt-PT', 'es-MX', 'fr-FR'],
     interpolation: {
       escapeValue: false,
     },

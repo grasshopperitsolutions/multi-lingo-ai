@@ -1,10 +1,12 @@
 import PropTypes from "prop-types";
+import { useTranslation } from "react-i18next";
 
 /**
  * Reusable Avatar component.
  * Renders the user's photo if `src` is provided, otherwise shows a silhouette placeholder.
  */
 const Avatar = ({ src, alt, size = 64, isDarkMode = false, className = "" }) => {
+  const { t } = useTranslation();
   const borderColor = isDarkMode ? "border-slate-600" : "border-slate-900";
   const shadowColor = isDarkMode ? "shadow-[4px_4px_0px_0px_#1e293b]" : "shadow-[4px_4px_0px_0px_#0f172a]";
 
@@ -16,7 +18,7 @@ const Avatar = ({ src, alt, size = 64, isDarkMode = false, className = "" }) => 
       {src ? (
         <img
           src={src}
-          alt={alt || "Avatar"}
+          alt={alt || t("avatar.alt_fallback")}
           className="w-full h-full object-cover"
         />
       ) : (

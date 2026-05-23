@@ -27,10 +27,10 @@ const Header = () => {
   };
 
   const languages = [
-    { code: "en", label: "English" },
-    { code: "pt-PT", label: "Portuguese" },
-    { code: "es", label: "Spanish" },
-    { code: "fr", label: "French" },
+    { code: "en-US", label: t("nav.lang_en") },
+    { code: "pt-PT", label: t("nav.lang_pt") },
+    { code: "es-MX", label: t("nav.lang_es") },
+    { code: "fr-FR", label: t("nav.lang_fr") },
   ];
 
   return (
@@ -49,7 +49,7 @@ const Header = () => {
             <BarcelosRooster className="w-10 h-10" />
           </div>
           <span className="text-2xl font-black tracking-tight uppercase group-hover:text-blue-600 transition-colors">
-            Multi Lingo AI
+            {t("nav.brand")}
           </span>
         </Link>
 
@@ -156,7 +156,7 @@ const Header = () => {
           className={`flex md:hidden p-3 rounded-full border-2 transition-transform active:scale-95 hover:scale-110
             ${isDarkMode ? "bg-slate-700 border-slate-600 text-white" : "bg-white border-slate-900 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"}`}
           onClick={() => setShowMobileMenu(!showMobileMenu)}
-          aria-label={showMobileMenu ? "Close menu" : "Open menu"}
+          aria-label={showMobileMenu ? t("nav.close_menu") : t("nav.open_menu")}
         >
           {showMobileMenu ? <X size={22} /> : <Menu size={22} />}
         </button>

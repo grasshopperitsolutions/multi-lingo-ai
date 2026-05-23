@@ -6,6 +6,7 @@ import { useAppContext } from "../contexts/AppContext";
 import NeoDropdown from "../components/NeoDropdown";
 import Avatar from "../components/Avatar";
 import FloatingActionButton from "../components/FloatingActionButton";
+import ConfirmModal from "../components/ConfirmModal";
 import {
   ArrowLeft,
   User,
@@ -18,19 +19,17 @@ import {
   Trash2,
   Camera,
   Loader2,
-  AlertTriangle,
-  X,
   Lock,
   BookOpen,
 } from "lucide-react";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
 import { auth } from "../firebase";
 
-const LANGUAGE_OPTIONS = [
-  { value: "en", label: "English" },
-  { value: "pt-PT", label: "Portuguese" },
-  { value: "es", label: "Spanish" },
-  { value: "fr", label: "French" },
+const LANGUAGES = [
+  { value: "en-US", labelKey: "nav.lang_en" },
+  { value: "pt-PT", labelKey: "nav.lang_pt" },
+  { value: "es-MX", labelKey: "nav.lang_es" },
+  { value: "fr-FR", labelKey: "nav.lang_fr" },
 ];
 
 const INTEREST_CATEGORIES = [
@@ -42,92 +41,8 @@ const INTEREST_CATEGORIES = [
   { value: "nature",  labelKey: "categories.nature" },
 ];
 
-// ── Delete Confirmation Modal ─────────────────────────────────────────────────
-const DeleteModal = ({ isDarkMode, onConfirm, onCancel, isDeleting }) => (
-  <div
-    className="fixed inset-0 z-50 flex items-center justify-center p-4"
-    role="dialog" aria-modal="true" aria-labelledby="delete-modal-title"
-  >
-    {/* Backdrop */}
-    <div
-      className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-      onClick={onCancel}
-    />
-    {/* Panel */}
-    <div className={`relative z-10 w-full max-w-md p-8 rounded-[2rem] border-4 shadow-[8px_8px_0px_0px_#f43f5e]
-      ${ isDarkMode ? "bg-slate-800 border-rose-500" : "bg-white border-rose-500" }`}>
-
-      <button
-        onClick={onCancel}
-        aria-label="Close"
-        className={`absolute top-5 right-5 p-1 rounded-lg transition-colors
-          ${ isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-400 hover:text-slate-900" }`}
-      >
-        <X size={20} />
-      </button>
-
-      <div className="flex items-center gap-4 mb-6">
-        <div className="w-12 h-12 rounded-2xl bg-rose-500 border-4 border-slate-900 flex items-center justify-center shrink-0">
-          <AlertTriangle size={24} className="text-white" />
-        </div>
-        <h2
-          id="delete-modal-title"
-          className={`text-xl font-black uppercase tracking-tight
-            ${ isDarkMode ? "text-white" : "text-slate-900" }`}
-        >
-          Delete Account
-        </h2>
-      </div>
-
-      <p className={`font-semibold leading-relaxed mb-4
-        ${ isDarkMode ? "text-slate-300" : "text-slate-700" }`}>
-        This will <strong>permanently delete</strong> your account and all associated data
-        — including your profile, uploaded files, and conversation history.
-      </p>
-      <p className={`text-sm font-bold uppercase tracking-widest mb-8
-        ${ isDarkMode ? "text-rose-400" : "text-rose-600" }`}>
-        ⚠ This action cannot be undone.
-      </p>
-
-      <div className="flex flex-col gap-3">
-        <button
-          onClick={onConfirm}
-          disabled={isDeleting}
-          className="w-full flex items-center justify-center gap-3 py-4 rounded-xl border-4 border-rose-500
-            bg-rose-500 text-white font-black uppercase tracking-widest transition-all active:scale-95
-            hover:bg-rose-600 hover:border-rose-600 shadow-[4px_4px_0px_0px_#be123c]
-            disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {isDeleting ? (
-            <><Loader2 size={18} className="animate-spin" /> Deleting&hellip;</>
-          ) : (
-            <><Trash2 size={18} /> Yes, delete my account</>
-          )}
-        </button>
-        <button
-          onClick={onCancel}
-          disabled={isDeleting}
-          className={`w-full flex items-center justify-center gap-3 py-3 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95
-            ${ isDarkMode
-              ? "bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-              : "bg-white border-slate-900 text-slate-900 hover:bg-slate-100"
-            } shadow-[4px_4px_0px_0px_#0f172a] disabled:opacity-60`}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-);
-DeleteModal.propTypes = {
-  isDarkMode: PropTypes.bool.isRequired,
-  onConfirm: PropTypes.func.isRequired,
-  onCancel: PropTypes.func.isRequired,
-  isDeleting: PropTypes.bool.isRequired,
-};
-
 // ── Avatar Upload Widget ──────────────────────────────────────────────────────
-const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading }) => {
+const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading, t }) => {
   const fileInputRef = useRef(null);
   const displaySrc = previewUrl || user?.photoURL;
 
@@ -136,19 +51,16 @@ const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading 
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        aria-label="Change profile photo"
+        aria-label={t("settings.change_photo")}
         className="relative shrink-0 group focus:outline-none"
       >
-        {/* Avatar */}
         <Avatar
           src={displaySrc}
-          alt={user?.displayName || "Profile photo"}
+          alt={user?.displayName || t("settings.profile_photo_alt")}
           size={80}
           isDarkMode={false}
           className="shadow-[4px_4px_0px_0px_#facc15]"
         />
-
-        {/* Overlay — camera icon on hover or while uploading */}
         <div className={`absolute inset-0 rounded-full flex items-center justify-center
           transition-opacity duration-200
           ${ isUploading ? "opacity-100 bg-black/50" : "opacity-0 group-hover:opacity-100 bg-black/40" }`}>
@@ -184,7 +96,7 @@ const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading 
           className={`mt-1 text-xs font-black uppercase tracking-widest underline transition-colors
             ${ isDarkMode ? "text-yellow-400 hover:text-yellow-300" : "text-blue-600 hover:text-blue-800" }`}
         >
-          Change photo
+          {t("settings.change_photo")}
         </button>
       </div>
     </div>
@@ -196,10 +108,11 @@ AvatarUpload.propTypes = {
     displayName: PropTypes.string,
     email: PropTypes.string,
   }),
-  isDarkMode: PropTypes.bool.isRequired,
-  previewUrl: PropTypes.string,
+  isDarkMode:   PropTypes.bool.isRequired,
+  previewUrl:   PropTypes.string,
   onFileSelect: PropTypes.func.isRequired,
-  isUploading: PropTypes.bool.isRequired,
+  isUploading:  PropTypes.bool.isRequired,
+  t:            PropTypes.func.isRequired,
 };
 
 // ── Interest Pills ────────────────────────────────────────────────────────────
@@ -241,10 +154,10 @@ const InterestPills = ({ selected, onChange, isDarkMode, t }) => {
   );
 };
 InterestPills.propTypes = {
-  selected: PropTypes.arrayOf(PropTypes.string).isRequired,
-  onChange: PropTypes.func.isRequired,
+  selected:   PropTypes.arrayOf(PropTypes.string).isRequired,
+  onChange:   PropTypes.func.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
-  t: PropTypes.func.isRequired,
+  t:          PropTypes.func.isRequired,
 };
 
 // ── Settings Form ─────────────────────────────────────────────────────────────
@@ -279,20 +192,19 @@ const SettingsForm = ({
 
   return (
     <form onSubmit={handleSave}>
-      {/* ── Profile ──────────────────────────────────────────────────────── */}
+      {/* ── Profile ── */}
       <div className={sectionClasses}>
         <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
           {t("settings.profile")}
         </h2>
-
         <AvatarUpload
           user={user}
           isDarkMode={isDarkMode}
           previewUrl={previewUrl}
           onFileSelect={onFileSelect}
           isUploading={isUploading}
+          t={t}
         />
-
         <div className="space-y-5">
           <div>
             <label className={labelClasses}>
@@ -320,7 +232,7 @@ const SettingsForm = ({
         </div>
       </div>
 
-      {/* ── Appearance ───────────────────────────────────────────────────── */}
+      {/* ── Appearance ── */}
       <div className={sectionClasses}>
         <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
           {t("settings.appearance")}
@@ -349,7 +261,7 @@ const SettingsForm = ({
               <Globe size={12} className="inline mr-1" /> {t("settings.interface_language")}
             </label>
             <NeoDropdown
-              options={LANGUAGE_OPTIONS}
+              options={LANGUAGES.map((l) => ({ value: l.value, label: t(l.labelKey) }))}
               value={interfaceLang}
               onChange={setInterfaceLang}
               isDarkMode={isDarkMode}
@@ -359,15 +271,13 @@ const SettingsForm = ({
         </div>
       </div>
 
-      {/* ── Language Learning ─────────────────────────────────────────────── */}
+      {/* ── Language Learning ── */}
       <div className={sectionClasses}>
         <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
           <BookOpen size={16} className="inline mr-2" />
           {t("settings.language_learning")}
         </h2>
-
         <div className="space-y-6">
-          {/* Learning Language — locked */}
           <div>
             <label className={labelClasses}>
               <Lock size={12} className="inline mr-1" /> {t("settings.learning_language")}
@@ -380,7 +290,7 @@ const SettingsForm = ({
               <span className="text-xl" aria-hidden="true">🇵🇹</span>
               <div>
                 <p className={`font-black text-sm ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
-                  Portuguese (Portugal)
+                  {t("settings.portuguese_label")}
                 </p>
                 <p className={`text-xs font-bold uppercase tracking-widest
                   ${ isDarkMode ? "text-slate-500" : "text-slate-400" }`}>
@@ -394,22 +304,18 @@ const SettingsForm = ({
               {t("settings.learning_locked_hint")}
             </p>
           </div>
-
-          {/* Native Language */}
           <div>
             <label className={labelClasses}>
               <Globe size={12} className="inline mr-1" /> {t("settings.native_language")}
             </label>
             <NeoDropdown
-              options={LANGUAGE_OPTIONS}
+              options={LANGUAGES.map((l) => ({ value: l.value, label: t(l.labelKey) }))}
               value={nativeDialect}
               onChange={setNativeDialect}
               isDarkMode={isDarkMode}
               className="w-full"
             />
           </div>
-
-          {/* Interests */}
           <div>
             <label className={labelClasses}>
               {t("settings.interests")}
@@ -428,7 +334,7 @@ const SettingsForm = ({
         </div>
       </div>
 
-      {/* ── Save button ───────────────────────────────────────────────────── */}
+      {/* ── Save ── */}
       <button
         type="submit"
         disabled={isBusy}
@@ -439,7 +345,7 @@ const SettingsForm = ({
           }`}
       >
         {isBusy
-          ? <><Loader2 size={20} className="animate-spin" /> {isUploading ? "Uploading..." : t("settings.saving")}</>
+          ? <><Loader2 size={20} className="animate-spin" /> {isUploading ? t("settings.uploading") : t("settings.saving")}</>
           : <><Save size={20} /> {t("settings.save_settings")}</>
         }
       </button>
@@ -458,22 +364,22 @@ SettingsForm.propTypes = {
     learningDialect: PropTypes.string,
     interests: PropTypes.arrayOf(PropTypes.string),
   }),
-  isDarkMode: PropTypes.bool.isRequired,
-  displayName: PropTypes.string.isRequired,
-  setDisplayName: PropTypes.func.isRequired,
-  interfaceLang: PropTypes.string.isRequired,
+  isDarkMode:       PropTypes.bool.isRequired,
+  displayName:      PropTypes.string.isRequired,
+  setDisplayName:   PropTypes.func.isRequired,
+  interfaceLang:    PropTypes.string.isRequired,
   setInterfaceLang: PropTypes.func.isRequired,
-  nativeDialect: PropTypes.string.isRequired,
+  nativeDialect:    PropTypes.string.isRequired,
   setNativeDialect: PropTypes.func.isRequired,
-  interests: PropTypes.arrayOf(PropTypes.string).isRequired,
-  setInterests: PropTypes.func.isRequired,
-  draftDarkMode: PropTypes.bool.isRequired,
+  interests:        PropTypes.arrayOf(PropTypes.string).isRequired,
+  setInterests:     PropTypes.func.isRequired,
+  draftDarkMode:    PropTypes.bool.isRequired,
   setDraftDarkMode: PropTypes.func.isRequired,
-  isSaving: PropTypes.bool.isRequired,
-  isUploading: PropTypes.bool.isRequired,
-  handleSave: PropTypes.func.isRequired,
-  previewUrl: PropTypes.string,
-  onFileSelect: PropTypes.func.isRequired,
+  isSaving:         PropTypes.bool.isRequired,
+  isUploading:      PropTypes.bool.isRequired,
+  handleSave:       PropTypes.func.isRequired,
+  previewUrl:       PropTypes.string,
+  onFileSelect:     PropTypes.func.isRequired,
 };
 
 // ── Settings Page ─────────────────────────────────────────────────────────────
@@ -482,23 +388,20 @@ const SettingsPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [displayName, setDisplayName]     = useState(user?.displayName || "");
-  const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en");
-  const [nativeDialect, setNativeDialect] = useState(user?.nativeDialect || user?.interfaceLang || "en");
-  const [interests, setInterests]         = useState(user?.interests || []);
+  const [displayName,   setDisplayName]   = useState(user?.displayName || "");
+  const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en-US");
+  const [nativeDialect, setNativeDialect] = useState(user?.nativeDialect || user?.interfaceLang || "en-US");
+  const [interests,     setInterests]     = useState(user?.interests || []);
   const [draftDarkMode, setDraftDarkMode] = useState(isDarkMode);
-  const [isSaving, setIsSaving]           = useState(false);
+  const [isSaving,      setIsSaving]      = useState(false);
 
-  // Avatar upload state
-  const [pendingFile, setPendingFile]   = useState(null);
-  const [previewUrl, setPreviewUrl]     = useState(null);
-  const [isUploading, setIsUploading]   = useState(false);
+  const [pendingFile, setPendingFile] = useState(null);
+  const [previewUrl,  setPreviewUrl]  = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isDeleting, setIsDeleting]           = useState(false);
+  const [isDeleting,      setIsDeleting]      = useState(false);
 
-  // Sync form when context user changes (e.g. after refreshUser)
   const [prevSyncKey, setPrevSyncKey] = useState("");
   const syncKey = [
     user?.uid || "",
@@ -513,8 +416,7 @@ const SettingsPage = () => {
     setPrevSyncKey(syncKey);
     if (user?.displayName)   setDisplayName(user.displayName);
     if (user?.interfaceLang) setInterfaceLang(user.interfaceLang);
-    // nativeDialect: Firestore value → fallback to interfaceLang
-    setNativeDialect(user?.nativeDialect || user?.interfaceLang || "en");
+    setNativeDialect(user?.nativeDialect || user?.interfaceLang || "en-US");
     setInterests(Array.isArray(user?.interests) ? user.interests : []);
     setDraftDarkMode(isDarkMode);
   }
@@ -541,7 +443,7 @@ const SettingsPage = () => {
           setPendingFile(null);
           setPreviewUrl(null);
         } catch {
-          showAlert("error", "Failed to upload profile image. Please try again.");
+          showAlert("error", t("settings.upload_failed"));
           return;
         } finally {
           setIsUploading(false);
@@ -583,9 +485,9 @@ const SettingsPage = () => {
       await deleteAccount(token);
       await logoutUser();
       navigate("/");
-      showAlert("success", "Your account has been permanently deleted.");
+      showAlert("success", t("settings.account_deleted"));
     } catch (err) {
-      showAlert("error", err.message || "Failed to delete account. Please try again.");
+      showAlert("error", err.message || t("settings.delete_failed"));
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);
@@ -602,17 +504,21 @@ const SettingsPage = () => {
 
   return (
     <>
-      {/* Delete confirmation modal */}
       {showDeleteModal && (
-        <DeleteModal
+        <ConfirmModal
           isDarkMode={isDarkMode}
+          title={t("settings.delete_confirm_title")}
+          message={t("settings.delete_confirm_message")}
+          warning={t("settings.delete_confirm_warning")}
+          confirmLabel={t("settings.delete_confirm_button")}
+          confirmColor="rose"
+          icon={<Trash2 size={24} />}
+          isLoading={isDeleting}
           onConfirm={handleDeleteConfirm}
           onCancel={() => !isDeleting && setShowDeleteModal(false)}
-          isDeleting={isDeleting}
         />
       )}
 
-      {/* Floating Save Button */}
       <FloatingActionButton
         onClick={handleSave}
         icon={<Save size={22} />}
@@ -684,7 +590,6 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        {/* Bottom spacer so FAB never covers the last button */}
         <div className="h-24" aria-hidden="true" />
       </main>
     </>
