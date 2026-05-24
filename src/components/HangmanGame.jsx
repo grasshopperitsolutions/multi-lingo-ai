@@ -5,7 +5,7 @@ import { Trophy, Skull, RefreshCw } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { getUserGameProgress, markConceptSeen, resetSeenWords } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
-import HangmanSidebar from "./HangmanSidebar";
+import ChallengeSidebar from "./ChallengeSidebar";
 
 // ---------------------------------------------------------------------------
 // Keyboard layout config
@@ -82,9 +82,9 @@ const HangmanGame = ({ isDarkMode }) => {
   const [error, setError]     = useState(null);
 
   // ── Sidebar / stats state ──
-  const [progress,       setProgress]       = useState(null);
-  const [totalWords,     setTotalWords]      = useState(null);
-  const [isLoadingStats, setIsLoadingStats]  = useState(true);
+  const [progress,       setProgress]      = useState(null);
+  const [totalWords,     setTotalWords]     = useState(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   const pendingMarkRef = useRef(null);
   const maxWrong = 6;
@@ -143,10 +143,6 @@ const HangmanGame = ({ isDarkMode }) => {
     }
   }, [user, learningDialect]);
 
-  // Fetch stats on mount — inline async logic so setState calls are
-  // inside the effect's own .then handler, not a separate function.
-  // isLoadingStats starts as true (initial state), so we only clear it in
-  // the .finally handler.
   useEffect(() => {
     if (!user?.token || !user?.uid) return;
     let cancelled = false;
@@ -166,14 +162,10 @@ const HangmanGame = ({ isDarkMode }) => {
       .finally(() => {
         if (!cancelled) setIsLoadingStats(false);
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user, learningDialect]);
 
   // ── Core word fetch ──────────────────────────────────────────────────────
-  // Returns { word, hint, progress } — does NOT set any state, so it is safe
-  // to call from a useEffect without triggering the set-state-in-effect lint.
   const fetchWordData = useCallback(async () => {
     if (!user) throw new Error(t("challenges.word_fetch_error"));
 
@@ -248,7 +240,7 @@ const HangmanGame = ({ isDarkMode }) => {
     return () => { cancelled = true; };
   }, [fetchWordData, t]);
 
-  // ── Reset seen words handler ─────────────────────────────────────────────
+  // ── Reset seen words handler (owned by HangmanGame, passed as callback) ──
   const handleResetSeenWords = useCallback(async () => {
     if (!user?.token || !user?.uid) return;
     await resetSeenWords(user.token, user.uid, "hangman", learningDialect);
@@ -464,13 +456,18 @@ const HangmanGame = ({ isDarkMode }) => {
         )}
       </div>
 
-      {/* ── Sidebar ── */}
-      <HangmanSidebar
+      {/* ── Sidebar — pure UI, all data and callbacks owned by HangmanGame ── */}
+      <ChallengeSidebar
         isDarkMode={isDarkMode}
         progress={progress}
         totalWords={totalWords}
         isLoadingStats={isLoadingStats}
         onReset={handleResetSeenWords}
+        title={t("challenge.sidebar.title")}
+        resetTitle={t("challenge.sidebar.reset_title")}
+        resetMessage={t("challenge.sidebar.reset_message")}
+        resetWarning={t("challenge.sidebar.reset_warning")}
+        resetConfirmLabel={t("challenge.sidebar.reset_confirm")}
       />
     </div>
   );
