@@ -250,17 +250,17 @@
     }
   },
   "translator": {
-    "input_placeholder": "Escribe o pega texto aqu\u00ed\u2026",
+    "input_placeholder": "Escribe o pega texto aquí\u2026",
     "listen": "Escuchar",
     "clear": "Limpiar",
     "translating": "Traduciendo\u2026",
-    "output_placeholder": "La traducci\u00f3n aparecer\u00e1 aqu\u00ed\u2026",
+    "output_placeholder": "La traducción aparecerá aquí\u2026",
     "copy": "Copiar",
-    "copied": "\u00a1Copiado!",
+    "copied": "¡Copiado!",
     "swap": "Intercambiar",
     "translate": "Traducir",
-    "keyboard_hint": "Consejo: presiona Ctrl+Enter (o \u2318+Enter) para traducir",
-    "error_failed": "La traducci\u00f3n fall\u00f3. Por favor, int\u00e9ntalo de nuevo."
+    "keyboard_hint": "Consejo: presiona Ctrl+Enter (o ⌘+Enter) para traducir",
+    "error_failed": "La traducción falló. Por favor, inténtalo de nuevo."
   },
   "dashboard": {
     "loading": "Cargando tu panel...",
@@ -325,6 +325,13 @@
     "try_again": "¡No es correcto — inténtalo de nuevo!",
     "word_fetch_error": "Error al cargar la palabra. Inténtalo de nuevo.",
     "loading_word": "Seleccionando una palabra...",
+    "scrambled_word": "Palabra Mezclada",
+    "scrambled_word_desc": "Desenreda las letras para encontrar la palabra portuguesa.",
+    "scrambled_word_reshuffle": "Re-mezclar letras",
+    "scrambled_word_won": "¡LO RESOLVISTE!",
+    "scrambled_word_lost": "¡MEZCLADO!",
+    "scrambled_word_answer": "La palabra era:",
+    "next_word": "Siguiente Palabra",
     "sidebar": {
       "never": "Nunca",
       "just_now": "Justo ahora",
@@ -336,14 +343,14 @@
       "days_ago_plural": "Hace {{count}}d",
       "expand": "Ampliar barra lateral",
       "collapse": "Colapsar barra lateral",
-      "title": "Estadísticas del Ahorcado",
+      "title": "Estadísticas Actuales",
       "words_seen": "Palabras Vistas",
       "played": "Jugadas",
       "last_played": "Última Partida",
       "dialect": "Dialecto",
       "reset_btn": "Restablecer Progreso",
-      "reset_title": "Restablecer Progreso del Ahorcado",
-      "reset_message": "Esto borrará todas las palabras vistas del Ahorcado, permitiéndote ver palabras jugadas anteriormente de nuevo.",
+      "reset_title": "Restablecer Progreso",
+      "reset_message": "Esto borrará todas las palabras vistas, permitiéndote ver palabras jugadas anteriormente de nuevo.",
       "reset_warning": "⚠ Esto no se puede deshacer.",
       "reset_confirm": "Sí, restablecer progreso"
     }

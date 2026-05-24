@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, BrainCircuit, Swords, NotebookPen, Search } from "lucide-react";
+import { ArrowLeft, BrainCircuit, Swords, NotebookPen, Search, Egg } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 
 // ── Lazy-loaded game components ─────────────────────────────────────────────
@@ -9,6 +9,7 @@ const HangmanGame = lazy(() => import("./HangmanGame"));
 const CrosswordsGame = lazy(() => import("./CrosswordsGame"));
 const WordQuizGame = lazy(() => import("./WordQuizGame"));
 const WordSearchGame = lazy(() => import("./WordSearchGame"));
+const ScrambledWordGame = lazy(() => import("./ScrambledWordGame"));
 
 // ── Game Registry ───────────────────────────────────────────────────────────
 // Add new games here — one entry per game.
@@ -21,6 +22,15 @@ const GAMES = [
     titleKey: "challenges.hangman",
     descKey: "challenges.hangman_desc",
     component: HangmanGame,
+    comingSoon: false,
+  },
+  {
+    id: "scrambled_word",
+    icon: Egg,
+    color: "bg-yellow-400",
+    titleKey: "challenges.scrambled_word",
+    descKey: "challenges.scrambled_word_desc",
+    component: ScrambledWordGame,
     comingSoon: false,
   },
   {

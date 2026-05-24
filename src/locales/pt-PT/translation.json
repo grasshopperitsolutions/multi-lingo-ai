@@ -254,13 +254,13 @@
     "listen": "Ouvir",
     "clear": "Limpar",
     "translating": "A traduzir\u2026",
-    "output_placeholder": "A tradu\u00e7\u00e3o aparecer\u00e1 aqui\u2026",
+    "output_placeholder": "A tradução aparecerá aqui\u2026",
     "copy": "Copiar",
     "copied": "Copiado!",
     "swap": "Trocar",
     "translate": "Traduzir",
-    "keyboard_hint": "Dica: pressiona Ctrl+Enter (ou \u2318+Enter) para traduzir",
-    "error_failed": "A tradu\u00e7\u00e3o falhou. Por favor tenta novamente."
+    "keyboard_hint": "Dica: pressiona Ctrl+Enter (ou ⌘+Enter) para traduzir",
+    "error_failed": "A tradução falhou. Por favor tenta novamente."
   },
   "dashboard": {
     "loading": "A carregar o teu painel...",
@@ -325,6 +325,13 @@
     "try_again": "Não é bem — tenta de novo!",
     "word_fetch_error": "Falha ao carregar a palavra. Por favor tenta novamente.",
     "loading_word": "A escolher uma palavra...",
+    "scrambled_word": "Palavra Baralhada",
+    "scrambled_word_desc": "Desembaralha as letras para encontrar a palavra portuguesa.",
+    "scrambled_word_reshuffle": "Re-baralhar letras",
+    "scrambled_word_won": "DESEMBARALHASTE!",
+    "scrambled_word_lost": "BARALHADO!",
+    "scrambled_word_answer": "A palavra era:",
+    "next_word": "Próxima Palavra",
     "sidebar": {
       "never": "Nunca",
       "just_now": "Agora mesmo",
@@ -336,14 +343,14 @@
       "days_ago_plural": "Há {{count}}d",
       "expand": "Expandir barra lateral",
       "collapse": "Colapsar barra lateral",
-      "title": "Estatísticas da Forca",
+      "title": "Estatísticas Atuais",
       "words_seen": "Palavras Vistas",
       "played": "Jogadas",
       "last_played": "Última Vez",
       "dialect": "Dialeto",
       "reset_btn": "Repor Progresso",
-      "reset_title": "Repor Progresso da Forca",
-      "reset_message": "Isto irá limpar todas as palavras vistas para a Forca, permitindo-te ver palavras já jogadas novamente.",
+      "reset_title": "Repor Progresso",
+      "reset_message": "Isto irá limpar todas as palavras vistas, permitindo-te ver palavras já jogadas novamente.",
       "reset_warning": "⚠ Isto não pode ser desfeito.",
       "reset_confirm": "Sim, repor progresso"
     }

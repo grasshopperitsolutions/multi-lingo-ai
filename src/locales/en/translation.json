@@ -263,7 +263,7 @@
     "error_failed": "Translation failed. Please try again."
   },
   "dashboard": {
-    "loading": "Loading your dashboard…",
+    "loading": "Loading your dashboard\u2026",
     "welcome": "Hey, {{name}} 👋",
     "welcome_subtitle": "Welcome back to your language hub",
     "your_progress": "Your Progress",
@@ -325,6 +325,13 @@
     "try_again": "Not quite — try again!",
     "word_fetch_error": "Failed to load the word. Please try again.",
     "loading_word": "Picking a word...",
+    "scrambled_word": "Scrambled Word",
+    "scrambled_word_desc": "Unscramble the letters to find the Portuguese word.",
+    "scrambled_word_reshuffle": "Re-shuffle letters",
+    "scrambled_word_won": "YOU CRACKED IT!",
+    "scrambled_word_lost": "SCRAMBLED!",
+    "scrambled_word_answer": "The word was:",
+    "next_word": "Next Word",
     "sidebar": {
       "never": "Never",
       "just_now": "Just now",
@@ -336,14 +343,14 @@
       "days_ago_plural": "{{count}}d ago",
       "expand": "Expand sidebar",
       "collapse": "Collapse sidebar",
-      "title": "Hangman Stats",
+      "title": "Current Stats",
       "words_seen": "Words Seen",
       "played": "Played",
       "last_played": "Last Played",
       "dialect": "Dialect",
       "reset_btn": "Reset Progress",
-      "reset_title": "Reset Hangman Progress",
-      "reset_message": "This will clear all your seen words for Hangman, allowing you to see previously played words again.",
+      "reset_title": "Reset Progress",
+      "reset_message": "This will clear all your seen words, allowing you to see previously played words again.",
       "reset_warning": "⚠ This cannot be undone.",
       "reset_confirm": "Yes, reset progress"
     }
