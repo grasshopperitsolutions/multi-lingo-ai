@@ -252,6 +252,7 @@
   "translator": {
     "input_placeholder": "Type or paste text here\u2026",
     "listen": "Listen",
+    "listen_slow": "Listen Slow",
     "clear": "Clear",
     "translating": "Translating\u2026",
     "output_placeholder": "Translation will appear here\u2026",

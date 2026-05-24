@@ -252,6 +252,7 @@
   "translator": {
     "input_placeholder": "Saisis ou colle le texte ici\u2026",
     "listen": "Écouter",
+    "listen_slow": "Écouter Lentement",
     "clear": "Effacer",
     "translating": "Traduction en cours\u2026",
     "output_placeholder": "La traduction apparaîtra ici\u2026",

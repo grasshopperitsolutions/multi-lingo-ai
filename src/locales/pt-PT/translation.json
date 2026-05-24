@@ -252,6 +252,7 @@
   "translator": {
     "input_placeholder": "Escreve ou cola texto aqui\u2026",
     "listen": "Ouvir",
+    "listen_slow": "Ouvir Devagar",
     "clear": "Limpar",
     "translating": "A traduzir\u2026",
     "output_placeholder": "A tradução aparecerá aqui\u2026",
