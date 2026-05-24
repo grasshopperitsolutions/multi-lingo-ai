@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, BookMarked, Copy, Volume2, Trash2, Search } from 'lucide-react';
+import { ArrowLeft, BookMarked, Copy, Volume2, Trash2, Search, Snail } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { lookupWord } from '../services/dictionaryService';
+import { speak } from '../services/ttsService';
 import TooltipButton from './TooltipButton';
 
 const MAX_CHARS = 1000;
@@ -96,8 +97,8 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
 
   // The word is typed in the learning language — synonyms must also be in this language.
   // The definition is returned in the interface language so the user can understand it.
-  const learningLang         = user?.learningDialect ?? 'pt-PT';
-  const resolvedInterfaceLang = interfaceLang ?? 'en-US';
+  const learningLang          = user?.learningDialect  ?? 'pt-PT';
+  const resolvedInterfaceLang = interfaceLang          ?? 'en-US';
 
   const [inputText,    setInputText]    = useState('');
   const [definition,   setDefinition]   = useState('');
@@ -129,17 +130,6 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
       // clipboard API unavailable
     }
   }, [definition]);
-
-  // ── Text-to-speech ────────────────────────────────────────────────────────
-  const handleSpeak = useCallback((text, lang) => {
-    if (!text || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    setTimeout(() => {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = lang;
-      window.speechSynthesis.speak(utterance);
-    }, 50);
-  }, []);
 
   // ── Lookup ────────────────────────────────────────────────────────────────
   const handleLookup = useCallback(async (wordOverride) => {
@@ -210,7 +200,6 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
             tooltip={t('dictionary.lang_tooltip', { lang: learningLang })}
             isDarkMode={isDarkMode}
           >
-            {/* Badge shows the learning language — the word is typed in that language */}
             <span className={langBadgeClass}>{learningLang}</span>
           </TooltipButton>
           <span className={`text-xs font-bold ${
@@ -237,14 +226,23 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
         <div className={`flex items-center gap-2 px-3 py-2 border-t-2 ${
           isDarkMode ? 'border-slate-700' : 'border-slate-100'
         }`}>
-          {/* TTS for the input uses learningLang — the word is in the learning language */}
+          {/* Normal speed TTS — learning language */}
           <IconButton
-            onClick={() => handleSpeak(inputText, learningLang)}
+            onClick={() => speak(inputText, learningLang)}
             label={t('translator.listen')}
             disabled={!inputText}
             isDarkMode={isDarkMode}
           >
             <Volume2 size={16} />
+          </IconButton>
+          {/* Half speed TTS — learning language */}
+          <IconButton
+            onClick={() => speak(inputText, learningLang, { rate: 0.5 })}
+            label={t('translator.listen_slow')}
+            disabled={!inputText}
+            isDarkMode={isDarkMode}
+          >
+            <Snail size={16} />
           </IconButton>
           <IconButton
             onClick={handleClear}
@@ -310,7 +308,6 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
           {/* Result */}
           {hasResult && (
             <>
-              {/* Looked-up word heading */}
               <h3 className={`text-2xl font-black uppercase tracking-tighter ${
                 isDarkMode ? 'text-violet-300' : 'text-violet-700'
               }`}>
@@ -349,12 +346,20 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
                 isDarkMode ? 'border-slate-700' : 'border-slate-100'
               }`}>
                 <IconButton
-                  onClick={() => handleSpeak(definition, resolvedInterfaceLang)}
+                  onClick={() => speak(definition, resolvedInterfaceLang)}
                   label={t('translator.listen')}
                   disabled={!definition}
                   isDarkMode={isDarkMode}
                 >
                   <Volume2 size={16} />
+                </IconButton>
+                <IconButton
+                  onClick={() => speak(definition, resolvedInterfaceLang, { rate: 0.5 })}
+                  label={t('translator.listen_slow')}
+                  disabled={!definition}
+                  isDarkMode={isDarkMode}
+                >
+                  <Snail size={16} />
                 </IconButton>
                 <IconButton
                   onClick={handleCopy}

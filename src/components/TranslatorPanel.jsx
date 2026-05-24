@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowLeftRight, Copy, Volume2, Trash2, Languages } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, Copy, Volume2, Trash2, Languages, Snail } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { translateText } from '../services/translatorService';
+import { speak } from '../services/ttsService';
 import TooltipButton from './TooltipButton';
 
 const MAX_CHARS = 1000;
@@ -73,7 +74,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
 
   // Source = interface language (the language the user operates the app in)
   // Target = the language the user is learning
-  const defaultSource = interfaceLang       ?? 'en-US';
+  const defaultSource = interfaceLang        ?? 'en-US';
   const defaultTarget = user?.learningDialect ?? 'pt-PT';
 
   const [sourceLang,   setSourceLang]   = useState(defaultSource);
@@ -84,7 +85,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
   const [error,        setError]        = useState(null);
   const [copyFeedback, setCopyFeedback] = useState(false);
 
-  // ── Swap languages + text ─────────────────────────────────────────────────
+  // ── Swap languages + text ──────────────────────────────────────────────────
   const handleSwap = () => {
     setSourceLang(targetLang);
     setTargetLang(sourceLang);
@@ -93,14 +94,14 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
     setError(null);
   };
 
-  // ── Clear input ───────────────────────────────────────────────────────────
+  // ── Clear input ─────────────────────────────────────────────────────────
   const handleClear = () => {
     setInputText('');
     setOutputText('');
     setError(null);
   };
 
-  // ── Copy output to clipboard ──────────────────────────────────────────────
+  // ── Copy output to clipboard ────────────────────────────────────────────
   const handleCopy = useCallback(async () => {
     if (!outputText) return;
     try {
@@ -112,16 +113,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
     }
   }, [outputText]);
 
-  // ── Text-to-speech ────────────────────────────────────────────────────────
-  const handleSpeak = useCallback((text, lang) => {
-    if (!text || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-    window.speechSynthesis.speak(utterance);
-  }, []);
-
-  // ── Translate ─────────────────────────────────────────────────────────────
+  // ── Translate ───────────────────────────────────────────────────────────────
   const handleTranslate = async () => {
     if (!inputText.trim()) return;
     setIsLoading(true);
@@ -176,7 +168,6 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
 
         {/* ── Input panel ── */}
         <div className={panelBase}>
-          {/* Lang label with tooltip */}
           <div className="flex items-center justify-between px-3 pt-2 pb-1">
             <TooltipButton
               tooltip="Interface language — change in Settings"
@@ -193,7 +184,6 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
             </span>
           </div>
 
-          {/* Textarea */}
           <textarea
             className={textareaBase}
             style={{ minHeight: '180px' }}
@@ -206,17 +196,24 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
             }}
           />
 
-          {/* Input actions */}
           <div className={`flex items-center gap-2 px-3 py-2 border-t-2 ${
             isDarkMode ? 'border-slate-700' : 'border-slate-100'
           }`}>
             <IconButton
-              onClick={() => handleSpeak(inputText, sourceLang)}
+              onClick={() => speak(inputText, sourceLang)}
               label={t('translator.listen')}
               disabled={!inputText}
               isDarkMode={isDarkMode}
             >
               <Volume2 size={16} />
+            </IconButton>
+            <IconButton
+              onClick={() => speak(inputText, sourceLang, { rate: 0.5 })}
+              label={t('translator.listen_slow')}
+              disabled={!inputText}
+              isDarkMode={isDarkMode}
+            >
+              <Snail size={16} />
             </IconButton>
             <IconButton
               onClick={handleClear}
@@ -231,7 +228,6 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
 
         {/* ── Output panel ── */}
         <div className={panelBase}>
-          {/* Lang label with tooltip */}
           <div className="flex items-center px-3 pt-2 pb-1">
             <TooltipButton
               tooltip="Learning language — change in Settings"
@@ -241,7 +237,6 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
             </TooltipButton>
           </div>
 
-          {/* Output area */}
           <div
             className={`flex-1 p-3 text-base font-bold leading-relaxed ${
               isDarkMode ? 'text-white' : 'text-slate-900'
@@ -268,17 +263,24 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
             )}
           </div>
 
-          {/* Output actions */}
           <div className={`flex items-center gap-2 px-3 py-2 border-t-2 ${
             isDarkMode ? 'border-slate-700' : 'border-slate-100'
           }`}>
             <IconButton
-              onClick={() => handleSpeak(outputText, targetLang)}
+              onClick={() => speak(outputText, targetLang)}
               label={t('translator.listen')}
               disabled={!outputText}
               isDarkMode={isDarkMode}
             >
               <Volume2 size={16} />
+            </IconButton>
+            <IconButton
+              onClick={() => speak(outputText, targetLang, { rate: 0.5 })}
+              label={t('translator.listen_slow')}
+              disabled={!outputText}
+              isDarkMode={isDarkMode}
+            >
+              <Snail size={16} />
             </IconButton>
             <IconButton
               onClick={handleCopy}
@@ -299,7 +301,6 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
 
       {/* ── Bottom action row ── */}
       <div className="flex items-center justify-between mt-4 gap-4">
-        {/* Swap */}
         <button
           onClick={handleSwap}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl border-4 font-black uppercase tracking-widest text-sm transition-all hover:-translate-y-0.5 active:scale-95 ${
@@ -312,7 +313,6 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
           {t('translator.swap')}
         </button>
 
-        {/* Translate */}
         <button
           onClick={handleTranslate}
           disabled={!inputText.trim() || isLoading}
@@ -327,7 +327,6 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
         </button>
       </div>
 
-      {/* Keyboard hint */}
       <p className={`mt-3 text-xs font-bold text-center ${
         isDarkMode ? 'text-slate-600' : 'text-slate-400'
       }`}>
