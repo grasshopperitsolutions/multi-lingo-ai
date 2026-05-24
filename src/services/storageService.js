@@ -121,3 +121,28 @@ export const deleteFile = async (token, fileId) => {
   if (!res.ok) throw new Error(json?.error || json?.message || 'Failed to delete file');
   return json?.data || json;
 };
+
+/**
+ * Delete an avatar file from GCS by its storage path.
+ * Avatars are not tracked in the files collection, so they are deleted
+ * by path rather than by fileId.
+ *
+ * DELETE /api/storage  { filePath }
+ *
+ * @param {string} token     - Firebase ID token
+ * @param {string} filePath  - GCS object path, e.g. avatars/{uid}/timestamp_filename.gif
+ * @returns {Promise<{ message: string, filePath: string }>}
+ */
+export const deleteAvatarFile = async (token, filePath) => {
+  const res = await fetch(`${PROXY_URL}/api/storage`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ filePath }),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.error || json?.message || 'Failed to delete avatar file');
+  return json?.data || json;
+};
