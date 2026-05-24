@@ -7,6 +7,7 @@ import Loader from "../components/Loader";
 import Avatar from "../components/Avatar";
 import ChallengesMenu from "../components/ChallengesMenu";
 import TranslatorPanel from "../components/TranslatorPanel";
+import DictionaryPanel from "../components/DictionaryPanel";
 import TooltipButton from "../components/TooltipButton";
 import {
   Languages,
@@ -117,7 +118,6 @@ const DashboardPage = () => {
       title: t("dashboard.dictionary"),
       description: t("dashboard.dictionary_desc"),
       color: "text-violet-500",
-      statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
       id: "grammar",
@@ -171,7 +171,8 @@ const DashboardPage = () => {
 
   const isTranslator   = selectedFeature?.id === 'translator';
   const isChallenges   = selectedFeature?.id === 'challenges';
-  const isOtherFeature = selectedFeature && !isTranslator && !isChallenges;
+  const isDictionary   = selectedFeature?.id === 'dictionary';
+  const isOtherFeature = selectedFeature && !isTranslator && !isChallenges && !isDictionary;
 
   return (
     <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-10 space-y-10">
@@ -239,6 +240,14 @@ const DashboardPage = () => {
       {/* ── Challenges Hub ── */}
       {isChallenges && (
         <ChallengesMenu
+          isDarkMode={isDarkMode}
+          onBack={handleBackToDashboard}
+        />
+      )}
+
+      {/* ── Dictionary ── */}
+      {isDictionary && (
+        <DictionaryPanel
           isDarkMode={isDarkMode}
           onBack={handleBackToDashboard}
         />

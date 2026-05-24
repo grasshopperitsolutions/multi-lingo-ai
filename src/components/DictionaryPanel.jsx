@@ -1,0 +1,383 @@
+import { useState, useCallback } from 'react';
+import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
+import { ArrowLeft, BookMarked, Copy, Volume2, Trash2, Search } from 'lucide-react';
+import { useAppContext } from '../contexts/AppContext';
+import { lookupWord } from '../services/dictionaryService';
+import TooltipButton from './TooltipButton';
+
+const MAX_CHARS = 1000;
+
+// ---------------------------------------------------------------------------
+// Breadcrumb
+// ---------------------------------------------------------------------------
+const Breadcrumb = ({ isDarkMode, onBack }) => {
+  const { t } = useTranslation();
+  return (
+    <nav className="flex items-center gap-1.5 text-sm font-black uppercase tracking-widest mb-8">
+      <button
+        onClick={onBack}
+        className={`flex items-center gap-1 transition-all hover:-translate-x-0.5 ${
+          isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+        }`}
+      >
+        <ArrowLeft size={16} />
+        {t('dashboard.back')}
+      </button>
+      <span className={`mx-1 ${isDarkMode ? 'text-slate-600' : 'text-slate-400'}`}>/</span>
+      <span className={isDarkMode ? 'text-violet-400' : 'text-violet-600'}>
+        {t('dashboard.dictionary')}
+      </span>
+    </nav>
+  );
+};
+
+Breadcrumb.propTypes = {
+  isDarkMode: PropTypes.bool.isRequired,
+  onBack:     PropTypes.func.isRequired,
+};
+
+// ---------------------------------------------------------------------------
+// IconButton
+// ---------------------------------------------------------------------------
+const IconButton = ({ onClick, label, disabled, isDarkMode, children }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    aria-label={label}
+    title={label}
+    className={`p-2 rounded-xl border-2 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
+      isDarkMode
+        ? 'bg-slate-700 border-slate-600 text-slate-300 hover:text-white hover:border-slate-400'
+        : 'bg-white border-slate-300 text-slate-600 hover:text-slate-900 hover:border-slate-500'
+    }`}
+  >
+    {children}
+  </button>
+);
+
+IconButton.propTypes = {
+  onClick:    PropTypes.func.isRequired,
+  label:      PropTypes.string.isRequired,
+  disabled:   PropTypes.bool,
+  isDarkMode: PropTypes.bool.isRequired,
+  children:   PropTypes.node.isRequired,
+};
+
+// ---------------------------------------------------------------------------
+// SynonymChip
+// ---------------------------------------------------------------------------
+const SynonymChip = ({ word, isDarkMode, onClick }) => (
+  <button
+    onClick={() => onClick(word)}
+    className={`px-3 py-1 rounded-full border-2 text-xs font-black uppercase tracking-widest transition-all
+      hover:-translate-y-0.5 active:scale-95 ${
+      isDarkMode
+        ? 'bg-slate-700 border-slate-600 text-violet-300 hover:border-violet-400 hover:text-violet-200'
+        : 'bg-slate-100 border-slate-300 text-violet-700 hover:border-violet-400 hover:bg-violet-50'
+    }`}
+  >
+    {word}
+  </button>
+);
+
+SynonymChip.propTypes = {
+  word:       PropTypes.string.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+  onClick:    PropTypes.func.isRequired,
+};
+
+// ---------------------------------------------------------------------------
+// DictionaryPanel
+// ---------------------------------------------------------------------------
+const DictionaryPanel = ({ isDarkMode, onBack }) => {
+  const { t }                           = useTranslation();
+  const { user, interfaceLang }         = useAppContext();
+
+  // The word/expression is typed in the learning language.
+  // The definition + synonyms are returned in the interface language.
+  const learningLang = user?.learningDialect ?? 'pt-PT';
+
+  const [inputText,    setInputText]    = useState('');
+  const [definition,   setDefinition]   = useState('');
+  const [synonyms,     setSynonyms]     = useState([]);
+  const [isLoading,    setIsLoading]    = useState(false);
+  const [error,        setError]        = useState(null);
+  const [copyFeedback, setCopyFeedback] = useState(false);
+  const [lookedUpWord, setLookedUpWord] = useState('');
+
+  const hasResult = !isLoading && !error && definition;
+
+  // ── Clear ─────────────────────────────────────────────────────────────────
+  const handleClear = () => {
+    setInputText('');
+    setDefinition('');
+    setSynonyms([]);
+    setError(null);
+    setLookedUpWord('');
+  };
+
+  // ── Copy definition to clipboard ──────────────────────────────────────────
+  const handleCopy = useCallback(async () => {
+    if (!definition) return;
+    try {
+      await navigator.clipboard.writeText(definition);
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    } catch {
+      // clipboard API unavailable
+    }
+  }, [definition]);
+
+  // ── Text-to-speech ────────────────────────────────────────────────────────
+  const handleSpeak = useCallback((text, lang) => {
+    if (!text || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+    window.speechSynthesis.speak(utterance);
+  }, []);
+
+  // ── Lookup ────────────────────────────────────────────────────────────────
+  const handleLookup = async (wordOverride) => {
+    const word = (wordOverride ?? inputText).trim();
+    if (!word) return;
+
+    if (wordOverride) setInputText(wordOverride);
+
+    setIsLoading(true);
+    setError(null);
+    setDefinition('');
+    setSynonyms([]);
+    setLookedUpWord(word);
+
+    try {
+      const result = await lookupWord({
+        token:         user?.token,
+        word,
+        interfaceLang: interfaceLang ?? 'en-US',
+      });
+      setDefinition(result.definition);
+      setSynonyms(result.synonyms);
+    } catch (err) {
+      setError(err.message ?? t('dictionary.error_failed'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ── Shared panel styles ───────────────────────────────────────────────────
+  const panelBase = `rounded-2xl border-4 p-1 flex flex-col ${
+    isDarkMode
+      ? 'bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]'
+      : 'bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]'
+  }`;
+
+  const langBadgeClass = `px-3 py-1.5 text-xs font-black uppercase tracking-widest rounded-lg cursor-default ${
+    isDarkMode ? 'bg-slate-700 text-violet-400' : 'bg-slate-100 text-violet-600'
+  }`;
+
+  const textareaBase = `w-full flex-1 resize-none bg-transparent p-3 text-base font-bold leading-relaxed focus:outline-none ${
+    isDarkMode ? 'text-white placeholder:text-slate-500' : 'text-slate-900 placeholder:text-slate-400'
+  }`;
+
+  const sectionLabel = `text-xs font-black uppercase tracking-widest mb-2 ${
+    isDarkMode ? 'text-slate-400' : 'text-slate-500'
+  }`;
+
+  return (
+    <div className="w-full animate-in fade-in zoom-in-95">
+      <Breadcrumb isDarkMode={isDarkMode} onBack={onBack} />
+
+      {/* Title */}
+      <div className={`flex items-center gap-3 mb-8 border-b-8 pb-4 ${
+        isDarkMode ? 'border-violet-400' : 'border-violet-500'
+      }`}>
+        <BookMarked size={32} className={isDarkMode ? 'text-violet-400' : 'text-violet-600'} />
+        <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter">
+          {t('dashboard.dictionary')}
+        </h2>
+      </div>
+
+      {/* Input panel — word is in the learning language */}
+      <div className={panelBase}>
+        <div className="flex items-center justify-between px-3 pt-2 pb-1">
+          <TooltipButton
+            tooltip={t('dictionary.lang_tooltip', { lang: learningLang })}
+            isDarkMode={isDarkMode}
+          >
+            {/* Badge shows the learning language — the word is typed in that language */}
+            <span className={langBadgeClass}>{learningLang}</span>
+          </TooltipButton>
+          <span className={`text-xs font-bold ${
+            inputText.length > MAX_CHARS * 0.9
+              ? 'text-rose-500'
+              : isDarkMode ? 'text-slate-500' : 'text-slate-400'
+          }`}>
+            {inputText.length}/{MAX_CHARS}
+          </span>
+        </div>
+
+        <textarea
+          className={textareaBase}
+          style={{ minHeight: '100px' }}
+          placeholder={t('dictionary.input_placeholder')}
+          value={inputText}
+          maxLength={MAX_CHARS}
+          onChange={(e) => setInputText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleLookup();
+          }}
+        />
+
+        <div className={`flex items-center gap-2 px-3 py-2 border-t-2 ${
+          isDarkMode ? 'border-slate-700' : 'border-slate-100'
+        }`}>
+          {/* TTS for the input uses learningDialect — the word is in the learning language */}
+          <IconButton
+            onClick={() => handleSpeak(inputText, learningLang)}
+            label={t('translator.listen')}
+            disabled={!inputText}
+            isDarkMode={isDarkMode}
+          >
+            <Volume2 size={16} />
+          </IconButton>
+          <IconButton
+            onClick={handleClear}
+            label={t('translator.clear')}
+            disabled={!inputText}
+            isDarkMode={isDarkMode}
+          >
+            <Trash2 size={16} />
+          </IconButton>
+        </div>
+      </div>
+
+      {/* Look Up button */}
+      <div className="flex justify-end mt-4">
+        <button
+          onClick={() => handleLookup()}
+          disabled={!inputText.trim() || isLoading}
+          className={`flex items-center gap-2 px-6 py-2 rounded-xl border-4 font-black uppercase tracking-widest text-sm
+            transition-all hover:-translate-y-0.5 active:scale-95
+            disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 ${
+            isDarkMode
+              ? 'bg-violet-500 border-violet-400 text-white shadow-[4px_4px_0px_0px_#5b21b6]'
+              : 'bg-violet-500 border-violet-600 text-white shadow-[4px_4px_0px_0px_#5b21b6]'
+          }`}
+        >
+          <Search size={16} />
+          {isLoading ? t('dictionary.looking_up') : t('dictionary.look_up')}
+        </button>
+      </div>
+
+      {/* Keyboard hint */}
+      <p className={`mt-2 text-xs font-bold text-center ${
+        isDarkMode ? 'text-slate-600' : 'text-slate-400'
+      }`}>
+        {t('dictionary.keyboard_hint')}
+      </p>
+
+      {/* Results panel */}
+      {(isLoading || error || hasResult) && (
+        <div className={`mt-6 rounded-2xl border-4 p-5 flex flex-col gap-5 ${
+          isDarkMode
+            ? 'bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]'
+            : 'bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]'
+        }`}>
+
+          {/* Loading */}
+          {isLoading && (
+            <div className="flex items-center gap-3">
+              <div className={`w-6 h-6 rounded-full border-4 border-t-transparent animate-spin ${
+                isDarkMode ? 'border-violet-400' : 'border-violet-600'
+              }`} />
+              <span className={`text-sm font-black uppercase tracking-widest ${
+                isDarkMode ? 'text-slate-400' : 'text-slate-500'
+              }`}>{t('dictionary.looking_up')}</span>
+            </div>
+          )}
+
+          {/* Error */}
+          {error && !isLoading && (
+            <p className="text-sm font-bold text-rose-500">{error}</p>
+          )}
+
+          {/* Result */}
+          {hasResult && (
+            <>
+              {/* Looked-up word heading */}
+              <h3 className={`text-2xl font-black uppercase tracking-tighter ${
+                isDarkMode ? 'text-violet-300' : 'text-violet-700'
+              }`}>
+                {lookedUpWord}
+              </h3>
+
+              {/* Definition */}
+              <div>
+                <p className={sectionLabel}>{t('dictionary.definition')}</p>
+                <p className={`text-base font-bold leading-relaxed ${
+                  isDarkMode ? 'text-white' : 'text-slate-900'
+                }`}>
+                  {definition}
+                </p>
+              </div>
+
+              {/* Synonyms */}
+              {synonyms.length > 0 && (
+                <div>
+                  <p className={sectionLabel}>{t('dictionary.synonyms')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {synonyms.map((syn) => (
+                      <SynonymChip
+                        key={syn}
+                        word={syn}
+                        isDarkMode={isDarkMode}
+                        onClick={handleLookup}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Result actions — definition is in interfaceLang */}
+              <div className={`flex items-center gap-2 pt-2 border-t-2 ${
+                isDarkMode ? 'border-slate-700' : 'border-slate-100'
+              }`}>
+                {/* TTS for the definition uses interfaceLang — the definition is in the interface language */}
+                <IconButton
+                  onClick={() => handleSpeak(definition, interfaceLang ?? 'en-US')}
+                  label={t('translator.listen')}
+                  disabled={!definition}
+                  isDarkMode={isDarkMode}
+                >
+                  <Volume2 size={16} />
+                </IconButton>
+                <IconButton
+                  onClick={handleCopy}
+                  label={copyFeedback ? t('translator.copied') : t('translator.copy')}
+                  disabled={!definition}
+                  isDarkMode={isDarkMode}
+                >
+                  <Copy size={16} />
+                </IconButton>
+                {copyFeedback && (
+                  <span className={`text-xs font-black uppercase tracking-widest ${
+                    isDarkMode ? 'text-violet-400' : 'text-violet-600'
+                  }`}>{t('translator.copied')}</span>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+DictionaryPanel.propTypes = {
+  isDarkMode: PropTypes.bool.isRequired,
+  onBack:     PropTypes.func.isRequired,
+};
+
+export default DictionaryPanel;
