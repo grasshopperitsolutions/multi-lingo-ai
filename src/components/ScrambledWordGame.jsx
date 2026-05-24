@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { RefreshCw, RotateCcw, Check, Egg } from "lucide-react";
+import { RefreshCw, RotateCcw, Check, EggFried } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import {
   getUserGameProgress,
@@ -552,7 +552,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
               : "bg-yellow-100 border-slate-900"
           }`}
         >
-          <Egg
+          <EggFried
             size={80}
             className={isDarkMode ? "text-yellow-400" : "text-yellow-500"}
             strokeWidth={2.5}

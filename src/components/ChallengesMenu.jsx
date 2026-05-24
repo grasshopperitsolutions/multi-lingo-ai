@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, BrainCircuit, Swords, NotebookPen, Search, Egg } from "lucide-react";
+import { ArrowLeft, BrainCircuit, Swords, NotebookPen, Search, EggFried } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 
 // ── Lazy-loaded game components ─────────────────────────────────────────────
@@ -26,7 +26,7 @@ const GAMES = [
   },
   {
     id: "scrambled_word",
-    icon: Egg,
+    icon: EggFried,
     color: "bg-yellow-400",
     titleKey: "challenges.scrambled_word",
     descKey: "challenges.scrambled_word_desc",
