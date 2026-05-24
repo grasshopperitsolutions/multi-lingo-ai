@@ -88,10 +88,10 @@ const LetterTile = ({ letter, onClick, disabled, variant, isDarkMode }) => {
       : isDarkMode
       ? "bg-slate-800 border-slate-600 text-transparent"
       : "bg-slate-100 border-slate-300 text-transparent",
-    // Bug fix #2: replaced missing `animate-shake` Tailwind class with
-    // `scrambled-shake` which is defined in the <style> block below.
     correct:
       "bg-emerald-400 border-slate-900 text-slate-900 cursor-default",
+    // scrambled-shake is defined in src/index.css alongside the other
+    // project animations (wiggle, float, neo-bounce).
     wrong:
       "bg-rose-400 border-slate-900 text-slate-900 cursor-default scrambled-shake",
     // Space separator — fixed, non-interactive gap tile
@@ -165,23 +165,19 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   );
 
   // ── Build pool & answer from word ────────────────────────────────────────
-  // Bug fix #3: spaces are separated out — pre-filled as fixed separator
-  // slots in the answer row, never shuffled into the letter pool.
+  // Spaces are separated out — pre-filled as fixed separator slots in the
+  // answer row, never shuffled into the letter pool.
   const buildPoolAndAnswer = useCallback(
     (rawLetters) => {
-      // Build the initial answer array: spaces are fixed, non-spaces are null (empty)
       const answerTemplate = rawLetters.map((l) =>
         l === " "
           ? { id: -1, letter: " ", isSpace: true }
           : null
       );
-
-      // Only shuffle the non-space letters
       const nonSpaceLetters = rawLetters.filter((l) => l !== " ");
       const displayed = nonSpaceLetters.map((l) => getDisplayLetter(l));
       const shuffled = shuffleLetters(displayed);
       const newPool = shuffled.map((letter, i) => ({ id: i, letter, placed: false }));
-
       return { newPool, answerTemplate };
     },
     [getDisplayLetter]
@@ -222,9 +218,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       .finally(() => {
         if (!cancelled) setIsLoadingStats(false);
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [user, learningDialect]);
 
   // ── Core word fetch ──────────────────────────────────────────────────────
@@ -246,18 +240,11 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     });
 
     pendingMarkRef.current = markConceptSeen(
-      token,
-      uid,
-      GAME_ID,
-      learningDialect,
-      result.conceptId,
-      prog
+      token, uid, GAME_ID, learningDialect, result.conceptId, prog
     );
     pendingMarkRef.current
       .then(() => fetchStats())
-      .catch((err) =>
-        console.warn("[ScrambledWordGame] markConceptSeen failed:", err)
-      );
+      .catch((err) => console.warn("[ScrambledWordGame] markConceptSeen failed:", err));
 
     return { word: result.word.toUpperCase(), hint: result.hint, progress: prog };
   }, [user, learningDialect, nativeDialect, t, fetchStats]);
@@ -309,9 +296,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   useEffect(() => {
     let cancelled = false;
     fetchWordData()
-      .then((data) => {
-        if (!cancelled) applyWordData(data);
-      })
+      .then((data) => { if (!cancelled) applyWordData(data); })
       .catch((err) => {
         if (!cancelled) {
           if (isSessionExpiredError(err)) {
@@ -322,12 +307,8 @@ const ScrambledWordGame = ({ isDarkMode }) => {
           setError(err.message ?? t("challenges.word_fetch_error"));
         }
       })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [fetchWordData, applyWordData, t]);
 
   // ── Reset seen words (passed to sidebar) ─────────────────────────────────
@@ -340,19 +321,16 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   // ── Re-shuffle same word ─────────────────────────────────────────────────
   const handleReshuffle = useCallback(() => {
     if (gameStatus !== "playing") return;
-    const rawLetters = word.split("");
-    const { newPool, answerTemplate } = buildPoolAndAnswer(rawLetters);
+    const { newPool, answerTemplate } = buildPoolAndAnswer(word.split(""));
     setPool(newPool);
     setAnswer(answerTemplate);
   }, [word, buildPoolAndAnswer, gameStatus]);
 
-  // ── Bug fix #1: dedicated Play Again handler ─────────────────────────────
-  // The old code called handleReshuffle() from the win/lose banner, which was
-  // blocked by the `gameStatus !== 'playing'` guard and silently did nothing.
-  // This handler resets game state first, then re-shuffles the same word.
+  // ── Play Again — resets state then re-shuffles the same word ─────────────
+  // Replaces the old handleReshuffle() call from the win/lose banner, which
+  // was silently blocked by the gameStatus !== 'playing' guard.
   const handlePlayAgain = useCallback(() => {
-    const rawLetters = word.split("");
-    const { newPool, answerTemplate } = buildPoolAndAnswer(rawLetters);
+    const { newPool, answerTemplate } = buildPoolAndAnswer(word.split(""));
     setPool(newPool);
     setAnswer(answerTemplate);
     setAttemptsLeft(MAX_ATTEMPTS);
@@ -360,20 +338,15 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     setShowResult(false);
   }, [word, buildPoolAndAnswer]);
 
-  // ── Place letter from pool into next empty (non-space) answer slot ───────
+  // ── Place letter from pool into next empty (non-space) answer slot ────────
   const handlePlaceLetter = useCallback(
     (tileId) => {
       if (gameStatus !== "playing") return;
       const tile = pool.find((t) => t.id === tileId && !t.placed);
       if (!tile) return;
-
-      // Find next null slot (skipping pre-filled space separators)
       const nextSlot = answer.findIndex((slot) => slot === null);
       if (nextSlot === -1) return;
-
-      setPool((prev) =>
-        prev.map((t) => (t.id === tileId ? { ...t, placed: true } : t))
-      );
+      setPool((prev) => prev.map((t) => (t.id === tileId ? { ...t, placed: true } : t)));
       setAnswer((prev) => {
         const next = [...prev];
         next[nextSlot] = { id: tileId, letter: tile.letter };
@@ -388,17 +361,13 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     (slotIndex) => {
       if (gameStatus !== "playing") return;
       const slot = answer[slotIndex];
-      // Do not allow removing space separators
       if (!slot || slot.isSpace) return;
-
       setAnswer((prev) => {
         const next = [...prev];
         next[slotIndex] = null;
         return next;
       });
-      setPool((prev) =>
-        prev.map((t) => (t.id === slot.id ? { ...t, placed: false } : t))
-      );
+      setPool((prev) => prev.map((t) => (t.id === slot.id ? { ...t, placed: false } : t)));
     },
     [answer, gameStatus]
   );
@@ -407,8 +376,6 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   const checkAnswer = useCallback(() => {
     if (gameStatus !== "playing") return;
     if (word.length === 0) return;
-    // All slots must be non-null (spaces are already pre-filled, so this
-    // means every letter slot has been filled by the player)
     const allFilled = answer.every((s) => s !== null);
     if (!allFilled) return;
 
@@ -429,8 +396,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
         if (remaining <= 0) {
           setGameStatus("lost");
         } else {
-          const rawLetters = word.split("");
-          const { newPool, answerTemplate } = buildPoolAndAnswer(rawLetters);
+          const { newPool, answerTemplate } = buildPoolAndAnswer(word.split(""));
           setPool(newPool);
           setAnswer(answerTemplate);
         }
@@ -442,12 +408,8 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   useEffect(() => {
     const prev = prevAnswerRef.current;
     const allFilledNow = answer.length > 0 && answer.every((s) => s !== null);
-    // Only trigger on the transition: answer just became fully filled
-    // (prev had at least one null non-space slot)
     const prevHadEmpty = prev !== null && prev.some((s) => s === null);
-    if (allFilledNow && prevHadEmpty) {
-      checkAnswer();
-    }
+    if (allFilledNow && prevHadEmpty) checkAnswer();
     prevAnswerRef.current = answer;
   }, [answer, checkAnswer]);
 
@@ -460,18 +422,12 @@ const ScrambledWordGame = ({ isDarkMode }) => {
         </h2>
         <div
           className={`w-48 h-48 mb-8 rounded-2xl border-4 flex items-center justify-center ${
-            isDarkMode
-              ? "bg-slate-800 border-slate-700"
-              : "bg-yellow-100 border-slate-900"
+            isDarkMode ? "bg-slate-800 border-slate-700" : "bg-yellow-100 border-slate-900"
           }`}
         >
           <RefreshCw className="w-10 h-10 animate-spin opacity-40" />
         </div>
-        <p
-          className={`text-sm italic ${
-            isDarkMode ? "text-slate-400" : "text-slate-500"
-          }`}
-        >
+        <p className={`text-sm italic ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`}>
           {t("challenges.loading_word")}
         </p>
       </div>
@@ -487,14 +443,9 @@ const ScrambledWordGame = ({ isDarkMode }) => {
         </h2>
         <p className="text-rose-500 font-semibold text-center px-4">{error}</p>
         <button
-          onClick={() => {
-            resetGame();
-            fetchWord();
-          }}
+          onClick={() => { resetGame(); fetchWord(); }}
           className={`px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${
-            isDarkMode
-              ? "bg-slate-800 border-slate-700 text-white"
-              : "bg-white border-slate-900 text-slate-900"
+            isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
           }`}
         >
           {t("challenges.try_again")}
@@ -518,236 +469,181 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   };
 
   return (
-    <>
-      {/* Bug fix #2: define the shake keyframe here since it is not in the
-          global Tailwind config. The style tag renders once and is harmless
-          when the component mounts multiple times (browser deduplicates). */}
-      <style>{`
-        @keyframes scrambled-shake {
-          0%, 100% { transform: translateX(0); }
-          15%       { transform: translateX(-6px) rotate(-3deg); }
-          30%       { transform: translateX(6px)  rotate(3deg); }
-          45%       { transform: translateX(-5px) rotate(-2deg); }
-          60%       { transform: translateX(5px)  rotate(2deg); }
-          75%       { transform: translateX(-3px); }
-          90%       { transform: translateX(3px); }
-        }
-        .scrambled-shake {
-          animation: scrambled-shake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-        }
-      `}</style>
+    <div className="flex flex-col lg:flex-row items-start gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95">
 
-      <div className="flex flex-col lg:flex-row items-start gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95">
+      {/* ── Main game column ── */}
+      <div className="flex flex-col items-center flex-1 min-w-0">
 
-        {/* ── Main game column ── */}
-        <div className="flex flex-col items-center flex-1 min-w-0">
+        {/* Title */}
+        <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-4">
+          {t("challenges.scrambled_word")}
+        </h2>
 
-          {/* Title */}
-          <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-4">
-            {t("challenges.scrambled_word")}
-          </h2>
-
-          {/* Easy / Hard toggle */}
-          <div
-            className={`flex mb-6 rounded-full border-4 overflow-hidden ${
-              isDarkMode ? "border-slate-700" : "border-slate-900"
-            }`}
-          >
-            {[false, true].map((isHard) => (
-              <button
-                key={String(isHard)}
-                type="button"
-                onClick={() => {
-                  if (hardMode === isHard) return;
-                  setHardMode(isHard);
-                  // Rebuild pool with new normalisation rule
-                  const rawLetters = word.split("");
-                  const displayed = rawLetters
-                    .filter((l) => l !== " ")
-                    .map((l) => (isHard ? l : normalizeChar(l)));
-                  const shuffled = shuffleLetters(displayed);
-                  const newPool = shuffled.map((letter, i) => ({
-                    id: i,
-                    letter,
-                    placed: false,
-                  }));
-                  const answerTemplate = rawLetters.map((l) =>
-                    l === " " ? { id: -1, letter: " ", isSpace: true } : null
-                  );
-                  setPool(newPool);
-                  setAnswer(answerTemplate);
-                  setAttemptsLeft(MAX_ATTEMPTS);
-                  setGameStatus("playing");
-                }}
-                className={`px-5 py-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
-                  hardMode === isHard
-                    ? isDarkMode
-                      ? "bg-yellow-400 text-slate-900"
-                      : "bg-slate-900 text-white"
-                    : isDarkMode
-                    ? "bg-transparent text-slate-400 hover:text-white"
-                    : "bg-transparent text-slate-500 hover:text-slate-900"
-                }`}
-              >
-                {isHard ? t("challenges.hard") : t("challenges.easy")}
-              </button>
-            ))}
-          </div>
-
-          {/* Hint */}
-          {hint && (
-            <p
-              className={`mb-6 text-center text-sm sm:text-base font-medium italic px-4 ${
-                isDarkMode ? "text-slate-400" : "text-slate-600"
+        {/* Easy / Hard toggle */}
+        <div className={`flex mb-6 rounded-full border-4 overflow-hidden ${
+          isDarkMode ? "border-slate-700" : "border-slate-900"
+        }`}>
+          {[false, true].map((isHard) => (
+            <button
+              key={String(isHard)}
+              type="button"
+              onClick={() => {
+                if (hardMode === isHard) return;
+                setHardMode(isHard);
+                const rawLetters = word.split("");
+                const displayed = rawLetters
+                  .filter((l) => l !== " ")
+                  .map((l) => (isHard ? l : normalizeChar(l)));
+                const shuffled = shuffleLetters(displayed);
+                const newPool = shuffled.map((letter, i) => ({ id: i, letter, placed: false }));
+                const answerTemplate = rawLetters.map((l) =>
+                  l === " " ? { id: -1, letter: " ", isSpace: true } : null
+                );
+                setPool(newPool);
+                setAnswer(answerTemplate);
+                setAttemptsLeft(MAX_ATTEMPTS);
+                setGameStatus("playing");
+              }}
+              className={`px-5 py-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
+                hardMode === isHard
+                  ? isDarkMode ? "bg-yellow-400 text-slate-900" : "bg-slate-900 text-white"
+                  : isDarkMode ? "bg-transparent text-slate-400 hover:text-white" : "bg-transparent text-slate-500 hover:text-slate-900"
               }`}
             >
-              {hint}
-            </p>
-          )}
+              {isHard ? t("challenges.hard") : t("challenges.easy")}
+            </button>
+          ))}
+        </div>
 
-          {/* Scrambled Egg illustration */}
-          <div
-            className={`w-36 h-36 mb-6 rounded-2xl border-4 flex items-center justify-center relative ${
-              isDarkMode
-                ? "bg-slate-800 border-slate-700"
-                : "bg-yellow-100 border-slate-900"
-            }`}
-          >
-            <EggFried
-              size={80}
-              className={isDarkMode ? "text-yellow-400" : "text-yellow-500"}
-              strokeWidth={2.5}
+        {/* Hint */}
+        {hint && (
+          <p className={`mb-6 text-center text-sm sm:text-base font-medium italic px-4 ${
+            isDarkMode ? "text-slate-400" : "text-slate-600"
+          }`}>
+            {hint}
+          </p>
+        )}
+
+        {/* Scrambled Egg illustration */}
+        <div className={`w-36 h-36 mb-6 rounded-2xl border-4 flex items-center justify-center ${
+          isDarkMode ? "bg-slate-800 border-slate-700" : "bg-yellow-100 border-slate-900"
+        }`}>
+          <EggFried
+            size={80}
+            className={isDarkMode ? "text-yellow-400" : "text-yellow-500"}
+            strokeWidth={2.5}
+          />
+        </div>
+
+        {/* Attempts pips */}
+        {!isOver && <AttemptsDisplay attemptsLeft={attemptsLeft} />}
+
+        {/* ── Answer row ── */}
+        <div className="flex flex-wrap justify-center gap-2 mb-6 px-4">
+          {answer.map((slot, i) => (
+            <LetterTile
+              key={i}
+              letter={slot?.letter ?? null}
+              onClick={() => !isOver && handleRemoveLetter(i)}
+              disabled={isOver || slot?.isSpace}
+              variant={answerVariant(slot)}
+              isDarkMode={isDarkMode}
             />
-          </div>
+          ))}
+        </div>
 
-          {/* Attempts pips */}
-          {!isOver && <AttemptsDisplay attemptsLeft={attemptsLeft} />}
-
-          {/* ── Answer row ── */}
-          <div className="flex flex-wrap justify-center gap-2 mb-6 px-4">
-            {answer.map((slot, i) => (
+        {/* ── Letter pool ── */}
+        {!isOver && (
+          <div className="flex flex-wrap justify-center gap-2 mb-8 px-4">
+            {pool.map((tile) => (
               <LetterTile
-                key={i}
-                letter={slot?.letter ?? null}
-                onClick={() => !isOver && handleRemoveLetter(i)}
-                disabled={isOver || slot?.isSpace}
-                variant={answerVariant(slot)}
+                key={tile.id}
+                letter={tile.letter}
+                onClick={() => handlePlaceLetter(tile.id)}
+                disabled={tile.placed}
+                variant="pool"
                 isDarkMode={isDarkMode}
               />
             ))}
           </div>
+        )}
 
-          {/* ── Letter pool ── */}
-          {!isOver && (
-            <div className="flex flex-wrap justify-center gap-2 mb-8 px-4">
-              {pool.map((tile) => (
-                <LetterTile
-                  key={tile.id}
-                  letter={tile.letter}
-                  onClick={() => handlePlaceLetter(tile.id)}
-                  disabled={tile.placed}
-                  variant="pool"
-                  isDarkMode={isDarkMode}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* ── Action buttons ── */}
-          {!isOver ? (
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={handleReshuffle}
-                title={t("challenges.scrambled_word_reshuffle")}
-                className={`p-3 rounded-xl border-4 font-black transition-all hover-neo-light active-neo ${
-                  isDarkMode
-                    ? "bg-slate-800 border-slate-700 text-white"
-                    : "bg-white border-slate-900 text-slate-900"
-                }`}
-              >
-                <RotateCcw size={20} />
-              </button>
-            </div>
-          ) : (
-            /* ── Win / Lose result banner ── */
-            <div
-              className={`flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 ${
-                isWon ? "text-emerald-500" : "text-rose-500"
+        {/* ── Action buttons ── */}
+        {!isOver ? (
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleReshuffle}
+              title={t("challenges.scrambled_word_reshuffle")}
+              className={`p-3 rounded-xl border-4 font-black transition-all hover-neo-light active-neo ${
+                isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
               }`}
             >
-              <div className="flex items-center gap-3">
-                {isWon ? (
-                  <Check size={36} strokeWidth={3} />
-                ) : (
-                  <span className="text-3xl">🍳</span>
-                )}
-                <span className="text-2xl sm:text-3xl font-black uppercase tracking-tighter">
-                  {isWon
-                    ? t("challenges.scrambled_word_won")
-                    : t("challenges.scrambled_word_lost")}
-                </span>
-              </div>
-
-              {/* Reveal word on loss */}
-              {isLost && (
-                <p
-                  className={`text-base font-semibold ${
-                    isDarkMode ? "text-slate-300" : "text-slate-700"
-                  }`}
-                >
-                  {t("challenges.scrambled_word_answer")}{" "}
-                  <span className="font-black text-yellow-500">{word}</span>
-                </p>
+              <RotateCcw size={20} />
+            </button>
+          </div>
+        ) : (
+          <div className={`flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 ${
+            isWon ? "text-emerald-500" : "text-rose-500"
+          }`}>
+            <div className="flex items-center gap-3">
+              {isWon ? (
+                <Check size={36} strokeWidth={3} />
+              ) : (
+                <span className="text-3xl">🍳</span>
               )}
-
-              <div className="flex gap-3 mt-2">
-                {/* Bug fix #1: was calling handleReshuffle() which was
-                    blocked by the gameStatus !== 'playing' guard. Now calls
-                    handlePlayAgain() which resets state before re-shuffling. */}
-                <button
-                  onClick={handlePlayAgain}
-                  className={`px-6 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${
-                    isDarkMode
-                      ? "bg-slate-800 border-slate-700 text-white"
-                      : "bg-white border-slate-900 text-slate-900"
-                  }`}
-                >
-                  {t("challenges.play_again")}
-                </button>
-                <button
-                  onClick={() => {
-                    resetGame();
-                    fetchWord();
-                  }}
-                  className={`px-6 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all ${
-                    isDarkMode
-                      ? "bg-yellow-400 border-slate-700 text-slate-900 hover:bg-yellow-300"
-                      : "bg-yellow-400 border-slate-900 text-slate-900 hover:bg-yellow-300"
-                  }`}
-                >
-                  {t("challenges.next_word")}
-                </button>
-              </div>
+              <span className="text-2xl sm:text-3xl font-black uppercase tracking-tighter">
+                {isWon ? t("challenges.scrambled_word_won") : t("challenges.scrambled_word_lost")}
+              </span>
             </div>
-          )}
-        </div>
 
-        {/* ── Sidebar ── */}
-        <ChallengeSidebar
-          isDarkMode={isDarkMode}
-          progress={progress}
-          totalWords={totalWords}
-          isLoadingStats={isLoadingStats}
-          onReset={handleResetSeenWords}
-          title={t("challenges.sidebar.title")}
-          resetTitle={t("challenges.sidebar.reset_title")}
-          resetMessage={t("challenges.sidebar.reset_message")}
-          resetWarning={t("challenges.sidebar.reset_warning")}
-          resetConfirmLabel={t("challenges.sidebar.reset_confirm")}
-        />
+            {isLost && (
+              <p className={`text-base font-semibold ${
+                isDarkMode ? "text-slate-300" : "text-slate-700"
+              }`}>
+                {t("challenges.scrambled_word_answer")}{" "}
+                <span className="font-black text-yellow-500">{word}</span>
+              </p>
+            )}
+
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={handlePlayAgain}
+                className={`px-6 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${
+                  isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
+                }`}
+              >
+                {t("challenges.play_again")}
+              </button>
+              <button
+                onClick={() => { resetGame(); fetchWord(); }}
+                className={`px-6 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all ${
+                  isDarkMode
+                    ? "bg-yellow-400 border-slate-700 text-slate-900 hover:bg-yellow-300"
+                    : "bg-yellow-400 border-slate-900 text-slate-900 hover:bg-yellow-300"
+                }`}
+              >
+                {t("challenges.next_word")}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-    </>
+
+      {/* ── Sidebar ── */}
+      <ChallengeSidebar
+        isDarkMode={isDarkMode}
+        progress={progress}
+        totalWords={totalWords}
+        isLoadingStats={isLoadingStats}
+        onReset={handleResetSeenWords}
+        title={t("challenges.sidebar.title")}
+        resetTitle={t("challenges.sidebar.reset_title")}
+        resetMessage={t("challenges.sidebar.reset_message")}
+        resetWarning={t("challenges.sidebar.reset_warning")}
+        resetConfirmLabel={t("challenges.sidebar.reset_confirm")}
+      />
+    </div>
   );
 };
 
