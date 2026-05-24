@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { RefreshCw, RotateCcw, Check } from "lucide-react";
@@ -74,6 +74,28 @@ const ScrambledEggIcon = ({ isDarkMode, size = 40 }) => (
 ScrambledEggIcon.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
   size: PropTypes.number,
+};
+
+// ---------------------------------------------------------------------------
+// AttemptsDisplay (hearts / tries)
+// ---------------------------------------------------------------------------
+const AttemptsDisplay = ({ attemptsLeft }) => (
+  <div className="flex gap-1.5 items-center mb-4">
+    {Array.from({ length: MAX_ATTEMPTS }).map((_, i) => (
+      <span
+        key={i}
+        className={`text-2xl transition-all ${
+          i < attemptsLeft ? "opacity-100" : "opacity-20"
+        }`}
+      >
+        🥚
+      </span>
+    ))}
+  </div>
+);
+
+AttemptsDisplay.propTypes = {
+  attemptsLeft: PropTypes.number.isRequired,
 };
 
 // ---------------------------------------------------------------------------
@@ -161,7 +183,6 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   const pendingMarkRef = useRef(null);
 
   // ── Derived ──────────────────────────────────────────────────────────────
-  const letters = useMemo(() => word.split(""), [word]);
 
   const getDisplayLetter = useCallback(
     (letter) => (hardMode ? letter : normalizeChar(letter)),
@@ -379,7 +400,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   );
 
   // ── Auto-check when all slots filled ─────────────────────────────────────
-  useEffect(() => {
+  const checkAnswer = useCallback(() => {
     if (gameStatus !== "playing") return;
     if (word.length === 0) return;
     const allFilled = answer.length === word.length && answer.every((s) => s !== null);
@@ -402,7 +423,6 @@ const ScrambledWordGame = ({ isDarkMode }) => {
         if (remaining <= 0) {
           setGameStatus("lost");
         } else {
-          // bounce letters back for retry
           const rawLetters = word.split("");
           const newPool = buildPool(rawLetters);
           setPool(newPool);
@@ -412,21 +432,16 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     }
   }, [answer, word, gameStatus, attemptsLeft, getDisplayLetter, buildPool]);
 
-  // ── Attempt pips (hearts / tries) ────────────────────────────────────────
-  const AttemptsDisplay = () => (
-    <div className="flex gap-1.5 items-center mb-4">
-      {Array.from({ length: MAX_ATTEMPTS }).map((_, i) => (
-        <span
-          key={i}
-          className={`text-2xl transition-all ${
-            i < attemptsLeft ? "opacity-100" : "opacity-20"
-          }`}
-        >
-          🥚
-        </span>
-      ))}
-    </div>
-  );
+  const prevAnswerRef = useRef(null);
+  useEffect(() => {
+    const prev = prevAnswerRef.current;
+    const allFilledNow = answer.length === word.length && answer.every((s) => s !== null);
+    // Only trigger on transition: answer just became fully filled
+    if (allFilledNow && prev !== null && !prev.every((s) => s !== null)) {
+      checkAnswer();
+    }
+    prevAnswerRef.current = answer;
+  }, [answer, word.length, checkAnswer]);
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -571,7 +586,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
         </div>
 
         {/* Attempts pips */}
-        {!isOver && <AttemptsDisplay />}
+        {!isOver && <AttemptsDisplay attemptsLeft={attemptsLeft} />}
 
         {/* ── Answer row ── */}
         <div className="flex flex-wrap justify-center gap-2 mb-6 px-4">
@@ -683,11 +698,15 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       {/* ── Sidebar ── */}
       <ChallengeSidebar
         isDarkMode={isDarkMode}
-        gameId={GAME_ID}
         progress={progress}
         totalWords={totalWords}
         isLoadingStats={isLoadingStats}
-        onResetSeenWords={handleResetSeenWords}
+        onReset={handleResetSeenWords}
+        title={t("challenges.sidebar.title")}
+        resetTitle={t("challenges.sidebar.reset_title")}
+        resetMessage={t("challenges.sidebar.reset_message")}
+        resetWarning={t("challenges.sidebar.reset_warning")}
+        resetConfirmLabel={t("challenges.sidebar.reset_confirm")}
       />
     </div>
   );
