@@ -296,6 +296,16 @@
     "challenges": "Desafíos",
     "challenges_desc": "Pon a prueba tus habilidades con minijuegos, cuestionarios y desafíos diarios."
   },
+  "dictionary": {
+    "lang_tooltip": "Escribiendo en {{lang}}",
+    "input_placeholder": "Escribe una palabra o expresión\u2026",
+    "looking_up": "Buscando\u2026",
+    "look_up": "Buscar",
+    "keyboard_hint": "Consejo: presiona Ctrl+Enter (o \u2318+Enter) para buscar",
+    "definition": "Definición",
+    "synonyms": "Sinónimos",
+    "error_failed": "La búsqueda falló. Por favor, inténtalo de nuevo."
+  },
   "challenges": {
     "title": "Challenge Hub",
     "coming_soon": "Próximamente...",

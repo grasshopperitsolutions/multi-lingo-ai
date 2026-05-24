@@ -296,6 +296,16 @@
     "challenges": "Défis",
     "challenges_desc": "Teste tes compétences avec des mini-jeux, des quiz et des défis linguistiques quotidiens."
   },
+  "dictionary": {
+    "lang_tooltip": "Saisie en {{lang}}",
+    "input_placeholder": "Saisis un mot ou une expression\u2026",
+    "looking_up": "Recherche en cours\u2026",
+    "look_up": "Rechercher",
+    "keyboard_hint": "Astuce : appuie sur Ctrl+Entrée (ou \u2318+Entrée) pour rechercher",
+    "definition": "Définition",
+    "synonyms": "Synonymes",
+    "error_failed": "La recherche a échoué. Veuillez réessayer."
+  },
   "challenges": {
     "title": "Challenge Hub",
     "coming_soon": "Bientôt disponible...",

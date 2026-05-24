@@ -296,6 +296,16 @@
     "challenges": "Challenges",
     "challenges_desc": "Test your skills with mini-games, quizzes, and daily language challenges."
   },
+  "dictionary": {
+    "lang_tooltip": "Typing in {{lang}}",
+    "input_placeholder": "Type a word or expression\u2026",
+    "looking_up": "Looking up\u2026",
+    "look_up": "Look Up",
+    "keyboard_hint": "Tip: Press Ctrl+Enter (or \u2318+Enter) to look up",
+    "definition": "Definition",
+    "synonyms": "Synonyms",
+    "error_failed": "Lookup failed. Please try again."
+  },
   "challenges": {
     "title": "Challenge Hub",
     "coming_soon": "Coming soon...",
