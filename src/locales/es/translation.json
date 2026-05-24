@@ -327,6 +327,7 @@
     "word_fetch_error": "Error al cargar la palabra. Inténtalo de nuevo.",
     "loading_word": "Seleccionando una palabra...",
     "scrambled_word": "Palabra Mezclada",
+    "scrambled_word_desc": "Desenreda las letras para encontrar la palabra portuguesa.",
     "scrambled_word_reshuffle": "Re-mezclar letras",
     "scrambled_word_won": "¡LO RESOLVISTE!",
     "scrambled_word_lost": "¡MEZCLADO!",

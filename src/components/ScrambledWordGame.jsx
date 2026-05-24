@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { RefreshCw, RotateCcw, Check } from "lucide-react";
+import { RefreshCw, RotateCcw, Check, Egg } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import {
   getUserGameProgress,
@@ -44,36 +44,6 @@ const shuffleLetters = (letters) => {
   // Safety: if still identical (e.g. "AA"), just reverse
   if (result.join("") === letters.join("")) result.reverse();
   return result;
-};
-
-// ---------------------------------------------------------------------------
-// Scrambled Egg SVG icon (inline, theme-aware)
-// ---------------------------------------------------------------------------
-const ScrambledEggIcon = ({ isDarkMode, size = 40 }) => (
-  <svg
-    viewBox="0 0 64 64"
-    width={size}
-    height={size}
-    fill="none"
-    aria-hidden="true"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    {/* Egg white blob */}
-    <ellipse cx="32" cy="38" rx="22" ry="14" fill={isDarkMode ? "#e2e8f0" : "#f8fafc"} stroke="#1e293b" strokeWidth="2.5" />
-    {/* Extra white blob left */}
-    <ellipse cx="16" cy="42" rx="10" ry="7" fill={isDarkMode ? "#e2e8f0" : "#f8fafc"} stroke="#1e293b" strokeWidth="2.5" />
-    {/* Extra white blob right */}
-    <ellipse cx="48" cy="43" rx="9" ry="6" fill={isDarkMode ? "#e2e8f0" : "#f8fafc"} stroke="#1e293b" strokeWidth="2.5" />
-    {/* Yolk */}
-    <circle cx="32" cy="36" r="9" fill="#facc15" stroke="#1e293b" strokeWidth="2.5" />
-    {/* Yolk highlight */}
-    <circle cx="29" cy="33" r="2.5" fill="#fef08a" opacity="0.8" />
-  </svg>
-);
-
-ScrambledEggIcon.propTypes = {
-  isDarkMode: PropTypes.bool.isRequired,
-  size: PropTypes.number,
 };
 
 // ---------------------------------------------------------------------------
@@ -582,7 +552,11 @@ const ScrambledWordGame = ({ isDarkMode }) => {
               : "bg-yellow-100 border-slate-900"
           }`}
         >
-          <ScrambledEggIcon isDarkMode={isDarkMode} size={80} />
+          <Egg
+            size={80}
+            className={isDarkMode ? "text-yellow-400" : "text-yellow-500"}
+            strokeWidth={2.5}
+          />
         </div>
 
         {/* Attempts pips */}

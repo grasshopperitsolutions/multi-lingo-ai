@@ -327,6 +327,7 @@
     "word_fetch_error": "Falha ao carregar a palavra. Por favor tenta novamente.",
     "loading_word": "A escolher uma palavra...",
     "scrambled_word": "Palavra Baralhada",
+    "scrambled_word_desc": "Desembaralha as letras para encontrar a palavra portuguesa.",
     "scrambled_word_reshuffle": "Re-baralhar letras",
     "scrambled_word_won": "DESEMBARALHASTE!",
     "scrambled_word_lost": "BARALHADO!",

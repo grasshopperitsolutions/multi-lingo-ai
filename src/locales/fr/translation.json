@@ -327,6 +327,7 @@
     "word_fetch_error": "Échec du chargement du mot. Veuillez réessayer.",
     "loading_word": "Sélection d'un mot...",
     "scrambled_word": "Mot Mélangé",
+    "scrambled_word_desc": "Démêle les lettres pour trouver le mot portugais.",
     "scrambled_word_reshuffle": "Re-mélanger les lettres",
     "scrambled_word_won": "TU AS RÉUSSI !",
     "scrambled_word_lost": "MÉLANGÉ !",

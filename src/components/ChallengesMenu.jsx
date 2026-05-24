@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, BrainCircuit, Swords, NotebookPen, Search } from "lucide-react";
+import { ArrowLeft, BrainCircuit, Swords, NotebookPen, Search, Egg } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 
 // ── Lazy-loaded game components ─────────────────────────────────────────────
@@ -10,26 +10,6 @@ const CrosswordsGame = lazy(() => import("./CrosswordsGame"));
 const WordQuizGame = lazy(() => import("./WordQuizGame"));
 const WordSearchGame = lazy(() => import("./WordSearchGame"));
 const ScrambledWordGame = lazy(() => import("./ScrambledWordGame"));
-
-// ── Scrambled Egg icon (inline SVG as a React component) ────────────────────
-const ScrambledEggMenuIcon = ({ size = 40 }) => (
-  <svg
-    viewBox="0 0 64 64"
-    width={size}
-    height={size}
-    fill="none"
-    aria-hidden="true"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <ellipse cx="32" cy="38" rx="22" ry="14" fill="#f8fafc" stroke="#1e293b" strokeWidth="2.5" />
-    <ellipse cx="16" cy="42" rx="10" ry="7" fill="#f8fafc" stroke="#1e293b" strokeWidth="2.5" />
-    <ellipse cx="48" cy="43" rx="9" ry="6" fill="#f8fafc" stroke="#1e293b" strokeWidth="2.5" />
-    <circle cx="32" cy="36" r="9" fill="#facc15" stroke="#1e293b" strokeWidth="2.5" />
-    <circle cx="29" cy="33" r="2.5" fill="#fef08a" opacity="0.8" />
-  </svg>
-);
-
-ScrambledEggMenuIcon.propTypes = { size: PropTypes.number };
 
 // ── Game Registry ───────────────────────────────────────────────────────────
 // Add new games here — one entry per game.
@@ -46,7 +26,7 @@ const GAMES = [
   },
   {
     id: "scrambled_word",
-    icon: ScrambledEggMenuIcon,
+    icon: Egg,
     color: "bg-yellow-400",
     titleKey: "challenges.scrambled_word",
     descKey: "challenges.scrambled_word_desc",
