@@ -91,8 +91,12 @@ SynonymChip.propTypes = {
 // DictionaryPanel
 // ---------------------------------------------------------------------------
 const DictionaryPanel = ({ isDarkMode, onBack }) => {
-  const { t }               = useTranslation();
-  const { user, interfaceLang } = useAppContext();
+  const { t }                           = useTranslation();
+  const { user, interfaceLang }         = useAppContext();
+
+  // The word/expression is typed in the learning language.
+  // The definition + synonyms are returned in the interface language.
+  const learningLang = user?.learningDialect ?? 'pt-PT';
 
   const [inputText,    setInputText]    = useState('');
   const [definition,   setDefinition]   = useState('');
@@ -195,14 +199,15 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
         </h2>
       </div>
 
-      {/* Input panel */}
+      {/* Input panel — word is in the learning language */}
       <div className={panelBase}>
         <div className="flex items-center justify-between px-3 pt-2 pb-1">
           <TooltipButton
-            tooltip={t('dictionary.lang_tooltip', { lang: interfaceLang ?? 'en-US' })}
+            tooltip={t('dictionary.lang_tooltip', { lang: learningLang })}
             isDarkMode={isDarkMode}
           >
-            <span className={langBadgeClass}>{interfaceLang ?? 'en-US'}</span>
+            {/* Badge shows the learning language — the word is typed in that language */}
+            <span className={langBadgeClass}>{learningLang}</span>
           </TooltipButton>
           <span className={`text-xs font-bold ${
             inputText.length > MAX_CHARS * 0.9
@@ -228,8 +233,9 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
         <div className={`flex items-center gap-2 px-3 py-2 border-t-2 ${
           isDarkMode ? 'border-slate-700' : 'border-slate-100'
         }`}>
+          {/* TTS for the input uses learningDialect — the word is in the learning language */}
           <IconButton
-            onClick={() => handleSpeak(inputText, interfaceLang ?? 'en-US')}
+            onClick={() => handleSpeak(inputText, learningLang)}
             label={t('translator.listen')}
             disabled={!inputText}
             isDarkMode={isDarkMode}
@@ -334,10 +340,11 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
                 </div>
               )}
 
-              {/* Result actions */}
+              {/* Result actions — definition is in interfaceLang */}
               <div className={`flex items-center gap-2 pt-2 border-t-2 ${
                 isDarkMode ? 'border-slate-700' : 'border-slate-100'
               }`}>
+                {/* TTS for the definition uses interfaceLang — the definition is in the interface language */}
                 <IconButton
                   onClick={() => handleSpeak(definition, interfaceLang ?? 'en-US')}
                   label={t('translator.listen')}
