@@ -133,7 +133,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
       });
       setOutputText(translation);
     } catch (err) {
-      setError(err.message ?? 'Translation failed. Please try again.');
+      setError(err.message ?? t('translator.error_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -189,7 +189,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
           <textarea
             className={textareaBase}
             style={{ minHeight: '180px' }}
-            placeholder="Type or paste text here…"
+            placeholder={t('translator.input_placeholder')}
             value={inputText}
             maxLength={MAX_CHARS}
             onChange={(e) => setInputText(e.target.value)}
@@ -204,7 +204,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
           }`}>
             <IconButton
               onClick={() => handleSpeak(inputText, sourceLang)}
-              label="Listen"
+              label={t('translator.listen')}
               disabled={!inputText}
               isDarkMode={isDarkMode}
             >
@@ -212,7 +212,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
             </IconButton>
             <IconButton
               onClick={handleClear}
-              label="Clear"
+              label={t('translator.clear')}
               disabled={!inputText}
               isDarkMode={isDarkMode}
             >
@@ -242,7 +242,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
                 }`} />
                 <span className={`text-sm font-black uppercase tracking-widest ${
                   isDarkMode ? 'text-slate-400' : 'text-slate-500'
-                }`}>Translating…</span>
+                }`}>{t('translator.translating')}</span>
               </div>
             ) : error ? (
               <p className="text-sm font-bold text-rose-500">{error}</p>
@@ -251,7 +251,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
             ) : (
               <p className={`text-sm font-bold ${
                 isDarkMode ? 'text-slate-600' : 'text-slate-400'
-              }`}>Translation will appear here…</p>
+              }`}>{t('translator.output_placeholder')}</p>
             )}
           </div>
 
@@ -261,7 +261,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
           }`}>
             <IconButton
               onClick={() => handleSpeak(outputText, targetLang)}
-              label="Listen"
+              label={t('translator.listen')}
               disabled={!outputText}
               isDarkMode={isDarkMode}
             >
@@ -269,7 +269,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
             </IconButton>
             <IconButton
               onClick={handleCopy}
-              label={copyFeedback ? 'Copied!' : 'Copy'}
+              label={copyFeedback ? t('translator.copied') : t('translator.copy')}
               disabled={!outputText}
               isDarkMode={isDarkMode}
             >
@@ -278,7 +278,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
             {copyFeedback && (
               <span className={`text-xs font-black uppercase tracking-widest ${
                 isDarkMode ? 'text-sky-400' : 'text-sky-600'
-              }`}>Copied!</span>
+              }`}>{t('translator.copied')}</span>
             )}
           </div>
         </div>
@@ -296,7 +296,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
           }`}
         >
           <ArrowLeftRight size={16} />
-          Swap
+          {t('translator.swap')}
         </button>
 
         {/* Translate */}
@@ -310,7 +310,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
           }`}
         >
           <Languages size={16} />
-          {isLoading ? 'Translating…' : 'Translate'}
+          {isLoading ? t('translator.translating') : t('translator.translate')}
         </button>
       </div>
 
@@ -318,7 +318,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
       <p className={`mt-3 text-xs font-bold text-center ${
         isDarkMode ? 'text-slate-600' : 'text-slate-400'
       }`}>
-        Tip: Press Ctrl+Enter (or ⌘+Enter) to translate
+        {t('translator.keyboard_hint')}
       </p>
     </div>
   );

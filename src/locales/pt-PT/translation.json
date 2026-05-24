@@ -250,6 +250,19 @@
       "nature": "Natureza"
     }
   },
+  "translator": {
+    "input_placeholder": "Escreve ou cola texto aqui\u2026",
+    "listen": "Ouvir",
+    "clear": "Limpar",
+    "translating": "A traduzir\u2026",
+    "output_placeholder": "A tradu\u00e7\u00e3o aparecer\u00e1 aqui\u2026",
+    "copy": "Copiar",
+    "copied": "Copiado!",
+    "swap": "Trocar",
+    "translate": "Traduzir",
+    "keyboard_hint": "Dica: pressiona Ctrl+Enter (ou \u2318+Enter) para traduzir",
+    "error_failed": "A tradu\u00e7\u00e3o falhou. Por favor tenta novamente."
+  },
   "dashboard": {
     "loading": "A carregar o teu painel...",
     "welcome": "Olá, {{name}}!",

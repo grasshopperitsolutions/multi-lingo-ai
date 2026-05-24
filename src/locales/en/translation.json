@@ -250,6 +250,19 @@
       "nature": "Nature"
     }
   },
+  "translator": {
+    "input_placeholder": "Type or paste text here\u2026",
+    "listen": "Listen",
+    "clear": "Clear",
+    "translating": "Translating\u2026",
+    "output_placeholder": "Translation will appear here\u2026",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "swap": "Swap",
+    "translate": "Translate",
+    "keyboard_hint": "Tip: Press Ctrl+Enter (or \u2318+Enter) to translate",
+    "error_failed": "Translation failed. Please try again."
+  },
   "dashboard": {
     "loading": "Loading your dashboard…",
     "welcome": "Hey, {{name}} 👋",
