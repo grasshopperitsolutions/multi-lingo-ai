@@ -57,7 +57,9 @@ export const uploadProfileImage = async (token, uid, file) => {
     'avatars',
     { uid },
   );
-  await uploadToGcs(uploadUrl, file, file.type);
+  // The signed URL was generated with extensionHeaders: { 'x-goog-acl': 'public-read' }.
+  // GCS requires that header to be present in the PUT request or it returns 403.
+  await uploadToGcs(uploadUrl, file, file.type, { 'x-goog-acl': 'public-read' });
   await updateUserProfile(token, uid, { photoURL: publicUrl });
   return publicUrl;
 };

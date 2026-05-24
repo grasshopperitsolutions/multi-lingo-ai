@@ -31,15 +31,19 @@ export const requestUpload = async (token, fileName, contentType, folder = 'uplo
  * Upload a File/Blob directly to GCS using a pre-signed URL.
  * This is a direct GCS call — no Authorization header needed.
  *
- * @param {string}      signedUrl   - The signed PUT URL from requestUpload
- * @param {File|Blob}   file        - The file or blob to upload
- * @param {string}      contentType - Must match the MIME type used in requestUpload
+ * When the signed URL was generated with extensionHeaders (e.g. x-goog-acl),
+ * those same headers MUST be included here or GCS will return 403 Forbidden.
+ *
+ * @param {string}      signedUrl    - The signed PUT URL from requestUpload
+ * @param {File|Blob}   file         - The file or blob to upload
+ * @param {string}      contentType  - Must match the MIME type used in requestUpload
+ * @param {Object}      [extraHeaders] - Additional headers required by the signed URL (e.g. x-goog-acl)
  * @returns {Promise<void>}
  */
-export const uploadToGcs = async (signedUrl, file, contentType) => {
+export const uploadToGcs = async (signedUrl, file, contentType, extraHeaders = {}) => {
   const res = await fetch(signedUrl, {
     method: 'PUT',
-    headers: { 'Content-Type': contentType },
+    headers: { 'Content-Type': contentType, ...extraHeaders },
     body: file,
   });
   if (!res.ok) throw new Error('Failed to upload file to storage');
