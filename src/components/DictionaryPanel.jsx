@@ -91,12 +91,13 @@ SynonymChip.propTypes = {
 // DictionaryPanel
 // ---------------------------------------------------------------------------
 const DictionaryPanel = ({ isDarkMode, onBack }) => {
-  const { t }                           = useTranslation();
-  const { user, interfaceLang }         = useAppContext();
+  const { t }                   = useTranslation();
+  const { user, interfaceLang } = useAppContext();
 
-  // The word/expression is typed in the learning language.
-  // The definition + synonyms are returned in the interface language.
-  const learningLang = user?.learningDialect ?? 'pt-PT';
+  // The word is typed in the learning language — synonyms must also be in this language.
+  // The definition is returned in the interface language so the user can understand it.
+  const learningLang         = user?.learningDialect ?? 'pt-PT';
+  const resolvedInterfaceLang = interfaceLang ?? 'en-US';
 
   const [inputText,    setInputText]    = useState('');
   const [definition,   setDefinition]   = useState('');
@@ -133,13 +134,15 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
   const handleSpeak = useCallback((text, lang) => {
     if (!text || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-    window.speechSynthesis.speak(utterance);
+    setTimeout(() => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang;
+      window.speechSynthesis.speak(utterance);
+    }, 50);
   }, []);
 
   // ── Lookup ────────────────────────────────────────────────────────────────
-  const handleLookup = async (wordOverride) => {
+  const handleLookup = useCallback(async (wordOverride) => {
     const word = (wordOverride ?? inputText).trim();
     if (!word) return;
 
@@ -155,7 +158,8 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
       const result = await lookupWord({
         token:         user?.token,
         word,
-        interfaceLang: interfaceLang ?? 'en-US',
+        interfaceLang: resolvedInterfaceLang,
+        learningLang,
       });
       setDefinition(result.definition);
       setSynonyms(result.synonyms);
@@ -164,7 +168,7 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [inputText, user, resolvedInterfaceLang, learningLang, t]);
 
   // ── Shared panel styles ───────────────────────────────────────────────────
   const panelBase = `rounded-2xl border-4 p-1 flex flex-col ${
@@ -233,7 +237,7 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
         <div className={`flex items-center gap-2 px-3 py-2 border-t-2 ${
           isDarkMode ? 'border-slate-700' : 'border-slate-100'
         }`}>
-          {/* TTS for the input uses learningDialect — the word is in the learning language */}
+          {/* TTS for the input uses learningLang — the word is in the learning language */}
           <IconButton
             onClick={() => handleSpeak(inputText, learningLang)}
             label={t('translator.listen')}
@@ -313,7 +317,7 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
                 {lookedUpWord}
               </h3>
 
-              {/* Definition */}
+              {/* Definition — in interfaceLang */}
               <div>
                 <p className={sectionLabel}>{t('dictionary.definition')}</p>
                 <p className={`text-base font-bold leading-relaxed ${
@@ -323,7 +327,7 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
                 </p>
               </div>
 
-              {/* Synonyms */}
+              {/* Synonyms — in learningLang */}
               {synonyms.length > 0 && (
                 <div>
                   <p className={sectionLabel}>{t('dictionary.synonyms')}</p>
@@ -340,13 +344,12 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
                 </div>
               )}
 
-              {/* Result actions — definition is in interfaceLang */}
+              {/* Result actions — TTS for definition uses resolvedInterfaceLang */}
               <div className={`flex items-center gap-2 pt-2 border-t-2 ${
                 isDarkMode ? 'border-slate-700' : 'border-slate-100'
               }`}>
-                {/* TTS for the definition uses interfaceLang — the definition is in the interface language */}
                 <IconButton
-                  onClick={() => handleSpeak(definition, interfaceLang ?? 'en-US')}
+                  onClick={() => handleSpeak(definition, resolvedInterfaceLang)}
                   label={t('translator.listen')}
                   disabled={!definition}
                   isDarkMode={isDarkMode}
