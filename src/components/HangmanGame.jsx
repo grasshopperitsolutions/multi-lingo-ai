@@ -64,7 +64,7 @@ const HangmanGame = ({ isDarkMode }) => {
   const { user } = useAppContext();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
-  const nativeDialect   = user?.nativeDialect   ?? "en-US";
+  const interfaceLang   = user?.interfaceLang   ?? "en-US";
 
   // ── Difficulty ──
   const [hardMode, setHardMode] = useState(false);
@@ -181,7 +181,7 @@ const HangmanGame = ({ isDarkMode }) => {
 
     const result = await getWord({
       token,
-      userDialect:    nativeDialect,
+      userDialect:    interfaceLang,
       learningDialect,
       seenConceptIds: prog?.seenConceptIds ?? [],
     });
@@ -194,7 +194,7 @@ const HangmanGame = ({ isDarkMode }) => {
       .catch((err) => console.warn("[HangmanGame] markConceptSeen failed:", err));
 
     return { word: result.word.toUpperCase(), hint: result.hint, progress: prog };
-  }, [user, learningDialect, nativeDialect, t, fetchStats]);
+  }, [user, learningDialect, interfaceLang, t, fetchStats]);
 
   const fetchWord = useCallback(async () => {
     try {

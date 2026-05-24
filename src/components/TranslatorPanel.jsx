@@ -70,10 +70,10 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
   const { t }    = useTranslation();
   const { user } = useAppContext();
 
-  const nativeLang   = user?.nativeDialect   ?? 'en-US';
-  const learningLang = user?.learningDialect  ?? 'pt-PT';
+  const interfaceLang = user?.interfaceLang ?? 'en-US';
+  const learningLang  = user?.learningDialect ?? 'pt-PT';
 
-  const [sourceLang,    setSourceLang]    = useState(nativeLang);
+  const [sourceLang,    setSourceLang]    = useState(interfaceLang);
   const [targetLang,    setTargetLang]    = useState(learningLang);
   const [inputText,     setInputText]     = useState('');
   const [outputText,    setOutputText]    = useState('');

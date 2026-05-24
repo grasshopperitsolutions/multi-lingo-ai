@@ -75,7 +75,7 @@ export const AppProvider = ({ children }) => {
    *   1. Firestore value  — set by the user in Settings (custom name / uploaded avatar)
    *   2. Auth provider    — Google / Facebook / Apple / X display name and photo
    *
-   * All other profile fields (theme, interfaceLang, nativeDialect,
+   * All other profile fields (theme, interfaceLang,
    * learningDialect, interests) come from Firestore only.
    *
    * @param {object} authUser - The raw Firebase Auth user object fields + token.
@@ -111,8 +111,6 @@ export const AppProvider = ({ children }) => {
         interfaceLang: lang,
         theme: profile?.theme ?? "light",
         // ── Learning profile fields ──────────────────────────────────────────
-        // nativeDialect: Firestore → fallback to interfaceLang → keep previous
-        nativeDialect: profile?.nativeDialect ?? prev?.nativeDialect ?? null,
         // learningDialect: Firestore → hardcoded default pt-PT
         learningDialect: profile?.learningDialect ?? "pt-PT",
         // interests: Firestore → keep previous → empty array

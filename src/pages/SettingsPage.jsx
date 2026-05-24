@@ -165,7 +165,6 @@ const SettingsForm = ({
   user, isDarkMode,
   displayName, setDisplayName,
   interfaceLang, setInterfaceLang,
-  nativeDialect, setNativeDialect,
   interests, setInterests,
   draftDarkMode, setDraftDarkMode,
   isSaving, isUploading, handleSave,
@@ -306,18 +305,6 @@ const SettingsForm = ({
           </div>
           <div>
             <label className={labelClasses}>
-              <Globe size={12} className="inline mr-1" /> {t("settings.native_language")}
-            </label>
-            <NeoDropdown
-              options={LANGUAGES.map((l) => ({ value: l.value, label: t(l.labelKey) }))}
-              value={nativeDialect}
-              onChange={setNativeDialect}
-              isDarkMode={isDarkMode}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className={labelClasses}>
               {t("settings.interests")}
             </label>
             <p className={`text-xs font-semibold mb-3
@@ -360,7 +347,6 @@ SettingsForm.propTypes = {
     displayName: PropTypes.string,
     photoURL: PropTypes.string,
     interfaceLang: PropTypes.string,
-    nativeDialect: PropTypes.string,
     learningDialect: PropTypes.string,
     interests: PropTypes.arrayOf(PropTypes.string),
   }),
@@ -369,8 +355,6 @@ SettingsForm.propTypes = {
   setDisplayName:   PropTypes.func.isRequired,
   interfaceLang:    PropTypes.string.isRequired,
   setInterfaceLang: PropTypes.func.isRequired,
-  nativeDialect:    PropTypes.string.isRequired,
-  setNativeDialect: PropTypes.func.isRequired,
   interests:        PropTypes.arrayOf(PropTypes.string).isRequired,
   setInterests:     PropTypes.func.isRequired,
   draftDarkMode:    PropTypes.bool.isRequired,
@@ -390,7 +374,6 @@ const SettingsPage = () => {
 
   const [displayName,   setDisplayName]   = useState(user?.displayName || "");
   const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en-US");
-  const [nativeDialect, setNativeDialect] = useState(user?.nativeDialect || user?.interfaceLang || "en-US");
   const [interests,     setInterests]     = useState(user?.interests || []);
   const [draftDarkMode, setDraftDarkMode] = useState(isDarkMode);
   const [isSaving,      setIsSaving]      = useState(false);
@@ -407,7 +390,6 @@ const SettingsPage = () => {
     user?.uid || "",
     user?.displayName || "",
     user?.interfaceLang || "",
-    user?.nativeDialect || "",
     (user?.interests || []).join(","),
     isDarkMode,
   ].join("|");
@@ -416,7 +398,6 @@ const SettingsPage = () => {
     setPrevSyncKey(syncKey);
     if (user?.displayName)   setDisplayName(user.displayName);
     if (user?.interfaceLang) setInterfaceLang(user.interfaceLang);
-    setNativeDialect(user?.nativeDialect || user?.interfaceLang || "en-US");
     setInterests(Array.isArray(user?.interests) ? user.interests : []);
     setDraftDarkMode(isDarkMode);
   }
@@ -455,7 +436,6 @@ const SettingsPage = () => {
         displayName,
         interfaceLang,
         theme: draftDarkMode ? "dark" : "light",
-        nativeDialect,
         learningDialect: "pt-PT",
         interests,
       });
@@ -550,8 +530,6 @@ const SettingsPage = () => {
           setDisplayName={setDisplayName}
           interfaceLang={interfaceLang}
           setInterfaceLang={setInterfaceLang}
-          nativeDialect={nativeDialect}
-          setNativeDialect={setNativeDialect}
           interests={interests}
           setInterests={setInterests}
           draftDarkMode={draftDarkMode}
