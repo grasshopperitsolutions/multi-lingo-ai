@@ -16,7 +16,7 @@ const SEOMeta = ({ title, description, path = '', lang = 'en-US' }) => {
       {/* hreflang alternates */}
       <link rel="alternate" hrefLang="en-US"    href={`${baseUrl}${path}`} />
       <link rel="alternate" hrefLang="pt-PT"    href={`${baseUrl}${path}`} />
-      <link rel="alternate" hrefLang="es-MX"    href={`${baseUrl}${path}`} />
+      <link rel="alternate" hrefLang="es-ES"    href={`${baseUrl}${path}`} />
       <link rel="alternate" hrefLang="fr-FR"    href={`${baseUrl}${path}`} />
       <link rel="alternate" hrefLang="x-default" href={`${baseUrl}${path}`} />
 

@@ -17,7 +17,7 @@ async function getToken() {
 //
 // Supports both top-level and subcollection paths:
 //   getDocument('users', uid)
-//   getDocument('gameWords/hangman__es-MX__food/words', wordId)
+//   getDocument('gameWords/hangman__es-ES__food/words', wordId)
 // ---------------------------------------------------------------------------
 
 /**
@@ -198,7 +198,7 @@ export async function updateDocument(collection, id, data, token) {
 //
 // Example — add a Portuguese hint without touching existing hints:
 //   patchDocument(
-//     'gameWords/hangman__es-MX__food/words',
+//     'gameWords/hangman__es-ES__food/words',
 //     wordId,
 //     { 'hints.pt-BR': 'Uma fruta redonda...' }
 //   )

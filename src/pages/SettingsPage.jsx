@@ -28,7 +28,7 @@ import { auth } from "../firebase";
 const LANGUAGES = [
   { value: "en-US", labelKey: "nav.lang_en" },
   { value: "pt-PT", labelKey: "nav.lang_pt" },
-  { value: "es-MX", labelKey: "nav.lang_es" },
+  { value: "es-ES", labelKey: "nav.lang_es" },
   { value: "fr-FR", labelKey: "nav.lang_fr" },
 ];
 

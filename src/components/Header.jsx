@@ -29,7 +29,7 @@ const Header = () => {
   const languages = [
     { code: "en-US", label: t("nav.lang_en") },
     { code: "pt-PT", label: t("nav.lang_pt") },
-    { code: "es-MX", label: t("nav.lang_es") },
+    { code: "es-ES", label: t("nav.lang_es") },
     { code: "fr-FR", label: t("nav.lang_fr") },
   ];
 

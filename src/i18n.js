@@ -14,11 +14,11 @@ i18n
     resources: {
       'en-US': { translation: enTranslation },
       'pt-PT': { translation: ptPTTranslation },
-      'es-MX': { translation: esTranslation },
+      'es-ES': { translation: esTranslation },
       'fr-FR': { translation: frTranslation },
     },
     fallbackLng: 'en-US',
-    supportedLngs: ['en-US', 'pt-PT', 'es-MX', 'fr-FR'],
+    supportedLngs: ['en-US', 'pt-PT', 'es-ES', 'fr-FR'],
     interpolation: {
       escapeValue: false,
     },
