@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowLeftRight, Copy, Volume2, Trash2, Languages } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { translateText } from '../services/translatorService';
+import TooltipButton from './TooltipButton';
 
 const MAX_CHARS = 1000;
 
@@ -56,30 +57,32 @@ const IconButton = ({ onClick, label, disabled, isDarkMode, children }) => (
 );
 
 IconButton.propTypes = {
-  onClick:   PropTypes.func.isRequired,
-  label:     PropTypes.string.isRequired,
-  disabled:  PropTypes.bool,
+  onClick:    PropTypes.func.isRequired,
+  label:      PropTypes.string.isRequired,
+  disabled:   PropTypes.bool,
   isDarkMode: PropTypes.bool.isRequired,
-  children:  PropTypes.node.isRequired,
+  children:   PropTypes.node.isRequired,
 };
 
 // ---------------------------------------------------------------------------
 // TranslatorPanel
 // ---------------------------------------------------------------------------
 const TranslatorPanel = ({ isDarkMode, onBack }) => {
-  const { t }    = useTranslation();
-  const { user } = useAppContext();
+  const { t }                        = useTranslation();
+  const { user, interfaceLang }      = useAppContext();
 
-  const nativeLang   = user?.nativeDialect   ?? 'en-US';
-  const learningLang = user?.learningDialect  ?? 'pt-PT';
+  // Source = interface language (the language the user operates the app in)
+  // Target = the language the user is learning
+  const defaultSource = interfaceLang       ?? 'en-US';
+  const defaultTarget = user?.learningDialect ?? 'pt-PT';
 
-  const [sourceLang,    setSourceLang]    = useState(nativeLang);
-  const [targetLang,    setTargetLang]    = useState(learningLang);
-  const [inputText,     setInputText]     = useState('');
-  const [outputText,    setOutputText]    = useState('');
-  const [isLoading,     setIsLoading]     = useState(false);
-  const [error,         setError]         = useState(null);
-  const [copyFeedback,  setCopyFeedback]  = useState(false);
+  const [sourceLang,   setSourceLang]   = useState(defaultSource);
+  const [targetLang,   setTargetLang]   = useState(defaultTarget);
+  const [inputText,    setInputText]    = useState('');
+  const [outputText,   setOutputText]   = useState('');
+  const [isLoading,    setIsLoading]    = useState(false);
+  const [error,        setError]        = useState(null);
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
   // ── Swap languages + text ─────────────────────────────────────────────────
   const handleSwap = () => {
@@ -146,7 +149,7 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
       : 'bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]'
   }`;
 
-  const langLabelClass = `px-3 py-1.5 text-xs font-black uppercase tracking-widest rounded-lg ${
+  const langBadgeClass = `px-3 py-1.5 text-xs font-black uppercase tracking-widest rounded-lg cursor-default ${
     isDarkMode ? 'bg-slate-700 text-sky-400' : 'bg-slate-100 text-sky-600'
   }`;
 
@@ -173,9 +176,14 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
 
         {/* ── Input panel ── */}
         <div className={panelBase}>
-          {/* Lang label */}
+          {/* Lang label with tooltip */}
           <div className="flex items-center justify-between px-3 pt-2 pb-1">
-            <span className={langLabelClass}>{sourceLang}</span>
+            <TooltipButton
+              tooltip="Interface language — change in Settings"
+              isDarkMode={isDarkMode}
+            >
+              <span className={langBadgeClass}>{sourceLang}</span>
+            </TooltipButton>
             <span className={`text-xs font-bold ${
               inputText.length > MAX_CHARS * 0.9
                 ? 'text-rose-500'
@@ -223,9 +231,14 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
 
         {/* ── Output panel ── */}
         <div className={panelBase}>
-          {/* Lang label */}
+          {/* Lang label with tooltip */}
           <div className="flex items-center px-3 pt-2 pb-1">
-            <span className={langLabelClass}>{targetLang}</span>
+            <TooltipButton
+              tooltip="Learning language — change in Settings"
+              isDarkMode={isDarkMode}
+            >
+              <span className={langBadgeClass}>{targetLang}</span>
+            </TooltipButton>
           </div>
 
           {/* Output area */}
