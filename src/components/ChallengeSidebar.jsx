@@ -10,15 +10,15 @@ import ConfirmModal from "./ConfirmModal";
 
 /** Format an ISO timestamp as a relative human-readable string. */
 function _relativeTime(isoString, t) {
-  if (!isoString) return t("challenge.sidebar.never");
+  if (!isoString) return t("challenges.sidebar.never");
   const diff = Date.now() - new Date(isoString).getTime();
   const mins  = Math.floor(diff / 60_000);
   const hours = Math.floor(diff / 3_600_000);
   const days  = Math.floor(diff / 86_400_000);
-  if (mins  <  1) return t("challenge.sidebar.just_now");
-  if (mins  < 60) return t("challenge.sidebar.minutes_ago", { count: mins });
-  if (hours < 24) return t("challenge.sidebar.hours_ago",   { count: hours });
-  return t("challenge.sidebar.days_ago", { count: days });
+  if (mins  <  1) return t("challenges.sidebar.just_now");
+  if (mins  < 60) return t("challenges.sidebar.minutes_ago", { count: mins });
+  if (hours < 24) return t("challenges.sidebar.hours_ago",   { count: hours });
+  return t("challenges.sidebar.days_ago", { count: days });
 }
 
 /** Compute seen-words percentage, capped at 99. */
@@ -119,7 +119,7 @@ const ChallengeSidebar = ({
   const toggleBtn = (
     <button
       onClick={() => setCollapsed((v) => !v)}
-      aria-label={collapsed ? t("challenge.sidebar.expand") : t("challenge.sidebar.collapse")}
+      aria-label={collapsed ? t("challenges.sidebar.expand") : t("challenges.sidebar.collapse")}
       className={`flex items-center justify-center w-7 h-7 rounded-lg border-2 transition-colors shrink-0 ${
         isDarkMode
           ? "border-slate-600 text-slate-400 hover:border-yellow-400 hover:text-yellow-400"
@@ -187,7 +187,7 @@ const ChallengeSidebar = ({
           <p className={`font-black uppercase text-xs tracking-widest ${
             isDarkMode ? "text-slate-400" : "text-slate-500"
           }`}>
-            {t("challenge.sidebar.words_seen")}
+            {t("challenges.sidebar.words_seen")}
           </p>
 
           {isLoadingStats ? (
@@ -231,19 +231,19 @@ const ChallengeSidebar = ({
           {divider}
           <StatRow
             icon={<Trophy size={14} />}
-            label={t("challenge.sidebar.played")}
+            label={t("challenges.sidebar.played")}
             value={String(totalPlayed)}
             isDarkMode={isDarkMode}
           />
           <StatRow
             icon={<Clock size={14} />}
-            label={t("challenge.sidebar.last_played")}
+            label={t("challenges.sidebar.last_played")}
             value={lastPlayed}
             isDarkMode={isDarkMode}
           />
           <StatRow
             icon={<Hash size={14} />}
-            label={t("challenge.sidebar.dialect")}
+            label={t("challenges.sidebar.dialect")}
             value={progress?.learningDialect ?? "\u2014"}
             isDarkMode={isDarkMode}
           />
@@ -261,7 +261,7 @@ const ChallengeSidebar = ({
           }`}
         >
           <RotateCcw size={14} />
-          {t("challenge.sidebar.reset_btn")}
+          {t("challenges.sidebar.reset_btn")}
         </button>
       </aside>
 
@@ -300,7 +300,7 @@ const ChallengeSidebar = ({
               <span className={`font-black text-sm ${
                 isDarkMode ? "text-yellow-400" : "text-slate-900"
               }`}>
-                {pct}% {t("challenge.sidebar.words_seen")}
+                {pct}% {t("challenges.sidebar.words_seen")}
               </span>
               <span className={`text-xs ${ isDarkMode ? "text-slate-500" : "text-slate-400" }`}>
                 {seenCount}/{totalWords ?? "\u2026"}
@@ -310,7 +310,7 @@ const ChallengeSidebar = ({
             {/* Inline stats */}
             <div className="flex flex-wrap gap-x-4 gap-y-1">
               <span className={`text-xs font-bold ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`}>
-                <Trophy size={11} className="inline mr-1" />{totalPlayed} {t("challenge.sidebar.played")}
+                <Trophy size={11} className="inline mr-1" />{totalPlayed} {t("challenges.sidebar.played")}
               </span>
               <span className={`text-xs font-bold ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`}>
                 <Clock size={11} className="inline mr-1" />{lastPlayed}
@@ -327,7 +327,7 @@ const ChallengeSidebar = ({
                   : "border-slate-300 text-slate-500 hover:border-slate-900 hover:text-slate-900"
               }`}
             >
-              <RotateCcw size={12} /> {t("challenge.sidebar.reset_btn")}
+              <RotateCcw size={12} /> {t("challenges.sidebar.reset_btn")}
             </button>
           </div>
         )}

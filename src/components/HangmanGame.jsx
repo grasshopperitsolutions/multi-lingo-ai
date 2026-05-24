@@ -463,11 +463,11 @@ const HangmanGame = ({ isDarkMode }) => {
         totalWords={totalWords}
         isLoadingStats={isLoadingStats}
         onReset={handleResetSeenWords}
-        title={t("challenge.sidebar.title")}
-        resetTitle={t("challenge.sidebar.reset_title")}
-        resetMessage={t("challenge.sidebar.reset_message")}
-        resetWarning={t("challenge.sidebar.reset_warning")}
-        resetConfirmLabel={t("challenge.sidebar.reset_confirm")}
+        title={t("challenges.sidebar.title")}
+        resetTitle={t("challenges.sidebar.reset_title")}
+        resetMessage={t("challenges.sidebar.reset_message")}
+        resetWarning={t("challenges.sidebar.reset_warning")}
+        resetConfirmLabel={t("challenges.sidebar.reset_confirm")}
       />
     </div>
   );
