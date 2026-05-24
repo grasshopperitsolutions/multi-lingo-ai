@@ -7,6 +7,7 @@ import Loader from "../components/Loader";
 import Avatar from "../components/Avatar";
 import ChallengesMenu from "../components/ChallengesMenu";
 import TranslatorPanel from "../components/TranslatorPanel";
+import TooltipButton from "../components/TooltipButton";
 import {
   Languages,
   BookMarked,
@@ -56,55 +57,6 @@ StatCard.propTypes = {
   value: PropTypes.string.isRequired,
   color: PropTypes.string.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
-};
-
-// ── TooltipButton ─────────────────────────────────────────────────────────────
-const TooltipButton = ({ tooltip, isDarkMode, children }) => {
-  const tooltipClasses = isDarkMode
-    ? "bg-slate-900 border-yellow-400 text-yellow-400"
-    : "bg-white border-slate-900 text-slate-900";
-
-  return (
-    <div className="relative group">
-      {children}
-      <div
-        role="tooltip"
-        className={[
-          "absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2",
-          "px-3 py-1.5 rounded-lg border-2 text-xs font-black uppercase tracking-widest whitespace-nowrap",
-          "pointer-events-none select-none",
-          "opacity-0 group-hover:opacity-100 -translate-y-1 group-hover:translate-y-0",
-          "transition-all duration-150",
-          tooltipClasses,
-        ].join(" ")}
-      >
-        {tooltip}
-        {isDarkMode ? (
-          <span
-            className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900"
-            aria-hidden="true"
-          />
-        ) : (
-          <>
-            <span
-              className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-slate-900"
-              aria-hidden="true"
-            />
-            <span
-              className="absolute top-[calc(100%-1px)] left-1/2 -translate-x-1/2 border-4 border-transparent border-t-white"
-              aria-hidden="true"
-            />
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-
-TooltipButton.propTypes = {
-  tooltip: PropTypes.string.isRequired,
-  isDarkMode: PropTypes.bool.isRequired,
-  children: PropTypes.node.isRequired,
 };
 
 // ── DashboardPage ─────────────────────────────────────────────────────────────
@@ -217,8 +169,8 @@ const DashboardPage = () => {
     },
   ];
 
-  const isTranslator  = selectedFeature?.id === 'translator';
-  const isChallenges  = selectedFeature?.id === 'challenges';
+  const isTranslator   = selectedFeature?.id === 'translator';
+  const isChallenges   = selectedFeature?.id === 'challenges';
   const isOtherFeature = selectedFeature && !isTranslator && !isChallenges;
 
   return (
