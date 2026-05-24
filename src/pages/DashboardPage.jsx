@@ -6,6 +6,7 @@ import FeatureCard from "../components/FeatureCard";
 import Loader from "../components/Loader";
 import Avatar from "../components/Avatar";
 import ChallengesMenu from "../components/ChallengesMenu";
+import TranslatorPanel from "../components/TranslatorPanel";
 import {
   Languages,
   BookMarked,
@@ -58,7 +59,6 @@ StatCard.propTypes = {
 };
 
 // ── TooltipButton ─────────────────────────────────────────────────────────────
-// A thin wrapper that adds a tooltip above any icon button.
 const TooltipButton = ({ tooltip, isDarkMode, children }) => {
   const tooltipClasses = isDarkMode
     ? "bg-slate-900 border-yellow-400 text-yellow-400"
@@ -146,19 +146,21 @@ const DashboardPage = () => {
 
   const features = [
     {
+      id: "challenges",
       icon: Gamepad2,
       title: t("dashboard.challenges"),
       description: t("dashboard.challenges_desc"),
       color: "text-yellow-500",
     },
     {
+      id: "translator",
       icon: Languages,
       title: t("dashboard.translator"),
       description: t("dashboard.translator_desc"),
       color: "text-sky-500",
-      statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
+      id: "dictionary",
       icon: BookMarked,
       title: t("dashboard.dictionary"),
       description: t("dashboard.dictionary_desc"),
@@ -166,6 +168,7 @@ const DashboardPage = () => {
       statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
+      id: "grammar",
       icon: PenLine,
       title: t("dashboard.grammar"),
       description: t("dashboard.grammar_desc"),
@@ -173,6 +176,7 @@ const DashboardPage = () => {
       statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
+      id: "ai_tutor",
       icon: BotMessageSquare,
       title: t("dashboard.ai_tutor"),
       description: t("dashboard.ai_tutor_desc"),
@@ -180,6 +184,7 @@ const DashboardPage = () => {
       statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
+      id: "real_person_tutor",
       icon: UserRound,
       title: t("dashboard.real_person_tutor"),
       description: t("dashboard.real_person_tutor_desc"),
@@ -187,6 +192,7 @@ const DashboardPage = () => {
       statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
+      id: "voice_practice",
       icon: Video,
       title: t("dashboard.voice_practice"),
       description: t("dashboard.voice_practice_desc"),
@@ -194,6 +200,7 @@ const DashboardPage = () => {
       statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
+      id: "story_generator",
       icon: BookOpen,
       title: t("dashboard.story_generator"),
       description: t("dashboard.story_generator_desc"),
@@ -201,6 +208,7 @@ const DashboardPage = () => {
       statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
+      id: "history_culture",
       icon: Landmark,
       title: t("dashboard.history_culture"),
       description: t("dashboard.history_culture_desc"),
@@ -208,6 +216,10 @@ const DashboardPage = () => {
       statusBadgeLabel: t("dashboard.in_progress"),
     },
   ];
+
+  const isTranslator  = selectedFeature?.id === 'translator';
+  const isChallenges  = selectedFeature?.id === 'challenges';
+  const isOtherFeature = selectedFeature && !isTranslator && !isChallenges;
 
   return (
     <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-10 space-y-10">
@@ -264,8 +276,24 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* Selected Feature Section (non-challenges) */}
-      {selectedFeature && selectedFeature.title !== t("dashboard.challenges") && (
+      {/* ── Translator ── */}
+      {isTranslator && (
+        <TranslatorPanel
+          isDarkMode={isDarkMode}
+          onBack={handleBackToDashboard}
+        />
+      )}
+
+      {/* ── Challenges Hub ── */}
+      {isChallenges && (
+        <ChallengesMenu
+          isDarkMode={isDarkMode}
+          onBack={handleBackToDashboard}
+        />
+      )}
+
+      {/* ── Other features (not yet implemented) ── */}
+      {isOtherFeature && (
         <section className="space-y-6">
           <button
             onClick={handleBackToDashboard}
@@ -317,14 +345,6 @@ const DashboardPage = () => {
             </div>
           </div>
         </section>
-      )}
-
-      {/* Challenges Hub */}
-      {selectedFeature && selectedFeature.title === t("dashboard.challenges") && (
-        <ChallengesMenu
-          isDarkMode={isDarkMode}
-          onBack={handleBackToDashboard}
-        />
       )}
 
       {/* Stats + Features — hidden when a feature is active */}
