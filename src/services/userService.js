@@ -72,10 +72,12 @@ const extractGcsFilePath = (photoURL) => {
  *  1. Read the current photoURL from Firestore to identify the old GCS file.
  *  2. Upload the new file to GCS.
  *  3. Save the new publicUrl to the user's Firestore doc.
- *  4. Delete the old GCS file (non-fatal — does not block the upload).
+ *  4. Fire-and-forget deletion of the old GCS file — does not block return.
  *
  * Falls back gracefully: if reading the old URL or deleting it fails,
  * the upload still completes and the new avatar is saved.
+ * Social auth photos (Google, etc.) are never touched — extractGcsFilePath
+ * returns null for any URL that doesn't start with the GCS bucket base.
  *
  * @param {string} token - Firebase ID token
  * @param {string} uid   - User UID
@@ -105,13 +107,13 @@ export const uploadProfileImage = async (token, uid, file) => {
   // 3. Persist the new URL in Firestore
   await updateUserProfile(token, uid, { photoURL: publicUrl });
 
-  // 4. Delete old GCS file (non-fatal — skipped if it was a social auth photo)
+  // 4. Fire-and-forget: delete old GCS file in the background.
+  // The new avatar is already live at this point — no need to block the caller.
+  // Skipped automatically if the old photo was a social auth URL (null path).
   if (oldFilePath) {
-    try {
-      await deleteAvatarFile(token, oldFilePath);
-    } catch (e) {
+    deleteAvatarFile(token, oldFilePath).catch((e) => {
       console.warn('[uploadProfileImage] Old avatar cleanup failed (non-fatal):', e);
-    }
+    });
   }
 
   return publicUrl;
