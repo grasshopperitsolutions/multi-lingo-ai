@@ -1,6 +1,9 @@
-import { requestUpload, uploadToGcs } from './storageService';
+import { requestUpload, uploadToGcs, deleteAvatarFile } from './storageService';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
+
+// GCS public URL base — used to extract the filePath from a stored photoURL
+const GCS_BASE_URL = 'https://storage.googleapis.com/multi-lingo-ai.firebasestorage.app/';
 
 // ---------------------------------------------------------------------------
 // Types (JSDoc only)
@@ -49,7 +52,47 @@ export const updateUserProfile = async (token, uid, data) => {
   return json;
 };
 
+/**
+ * Extracts the GCS object path from a public GCS URL.
+ * Returns null if the URL is not a GCS URL for this bucket
+ * (e.g. a Google/social auth photo URL).
+ *
+ * @param {string|null|undefined} photoURL
+ * @returns {string|null}
+ */
+const extractGcsFilePath = (photoURL) => {
+  if (!photoURL || !photoURL.startsWith(GCS_BASE_URL)) return null;
+  return photoURL.replace(GCS_BASE_URL, '');
+};
+
+/**
+ * Upload a new profile image, replacing the existing one.
+ *
+ * Steps:
+ *  1. Read the current photoURL from Firestore to identify the old GCS file.
+ *  2. Upload the new file to GCS.
+ *  3. Save the new publicUrl to the user's Firestore doc.
+ *  4. Delete the old GCS file (non-fatal — does not block the upload).
+ *
+ * Falls back gracefully: if reading the old URL or deleting it fails,
+ * the upload still completes and the new avatar is saved.
+ *
+ * @param {string} token - Firebase ID token
+ * @param {string} uid   - User UID
+ * @param {File}   file  - The image file to upload
+ * @returns {Promise<string>} The public URL of the new avatar
+ */
 export const uploadProfileImage = async (token, uid, file) => {
+  // 1. Capture old GCS file path before overwriting photoURL
+  let oldFilePath = null;
+  try {
+    const profile = await getUserProfile(token, uid);
+    oldFilePath = extractGcsFilePath(profile?.photoURL);
+  } catch (e) {
+    console.warn('[uploadProfileImage] Could not read old avatar URL:', e);
+  }
+
+  // 2. Upload the new avatar
   const { uploadUrl, publicUrl } = await requestUpload(
     token,
     file.name,
@@ -57,10 +100,20 @@ export const uploadProfileImage = async (token, uid, file) => {
     'avatars',
     { uid },
   );
-  // The signed URL was generated with extensionHeaders: { 'x-goog-acl': 'public-read' }.
-  // GCS requires that header to be present in the PUT request or it returns 403.
   await uploadToGcs(uploadUrl, file, file.type, { 'x-goog-acl': 'public-read' });
+
+  // 3. Persist the new URL in Firestore
   await updateUserProfile(token, uid, { photoURL: publicUrl });
+
+  // 4. Delete old GCS file (non-fatal — skipped if it was a social auth photo)
+  if (oldFilePath) {
+    try {
+      await deleteAvatarFile(token, oldFilePath);
+    } catch (e) {
+      console.warn('[uploadProfileImage] Old avatar cleanup failed (non-fatal):', e);
+    }
+  }
+
   return publicUrl;
 };
 
