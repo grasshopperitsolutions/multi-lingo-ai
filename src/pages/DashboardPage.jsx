@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import PropTypes from "prop-types";
 
-// ── StatCard ──────────────────────────────────────────────────────────────────
+// ── StatCard ──────────────────────────────────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
   <div
     className={`p-6 rounded-2xl border-4 flex flex-col gap-3 transition-all hover:-translate-y-1
@@ -60,7 +60,7 @@ StatCard.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
 };
 
-// ── DashboardPage ─────────────────────────────────────────────────────────────
+// ── DashboardPage ─────────────────────────────────────────────────────────────────────────────
 const DashboardPage = () => {
   const { isDarkMode, user, logoutUser } = useAppContext();
   const { t } = useTranslation();
@@ -177,16 +177,18 @@ const DashboardPage = () => {
   return (
     <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-10 space-y-10">
       {/* Header row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between gap-3">
+        {/* Left: avatar + greeting — min-w-0 lets this shrink on small screens */}
+        <div className="flex items-center gap-4 min-w-0">
           <Avatar
             src={user?.photoURL}
             alt={user?.displayName || t("dashboard.profile_alt")}
             size={48}
             isDarkMode={isDarkMode}
+            className="shrink-0"
           />
-          <div>
-            <h1 className={`text-4xl font-black uppercase tracking-tighter ${
+          <div className="min-w-0">
+            <h1 className={`text-4xl font-black uppercase tracking-tighter truncate ${
               isDarkMode ? "text-white" : "text-slate-900"
             }`}>
               {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || t("dashboard.learner") })}
@@ -197,8 +199,8 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-3">
+        {/* Action buttons — shrink-0 keeps them always visible */}
+        <div className="flex gap-3 shrink-0">
           <TooltipButton tooltip={t("nav.settings")} isDarkMode={isDarkMode}>
             <button
               onClick={() => navigate("/settings")}
