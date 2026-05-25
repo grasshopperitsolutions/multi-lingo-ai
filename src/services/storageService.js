@@ -123,26 +123,27 @@ export const deleteFile = async (token, fileId) => {
 };
 
 /**
- * Delete an avatar file from GCS by its storage path.
- * Avatars are not tracked in the files collection, so they are deleted
- * by path rather than by fileId.
+ * Delete ALL files inside the user's avatar folder (avatars/{uid}/).
+ * This is called before uploading a new avatar to guarantee no stale
+ * files are left behind, regardless of filename or encoding differences.
  *
- * DELETE /api/storage  { filePath }
+ * Must be awaited before the new upload starts.
  *
- * @param {string} token     - Firebase ID token
- * @param {string} filePath  - GCS object path, e.g. avatars/{uid}/timestamp_filename.gif
- * @returns {Promise<{ message: string, filePath: string }>}
+ * DELETE /api/storage  { folder: 'avatars' }
+ *
+ * @param {string} token - Firebase ID token
+ * @returns {Promise<{ message: string, prefix: string }>}
  */
-export const deleteAvatarFile = async (token, filePath) => {
+export const clearAvatarFolder = async (token) => {
   const res = await fetch(`${PROXY_URL}/api/storage`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ filePath }),
+    body: JSON.stringify({ folder: 'avatars' }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json?.error || json?.message || 'Failed to delete avatar file');
+  if (!res.ok) throw new Error(json?.error || json?.message || 'Failed to clear avatar folder');
   return json?.data || json;
 };
