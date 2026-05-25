@@ -1,4 +1,4 @@
-import { requestUpload, uploadToGcs, clearAvatarFolder } from './storageService';
+import { requestUpload, uploadToGcs, deleteByPrefix } from './storageService';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 
@@ -53,14 +53,13 @@ export const updateUserProfile = async (token, uid, data) => {
  * Upload a new profile image, replacing the existing one.
  *
  * Steps:
- *  1. Wipe ALL files in avatars/{uid}/ — must complete before upload to
+ *  1. Wipe ALL files under avatars/{uid}/ — must complete before upload to
  *     avoid the new file being caught by the folder wipe.
  *  2. Upload the new file to GCS.
  *  3. Save the new publicUrl to the user's Firestore doc.
  *
- * The folder wipe is non-fatal: if it fails (e.g. folder is already empty,
- * or a transient network error), the upload proceeds anyway. The worst case
- * is a single orphaned file remaining, not a broken upload.
+ * The wipe is non-fatal: if it fails (e.g. folder already empty, transient
+ * network error), the upload proceeds anyway.
  *
  * Social auth photos (Google, etc.) are never touched — they live outside
  * our GCS bucket entirely.
@@ -71,12 +70,12 @@ export const updateUserProfile = async (token, uid, data) => {
  * @returns {Promise<string>} The public URL of the new avatar
  */
 export const uploadProfileImage = async (token, uid, file) => {
-  // 1. Wipe the entire avatars/{uid}/ folder first.
+  // 1. Wipe the entire avatars/{uid}/ prefix first.
   // Awaited so the new upload cannot be deleted by a concurrent wipe.
   try {
-    await clearAvatarFolder(token);
+    await deleteByPrefix(token, `avatars/${uid}/`);
   } catch (e) {
-    console.warn('[uploadProfileImage] Avatar folder clear failed (non-fatal):', e);
+    console.warn('[uploadProfileImage] Avatar prefix clear failed (non-fatal):', e);
   }
 
   // 2. Upload the new avatar

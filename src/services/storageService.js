@@ -123,27 +123,27 @@ export const deleteFile = async (token, fileId) => {
 };
 
 /**
- * Delete ALL files inside the user's avatar folder (avatars/{uid}/).
- * This is called before uploading a new avatar to guarantee no stale
- * files are left behind, regardless of filename or encoding differences.
+ * Delete ALL files under a given GCS prefix.
+ * The prefix must contain the user's uid — enforced server-side.
  *
- * Must be awaited before the new upload starts.
+ * Must be awaited before any new upload to the same prefix starts.
  *
- * DELETE /api/storage  { folder: 'avatars' }
+ * DELETE /api/storage  { prefix: 'some/path/with/{uid}/' }
  *
- * @param {string} token - Firebase ID token
+ * @param {string} token  - Firebase ID token
+ * @param {string} prefix - Full GCS path prefix to wipe (e.g. 'avatars/{uid}/')
  * @returns {Promise<{ message: string, prefix: string }>}
  */
-export const clearAvatarFolder = async (token) => {
+export const deleteByPrefix = async (token, prefix) => {
   const res = await fetch(`${PROXY_URL}/api/storage`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ folder: 'avatars' }),
+    body: JSON.stringify({ prefix }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json?.error || json?.message || 'Failed to clear avatar folder');
+  if (!res.ok) throw new Error(json?.error || json?.message || 'Failed to delete files by prefix');
   return json?.data || json;
 };
