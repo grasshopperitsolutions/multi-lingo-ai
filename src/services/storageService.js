@@ -123,26 +123,27 @@ export const deleteFile = async (token, fileId) => {
 };
 
 /**
- * Delete an avatar file from GCS by its storage path.
- * Avatars are not tracked in the files collection, so they are deleted
- * by path rather than by fileId.
+ * Delete ALL files under a given GCS prefix.
+ * The prefix must contain the user's uid — enforced server-side.
  *
- * DELETE /api/storage  { filePath }
+ * Must be awaited before any new upload to the same prefix starts.
  *
- * @param {string} token     - Firebase ID token
- * @param {string} filePath  - GCS object path, e.g. avatars/{uid}/timestamp_filename.gif
- * @returns {Promise<{ message: string, filePath: string }>}
+ * DELETE /api/storage  { prefix: 'some/path/with/{uid}/' }
+ *
+ * @param {string} token  - Firebase ID token
+ * @param {string} prefix - Full GCS path prefix to wipe (e.g. 'avatars/{uid}/')
+ * @returns {Promise<{ message: string, prefix: string }>}
  */
-export const deleteAvatarFile = async (token, filePath) => {
+export const deleteByPrefix = async (token, prefix) => {
   const res = await fetch(`${PROXY_URL}/api/storage`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ filePath }),
+    body: JSON.stringify({ prefix }),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json?.error || json?.message || 'Failed to delete avatar file');
+  if (!res.ok) throw new Error(json?.error || json?.message || 'Failed to delete files by prefix');
   return json?.data || json;
 };

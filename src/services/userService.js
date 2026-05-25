@@ -1,9 +1,7 @@
-import { requestUpload, uploadToGcs, deleteAvatarFile } from './storageService';
+import { requestUpload, uploadToGcs, deleteByPrefix } from './storageService';
+import { storagePaths } from '../config/storagePaths';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-
-// GCS public URL base — used to extract the filePath from a stored photoURL
-const GCS_BASE_URL = 'https://storage.googleapis.com/multi-lingo-ai.firebasestorage.app/';
 
 // ---------------------------------------------------------------------------
 // Types (JSDoc only)
@@ -53,31 +51,19 @@ export const updateUserProfile = async (token, uid, data) => {
 };
 
 /**
- * Extracts the GCS object path from a public GCS URL.
- * Returns null if the URL is not a GCS URL for this bucket
- * (e.g. a Google/social auth photo URL).
- *
- * @param {string|null|undefined} photoURL
- * @returns {string|null}
- */
-const extractGcsFilePath = (photoURL) => {
-  if (!photoURL || !photoURL.startsWith(GCS_BASE_URL)) return null;
-  return photoURL.replace(GCS_BASE_URL, '');
-};
-
-/**
  * Upload a new profile image, replacing the existing one.
  *
  * Steps:
- *  1. Read the current photoURL from Firestore to identify the old GCS file.
+ *  1. Wipe ALL files under the user's avatar folder — must complete before
+ *     the upload to avoid the new file being caught by the prefix wipe.
  *  2. Upload the new file to GCS.
  *  3. Save the new publicUrl to the user's Firestore doc.
- *  4. Fire-and-forget deletion of the old GCS file — does not block return.
  *
- * Falls back gracefully: if reading the old URL or deleting it fails,
- * the upload still completes and the new avatar is saved.
- * Social auth photos (Google, etc.) are never touched — extractGcsFilePath
- * returns null for any URL that doesn't start with the GCS bucket base.
+ * The wipe is non-fatal: if it fails (e.g. folder already empty, transient
+ * network error), the upload proceeds anyway.
+ *
+ * Social auth photos (Google, etc.) are never touched — they live outside
+ * our GCS bucket entirely.
  *
  * @param {string} token - Firebase ID token
  * @param {string} uid   - User UID
@@ -85,13 +71,12 @@ const extractGcsFilePath = (photoURL) => {
  * @returns {Promise<string>} The public URL of the new avatar
  */
 export const uploadProfileImage = async (token, uid, file) => {
-  // 1. Capture old GCS file path before overwriting photoURL
-  let oldFilePath = null;
+  // 1. Wipe the user's avatar folder before uploading.
+  // Awaited so the new upload cannot be deleted by a concurrent wipe.
   try {
-    const profile = await getUserProfile(token, uid);
-    oldFilePath = extractGcsFilePath(profile?.photoURL);
+    await deleteByPrefix(token, storagePaths.avatarFolder(uid));
   } catch (e) {
-    console.warn('[uploadProfileImage] Could not read old avatar URL:', e);
+    console.warn('[uploadProfileImage] Avatar prefix clear failed (non-fatal):', e);
   }
 
   // 2. Upload the new avatar
@@ -106,15 +91,6 @@ export const uploadProfileImage = async (token, uid, file) => {
 
   // 3. Persist the new URL in Firestore
   await updateUserProfile(token, uid, { photoURL: publicUrl });
-
-  // 4. Fire-and-forget: delete old GCS file in the background.
-  // The new avatar is already live at this point — no need to block the caller.
-  // Skipped automatically if the old photo was a social auth URL (null path).
-  if (oldFilePath) {
-    deleteAvatarFile(token, oldFilePath).catch((e) => {
-      console.warn('[uploadProfileImage] Old avatar cleanup failed (non-fatal):', e);
-    });
-  }
 
   return publicUrl;
 };
