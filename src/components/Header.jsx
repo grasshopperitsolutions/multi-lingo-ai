@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import BarcelosRooster from "./BarcelosRooster";
-import StatusBadge from "./StatusBadge";
 
 const Header = () => {
   const {
@@ -51,11 +50,17 @@ const Header = () => {
             <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center border-2 border-slate-900 shadow-[4px_4px_0px_0px_#facc15] group-hover:scale-110 group-hover:rotate-12 transition-transform">
               <BarcelosRooster className="w-10 h-10" />
             </div>
-            <StatusBadge
-              label="beta"
-              isDarkMode={isDarkMode}
-              className="-top-2 -right-2"
-            />
+            <span
+              className={[
+                "absolute -top-2 -right-4 z-10 inline-flex items-center rounded-full border-2 px-1.5 py-0.5",
+                "text-[9px] font-black uppercase tracking-[0.12em] pointer-events-none",
+                isDarkMode
+                  ? "bg-amber-500/15 text-amber-300 border-amber-400/50"
+                  : "bg-amber-100 text-amber-800 border-amber-400",
+              ].join(" ")}
+            >
+              beta
+            </span>
           </div>
           <span className="text-2xl font-black tracking-tight uppercase group-hover:text-blue-600 transition-colors">
             {t("nav.brand")}

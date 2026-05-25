@@ -184,6 +184,7 @@ const DashboardPage = () => {
             alt={user?.displayName || t("dashboard.profile_alt")}
             size={48}
             isDarkMode={isDarkMode}
+            showBetaBadge
           />
           <div>
             <h1 className={`text-4xl font-black uppercase tracking-tighter ${
