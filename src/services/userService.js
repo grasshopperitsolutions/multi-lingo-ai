@@ -1,4 +1,5 @@
 import { requestUpload, uploadToGcs, deleteByPrefix } from './storageService';
+import { storagePaths } from '../config/storagePaths';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 
@@ -53,8 +54,8 @@ export const updateUserProfile = async (token, uid, data) => {
  * Upload a new profile image, replacing the existing one.
  *
  * Steps:
- *  1. Wipe ALL files under avatars/{uid}/ — must complete before upload to
- *     avoid the new file being caught by the folder wipe.
+ *  1. Wipe ALL files under the user's avatar folder — must complete before
+ *     the upload to avoid the new file being caught by the prefix wipe.
  *  2. Upload the new file to GCS.
  *  3. Save the new publicUrl to the user's Firestore doc.
  *
@@ -70,10 +71,10 @@ export const updateUserProfile = async (token, uid, data) => {
  * @returns {Promise<string>} The public URL of the new avatar
  */
 export const uploadProfileImage = async (token, uid, file) => {
-  // 1. Wipe the entire avatars/{uid}/ prefix first.
+  // 1. Wipe the user's avatar folder before uploading.
   // Awaited so the new upload cannot be deleted by a concurrent wipe.
   try {
-    await deleteByPrefix(token, `avatars/${uid}/`);
+    await deleteByPrefix(token, storagePaths.avatarFolder(uid));
   } catch (e) {
     console.warn('[uploadProfileImage] Avatar prefix clear failed (non-fatal):', e);
   }
