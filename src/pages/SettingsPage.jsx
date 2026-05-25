@@ -41,7 +41,7 @@ const INTEREST_CATEGORIES = [
   { value: "nature",  labelKey: "categories.nature" },
 ];
 
-// ── Avatar Upload Widget ──────────────────────────────────────────────────────
+// ── Avatar Upload Widget ─────────────────────────────────────────────────────────
 const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading, t }) => {
   const fileInputRef = useRef(null);
   const displaySrc = previewUrl || user?.photoURL;
@@ -83,11 +83,11 @@ const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading,
         }}
       />
 
-      <div>
+      <div className="min-w-0 flex-1">
         <p className={`font-black text-base ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
           {user?.displayName || "—"}
         </p>
-        <p className={`text-xs font-bold uppercase tracking-widest ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`}>
+        <p className={`text-xs font-bold uppercase tracking-widest break-all ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`}>
           {user?.email || ""}
         </p>
         <button
@@ -160,7 +160,7 @@ InterestPills.propTypes = {
   t:          PropTypes.func.isRequired,
 };
 
-// ── Settings Form ─────────────────────────────────────────────────────────────
+// ── Settings Form ───────────────────────────────────────────────────────────
 const SettingsForm = ({
   user, isDarkMode,
   displayName, setDisplayName,
@@ -225,7 +225,7 @@ const SettingsForm = ({
               type="email"
               value={user?.email || ""}
               disabled
-              className={`${inputClasses} opacity-50 cursor-not-allowed`}
+              className={`${inputClasses} opacity-50 cursor-not-allowed break-all`}
             />
           </div>
         </div>
@@ -366,7 +366,7 @@ SettingsForm.propTypes = {
   onFileSelect:     PropTypes.func.isRequired,
 };
 
-// ── Settings Page ─────────────────────────────────────────────────────────────
+// ── Settings Page ───────────────────────────────────────────────────────────────
 const SettingsPage = () => {
   const { isDarkMode, setIsDarkMode, user, logoutUser, showAlert, refreshUser, changeLanguage } = useAppContext();
   const { t } = useTranslation();
