@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import BarcelosRooster from "./BarcelosRooster";
+import StatusBadge from "./StatusBadge";
 
 const Header = () => {
   const {
@@ -45,8 +46,16 @@ const Header = () => {
           className="flex items-center space-x-3 group cursor-pointer"
           onClick={() => setShowMobileMenu(false)}
         >
-          <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center border-2 border-slate-900 shadow-[4px_4px_0px_0px_#facc15] group-hover:scale-110 group-hover:rotate-12 transition-transform">
-            <BarcelosRooster className="w-10 h-10" />
+          {/* Rooster wrapper with Beta pill */}
+          <div className="relative">
+            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center border-2 border-slate-900 shadow-[4px_4px_0px_0px_#facc15] group-hover:scale-110 group-hover:rotate-12 transition-transform">
+              <BarcelosRooster className="w-10 h-10" />
+            </div>
+            <StatusBadge
+              label="beta"
+              isDarkMode={isDarkMode}
+              className="-top-2 -right-2"
+            />
           </div>
           <span className="text-2xl font-black tracking-tight uppercase group-hover:text-blue-600 transition-colors">
             {t("nav.brand")}
