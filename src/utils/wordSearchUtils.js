@@ -14,7 +14,7 @@
  * Placement shape:
  *   { word: string, conceptId: string, cells: {row, col}[], direction: string }
  *
- * Direction codes (hardMode=false allows only H/V; hardMode=true all 8):
+ * Direction codes (hardMode=false allows only H/V/DR/DL; hardMode=true all 8):
  *   'H'  = left → right
  *   'V'  = top  → bottom
  *   'DL' = diagonal down-left
@@ -51,12 +51,18 @@ const DELTAS = {
 /**
  * Build a word-search grid.
  *
- * @param {Array<{word: string, conceptId: string}>} words
- * @param {number} gridSize  - e.g. 12
- * @param {boolean} hardMode - allow all 8 directions when true
- * @returns {{ grid: Cell[][], placements: Placement[] }}
+ * @param {Array<{word: string, conceptId: string}>} words  — already filtered to maxLength
+ * @param {number} gridSize   - e.g. 12
+ * @param {boolean} hardMode  - allow all 8 directions when true
+ * @param {string} [script]   - BCP-47 script hint for filler alphabet (see _buildAlphabet)
+ * @returns {{ grid: Cell[][], placements: Placement[], placedWords: {word,hint,conceptId}[] }}
+ *
+ * NOTE — placedWords is the subset of `words` that were successfully placed.
+ * Callers MUST use placedWords (not the original words array) to drive win
+ * condition and word-list display, so that unplaceable words never make the
+ * game unwinnable.
  */
-export function buildGrid(words, gridSize, hardMode = false) {
+export function buildGrid(words, gridSize, hardMode = false, script = 'latin') {
   const directions = hardMode ? ALL_DIRECTIONS : EASY_DIRECTIONS;
 
   // Initialize empty grid
@@ -64,17 +70,30 @@ export function buildGrid(words, gridSize, hardMode = false) {
     Array.from({ length: gridSize }, () => ({ letter: '', conceptId: null, wordIndex: null }))
   );
 
-  const placements = [];
+  const placements  = [];
+  const placedWords = []; // FIX #3: only words that were actually placed
 
   for (let wi = 0; wi < words.length; wi++) {
-    const { word, conceptId } = words[wi];
-    const upper = word.toUpperCase();
-    const placed = _placeWord(grid, upper, conceptId, wi, directions, gridSize);
-    if (placed) placements.push(placed);
+    const entry = words[wi];
+    // FIX #1: always uppercase for consistent comparison in checkSelection
+    const upper = entry.word.toUpperCase();
+    const placed = _placeWord(grid, upper, entry.conceptId, wi, directions, gridSize);
+    if (placed) {
+      placements.push(placed);
+      placedWords.push({ ...entry, word: upper }); // store uppercase to match placement
+    }
+    // If _placeWord returns null the word is silently skipped.
+    // placedWords will not include it, so win condition remains reachable.
   }
 
-  // Fill empty cells with random letters
-  const alphabet = _buildAlphabet();
+  // Fill empty cells with random filler letters from the appropriate script.
+  // FIX (comment): Currently only Latin (A–Z) is supported as filler.
+  // TODO: When adding non-Latin language support (e.g. Japanese hiragana/katakana,
+  // Arabic, Cyrillic, Hebrew, Korean Hangul, etc.) extend _buildAlphabet() to
+  // accept the script/language code and return the correct character set.
+  // Without this, non-Latin words stand out visually against Latin filler,
+  // making the game trivially easy for those languages.
+  const alphabet = _buildAlphabet(script);
   for (let r = 0; r < gridSize; r++) {
     for (let c = 0; c < gridSize; c++) {
       if (!grid[r][c].letter) {
@@ -83,7 +102,7 @@ export function buildGrid(words, gridSize, hardMode = false) {
     }
   }
 
-  return { grid, placements };
+  return { grid, placements, placedWords };
 }
 
 // ---------------------------------------------------------------------------
@@ -92,14 +111,17 @@ export function buildGrid(words, gridSize, hardMode = false) {
 
 /**
  * Given the current tap-selection (array of {row, col}) and known placements,
- * return the matching word string if the selection exactly matches a placement,
+ * return the matching placement object if the selection exactly matches one,
  * or null if no match.
  *
- * Selection can be in either direction relative to the placement.
+ * Returns the full placement (not just the word string) so the caller can
+ * access conceptId and cells without a second lookup.
+ *
+ * Selection can be in either direction relative to the stored placement.
  *
  * @param {Placement[]} placements
  * @param {{ row: number, col: number }[]} selectedCells
- * @returns {string | null}
+ * @returns {Placement | null}
  */
 export function checkSelection(placements, selectedCells) {
   if (!selectedCells || selectedCells.length < 2) return null;
@@ -112,14 +134,14 @@ export function checkSelection(placements, selectedCells) {
     const forward = cells.every(
       (c, i) => c.row === selectedCells[i].row && c.col === selectedCells[i].col
     );
-    if (forward) return placement.word;
+    if (forward) return placement;
 
     // Match reversed
     const reversed = cells.every(
       (c, i) => c.row === selectedCells[cells.length - 1 - i].row &&
                  c.col === selectedCells[cells.length - 1 - i].col
     );
-    if (reversed) return placement.word;
+    if (reversed) return placement;
   }
   return null;
 }
@@ -129,7 +151,7 @@ export function checkSelection(placements, selectedCells) {
 // ---------------------------------------------------------------------------
 
 function _placeWord(grid, word, conceptId, wordIndex, directions, gridSize) {
-  // Shuffle directions to avoid always trying the same first
+  // Shuffle directions to avoid always preferring the same first
   const shuffledDirs = [...directions].sort(() => Math.random() - 0.5);
 
   for (let attempt = 0; attempt < 150; attempt++) {
@@ -143,7 +165,7 @@ function _placeWord(grid, word, conceptId, wordIndex, directions, gridSize) {
     const endCol = startCol + dc * (word.length - 1);
     if (endRow < 0 || endRow >= gridSize || endCol < 0 || endCol >= gridSize) continue;
 
-    // Check collisions (allow overlap only if same letter)
+    // Check collisions — allow overlap only when the same letter occupies the cell
     let canPlace = true;
     for (let i = 0; i < word.length; i++) {
       const r = startRow + dr * i;
@@ -168,8 +190,8 @@ function _placeWord(grid, word, conceptId, wordIndex, directions, gridSize) {
     return { word, conceptId, cells, direction: dir };
   }
 
-  // Could not place after 150 attempts — skip word (edge case with very long words)
-  console.warn(`[wordSearchUtils] Could not place word: ${word}`);
+  // Could not place after 150 attempts — caller decides how to handle
+  console.warn(`[wordSearchUtils] Could not place word: "${word}" — skipped.`);
   return null;
 }
 
@@ -178,10 +200,30 @@ function _placeWord(grid, word, conceptId, wordIndex, directions, gridSize) {
 // ---------------------------------------------------------------------------
 
 /**
- * Basic A-Z alphabet for filler letters.
- * We intentionally use plain Latin to keep the grid readable regardless
- * of the learning language — the real words already have accented characters.
+ * Returns an array of uppercase filler characters for the given script.
+ *
+ * Currently only 'latin' (A–Z) is implemented.
+ *
+ * TODO: Add cases for each non-Latin script when those languages are added:
+ *
+ *   case 'hiragana': return Array.from('あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん');
+ *   case 'katakana': return Array.from('アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン');
+ *   case 'arabic':   return Array.from('ابتثجحخدذرزسشصضطظعغفقكلمنهوي');
+ *   case 'cyrillic': return Array.from('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ');
+ *   case 'hebrew':   return Array.from('אבגדהוזחטיכלמנסעפצקרשת');
+ *   case 'hangul':   — Korean syllables are too numerous; use a curated common-syllable list.
+ *
+ * The `script` value should be derived from the user's learningDialect BCP-47
+ * tag, e.g. 'ja' → 'hiragana', 'ar' → 'arabic', 'ru' → 'cyrillic', etc.
+ *
+ * @param {string} script
+ * @returns {string[]}
  */
-function _buildAlphabet() {
-  return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+function _buildAlphabet(script = 'latin') {
+  switch (script) {
+    // TODO: add non-Latin cases here as new languages are onboarded
+    case 'latin':
+    default:
+      return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  }
 }

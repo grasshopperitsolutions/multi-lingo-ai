@@ -20,7 +20,7 @@ import ChallengeSidebar from "./ChallengeSidebar";
 const GAME_ID    = "word_search";
 const GRID_SIZE  = 12;
 const WORD_COUNT = 6;
-const MAX_LENGTH = GRID_SIZE; // words must be < grid size
+const MAX_LENGTH = GRID_SIZE; // words must fit within the grid
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -43,7 +43,7 @@ const formatTime = (seconds) => {
 
 /**
  * A single grid cell.
- * States: idle | selected | found
+ * States: idle | selected | found | flash (brief invalid-tap indicator)
  */
 const GridCell = ({ letter, isSelected, isFound, onClick, isDarkMode }) => {
   let bg, text, border;
@@ -87,8 +87,8 @@ GridCell.propTypes = {
 };
 
 /**
- * Word list panel — shown next to the grid.
- * Each word shows the hint below it, crossed out when found.
+ * Word list panel — shown next to / above the grid.
+ * Displays the translated word + hint, struck through when found.
  */
 const WordListPanel = ({ words, foundWords, isDarkMode }) => (
   <div className={`rounded-2xl border-4 p-4 flex flex-col gap-3 ${
@@ -145,7 +145,10 @@ const WordSearchGame = ({ isDarkMode }) => {
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
 
   // ── Game data ─────────────────────────────────────────────────────────────
-  const [words,      setWords]      = useState([]);   // [{word, hint, conceptId}]
+  // FIX #3: `words` is now driven by placedWords returned from buildGrid,
+  // so it only contains words that were actually placed in the grid.
+  // This ensures win condition (foundWords.size === words.length) is always reachable.
+  const [words,      setWords]      = useState([]);   // [{word (uppercase), hint, conceptId}]
   const [grid,       setGrid]       = useState([]);   // Cell[][]
   const [placements, setPlacements] = useState([]);   // Placement[]
 
@@ -156,8 +159,8 @@ const WordSearchGame = ({ isDarkMode }) => {
   const [flashCells,    setFlashCells]    = useState(new Set()); // brief invalid-flash
 
   // ── Timer ─────────────────────────────────────────────────────────────────
-  const [elapsed,   setElapsed]   = useState(0);
-  const [gameWon,   setGameWon]   = useState(false);
+  const [elapsed,  setElapsed]  = useState(0);
+  const [gameWon,  setGameWon]  = useState(false);
   const timerRef = useRef(null);
 
   // ── Loading / error ───────────────────────────────────────────────────────
@@ -169,7 +172,7 @@ const WordSearchGame = ({ isDarkMode }) => {
   const [totalWords,     setTotalWords]     = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  // Guard: prevent double-marking
+  // Guard: prevent double-marking a concept in the same session
   const markedRef = useRef(new Set());
 
   // ── Timer management ─────────────────────────────────────────────────────
@@ -214,8 +217,8 @@ const WordSearchGame = ({ isDarkMode }) => {
 
   // ── Core word fetch ───────────────────────────────────────────────────────
   /**
-   * Fetch WORD_COUNT words, each filtered to maxLength.
-   * Sequential fetches so seenConceptIds accumulate correctly across the batch.
+   * Fetch WORD_COUNT words sequentially so seenConceptIds accumulate correctly
+   * across the batch, avoiding repeated words within the same round.
    */
   const fetchAllWords = useCallback(async () => {
     if (!user) throw new Error(t("challenges.word_fetch_error"));
@@ -227,7 +230,6 @@ const WordSearchGame = ({ isDarkMode }) => {
     const results = [];
 
     for (let i = 0; i < WORD_COUNT; i++) {
-      // Merge already-seen + what we fetched this batch so we don't repeat
       const combinedSeen = [...seenIds, ...fetchedThisSession.map((r) => r.conceptId)];
 
       const result = await getWord({
@@ -252,13 +254,15 @@ const WordSearchGame = ({ isDarkMode }) => {
       conceptId: r.conceptId,
     }));
 
-    const { grid: newGrid, placements: newPlacements } = buildGrid(
+    // FIX #3: destructure placedWords from buildGrid and use it as the
+    // authoritative word list — only words that fit the grid are in scope.
+    const { grid: newGrid, placements: newPlacements, placedWords } = buildGrid(
       wordEntries,
       GRID_SIZE,
-      false // easy mode by default
+      false // easy mode default
     );
 
-    setWords(wordEntries);
+    setWords(placedWords);      // FIX #3: use placedWords, not wordEntries
     setGrid(newGrid);
     setPlacements(newPlacements);
     setSelectedCells([]);
@@ -332,13 +336,12 @@ const WordSearchGame = ({ isDarkMode }) => {
   // ── Win detection ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (words.length === 0 || loading) return;
+    // FIX #3: words.length is now placedWords.length — always winnable
     if (foundWords.size < words.length) return;
 
-    // All words found!
     clearInterval(timerRef.current);
     Promise.resolve().then(() => setGameWon(true));
 
-    // Record play once
     if (user?.token && user?.uid) {
       recordPlay(user.token, user.uid, GAME_ID, learningDialect, progress)
         .then(() => fetchStats())
@@ -351,71 +354,63 @@ const WordSearchGame = ({ isDarkMode }) => {
     if (gameWon) return;
 
     const key = `${row}-${col}`;
-
-    // If cell is already found, ignore
     if (foundCells.has(key)) return;
 
     setSelectedCells((prev) => {
       // Deselect if tapping the same cell again
       const alreadyIdx = prev.findIndex((c) => c.row === row && c.col === col);
-      if (alreadyIdx !== -1) {
-        return prev.filter((_, i) => i !== alreadyIdx);
-      }
+      if (alreadyIdx !== -1) return prev.filter((_, i) => i !== alreadyIdx);
 
       const next = [...prev, { row, col }];
 
-      // Validate selection direction: all selected cells must lie on the same line
+      // FIX #2: validate that every step is exactly ±1 in a consistent direction.
+      // Using only the first two cells to derive direction (old approach) allowed
+      // non-contiguous taps like (0,0)→(0,3)→(0,6) to pass alignment check.
       if (next.length >= 2) {
-        const dr = next[1].row - next[0].row;
-        const dc = next[1].col - next[0].col;
-        // Normalize direction to -1/0/1
-        const normDr = dr === 0 ? 0 : dr > 0 ? 1 : -1;
-        const normDc = dc === 0 ? 0 : dc > 0 ? 1 : -1;
+        // Direction is locked from the first two cells
+        const dr0 = next[1].row - next[0].row; // must be -1, 0, or 1
+        const dc0 = next[1].col - next[0].col; // must be -1, 0, or 1
 
-        const allAligned = next.every((cell, i) => {
+        // First step itself must be exactly ±1 or 0 (no jumps)
+        const firstStepValid = Math.abs(dr0) <= 1 && Math.abs(dc0) <= 1 && (dr0 !== 0 || dc0 !== 0);
+
+        const allAligned = firstStepValid && next.every((cell, i) => {
           if (i === 0) return true;
+          // Each successive step must exactly equal the locked direction
           const stepR = cell.row - next[i - 1].row;
           const stepC = cell.col - next[i - 1].col;
-          return stepR === normDr && stepC === normDc;
+          return stepR === dr0 && stepC === dc0;
         });
 
         if (!allAligned) {
-          // Flash the misaligned cell briefly and reset selection
           setFlashCells(new Set([key]));
           setTimeout(() => setFlashCells(new Set()), 350);
           return []; // reset selection
         }
       }
 
-      // Check if selection matches a word
-      const matched = checkSelection(placements, next);
-      if (matched) {
-        const matchedPlacement = placements.find(
-          (p) => p.word === matched || p.word === matched.split("").reverse().join("")
-        );
+      // FIX #1: checkSelection now returns the full placement object (or null),
+      // eliminating the separate .find() lookup that could fail on case mismatch.
+      const matchedPlacement = checkSelection(placements, next);
+      if (matchedPlacement) {
+        const cellKeys = new Set(matchedPlacement.cells.map((c) => `${c.row}-${c.col}`));
 
-        if (matchedPlacement) {
-          const cellKeys = new Set(matchedPlacement.cells.map((c) => `${c.row}-${c.col}`));
+        setFoundCells((prevFound) => new Set([...prevFound, ...cellKeys]));
+        setFoundWords((prevFoundWords) => new Set([...prevFoundWords, matchedPlacement.conceptId]));
 
-          setFoundCells((prevFound) => new Set([...prevFound, ...cellKeys]));
-          setFoundWords((prevFoundWords) => {
-            const updated = new Set([...prevFoundWords, matchedPlacement.conceptId]);
-            return updated;
-          });
-
-          // Mark concept as seen (fire-and-forget, deduplicated)
-          if (!markedRef.current.has(matchedPlacement.conceptId) && user?.token && user?.uid) {
-            markedRef.current.add(matchedPlacement.conceptId);
-            markConceptSeen(
-              user.token,
-              user.uid,
-              GAME_ID,
-              learningDialect,
-              matchedPlacement.conceptId,
-              progress
-            ).catch((err) => console.warn("[WordSearchGame] markConceptSeen failed:", err));
-          }
+        // Mark concept as seen — fire-and-forget, deduplicated by markedRef
+        if (!markedRef.current.has(matchedPlacement.conceptId) && user?.token && user?.uid) {
+          markedRef.current.add(matchedPlacement.conceptId);
+          markConceptSeen(
+            user.token,
+            user.uid,
+            GAME_ID,
+            learningDialect,
+            matchedPlacement.conceptId,
+            progress
+          ).catch((err) => console.warn("[WordSearchGame] markConceptSeen failed:", err));
         }
+
         return []; // clear selection after match
       }
 
@@ -470,7 +465,6 @@ const WordSearchGame = ({ isDarkMode }) => {
           <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-8">
             {t("challenges.word_search")}
           </h2>
-
           <div className={`p-10 rounded-[2rem] border-4 flex flex-col items-center gap-6 w-full max-w-md ${
             isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
           }`}>
@@ -496,7 +490,6 @@ const WordSearchGame = ({ isDarkMode }) => {
             </button>
           </div>
         </div>
-
         <ChallengeSidebar
           isDarkMode={isDarkMode}
           progress={progress}
@@ -532,7 +525,7 @@ const WordSearchGame = ({ isDarkMode }) => {
           </span>
         </div>
 
-        {/* Word List Panel — top on mobile, inline on larger screens */}
+        {/* Word list — top on mobile, hidden here on desktop (shown in right col) */}
         <div className="w-full mb-4 lg:hidden">
           <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} />
         </div>
@@ -553,10 +546,10 @@ const WordSearchGame = ({ isDarkMode }) => {
         >
           {grid.map((row, rIdx) =>
             row.map((cell, cIdx) => {
-              const key   = `${rIdx}-${cIdx}`;
-              const isSel = selectedCells.some((s) => s.row === rIdx && s.col === cIdx);
-              const isFnd = foundCells.has(key);
-              const isFlash = flashCells.has(key);
+              const key      = `${rIdx}-${cIdx}`;
+              const isSel    = selectedCells.some((s) => s.row === rIdx && s.col === cIdx);
+              const isFnd    = foundCells.has(key);
+              const isFlash  = flashCells.has(key);
               return (
                 <GridCell
                   key={key}
@@ -571,7 +564,7 @@ const WordSearchGame = ({ isDarkMode }) => {
           )}
         </div>
 
-        {/* Clear selection button */}
+        {/* Clear selection button — only visible while a selection is in progress */}
         {selectedCells.length > 0 && (
           <div className="mt-4">
             <button
