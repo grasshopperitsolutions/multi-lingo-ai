@@ -6,6 +6,7 @@ import { useAppContext } from '../contexts/AppContext';
 import { lookupWord } from '../services/dictionaryService';
 import { speak } from '../services/ttsService';
 import TooltipButton from './TooltipButton';
+import ReportButton from './ReportButton';
 
 const MAX_CHARS = 1000;
 
@@ -177,13 +178,16 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
     <div className="w-full animate-in fade-in zoom-in-95">
       <Breadcrumb isDarkMode={isDarkMode} onBack={onBack} />
 
-      <div className={`flex items-center gap-3 mb-8 border-b-8 pb-4 ${
+      <div className={`flex items-center justify-between gap-3 mb-8 border-b-8 pb-4 ${
         isDarkMode ? 'border-violet-400' : 'border-violet-500'
       }`}>
-        <BookMarked size={32} className={isDarkMode ? 'text-violet-400' : 'text-violet-600'} />
-        <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter">
-          {t('dashboard.dictionary')}
-        </h2>
+        <div className="flex items-center gap-3">
+          <BookMarked size={32} className={isDarkMode ? 'text-violet-400' : 'text-violet-600'} />
+          <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter">
+            {t('dashboard.dictionary')}
+          </h2>
+        </div>
+        <ReportButton isDarkMode={isDarkMode} context="DictionaryPanel" />
       </div>
 
       {/* Input panel */}

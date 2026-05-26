@@ -11,6 +11,7 @@ import {
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import ChallengeSidebar from "./ChallengeSidebar";
 import TooltipButton from "./TooltipButton";
+import ReportButton from "./ReportButton";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -459,15 +460,15 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       {/* ── Main game column ── */}
       <div className="flex flex-col items-center flex-1 min-w-0">
 
-        {/* Title */}
-        <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-4">
-          {t("challenges.scrambled_word")}
-        </h2>
+        {/* Title row with ReportButton */}
+        <div className="flex items-center justify-between w-full mb-4">
+          <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter">
+            {t("challenges.scrambled_word")}
+          </h2>
+          <ReportButton isDarkMode={isDarkMode} context="ScrambledWordGame" />
+        </div>
 
-        {/* Easy / Hard toggle
-            BugFix C+D: toggle now calls a local displayFn derived from the
-            incoming `isHard` value instead of duplicating buildPoolAndAnswer
-            logic, and also resets showResult to prevent stuck shake. */}
+        {/* Easy / Hard toggle */}
         <div className={`flex mb-6 rounded-full border-4 overflow-hidden ${
           isDarkMode ? "border-slate-700" : "border-slate-900"
         }`}>
@@ -477,8 +478,6 @@ const ScrambledWordGame = ({ isDarkMode }) => {
               type="button"
               onClick={() => {
                 if (hardMode === isHard) return;
-                // Derive display function from the INCOMING mode value so
-                // we don't rely on stale closure of `getDisplayLetter`.
                 const displayFn = (l) =>
                   isHard ? l.toUpperCase() : normalizeChar(l);
                 const rawLetters = word.split("");
@@ -499,7 +498,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
                 setHardMode(isHard);
                 setAttemptsLeft(MAX_ATTEMPTS);
                 setGameStatus("playing");
-                setShowResult(false); // Bug C fix: clears stuck shake
+                setShowResult(false);
               }}
               className={`px-5 py-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
                 hardMode === isHard
@@ -616,7 +615,6 @@ const ScrambledWordGame = ({ isDarkMode }) => {
             )}
 
             <div className="flex gap-3 mt-2">
-              {/* Play Again — same word, re-shuffled */}
               <TooltipButton
                 tooltip={t("challenges.play_again_tooltip")}
                 isDarkMode={isDarkMode}
@@ -633,7 +631,6 @@ const ScrambledWordGame = ({ isDarkMode }) => {
                 </button>
               </TooltipButton>
 
-              {/* Next Word — fetch a brand new word */}
               <TooltipButton
                 tooltip={t("challenges.next_word_tooltip")}
                 isDarkMode={isDarkMode}
