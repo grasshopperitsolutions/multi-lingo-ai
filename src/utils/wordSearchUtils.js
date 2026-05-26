@@ -5,8 +5,8 @@
  * No React, no services — fully testable in isolation.
  *
  * Exports:
- *   buildGrid(words, gridSize, hardMode) → { grid, placements }
- *   checkSelection(placements, selectedCells) → string | null
+ *   buildGrid(words, gridSize, hardMode) → { grid, placements, placedWords }
+ *   checkSelection(placements, selectedCells) → Placement | null
  *
  * Grid cell shape:
  *   { letter: string, conceptId: string | null, wordIndex: number | null }
@@ -14,22 +14,31 @@
  * Placement shape:
  *   { word: string, conceptId: string, cells: {row, col}[], direction: string }
  *
- * Direction codes (hardMode=false allows only H/V/DR/DL; hardMode=true all 8):
+ * Direction codes:
+ *   Easy (hardMode=false): H, V only — horizontal left→right and vertical top→bottom.
+ *   Hard (hardMode=true):  all 8 directions including diagonals and reversed.
+ *
  *   'H'  = left → right
  *   'V'  = top  → bottom
- *   'DL' = diagonal down-left
- *   'DR' = diagonal down-right
- *   'RH' = right → left   (hard only)
- *   'RV' = bottom → top   (hard only)
- *   'RL' = diagonal up-left  (hard only)
- *   'RR' = diagonal up-right (hard only)
+ *   'DR' = diagonal down-right  (hard only)
+ *   'DL' = diagonal down-left   (hard only)
+ *   'RH' = right → left         (hard only)
+ *   'RV' = bottom → top         (hard only)
+ *   'RL' = diagonal up-left     (hard only)
+ *   'RR' = diagonal up-right    (hard only)
+ *
+ * TODO: Wire hardMode=true via a difficulty toggle in WordSearchGame when
+ * the Hard mode feature is added. The buildGrid param is already ready.
  */
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const EASY_DIRECTIONS = ['H', 'V', 'DR', 'DL'];
+// Easy: horizontal + vertical only — natural reading directions, no diagonals.
+const EASY_DIRECTIONS = ['H', 'V'];
+
+// Hard: all 8 directions including diagonals and reversed words.
 const ALL_DIRECTIONS  = ['H', 'V', 'DR', 'DL', 'RH', 'RV', 'RL', 'RR'];
 
 // Direction deltas: [rowDelta, colDelta]
@@ -53,7 +62,7 @@ const DELTAS = {
  *
  * @param {Array<{word: string, conceptId: string}>} words  — already filtered to maxLength
  * @param {number} gridSize   - e.g. 12
- * @param {boolean} hardMode  - allow all 8 directions when true
+ * @param {boolean} hardMode  - false = H+V only; true = all 8 directions
  * @param {string} [script]   - BCP-47 script hint for filler alphabet (see _buildAlphabet)
  * @returns {{ grid: Cell[][], placements: Placement[], placedWords: {word,hint,conceptId}[] }}
  *
@@ -71,11 +80,11 @@ export function buildGrid(words, gridSize, hardMode = false, script = 'latin') {
   );
 
   const placements  = [];
-  const placedWords = []; // FIX #3: only words that were actually placed
+  const placedWords = []; // only words that were actually placed (see NOTE above)
 
   for (let wi = 0; wi < words.length; wi++) {
     const entry = words[wi];
-    // FIX #1: always uppercase for consistent comparison in checkSelection
+    // Always uppercase for consistent comparison in checkSelection
     const upper = entry.word.toUpperCase();
     const placed = _placeWord(grid, upper, entry.conceptId, wi, directions, gridSize);
     if (placed) {
@@ -87,7 +96,7 @@ export function buildGrid(words, gridSize, hardMode = false, script = 'latin') {
   }
 
   // Fill empty cells with random filler letters from the appropriate script.
-  // FIX (comment): Currently only Latin (A–Z) is supported as filler.
+  // Currently only Latin (A–Z) is supported as filler.
   // TODO: When adding non-Latin language support (e.g. Japanese hiragana/katakana,
   // Arabic, Cyrillic, Hebrew, Korean Hangul, etc.) extend _buildAlphabet() to
   // accept the script/language code and return the correct character set.
