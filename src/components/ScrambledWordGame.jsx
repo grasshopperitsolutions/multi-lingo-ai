@@ -12,7 +12,6 @@ import {
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import ChallengeSidebar from "./ChallengeSidebar";
 import TooltipButton from "./TooltipButton";
-import ReportButton from "./ReportButton";
 import { sanitizeAIError } from "../utils/errorUtils";
 
 // ---------------------------------------------------------------------------
@@ -462,11 +461,6 @@ const ScrambledWordGame = ({ isDarkMode }) => {
 
       {/* ── Main game column ── */}
       <div className="flex flex-col items-center flex-1 min-w-0 w-full">
-
-        {/* Report button row */}
-        <div className="flex items-center justify-end w-full mb-4">
-          <ReportButton isDarkMode={isDarkMode} context="ScrambledWordGame" />
-        </div>
 
         {/* Easy / Hard toggle */}
         <div className={`flex mb-6 rounded-full border-4 overflow-hidden ${
