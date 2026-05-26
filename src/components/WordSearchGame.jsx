@@ -87,7 +87,7 @@ GridCell.propTypes = {
 };
 
 /**
- * Word list panel — shown next to / above the grid.
+ * Word list panel — shown to the left of the grid on desktop, above it on mobile.
  * Displays the translated word + hint, struck through when found.
  */
 const WordListPanel = ({ words, foundWords, isDarkMode, t }) => (
@@ -146,8 +146,7 @@ const WordSearchGame = ({ isDarkMode }) => {
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
 
   // ── Game data ─────────────────────────────────────────────────────────────
-  // FIX #3: `words` is now driven by placedWords returned from buildGrid,
-  // so it only contains words that were actually placed in the grid.
+  // `words` is driven by placedWords from buildGrid — only actually-placed words.
   // This ensures win condition (foundWords.size === words.length) is always reachable.
   const [words,      setWords]      = useState([]);   // [{word (uppercase), hint, conceptId}]
   const [grid,       setGrid]       = useState([]);   // Cell[][]
@@ -159,7 +158,7 @@ const WordSearchGame = ({ isDarkMode }) => {
   const [foundWords,    setFoundWords]    = useState(new Set()); // conceptIds
   const [flashCells,    setFlashCells]    = useState(new Set()); // brief invalid-flash
 
-  // ── Timer ─────────────────────────────────────────────────────────────────
+  // ── Timer ───────────────────────────────────────────────────────────────
   const [elapsed,  setElapsed]  = useState(0);
   const [gameWon,  setGameWon]  = useState(false);
   const timerRef = useRef(null);
@@ -255,15 +254,14 @@ const WordSearchGame = ({ isDarkMode }) => {
       conceptId: r.conceptId,
     }));
 
-    // FIX #3: destructure placedWords from buildGrid and use it as the
-    // authoritative word list — only words that fit the grid are in scope.
+    // placedWords is the authoritative list — only words that fit the grid.
     const { grid: newGrid, placements: newPlacements, placedWords } = buildGrid(
       wordEntries,
       GRID_SIZE,
-      false // easy mode default
+      false // easy mode: H+V only
     );
 
-    setWords(placedWords);      // FIX #3: use placedWords, not wordEntries
+    setWords(placedWords);
     setGrid(newGrid);
     setPlacements(newPlacements);
     setSelectedCells([]);
@@ -337,7 +335,6 @@ const WordSearchGame = ({ isDarkMode }) => {
   // ── Win detection ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (words.length === 0 || loading) return;
-    // FIX #3: words.length is now placedWords.length — always winnable
     if (foundWords.size < words.length) return;
 
     clearInterval(timerRef.current);
@@ -364,20 +361,15 @@ const WordSearchGame = ({ isDarkMode }) => {
 
       const next = [...prev, { row, col }];
 
-      // FIX #2: validate that every step is exactly ±1 in a consistent direction.
-      // Using only the first two cells to derive direction (old approach) allowed
-      // non-contiguous taps like (0,0)→(0,3)→(0,6) to pass alignment check.
+      // Validate that every step is exactly ±1 in a consistent direction.
       if (next.length >= 2) {
-        // Direction is locked from the first two cells
-        const dr0 = next[1].row - next[0].row; // must be -1, 0, or 1
-        const dc0 = next[1].col - next[0].col; // must be -1, 0, or 1
+        const dr0 = next[1].row - next[0].row;
+        const dc0 = next[1].col - next[0].col;
 
-        // First step itself must be exactly ±1 or 0 (no jumps)
         const firstStepValid = Math.abs(dr0) <= 1 && Math.abs(dc0) <= 1 && (dr0 !== 0 || dc0 !== 0);
 
         const allAligned = firstStepValid && next.every((cell, i) => {
           if (i === 0) return true;
-          // Each successive step must exactly equal the locked direction
           const stepR = cell.row - next[i - 1].row;
           const stepC = cell.col - next[i - 1].col;
           return stepR === dr0 && stepC === dc0;
@@ -386,12 +378,11 @@ const WordSearchGame = ({ isDarkMode }) => {
         if (!allAligned) {
           setFlashCells(new Set([key]));
           setTimeout(() => setFlashCells(new Set()), 350);
-          return []; // reset selection
+          return [];
         }
       }
 
-      // FIX #1: checkSelection now returns the full placement object (or null),
-      // eliminating the separate .find() lookup that could fail on case mismatch.
+      // checkSelection returns the full placement object (or null)
       const matchedPlacement = checkSelection(placements, next);
       if (matchedPlacement) {
         const cellKeys = new Set(matchedPlacement.cells.map((c) => `${c.row}-${c.col}`));
@@ -399,7 +390,6 @@ const WordSearchGame = ({ isDarkMode }) => {
         setFoundCells((prevFound) => new Set([...prevFound, ...cellKeys]));
         setFoundWords((prevFoundWords) => new Set([...prevFoundWords, matchedPlacement.conceptId]));
 
-        // Mark concept as seen — fire-and-forget, deduplicated by markedRef
         if (!markedRef.current.has(matchedPlacement.conceptId) && user?.token && user?.uid) {
           markedRef.current.add(matchedPlacement.conceptId);
           markConceptSeen(
@@ -412,12 +402,26 @@ const WordSearchGame = ({ isDarkMode }) => {
           ).catch((err) => console.warn("[WordSearchGame] markConceptSeen failed:", err));
         }
 
-        return []; // clear selection after match
+        return [];
       }
 
       return next;
     });
   }, [gameWon, foundCells, placements, user, learningDialect, progress]);
+
+  // ── Shared sidebar props ────────────────────────────────────────────────────
+  const sidebarProps = {
+    isDarkMode,
+    progress,
+    totalWords,
+    isLoadingStats,
+    onReset:          handleResetSeenWords,
+    title:            t("challenges.sidebar.title"),
+    resetTitle:       t("challenges.sidebar.reset_title"),
+    resetMessage:     t("challenges.sidebar.reset_message"),
+    resetWarning:     t("challenges.sidebar.reset_warning"),
+    resetConfirmLabel: t("challenges.sidebar.reset_confirm"),
+  };
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -491,27 +495,25 @@ const WordSearchGame = ({ isDarkMode }) => {
             </button>
           </div>
         </div>
-        <ChallengeSidebar
-          isDarkMode={isDarkMode}
-          progress={progress}
-          totalWords={totalWords}
-          isLoadingStats={isLoadingStats}
-          onReset={handleResetSeenWords}
-          title={t("challenges.sidebar.title")}
-          resetTitle={t("challenges.sidebar.reset_title")}
-          resetMessage={t("challenges.sidebar.reset_message")}
-          resetWarning={t("challenges.sidebar.reset_warning")}
-          resetConfirmLabel={t("challenges.sidebar.reset_confirm")}
-        />
+        <ChallengeSidebar {...sidebarProps} />
       </div>
     );
   }
 
   // ── Game render ───────────────────────────────────────────────────────────
+  //
+  // Desktop layout: [WordList (left, w-52)] [Grid (center, flex-1)] [Sidebar (right, w-64)]
+  // Mobile layout:  [WordList] [Grid] [Sidebar] stacked vertically
+  //
   return (
     <div className="flex flex-col lg:flex-row items-start gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95">
 
-      {/* ── Main game column ── */}
+      {/* ── LEFT: word list (desktop only) ── */}
+      <div className="hidden lg:block w-52 shrink-0">
+        <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} t={t} />
+      </div>
+
+      {/* ── CENTER: title + mobile word list + grid + controls ── */}
       <div className="flex flex-col items-center flex-1 min-w-0 w-full">
 
         {/* Title + Timer */}
@@ -526,7 +528,7 @@ const WordSearchGame = ({ isDarkMode }) => {
           </span>
         </div>
 
-        {/* Word list — top on mobile, hidden here on desktop (shown in right col) */}
+        {/* Word list — above grid on mobile, hidden on desktop (shown in left col) */}
         <div className="w-full mb-4 lg:hidden">
           <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} t={t} />
         </div>
@@ -547,10 +549,10 @@ const WordSearchGame = ({ isDarkMode }) => {
         >
           {grid.map((row, rIdx) =>
             row.map((cell, cIdx) => {
-              const key      = `${rIdx}-${cIdx}`;
-              const isSel    = selectedCells.some((s) => s.row === rIdx && s.col === cIdx);
-              const isFnd    = foundCells.has(key);
-              const isFlash  = flashCells.has(key);
+              const key     = `${rIdx}-${cIdx}`;
+              const isSel   = selectedCells.some((s) => s.row === rIdx && s.col === cIdx);
+              const isFnd   = foundCells.has(key);
+              const isFlash = flashCells.has(key);
               return (
                 <GridCell
                   key={key}
@@ -584,38 +586,16 @@ const WordSearchGame = ({ isDarkMode }) => {
         )}
       </div>
 
-      {/* ── Right column: word list (desktop) + sidebar ── */}
-      <div className="hidden lg:flex flex-col gap-4 w-64 shrink-0">
-        <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} t={t} />
-        <ChallengeSidebar
-          isDarkMode={isDarkMode}
-          progress={progress}
-          totalWords={totalWords}
-          isLoadingStats={isLoadingStats}
-          onReset={handleResetSeenWords}
-          title={t("challenges.sidebar.title")}
-          resetTitle={t("challenges.sidebar.reset_title")}
-          resetMessage={t("challenges.sidebar.reset_message")}
-          resetWarning={t("challenges.sidebar.reset_warning")}
-          resetConfirmLabel={t("challenges.sidebar.reset_confirm")}
-        />
+      {/* ── RIGHT: sidebar (desktop only) ── */}
+      <div className="hidden lg:block w-64 shrink-0">
+        <ChallengeSidebar {...sidebarProps} />
       </div>
 
-      {/* Mobile: sidebar at bottom */}
+      {/* ── Mobile: sidebar below grid ── */}
       <div className="lg:hidden w-full">
-        <ChallengeSidebar
-          isDarkMode={isDarkMode}
-          progress={progress}
-          totalWords={totalWords}
-          isLoadingStats={isLoadingStats}
-          onReset={handleResetSeenWords}
-          title={t("challenges.sidebar.title")}
-          resetTitle={t("challenges.sidebar.reset_title")}
-          resetMessage={t("challenges.sidebar.reset_message")}
-          resetWarning={t("challenges.sidebar.reset_warning")}
-          resetConfirmLabel={t("challenges.sidebar.reset_confirm")}
-        />
+        <ChallengeSidebar {...sidebarProps} />
       </div>
+
     </div>
   );
 };
