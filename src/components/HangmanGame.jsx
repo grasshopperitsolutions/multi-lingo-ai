@@ -249,7 +249,7 @@ const HangmanGame = ({ isDarkMode }) => {
         .then(() => fetchStats())
         .catch((err) => console.warn("[HangmanGame] markConceptSeen failed:", err));
     } else {
-      fetchStats();
+      Promise.resolve().then(() => fetchStats());
     }
   }, [isWinner, isLoser]); // eslint-disable-line react-hooks/exhaustive-deps
 
