@@ -209,17 +209,12 @@ const ChallengeSidebar = ({
                   aria-valuemax={99}
                 />
               </div>
-              {/* Label */}
-              <div className="flex justify-between items-center">
+              {/* Label — percentage only, seen/total count removed */}
+              <div className="flex items-center">
                 <span className={`text-2xl font-black ${
                   isDarkMode ? "text-yellow-400" : "text-slate-900"
                 }`}>
                   {pct}%
-                </span>
-                <span className={`text-xs font-bold ${
-                  isDarkMode ? "text-slate-500" : "text-slate-400"
-                }`}>
-                  {seenCount} / {totalWords ?? "\u2026"}
                 </span>
               </div>
             </>
@@ -296,14 +291,12 @@ const ChallengeSidebar = ({
                 aria-valuemax={99}
               />
             </div>
-            <div className="flex items-center justify-between">
+            {/* Percentage label only — seen/total count removed */}
+            <div className="flex items-center">
               <span className={`font-black text-sm ${
                 isDarkMode ? "text-yellow-400" : "text-slate-900"
               }`}>
                 {pct}% {t("challenges.sidebar.words_seen")}
-              </span>
-              <span className={`text-xs ${ isDarkMode ? "text-slate-500" : "text-slate-400" }`}>
-                {seenCount}/{totalWords ?? "\u2026"}
               </span>
             </div>
 
@@ -317,11 +310,11 @@ const ChallengeSidebar = ({
               </span>
             </div>
 
-            {/* Reset */}
+            {/* Reset — centered */}
             <button
               onClick={() => setShowConfirm(true)}
               disabled={seenCount === 0}
-              className={`self-start flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-black uppercase text-xs tracking-widest transition-all active:scale-95 disabled:opacity-40 ${
+              className={`self-center flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-black uppercase text-xs tracking-widest transition-all active:scale-95 disabled:opacity-40 ${
                 isDarkMode
                   ? "border-slate-600 text-slate-400 hover:border-yellow-400 hover:text-yellow-400"
                   : "border-slate-300 text-slate-500 hover:border-slate-900 hover:text-slate-900"

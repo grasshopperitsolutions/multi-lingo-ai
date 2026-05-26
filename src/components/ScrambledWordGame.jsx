@@ -6,6 +6,7 @@ import { useAppContext } from "../contexts/AppContext";
 import {
   getUserGameProgress,
   markConceptSeen,
+  recordPlay,
   resetSeenWords,
 } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
@@ -42,7 +43,6 @@ const shuffleLetters = (letters) => {
     }
     attempts++;
   } while (result.join("") === letters.join("") && attempts < 20);
-  // Safety: if still identical (e.g. "AA"), just reverse
   if (result.join("") === letters.join("")) result.reverse();
   return result;
 };
@@ -90,7 +90,6 @@ const LetterTile = ({ letter, onClick, disabled, variant, isDarkMode }) => {
       ? "bg-slate-800 border-slate-600 text-transparent"
       : "bg-slate-100 border-slate-300 text-transparent",
     correct: "bg-emerald-400 border-slate-900 text-slate-900 cursor-default",
-    // scrambled-shake is defined in src/index.css
     wrong: "bg-rose-400 border-slate-900 text-slate-900 cursor-default scrambled-shake",
     separator: "opacity-0 pointer-events-none border-transparent bg-transparent w-4 sm:w-5",
   };
@@ -124,32 +123,34 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   const { user } = useAppContext();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
-  const nativeDialect = user?.nativeDialect ?? "en-US";
+  const interfaceLang   = user?.interfaceLang   ?? "en-US";
 
   // ── Difficulty ──────────────────────────────────────────────────────────
   const [hardMode, setHardMode] = useState(false);
 
   // ── Word state ───────────────────────────────────────────────────────────
-  const [word, setWord] = useState("");
-  const [hint, setHint] = useState("");
+  const [word, setWord]           = useState("");
+  const [hint, setHint]           = useState("");
+  const [conceptId, setConceptId] = useState(null);
 
   // ── Game state ───────────────────────────────────────────────────────────
-  const [pool, setPool] = useState([]);
-  const [answer, setAnswer] = useState([]);
-  const [attemptsLeft, setAttemptsLeft] = useState(MAX_ATTEMPTS);
-  const [gameStatus, setGameStatus] = useState("playing");
-  const [showResult, setShowResult] = useState(false);
+  const [pool, setPool]                   = useState([]);
+  const [answer, setAnswer]               = useState([]);
+  const [attemptsLeft, setAttemptsLeft]   = useState(MAX_ATTEMPTS);
+  const [gameStatus, setGameStatus]       = useState("playing");
+  const [showResult, setShowResult]       = useState(false);
 
   // ── Loading / error ──────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError]     = useState(null);
 
   // ── Sidebar / stats ──────────────────────────────────────────────────────
-  const [progress, setProgress] = useState(null);
-  const [totalWords, setTotalWords] = useState(null);
+  const [progress, setProgress]           = useState(null);
+  const [totalWords, setTotalWords]       = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  const pendingMarkRef = useRef(null);
+  // Guard: prevent double-recording inside checkAnswer / useEffect
+  const hasMarkedRef = useRef(false);
 
   // ── Derived ──────────────────────────────────────────────────────────────
   const getDisplayLetter = useCallback(
@@ -208,33 +209,22 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     return () => { cancelled = true; };
   }, [user, learningDialect]);
 
-  // ── Core word fetch ──────────────────────────────────────────────────────
+  // ── Core word fetch — pure fetch, no side-effects on progress ───────────
   const fetchWordData = useCallback(async () => {
     if (!user) throw new Error(t("challenges.word_fetch_error"));
-    if (pendingMarkRef.current) {
-      await pendingMarkRef.current.catch(() => {});
-      pendingMarkRef.current = null;
-    }
     const { token, uid } = user;
     if (!token) throw new Error(t("challenges.word_fetch_error"));
 
     const prog = await getUserGameProgress(token, uid, GAME_ID, learningDialect);
     const result = await getWord({
       token,
-      userDialect: nativeDialect,
+      userDialect: interfaceLang,
       learningDialect,
       seenConceptIds: prog?.seenConceptIds ?? [],
     });
 
-    pendingMarkRef.current = markConceptSeen(
-      token, uid, GAME_ID, learningDialect, result.conceptId, prog
-    );
-    pendingMarkRef.current
-      .then(() => fetchStats())
-      .catch((err) => console.warn("[ScrambledWordGame] markConceptSeen failed:", err));
-
-    return { word: result.word.toUpperCase(), hint: result.hint, progress: prog };
-  }, [user, learningDialect, nativeDialect, t, fetchStats]);
+    return { word: result.word.toUpperCase(), hint: result.hint, conceptId: result.conceptId, progress: prog };
+  }, [user, learningDialect, interfaceLang, t]);
 
   const applyWordData = useCallback(
     (data) => {
@@ -242,12 +232,14 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       const { newPool, answerTemplate } = buildPoolAndAnswer(rawLetters);
       setWord(data.word);
       setHint(data.hint);
+      setConceptId(data.conceptId);
       setProgress(data.progress);
       setPool(newPool);
       setAnswer(answerTemplate);
       setAttemptsLeft(MAX_ATTEMPTS);
       setGameStatus("playing");
       setShowResult(false);
+      hasMarkedRef.current = false;
     },
     [buildPoolAndAnswer]
   );
@@ -257,11 +249,13 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     setError(null);
     setWord("");
     setHint("");
+    setConceptId(null);
     setPool([]);
     setAnswer([]);
     setAttemptsLeft(MAX_ATTEMPTS);
     setGameStatus("playing");
     setShowResult(false);
+    hasMarkedRef.current = false;
   }, []);
 
   const fetchWord = useCallback(async () => {
@@ -321,6 +315,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     setAttemptsLeft(MAX_ATTEMPTS);
     setGameStatus("playing");
     setShowResult(false);
+    hasMarkedRef.current = false;
   }, [word, buildPoolAndAnswer]);
 
   // ── Place letter from pool into next empty answer slot ───────────────────
@@ -363,6 +358,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     if (word.length === 0) return;
     const allFilled = answer.every((s) => s !== null);
     if (!allFilled) return;
+    if (hasMarkedRef.current) return;
 
     const canonical = word
       .split("")
@@ -371,7 +367,14 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     const attempt = answer.map((s) => s.letter).join("");
 
     if (attempt === canonical) {
+      // ── Correct answer ──
+      hasMarkedRef.current = true;
       setGameStatus("won");
+      recordPlay(user.token, user.uid, GAME_ID, learningDialect, progress)
+        .catch((err) => console.warn("[ScrambledWordGame] recordPlay failed:", err));
+      markConceptSeen(user.token, user.uid, GAME_ID, learningDialect, conceptId, progress)
+        .then(() => fetchStats())
+        .catch((err) => console.warn("[ScrambledWordGame] markConceptSeen failed:", err));
     } else {
       const remaining = attemptsLeft - 1;
       setAttemptsLeft(remaining);
@@ -379,7 +382,12 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       setTimeout(() => {
         setShowResult(false);
         if (remaining <= 0) {
+          // ── Out of attempts ──
+          hasMarkedRef.current = true;
           setGameStatus("lost");
+          recordPlay(user.token, user.uid, GAME_ID, learningDialect, progress)
+            .then(() => fetchStats())
+            .catch((err) => console.warn("[ScrambledWordGame] recordPlay failed:", err));
         } else {
           const { newPool, answerTemplate } = buildPoolAndAnswer(word.split(""));
           setPool(newPool);
@@ -387,7 +395,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
         }
       }, 900);
     }
-  }, [answer, word, gameStatus, attemptsLeft, getDisplayLetter, buildPoolAndAnswer]);
+  }, [answer, word, gameStatus, attemptsLeft, getDisplayLetter, buildPoolAndAnswer, conceptId, progress, learningDialect, user, fetchStats]);
 
   const prevAnswerRef = useRef(null);
   useEffect(() => {
@@ -457,17 +465,14 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     <div className="flex flex-col lg:flex-row items-start gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95">
 
       {/* ── Main game column ── */}
-      <div className="flex flex-col items-center flex-1 min-w-0">
+      <div className="flex flex-col items-center flex-1 min-w-0 w-full">
 
         {/* Title */}
         <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-4">
           {t("challenges.scrambled_word")}
         </h2>
 
-        {/* Easy / Hard toggle
-            BugFix C+D: toggle now calls a local displayFn derived from the
-            incoming `isHard` value instead of duplicating buildPoolAndAnswer
-            logic, and also resets showResult to prevent stuck shake. */}
+        {/* Easy / Hard toggle */}
         <div className={`flex mb-6 rounded-full border-4 overflow-hidden ${
           isDarkMode ? "border-slate-700" : "border-slate-900"
         }`}>
@@ -477,8 +482,6 @@ const ScrambledWordGame = ({ isDarkMode }) => {
               type="button"
               onClick={() => {
                 if (hardMode === isHard) return;
-                // Derive display function from the INCOMING mode value so
-                // we don't rely on stale closure of `getDisplayLetter`.
                 const displayFn = (l) =>
                   isHard ? l.toUpperCase() : normalizeChar(l);
                 const rawLetters = word.split("");
@@ -499,7 +502,8 @@ const ScrambledWordGame = ({ isDarkMode }) => {
                 setHardMode(isHard);
                 setAttemptsLeft(MAX_ATTEMPTS);
                 setGameStatus("playing");
-                setShowResult(false); // Bug C fix: clears stuck shake
+                setShowResult(false);
+                hasMarkedRef.current = false;
               }}
               className={`px-5 py-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
                 hardMode === isHard
@@ -540,7 +544,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
         {!isOver && <AttemptsDisplay attemptsLeft={attemptsLeft} />}
 
         {/* ── Answer row ── */}
-        <div className="flex flex-wrap justify-center gap-2 mb-6 px-4">
+        <div className="flex flex-wrap justify-center gap-2 mb-6 px-4 w-full">
           {answer.map((slot, i) => (
             <LetterTile
               key={i}
@@ -555,7 +559,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
 
         {/* ── Letter pool ── */}
         {!isOver && (
-          <div className="flex flex-wrap justify-center gap-2 mb-8 px-4">
+          <div className="flex flex-wrap justify-center gap-2 mb-8 px-4 w-full">
             {pool.map((tile) => (
               <LetterTile
                 key={tile.id}
@@ -616,7 +620,6 @@ const ScrambledWordGame = ({ isDarkMode }) => {
             )}
 
             <div className="flex gap-3 mt-2">
-              {/* Play Again — same word, re-shuffled */}
               <TooltipButton
                 tooltip={t("challenges.play_again_tooltip")}
                 isDarkMode={isDarkMode}
@@ -633,7 +636,6 @@ const ScrambledWordGame = ({ isDarkMode }) => {
                 </button>
               </TooltipButton>
 
-              {/* Next Word — fetch a brand new word */}
               <TooltipButton
                 tooltip={t("challenges.next_word_tooltip")}
                 isDarkMode={isDarkMode}
