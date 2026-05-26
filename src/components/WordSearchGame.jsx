@@ -336,7 +336,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
     // All words found!
     clearInterval(timerRef.current);
-    setGameWon(true);
+    Promise.resolve().then(() => setGameWon(true));
 
     // Record play once
     if (user?.token && user?.uid) {
