@@ -12,6 +12,7 @@ import {
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import { buildGrid, checkSelection } from "../utils/wordSearchUtils";
 import ChallengeSidebar from "./ChallengeSidebar";
+import ReportButton from "./ReportButton";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -163,17 +164,6 @@ const WordSearchGame = ({ isDarkMode }) => {
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   // ── Refs ───────────────────────────────────────────────────────────────────
-  //
-  // progressRef  — always holds the latest progress value so markConceptSeen
-  //               and recordPlay never use a stale closure value.
-  //
-  // markedRef    — Set of conceptIds already sent to markConceptSeen this round.
-  //               Prevents duplicate writes if the cell tap fires twice.
-  //
-  // gameRecordedRef — flips true the moment recordPlay is dispatched for this
-  //                   round.  Prevents the win useEffect from firing again when
-  //                   fetchStats() updates `progress` state after the round ends.
-  //
   const progressRef      = useRef(null);
   const markedRef        = useRef(new Set());
   const gameRecordedRef  = useRef(false);
@@ -258,7 +248,7 @@ const WordSearchGame = ({ isDarkMode }) => {
     setGameWon(false);
     setProgress(prog);
     markedRef.current       = new Set();
-    gameRecordedRef.current = false;  // reset round guard
+    gameRecordedRef.current = false;
   }, []);
 
   const resetGame = useCallback(() => {
@@ -275,7 +265,7 @@ const WordSearchGame = ({ isDarkMode }) => {
     setElapsed(0);
     setGameWon(false);
     markedRef.current       = new Set();
-    gameRecordedRef.current = false;  // reset round guard
+    gameRecordedRef.current = false;
   }, []);
 
   const fetchGame = useCallback(async () => {
@@ -301,8 +291,6 @@ const WordSearchGame = ({ isDarkMode }) => {
 
     const init = async () => {
       try {
-        // Fetch words + stats in parallel; words fetch already reads progress
-        // internally, so we reuse that result for stats to save a round-trip.
         const [{ results, progress: prog }, count] = await Promise.all([
           fetchAllWords(),
           getWordPoolCount(user.token),
@@ -327,7 +315,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
     init();
     return () => { cancelled = true; };
-  }, [fetchAllWords, applyWords, user, t]);
+  }, [fetchAllWords, applyWords, user, t]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Reset seen words ──────────────────────────────────────────────────────
   const handleResetSeenWords = useCallback(async () => {
@@ -337,18 +325,10 @@ const WordSearchGame = ({ isDarkMode }) => {
   }, [user, learningDialect, fetchStats]);
 
   // ── Win detection ─────────────────────────────────────────────────────────
-  //
-  // IMPORTANT: `progress`, `fetchStats`, and `user` are intentionally omitted
-  // from the dependency array. We read them via progressRef.current / closure
-  // refs to avoid this effect re-firing when fetchStats() updates `progress`
-  // state after the round ends — which would cause an infinite recordPlay loop.
-  // The gameRecordedRef boolean is the hard gate that ensures recordPlay is
-  // called at most once per round regardless of re-renders.
-  //
   useEffect(() => {
     if (words.length === 0 || loading) return;
     if (foundWords.size < words.length) return;
-    if (gameRecordedRef.current) return;         // hard gate — run exactly once
+    if (gameRecordedRef.current) return;
     gameRecordedRef.current = true;
 
     clearInterval(timerRef.current);
@@ -357,7 +337,6 @@ const WordSearchGame = ({ isDarkMode }) => {
     if (!user?.token || !user?.uid) return;
     const { token, uid } = user;
 
-    // recordPlay uses progressRef.current so it always has the freshest value.
     recordPlay(token, uid, GAME_ID, learningDialect, progressRef.current)
       .then(() => fetchStats())
       .catch((err) => console.warn("[WordSearchGame] recordPlay failed:", err));
@@ -403,9 +382,6 @@ const WordSearchGame = ({ isDarkMode }) => {
         setFoundCells((prevFound) => new Set([...prevFound, ...cellKeys]));
         setFoundWords((prevFoundWords) => new Set([...prevFoundWords, matchedPlacement.conceptId]));
 
-        // Mark concept seen immediately when word is found.
-        // Uses progressRef.current so we always have the freshest progress,
-        // even when multiple words are found before fetchStats() has run.
         if (!markedRef.current.has(matchedPlacement.conceptId) && user?.token && user?.uid) {
           markedRef.current.add(matchedPlacement.conceptId);
           markConceptSeen(
@@ -414,10 +390,8 @@ const WordSearchGame = ({ isDarkMode }) => {
             GAME_ID,
             learningDialect,
             matchedPlacement.conceptId,
-            progressRef.current      // always fresh — never stale
+            progressRef.current
           ).then((updatedProg) => {
-            // If the service returns the updated doc, keep progressRef in sync
-            // so subsequent markConceptSeen calls build on the latest seenConceptIds.
             if (updatedProg) {
               progressRef.current = updatedProg;
               setProgress(updatedProg);
@@ -539,16 +513,19 @@ const WordSearchGame = ({ isDarkMode }) => {
       {/* ── CENTER: title + mobile word list + grid + controls ── */}
       <div className="flex flex-col items-center flex-1 min-w-0 w-full">
 
-        {/* Title + Timer */}
-        <div className="flex items-center gap-4 mb-6">
-          <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter">
-            {t("challenges.word_search")}
-          </h2>
-          <span className={`font-black text-lg tabular-nums ${
-            isDarkMode ? "text-yellow-400" : "text-yellow-600"
-          }`}>
-            {formatTime(elapsed)}
-          </span>
+        {/* Title + Timer + Report button */}
+        <div className="flex items-center justify-between w-full mb-6">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter">
+              {t("challenges.word_search")}
+            </h2>
+            <span className={`font-black text-lg tabular-nums ${
+              isDarkMode ? "text-yellow-400" : "text-yellow-600"
+            }`}>
+              {formatTime(elapsed)}
+            </span>
+          </div>
+          <ReportButton isDarkMode={isDarkMode} context="WordSearchGame" />
         </div>
 
         {/* Word list — above grid on mobile, hidden on desktop */}
