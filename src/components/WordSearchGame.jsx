@@ -384,19 +384,33 @@ const WordSearchGame = ({ isDarkMode }) => {
 
         if (!markedRef.current.has(matchedPlacement.conceptId) && user?.token && user?.uid) {
           markedRef.current.add(matchedPlacement.conceptId);
+
+          // Optimistically update progressRef so the next markConceptSeen call
+          // receives the accumulated seenConceptIds rather than the stale
+          // snapshot from game load. Without this, each call overwrites the
+          // previous one because it spreads the same original array every time.
+          const updatedProgress = {
+            ...(progressRef.current ?? {}),
+            seenConceptIds: [
+              ...new Set([
+                ...(progressRef.current?.seenConceptIds ?? []),
+                matchedPlacement.conceptId,
+              ]),
+            ],
+          };
+          progressRef.current = updatedProgress;
+          setProgress(updatedProgress);
+
           markConceptSeen(
             user.token,
             user.uid,
             GAME_ID,
             learningDialect,
             matchedPlacement.conceptId,
-            progressRef.current
-          ).then((updatedProg) => {
-            if (updatedProg) {
-              progressRef.current = updatedProg;
-              setProgress(updatedProg);
-            }
-          }).catch((err) => console.warn("[WordSearchGame] markConceptSeen failed:", err));
+            updatedProgress
+          )
+            .then(() => fetchStats())
+            .catch((err) => console.warn("[WordSearchGame] markConceptSeen failed:", err));
         }
 
         return [];
@@ -404,7 +418,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
       return next;
     });
-  }, [gameWon, foundCells, placements, user, learningDialect]);
+  }, [gameWon, foundCells, placements, user, learningDialect, fetchStats]);
 
   // ── Shared sidebar props ────────────────────────────────────────────────────
   const sidebarProps = {
@@ -424,6 +438,9 @@ const WordSearchGame = ({ isDarkMode }) => {
   if (loading) {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in">
+        <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-8">
+          {t("challenges.word_search")}
+        </h2>
         <div className={`w-48 h-48 mb-8 rounded-2xl border-4 flex items-center justify-center ${
           isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900"
         }`}>
@@ -440,6 +457,9 @@ const WordSearchGame = ({ isDarkMode }) => {
   if (error) {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in gap-4">
+        <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter">
+          {t("challenges.word_search")}
+        </h2>
         <p className="text-rose-500 font-semibold text-center px-4">{error}</p>
         <button
           onClick={() => { resetGame(); fetchGame(); }}
@@ -458,6 +478,9 @@ const WordSearchGame = ({ isDarkMode }) => {
     return (
       <div className="flex flex-col lg:flex-row items-start gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95">
         <div className="flex flex-col items-center flex-1 min-w-0 w-full">
+          <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-8">
+            {t("challenges.word_search")}
+          </h2>
           <div className={`p-10 rounded-[2rem] border-4 flex flex-col items-center gap-6 w-full max-w-md ${
             isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
           }`}>
@@ -489,6 +512,10 @@ const WordSearchGame = ({ isDarkMode }) => {
   }
 
   // ── Game render ───────────────────────────────────────────────────────────
+  //
+  // Desktop: [WordList (left, w-52)] [Grid (center, flex-1)] [Sidebar (right, w-64)]
+  // Mobile:  [WordList] [Grid] [Sidebar] stacked vertically
+  //
   return (
     <div className="flex flex-col lg:flex-row items-start gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95">
 
@@ -497,16 +524,21 @@ const WordSearchGame = ({ isDarkMode }) => {
         <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} t={t} />
       </div>
 
-      {/* ── CENTER: timer + report button + mobile word list + grid + controls ── */}
+      {/* ── CENTER: title + mobile word list + grid + controls ── */}
       <div className="flex flex-col items-center flex-1 min-w-0 w-full">
 
-        {/* Timer + Report button */}
+        {/* Title + Timer + Report button */}
         <div className="flex items-center justify-between w-full mb-6">
-          <span className={`font-black text-lg tabular-nums ${
-            isDarkMode ? "text-yellow-400" : "text-yellow-600"
-          }`}>
-            {formatTime(elapsed)}
-          </span>
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter">
+              {t("challenges.word_search")}
+            </h2>
+            <span className={`font-black text-lg tabular-nums ${
+              isDarkMode ? "text-yellow-400" : "text-yellow-600"
+            }`}>
+              {formatTime(elapsed)}
+            </span>
+          </div>
           <ReportButton isDarkMode={isDarkMode} context="WordSearchGame" />
         </div>
 
