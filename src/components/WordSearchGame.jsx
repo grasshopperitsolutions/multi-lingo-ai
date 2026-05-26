@@ -424,9 +424,6 @@ const WordSearchGame = ({ isDarkMode }) => {
   if (loading) {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in">
-        <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-8">
-          {t("challenges.word_search")}
-        </h2>
         <div className={`w-48 h-48 mb-8 rounded-2xl border-4 flex items-center justify-center ${
           isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900"
         }`}>
@@ -443,9 +440,6 @@ const WordSearchGame = ({ isDarkMode }) => {
   if (error) {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in gap-4">
-        <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter">
-          {t("challenges.word_search")}
-        </h2>
         <p className="text-rose-500 font-semibold text-center px-4">{error}</p>
         <button
           onClick={() => { resetGame(); fetchGame(); }}
@@ -464,9 +458,6 @@ const WordSearchGame = ({ isDarkMode }) => {
     return (
       <div className="flex flex-col lg:flex-row items-start gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95">
         <div className="flex flex-col items-center flex-1 min-w-0 w-full">
-          <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-8">
-            {t("challenges.word_search")}
-          </h2>
           <div className={`p-10 rounded-[2rem] border-4 flex flex-col items-center gap-6 w-full max-w-md ${
             isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
           }`}>
@@ -498,10 +489,6 @@ const WordSearchGame = ({ isDarkMode }) => {
   }
 
   // ── Game render ───────────────────────────────────────────────────────────
-  //
-  // Desktop: [WordList (left, w-52)] [Grid (center, flex-1)] [Sidebar (right, w-64)]
-  // Mobile:  [WordList] [Grid] [Sidebar] stacked vertically
-  //
   return (
     <div className="flex flex-col lg:flex-row items-start gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95">
 
@@ -510,21 +497,16 @@ const WordSearchGame = ({ isDarkMode }) => {
         <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} t={t} />
       </div>
 
-      {/* ── CENTER: title + mobile word list + grid + controls ── */}
+      {/* ── CENTER: timer + report button + mobile word list + grid + controls ── */}
       <div className="flex flex-col items-center flex-1 min-w-0 w-full">
 
-        {/* Title + Timer + Report button */}
+        {/* Timer + Report button */}
         <div className="flex items-center justify-between w-full mb-6">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter">
-              {t("challenges.word_search")}
-            </h2>
-            <span className={`font-black text-lg tabular-nums ${
-              isDarkMode ? "text-yellow-400" : "text-yellow-600"
-            }`}>
-              {formatTime(elapsed)}
-            </span>
-          </div>
+          <span className={`font-black text-lg tabular-nums ${
+            isDarkMode ? "text-yellow-400" : "text-yellow-600"
+          }`}>
+            {formatTime(elapsed)}
+          </span>
           <ReportButton isDarkMode={isDarkMode} context="WordSearchGame" />
         </div>
 
