@@ -327,7 +327,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
     init();
     return () => { cancelled = true; };
-  }, [fetchAllWords, applyWords, user, t]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchAllWords, applyWords, user, t]);
 
   // ── Reset seen words ──────────────────────────────────────────────────────
   const handleResetSeenWords = useCallback(async () => {
