@@ -49,7 +49,7 @@ const GAMES = [
     titleKey: "challenges.word_search",
     descKey: "challenges.word_search_desc",
     component: WordSearchGame,
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: "crosswords",
