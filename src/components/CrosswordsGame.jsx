@@ -2,6 +2,7 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Trophy, XCircle } from "lucide-react";
+import ReportButton from "./ReportButton";
 
 const CrosswordsGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
@@ -80,9 +81,13 @@ const CrosswordsGame = ({ isDarkMode }) => {
 
   return (
     <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in zoom-in-95">
-      <h2 className="text-3xl font-black uppercase tracking-tighter mb-8">
-        {t("challenges.crosswords")}
-      </h2>
+      {/* Title row with ReportButton */}
+      <div className="flex items-center justify-between w-full mb-8">
+        <h2 className="text-3xl font-black uppercase tracking-tighter">
+          {t("challenges.crosswords")}
+        </h2>
+        <ReportButton isDarkMode={isDarkMode} context="CrosswordsGame" />
+      </div>
 
       <div className="flex flex-col md:flex-row gap-12 items-center md:items-start mt-8">
         {/* The Grid */}

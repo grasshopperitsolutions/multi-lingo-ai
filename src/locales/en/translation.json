@@ -365,5 +365,16 @@
       "reset_warning": "⚠ This cannot be undone.",
       "reset_confirm": "Yes, reset progress"
     }
+  },
+  "report": {
+    "buttonLabel": "Report",
+    "buttonAriaLabel": "Report an issue",
+    "title": "Report an issue",
+    "successTitle": "Thank you!",
+    "successMessage": "WhatsApp opened with your report. Please press Send to submit it.",
+    "category": "Category",
+    "description": "Description",
+    "placeholder": "Describe the issue in a few words…",
+    "send": "Send via WhatsApp"
   }
 }
