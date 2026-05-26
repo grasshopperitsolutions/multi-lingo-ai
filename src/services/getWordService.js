@@ -54,7 +54,8 @@
  *
  *   BRANCH A — Unseen concept found:
  *     a. Fetch translations/{learningDialect} for that concept.
- *     b. Translation exists → resolve hint → patch if missing → return.
+ *     b. Translation exists → resolve hint → if missing, await AI generation
+ *        and patch into Firestore for future users → return.
  *     c. Translation missing → AI generates word + hints[userDialect],
  *        write full translation doc, return.
  *
@@ -115,13 +116,13 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
     const translation = await _fetchTranslation(unseenConcept.id, learningDialect, token);
 
     if (translation) {
-      const hint = _resolveHint(translation.hints, userDialect);
+      let hint = _resolveHint(translation.hints, userDialect);
 
+      // No hint found for userDialect — generate one now so the current user
+      // sees it immediately, then patch it into Firestore for future users.
       if (!hint) {
-        _generateHintForDialect(unseenConcept.sourceWord, userDialect, token)
-          .then((newHint) =>
-            _patchHint(unseenConcept.id, learningDialect, userDialect, newHint, token)
-          )
+        hint = await _generateHintForDialect(unseenConcept.sourceWord, userDialect, token);
+        _patchHint(unseenConcept.id, learningDialect, userDialect, hint, token)
           .catch((err) => console.warn('[getWordService] hint patch failed:', err));
       }
 
@@ -184,14 +185,23 @@ export async function getWordPoolCount(token) {
 // Hint resolution
 // ---------------------------------------------------------------------------
 
+/**
+ * Pick the best stored hint for userDialect using a 3-step chain:
+ *   1. Exact locale match  (e.g. "en-US")
+ *   2. Language-only match (e.g. "en-GB" satisfies "en-US")
+ *   3. Return '' — caller will generate the hint on demand.
+ *
+ * Intentionally does NOT fall back to an arbitrary language so users never
+ * receive a hint in the wrong language.
+ */
 function _resolveHint(hints, userDialect) {
   if (!hints || typeof hints !== 'object') return '';
   if (hints[userDialect]) return hints[userDialect];
   const lang      = userDialect.split('-')[0];
   const langMatch = Object.keys(hints).find((k) => k.startsWith(`${lang}-`));
   if (langMatch) return hints[langMatch];
-  if (hints['en-US']) return hints['en-US'];
-  return Object.values(hints)[0] ?? '';
+  // No suitable hint found — return '' so the caller triggers on-demand generation.
+  return '';
 }
 
 // ---------------------------------------------------------------------------
