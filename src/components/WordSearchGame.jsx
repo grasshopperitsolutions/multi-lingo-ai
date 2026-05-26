@@ -12,7 +12,6 @@ import {
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import { buildGrid, checkSelection } from "../utils/wordSearchUtils";
 import ChallengeSidebar from "./ChallengeSidebar";
-import ReportButton from "./ReportButton";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -524,22 +523,16 @@ const WordSearchGame = ({ isDarkMode }) => {
         <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} t={t} />
       </div>
 
-      {/* ── CENTER: title + mobile word list + grid + controls ── */}
+      {/* ── CENTER: timer + mobile word list + grid + controls ── */}
       <div className="flex flex-col items-center flex-1 min-w-0 w-full">
 
-        {/* Title + Timer + Report button */}
-        <div className="flex items-center justify-between w-full mb-6">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter">
-              {t("challenges.word_search")}
-            </h2>
-            <span className={`font-black text-lg tabular-nums ${
-              isDarkMode ? "text-yellow-400" : "text-yellow-600"
-            }`}>
-              {formatTime(elapsed)}
-            </span>
-          </div>
-          <ReportButton isDarkMode={isDarkMode} context="WordSearchGame" />
+        {/* Timer */}
+        <div className="flex items-center justify-start w-full mb-6">
+          <span className={`font-black text-lg tabular-nums ${
+            isDarkMode ? "text-yellow-400" : "text-yellow-600"
+          }`}>
+            {formatTime(elapsed)}
+          </span>
         </div>
 
         {/* Word list — above grid on mobile, hidden on desktop */}

@@ -6,7 +6,6 @@ import { useAppContext } from "../contexts/AppContext";
 import { getUserGameProgress, markConceptSeen, recordPlay, resetSeenWords } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import ChallengeSidebar from "./ChallengeSidebar";
-import ReportButton from "./ReportButton";
 import { sanitizeAIError } from "../utils/errorUtils";
 
 // ---------------------------------------------------------------------------
@@ -315,9 +314,6 @@ const HangmanGame = ({ isDarkMode }) => {
 
       {/* ── Main game column ── */}
       <div className="flex flex-col items-center flex-1 min-w-0">
-        <div className="flex items-center justify-end w-full mb-4">
-          <ReportButton isDarkMode={isDarkMode} context="HangmanGame" />
-        </div>
 
         {/* Easy / Hard toggle */}
         <div className={`flex mb-6 rounded-full border-4 overflow-hidden ${
