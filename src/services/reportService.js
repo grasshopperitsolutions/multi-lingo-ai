@@ -13,6 +13,9 @@ const WHATSAPP_NUMBER = '33767834576'; // +33 767834576
 
 /**
  * Builds a formatted WhatsApp message string.
+ * Uses plain text + emojis — no Markdown asterisks, which show as raw
+ * characters in the wa.me pre-send preview.
+ *
  * @param {Object} params
  * @param {string} params.category  - Selected report category
  * @param {string} params.message   - User-written description
@@ -23,13 +26,13 @@ const buildWhatsAppUrl = ({ category, message, context }) => {
   const timestamp = new Date().toLocaleString();
 
   const lines = [
-    '🚨 *Multi Lingo AI — User Report*',
-    '',
-    `📂 *Category:* ${category}`,
-    `🕐 *Time:* ${timestamp}`,
-    context ? `📍 *Context:* ${context}` : null,
-    '',
-    `📝 *Message:*`,
+    '🚨 MULTI LINGO AI — USER REPORT',
+    '────────────────────────',
+    `📂 Category: ${category}`,
+    `🕐 Time: ${timestamp}`,
+    context ? `📍 Context: ${context}` : null,
+    '────────────────────────',
+    `📝 Message:`,
     message.trim(),
   ]
     .filter((line) => line !== null)
