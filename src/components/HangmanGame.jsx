@@ -3,10 +3,11 @@ import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Trophy, Skull, RefreshCw } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
-import { getUserGameProgress, markConceptSeen, resetSeenWords } from "../services/userService";
+import { getUserGameProgress, markConceptSeen, recordPlay, resetSeenWords } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import ChallengeSidebar from "./ChallengeSidebar";
 import ReportButton from "./ReportButton";
+import { sanitizeAIError } from "../utils/errorUtils";
 
 // ---------------------------------------------------------------------------
 // Keyboard layout config
@@ -71,8 +72,9 @@ const HangmanGame = ({ isDarkMode }) => {
   const [hardMode, setHardMode] = useState(false);
 
   // ── Word state ──
-  const [word, setWord] = useState("");
-  const [hint, setHint] = useState("");
+  const [word, setWord]         = useState("");
+  const [hint, setHint]         = useState("");
+  const [conceptId, setConceptId] = useState(null);
 
   // ── Game state ──
   const [guessed, setGuessed]       = useState(new Set());
@@ -87,7 +89,9 @@ const HangmanGame = ({ isDarkMode }) => {
   const [totalWords,     setTotalWords]     = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  const pendingMarkRef = useRef(null);
+  // Guard: prevent double-recording when isWinner/isLoser fires
+  const hasMarkedRef = useRef(false);
+
   const maxWrong = 6;
 
   const baseKeys     = KEYBOARD_LAYOUTS.base;
@@ -124,6 +128,8 @@ const HangmanGame = ({ isDarkMode }) => {
     setWrongCount(0);
     setWord("");
     setHint("");
+    setConceptId(null);
+    hasMarkedRef.current = false;
   }, []);
 
   // ── Fetch stats (progress + pool count) ─────────────────────────────────
@@ -166,15 +172,9 @@ const HangmanGame = ({ isDarkMode }) => {
     return () => { cancelled = true; };
   }, [user, learningDialect]);
 
-  // ── Core word fetch ──────────────────────────────────────────────────────
+  // ── Core word fetch — pure fetch, no side-effects on progress ───────────
   const fetchWordData = useCallback(async () => {
     if (!user) throw new Error(t("challenges.word_fetch_error"));
-
-    if (pendingMarkRef.current) {
-      await pendingMarkRef.current.catch(() => {});
-      pendingMarkRef.current = null;
-    }
-
     const { token, uid } = user;
     if (!token) throw new Error(t("challenges.word_fetch_error"));
 
@@ -187,21 +187,15 @@ const HangmanGame = ({ isDarkMode }) => {
       seenConceptIds: prog?.seenConceptIds ?? [],
     });
 
-    pendingMarkRef.current = markConceptSeen(
-      token, uid, "hangman", learningDialect, result.conceptId, prog
-    );
-    pendingMarkRef.current
-      .then(() => fetchStats())
-      .catch((err) => console.warn("[HangmanGame] markConceptSeen failed:", err));
-
-    return { word: result.word.toUpperCase(), hint: result.hint, progress: prog };
-  }, [user, learningDialect, interfaceLang, t, fetchStats]);
+    return { word: result.word.toUpperCase(), hint: result.hint, conceptId: result.conceptId, progress: prog };
+  }, [user, learningDialect, interfaceLang, t]);
 
   const fetchWord = useCallback(async () => {
     try {
       const data = await fetchWordData();
       setWord(data.word);
       setHint(data.hint);
+      setConceptId(data.conceptId);
       setProgress(data.progress);
     } catch (err) {
       if (isSessionExpiredError(err)) {
@@ -209,7 +203,7 @@ const HangmanGame = ({ isDarkMode }) => {
         window.location.reload();
         return;
       }
-      setError(err.message ?? t("challenges.word_fetch_error"));
+      setError(sanitizeAIError(err.message, t("challenges.word_fetch_error")));
     } finally {
       setLoading(false);
     }
@@ -222,6 +216,7 @@ const HangmanGame = ({ isDarkMode }) => {
         if (!cancelled) {
           setWord(data.word);
           setHint(data.hint);
+          setConceptId(data.conceptId);
           setProgress(data.progress);
         }
       })
@@ -232,7 +227,7 @@ const HangmanGame = ({ isDarkMode }) => {
             window.location.reload();
             return;
           }
-          setError(err.message ?? t("challenges.word_fetch_error"));
+          setError(sanitizeAIError(err.message, t("challenges.word_fetch_error")));
         }
       })
       .finally(() => {
@@ -240,6 +235,25 @@ const HangmanGame = ({ isDarkMode }) => {
       });
     return () => { cancelled = true; };
   }, [fetchWordData, t]);
+
+  // ── Record play + mark seen when game ends ───────────────────────────────
+  useEffect(() => {
+    if ((!isWinner && !isLoser) || hasMarkedRef.current || !conceptId || !user?.token || !user?.uid) return;
+    hasMarkedRef.current = true;
+
+    // Always record the play (increments totalPlayed + lastPlayedAt)
+    recordPlay(user.token, user.uid, "hangman", learningDialect, progress)
+      .catch((err) => console.warn("[HangmanGame] recordPlay failed:", err));
+
+    // Only add to seenConceptIds on a win
+    if (isWinner) {
+      markConceptSeen(user.token, user.uid, "hangman", learningDialect, conceptId, progress)
+        .then(() => fetchStats())
+        .catch((err) => console.warn("[HangmanGame] markConceptSeen failed:", err));
+    } else {
+      Promise.resolve().then(() => fetchStats());
+    }
+  }, [isWinner, isLoser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Reset seen words handler (owned by HangmanGame, passed as callback) ──
   const handleResetSeenWords = useCallback(async () => {

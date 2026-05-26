@@ -71,15 +71,12 @@ export const updateUserProfile = async (token, uid, data) => {
  * @returns {Promise<string>} The public URL of the new avatar
  */
 export const uploadProfileImage = async (token, uid, file) => {
-  // 1. Wipe the user's avatar folder before uploading.
-  // Awaited so the new upload cannot be deleted by a concurrent wipe.
   try {
     await deleteByPrefix(token, storagePaths.avatarFolder(uid));
   } catch (e) {
     console.warn('[uploadProfileImage] Avatar prefix clear failed (non-fatal):', e);
   }
 
-  // 2. Upload the new avatar
   const { uploadUrl, publicUrl } = await requestUpload(
     token,
     file.name,
@@ -89,7 +86,6 @@ export const uploadProfileImage = async (token, uid, file) => {
   );
   await uploadToGcs(uploadUrl, file, file.type, { 'x-goog-acl': 'public-read' });
 
-  // 3. Persist the new URL in Firestore
   await updateUserProfile(token, uid, { photoURL: publicUrl });
 
   return publicUrl;
@@ -143,6 +139,11 @@ export const getUserGameProgress = async (token, uid, gameId, learningDialect) =
   return json?.data?.data ?? null;
 };
 
+/**
+ * Mark a concept as seen for a given game. Only updates seenConceptIds.
+ * Does NOT touch totalPlayed or lastPlayedAt — call recordPlay() for that.
+ * Should only be called on a correct answer.
+ */
 export const markConceptSeen = async (
   token,
   uid,
@@ -153,9 +154,11 @@ export const markConceptSeen = async (
 ) => {
   const collection = PROGRESS_COLLECTION(uid);
   const id         = PROGRESS_DOC_ID(gameId, learningDialect);
-  const now        = new Date().toISOString();
 
   if (!currentProgress) {
+    // Doc doesn't exist yet — create it with seenConceptIds only.
+    // recordPlay() will have already created/updated totalPlayed & lastPlayedAt,
+    // so if we arrive here without a doc something is off; create defensively.
     await fetch(`${PROXY_URL}/api/firestore`, {
       method: 'POST',
       headers: {
@@ -170,7 +173,7 @@ export const markConceptSeen = async (
           learningDialect,
           seenConceptIds: [conceptId],
           totalPlayed: 1,
-          lastPlayedAt: now,
+          lastPlayedAt: new Date().toISOString(),
         },
       }),
     }).then(async (r) => {
@@ -190,8 +193,69 @@ export const markConceptSeen = async (
       body: JSON.stringify({
         collection,
         id,
+        data: { seenConceptIds: updatedSeenIds },
+      }),
+    }).then(async (r) => {
+      if (!r.ok) {
+        const j = await r.json();
+        throw new Error(j?.error || j?.message || 'Failed to update seen concepts');
+      }
+    });
+  }
+};
+
+/**
+ * Record a play attempt (correct or incorrect).
+ * Increments totalPlayed and sets lastPlayedAt.
+ * Does NOT touch seenConceptIds — call markConceptSeen() for that.
+ * Should be called on every answer submission (win or lose).
+ */
+export const recordPlay = async (
+  token,
+  uid,
+  gameId,
+  learningDialect,
+  currentProgress
+) => {
+  const collection = PROGRESS_COLLECTION(uid);
+  const id         = PROGRESS_DOC_ID(gameId, learningDialect);
+  const now        = new Date().toISOString();
+
+  if (!currentProgress) {
+    await fetch(`${PROXY_URL}/api/firestore`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        collection,
+        id,
         data: {
-          seenConceptIds: updatedSeenIds,
+          gameId,
+          learningDialect,
+          seenConceptIds: [],
+          totalPlayed: 1,
+          lastPlayedAt: now,
+        },
+      }),
+    }).then(async (r) => {
+      if (!r.ok) {
+        const j = await r.json();
+        throw new Error(j?.error || j?.message || 'Failed to create game progress');
+      }
+    });
+  } else {
+    await fetch(`${PROXY_URL}/api/firestore`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        collection,
+        id,
+        data: {
           totalPlayed: (currentProgress.totalPlayed ?? 0) + 1,
           lastPlayedAt: now,
         },
@@ -199,7 +263,7 @@ export const markConceptSeen = async (
     }).then(async (r) => {
       if (!r.ok) {
         const j = await r.json();
-        throw new Error(j?.error || j?.message || 'Failed to update game progress');
+        throw new Error(j?.error || j?.message || 'Failed to record play');
       }
     });
   }
@@ -208,12 +272,6 @@ export const markConceptSeen = async (
 /**
  * Reset the seen words list for a given game + dialect.
  * Only clears seenConceptIds — totalPlayed and other fields are preserved.
- *
- * @param {string} token
- * @param {string} uid
- * @param {string} gameId
- * @param {string} learningDialect
- * @returns {Promise<void>}
  */
 export const resetSeenWords = async (token, uid, gameId, learningDialect) => {
   const collection = PROGRESS_COLLECTION(uid);
