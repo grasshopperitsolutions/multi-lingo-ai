@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import PropTypes from "prop-types";
 
-// ── StatCard ──────────────────────────────────────────────────────────────────────────────────
+// ── StatCard ────────────────────────────────────────────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
   <div
     className={`p-6 rounded-2xl border-4 flex flex-col gap-3 transition-all hover:-translate-y-1
@@ -188,12 +188,12 @@ const DashboardPage = () => {
             className="shrink-0"
           />
           <div className="min-w-0">
-            <h1 className={`text-4xl font-black uppercase tracking-tighter truncate ${
+            <h1 className={`text-xl sm:text-3xl font-black uppercase tracking-tighter truncate ${
               isDarkMode ? "text-white" : "text-slate-900"
             }`}>
               {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || t("dashboard.learner") })}
             </h1>
-            <p className={`font-bold uppercase tracking-widest text-sm mt-1 ${
+            <p className={`font-bold uppercase tracking-widest text-xs sm:text-sm mt-1 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"
             }`}>{t("dashboard.welcome_subtitle")}</p>
           </div>
