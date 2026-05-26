@@ -6,6 +6,7 @@ import { useAppContext } from "../contexts/AppContext";
 import { getUserGameProgress, markConceptSeen, recordPlay, resetSeenWords } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import ChallengeSidebar from "./ChallengeSidebar";
+import { sanitizeAIError } from "../utils/errorUtils";
 
 // ---------------------------------------------------------------------------
 // Keyboard layout config
@@ -201,7 +202,7 @@ const HangmanGame = ({ isDarkMode }) => {
         window.location.reload();
         return;
       }
-      setError(err.message ?? t("challenges.word_fetch_error"));
+      setError(sanitizeAIError(err.message, t("challenges.word_fetch_error")));
     } finally {
       setLoading(false);
     }
@@ -225,7 +226,7 @@ const HangmanGame = ({ isDarkMode }) => {
             window.location.reload();
             return;
           }
-          setError(err.message ?? t("challenges.word_fetch_error"));
+          setError(sanitizeAIError(err.message, t("challenges.word_fetch_error")));
         }
       })
       .finally(() => {
