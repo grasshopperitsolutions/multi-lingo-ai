@@ -90,7 +90,7 @@ GridCell.propTypes = {
  * Word list panel — shown next to / above the grid.
  * Displays the translated word + hint, struck through when found.
  */
-const WordListPanel = ({ words, foundWords, isDarkMode }) => (
+const WordListPanel = ({ words, foundWords, isDarkMode, t }) => (
   <div className={`rounded-2xl border-4 p-4 flex flex-col gap-3 ${
     isDarkMode
       ? "bg-slate-800 border-slate-700"
@@ -99,7 +99,7 @@ const WordListPanel = ({ words, foundWords, isDarkMode }) => (
     <p className={`font-black uppercase text-xs tracking-widest mb-1 ${
       isDarkMode ? "text-slate-400" : "text-slate-500"
     }`}>
-      Find these words
+      {t("challenges.word_search_panel")}
     </p>
     {words.map(({ word, hint, conceptId }) => {
       const found = foundWords.has(conceptId);
@@ -131,6 +131,7 @@ WordListPanel.propTypes = {
   })).isRequired,
   foundWords: PropTypes.instanceOf(Set).isRequired,
   isDarkMode: PropTypes.bool.isRequired,
+  t:          PropTypes.func.isRequired,
 };
 
 // ---------------------------------------------------------------------------
@@ -470,13 +471,13 @@ const WordSearchGame = ({ isDarkMode }) => {
           }`}>
             <Trophy size={64} className="text-yellow-400" strokeWidth={2} />
             <h3 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-center text-emerald-500">
-              All found!
+              {t("challenges.victory_title")}
             </h3>
             <p className={`text-lg font-bold ${ isDarkMode ? "text-slate-300" : "text-slate-700" }`}>
               Time: <span className="font-black text-yellow-400">{formatTime(elapsed)}</span>
             </p>
             <p className={`text-sm ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`}>
-              {words.length} words found
+              {t("challenges.words_count", { count: words.length })}
             </p>
             <button
               onClick={() => { resetGame(); fetchGame(); }}
@@ -527,14 +528,14 @@ const WordSearchGame = ({ isDarkMode }) => {
 
         {/* Word list — top on mobile, hidden here on desktop (shown in right col) */}
         <div className="w-full mb-4 lg:hidden">
-          <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} />
+          <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} t={t} />
         </div>
 
         {/* Progress indicator */}
         <p className={`text-xs font-bold uppercase tracking-widest mb-4 ${
           isDarkMode ? "text-slate-400" : "text-slate-500"
         }`}>
-          {foundWords.size} / {words.length} found
+          {t("challenges.words_found", { found: foundWords.size, total: words.length })}
         </p>
 
         {/* Grid */}
@@ -577,7 +578,7 @@ const WordSearchGame = ({ isDarkMode }) => {
               }`}
             >
               <RotateCcw size={14} />
-              Clear selection
+              {t("challenges.clear_selection")}
             </button>
           </div>
         )}
@@ -585,7 +586,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
       {/* ── Right column: word list (desktop) + sidebar ── */}
       <div className="hidden lg:flex flex-col gap-4 w-64 shrink-0">
-        <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} />
+        <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} t={t} />
         <ChallengeSidebar
           isDarkMode={isDarkMode}
           progress={progress}

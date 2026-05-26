@@ -364,6 +364,11 @@
       "reset_message": "This will clear all your seen words, allowing you to see previously played words again.",
       "reset_warning": "⚠ This cannot be undone.",
       "reset_confirm": "Yes, reset progress"
-    }
+    },
+    "word_search_panel": "Find these words",
+    "clear_selection": "Clear selection",
+    "victory_title": "All found!",
+    "words_found": "{{found}} / {{total}} found",
+    "words_count": "{{count}} words found"
   }
 }

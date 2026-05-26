@@ -364,6 +364,11 @@
       "reset_message": "Cela effacera tous les mots vus, vous permettant de revoir les mots déjà joués.",
       "reset_warning": "⚠ Cette action est irréversible.",
       "reset_confirm": "Oui, réinitialiser la progression"
-    }
+    },
+    "word_search_panel": "Trouve ces mots",
+    "clear_selection": "Effacer la sélection",
+    "victory_title": "Tous trouvés!",
+    "words_found": "{{found}} / {{total}} trouvés",
+    "words_count": "{{count}} mots trouvés"
   }
 }

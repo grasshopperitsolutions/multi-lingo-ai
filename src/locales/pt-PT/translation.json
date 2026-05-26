@@ -364,6 +364,11 @@
       "reset_message": "Isto irá limpar todas as palavras vistas, permitindo-te ver palavras já jogadas novamente.",
       "reset_warning": "⚠ Isto não pode ser desfeito.",
       "reset_confirm": "Sim, repor progresso"
-    }
+    },
+    "word_search_panel": "Encontra estas palavras",
+    "clear_selection": "Limpar seleção",
+    "victory_title": "Todos encontrados!",
+    "words_found": "{{found}} / {{total}} encontrados",
+    "words_count": "{{count}} palavras encontradas"
   }
 }
