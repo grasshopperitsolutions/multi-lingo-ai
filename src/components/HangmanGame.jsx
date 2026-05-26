@@ -280,9 +280,6 @@ const HangmanGame = ({ isDarkMode }) => {
   if (loading) {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in">
-        <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-8">
-          {t("challenges.hangman")}
-        </h2>
         <div className={`w-48 h-48 mb-8 rounded-2xl border-4 flex items-center justify-center ${
           isDarkMode ? "bg-slate-800 border-slate-700" : "bg-yellow-100 border-slate-900"
         }`}>
@@ -299,9 +296,6 @@ const HangmanGame = ({ isDarkMode }) => {
   if (error) {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in gap-4">
-        <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter">
-          {t("challenges.hangman")}
-        </h2>
         <p className="text-rose-500 font-semibold text-center px-4">{error}</p>
         <button
           onClick={() => { resetGame(); fetchWord(); }}
@@ -321,10 +315,7 @@ const HangmanGame = ({ isDarkMode }) => {
 
       {/* ── Main game column ── */}
       <div className="flex flex-col items-center flex-1 min-w-0">
-        <div className="flex items-center justify-between w-full mb-4">
-          <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter">
-            {t("challenges.hangman")}
-          </h2>
+        <div className="flex items-center justify-end w-full mb-4">
           <ReportButton isDarkMode={isDarkMode} context="HangmanGame" />
         </div>
 
