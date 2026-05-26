@@ -12,6 +12,8 @@ import {
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import ChallengeSidebar from "./ChallengeSidebar";
 import TooltipButton from "./TooltipButton";
+import ReportButton from "./ReportButton";
+import { sanitizeAIError } from "../utils/errorUtils";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -268,7 +270,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
         window.location.reload();
         return;
       }
-      setError(err.message ?? t("challenges.word_fetch_error"));
+      setError(sanitizeAIError(err.message, t("challenges.word_fetch_error")));
     } finally {
       setLoading(false);
     }
@@ -285,7 +287,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
             window.location.reload();
             return;
           }
-          setError(err.message ?? t("challenges.word_fetch_error"));
+          setError(sanitizeAIError(err.message, t("challenges.word_fetch_error")));
         }
       })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -467,10 +469,13 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       {/* ── Main game column ── */}
       <div className="flex flex-col items-center flex-1 min-w-0 w-full">
 
-        {/* Title */}
-        <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-4">
-          {t("challenges.scrambled_word")}
-        </h2>
+        {/* Title row with ReportButton */}
+        <div className="flex items-center justify-between w-full mb-4">
+          <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter">
+            {t("challenges.scrambled_word")}
+          </h2>
+          <ReportButton isDarkMode={isDarkMode} context="ScrambledWordGame" />
+        </div>
 
         {/* Easy / Hard toggle */}
         <div className={`flex mb-6 rounded-full border-4 overflow-hidden ${

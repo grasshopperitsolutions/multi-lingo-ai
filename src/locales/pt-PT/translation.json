@@ -370,5 +370,17 @@
     "victory_title": "Todos encontrados!",
     "words_found": "{{found}} / {{total}} encontrados",
     "words_count": "{{count}} palavras encontradas"
+    }
+  },
+  "report": {
+    "buttonLabel": "Reportar",
+    "buttonAriaLabel": "Reportar um problema",
+    "title": "Reportar um problema",
+    "successTitle": "Obrigado!",
+    "successMessage": "WhatsApp aberto com o teu reporte. Por favor pressiona Enviar para o submeter.",
+    "category": "Categoria",
+    "description": "Descrição",
+    "placeholder": "Descreve o problema em poucas palavras…",
+    "send": "Enviar via WhatsApp"
   }
 }

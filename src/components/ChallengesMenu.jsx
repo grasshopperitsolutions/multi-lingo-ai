@@ -3,17 +3,16 @@ import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, BrainCircuit, Swords, NotebookPen, Search, EggFried } from "lucide-react";
 import StatusBadge from "./StatusBadge";
+import ReportButton from "./ReportButton";
 
-// ── Lazy-loaded game components ─────────────────────────────────────────────
-const HangmanGame = lazy(() => import("./HangmanGame"));
-const CrosswordsGame = lazy(() => import("./CrosswordsGame"));
-const WordQuizGame = lazy(() => import("./WordQuizGame"));
-const WordSearchGame = lazy(() => import("./WordSearchGame"));
+// ── Lazy-loaded game components ───────────────────────────────────────────────
+const HangmanGame     = lazy(() => import("./HangmanGame"));
+const CrosswordsGame  = lazy(() => import("./CrosswordsGame"));
+const WordQuizGame    = lazy(() => import("./WordQuizGame"));
+const WordSearchGame  = lazy(() => import("./WordSearchGame"));
 const ScrambledWordGame = lazy(() => import("./ScrambledWordGame"));
 
-// ── Game Registry ───────────────────────────────────────────────────────────
-// Add new games here — one entry per game.
-// Set `comingSoon: true` to show a "Coming soon..." badge instead of a game.
+// ── Game Registry ─────────────────────────────────────────────────────────────
 const GAMES = [
   {
     id: "hangman",
@@ -62,157 +61,159 @@ const GAMES = [
   },
 ];
 
-// ── Sub-components ──────────────────────────────────────────────────────────
-
+// ── Sub-components ────────────────────────────────────────────────────────────
 const Breadcrumb = ({ isDarkMode, onBackToDashboard, onBackToMenu, currentViewLabel }) => {
   const { t } = useTranslation();
   return (
-    <nav className="flex items-center gap-1.5 text-sm font-black uppercase tracking-widest mb-8">
+    <div className="flex items-center gap-2 mb-4 flex-wrap">
       <button
         onClick={onBackToDashboard}
-        className={`flex items-center gap-1 transition-all hover:-translate-x-0.5 ${
+        className={`flex items-center gap-1 text-xs sm:text-sm font-black uppercase tracking-widest transition-colors ${
           isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
         }`}
       >
-        <ArrowLeft size={16} />
-        {t("dashboard.back")}
+        <ArrowLeft size={14} />
+        <span className="hidden xs:inline">{t("dashboard.back")}</span>
       </button>
-      <span className={`mx-1 ${isDarkMode ? "text-slate-600" : "text-slate-400"}`}>/</span>
+      <span className={isDarkMode ? "text-slate-600" : "text-slate-400"}>/</span>
       {currentViewLabel ? (
         <>
           <button
             onClick={onBackToMenu}
-            className={`transition-all ${
-              isDarkMode ? "text-yellow-400 hover:text-yellow-300" : "text-yellow-600 hover:text-yellow-800"
+            className={`text-xs sm:text-sm font-black uppercase tracking-widest transition-colors ${
+              isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
             }`}
           >
             {t("challenges.title")}
           </button>
-          <span className={`mx-1 ${isDarkMode ? "text-slate-600" : "text-slate-400"}`}>/</span>
-          <span className={isDarkMode ? "text-yellow-400" : "text-yellow-600"}>
+          <span className={isDarkMode ? "text-slate-600" : "text-slate-400"}>/</span>
+          <span className={`text-xs sm:text-sm font-black uppercase tracking-widest ${
+            isDarkMode ? "text-rose-400" : "text-rose-600"
+          }`}>
             {currentViewLabel}
           </span>
         </>
       ) : (
-        <span className={isDarkMode ? "text-yellow-400" : "text-yellow-600"}>
+        <span className={`text-xs sm:text-sm font-black uppercase tracking-widest ${
+          isDarkMode ? "text-rose-400" : "text-rose-600"
+        }`}>
           {t("challenges.title")}
         </span>
       )}
-    </nav>
+    </div>
   );
 };
-
 Breadcrumb.propTypes = {
-  isDarkMode: PropTypes.bool.isRequired,
+  isDarkMode:        PropTypes.bool.isRequired,
   onBackToDashboard: PropTypes.func.isRequired,
-  onBackToMenu: PropTypes.func.isRequired,
-  currentViewLabel: PropTypes.string,
+  onBackToMenu:      PropTypes.func.isRequired,
+  currentViewLabel:  PropTypes.string,
 };
 
 const GameCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, comingSoon, comingSoonLabel }) => (
   <button
     onClick={onClick}
     disabled={comingSoon}
-    className={`relative p-6 rounded-[2rem] border-4 flex flex-col items-center text-center transition-all w-full
-      ${
-        comingSoon
-          ? "opacity-60 cursor-not-allowed"
-          : isDarkMode
-            ? "bg-slate-800 border-slate-700 hover-neo-dark text-white"
-            : "bg-white border-slate-900 hover-neo-light text-slate-900 active-neo"
-      }`}
+    className={`relative flex items-center gap-4 p-4 sm:p-5 rounded-2xl border-4 text-left transition-all ${
+      comingSoon
+        ? 'opacity-60 cursor-not-allowed'
+        : 'hover:-translate-y-1 active:scale-95'
+    } ${
+      isDarkMode
+        ? 'bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]'
+        : 'bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]'
+    }`}
   >
-    {comingSoon && <StatusBadge label={comingSoonLabel} isDarkMode={isDarkMode} />}
-    <div
-      className={`w-20 h-20 rounded-full border-4 border-slate-900 flex items-center justify-center mb-6 neo-shadow-light ${color}`}
-    >
-      <Icon size={40} className="text-slate-900" />
+    {comingSoon && <StatusBadge label={comingSoonLabel} />}
+    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-4 border-slate-900 flex items-center justify-center shrink-0 ${color}`}>
+      <Icon size={20} className="text-slate-900" />
     </div>
-    <h3 className="text-2xl font-black uppercase tracking-tighter mb-2">
-      {title}
-    </h3>
-    <p className="font-bold opacity-70">{description}</p>
+    <div>
+      <h3 className={`text-sm sm:text-base font-black uppercase tracking-tight ${
+        isDarkMode ? 'text-white' : 'text-slate-900'
+      }`}>{title}</h3>
+      <p className={`text-xs sm:text-sm font-semibold mt-0.5 ${
+        isDarkMode ? 'text-slate-400' : 'text-slate-500'
+      }`}>{description}</p>
+    </div>
   </button>
 );
-
 GameCard.propTypes = {
-  title: PropTypes.string.isRequired,
-  description: PropTypes.string.isRequired,
-  icon: PropTypes.elementType.isRequired,
-  color: PropTypes.string.isRequired,
-  onClick: PropTypes.func.isRequired,
-  isDarkMode: PropTypes.bool.isRequired,
-  comingSoon: PropTypes.bool,
-  comingSoonLabel: PropTypes.string,
+  title:          PropTypes.string.isRequired,
+  description:    PropTypes.string.isRequired,
+  icon:           PropTypes.elementType.isRequired,
+  color:          PropTypes.string.isRequired,
+  onClick:        PropTypes.func.isRequired,
+  isDarkMode:     PropTypes.bool.isRequired,
+  comingSoon:     PropTypes.bool,
+  comingSoonLabel:PropTypes.string,
 };
 
-// ── Fallback loader for Suspense ────────────────────────────────────────────
 const GameLoader = ({ isDarkMode }) => (
-  <div className="flex items-center justify-center py-32">
-    <div
-      className={`w-12 h-12 rounded-full border-4 border-t-transparent animate-spin ${
-        isDarkMode ? "border-yellow-400" : "border-slate-900"
-      }`}
-    />
+  <div className={`flex items-center justify-center py-16 ${
+    isDarkMode ? 'text-slate-400' : 'text-slate-500'
+  }`}>
+    <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin border-current" />
   </div>
 );
+GameLoader.propTypes = { isDarkMode: PropTypes.bool.isRequired };
 
-GameLoader.propTypes = {
-  isDarkMode: PropTypes.bool.isRequired,
-};
-
-// ── ChallengesMenu (Challenge Hub) ──────────────────────────────────────────
+// ── ChallengesMenu (Challenge Hub) ────────────────────────────────────────────
 const ChallengesMenu = ({ isDarkMode, onBack }) => {
   const { t } = useTranslation();
   const [activeGame, setActiveGame] = useState(null);
 
-  const handleGameSelect = (gameId) => {
-    setActiveGame(gameId);
-  };
+  const handleGameSelect = (gameId) => setActiveGame(gameId);
+  const handleBackToMenu = () => setActiveGame(null);
 
-  const handleBackToMenu = () => {
-    setActiveGame(null);
-  };
+  const activeGameDef = activeGame ? GAMES.find((g) => g.id === activeGame) : null;
 
-  // Find the active game definition
-  const activeGameDef = activeGame
-    ? GAMES.find((g) => g.id === activeGame)
-    : null;
-
-  // ── Active game view ────────────────────────────────────────────────────
+  // ── Active game view ──────────────────────────────────────────────────────
   if (activeGameDef) {
     const GameComponent = activeGameDef.component;
     return (
-      <div className="w-full animate-in fade-in zoom-in-95">
+      <div className="flex flex-col gap-4">
         <Breadcrumb
           isDarkMode={isDarkMode}
           onBackToDashboard={onBack}
           onBackToMenu={handleBackToMenu}
           currentViewLabel={t(activeGameDef.titleKey)}
         />
+        <div className="flex items-center justify-between gap-2">
+          <h1 className={`text-3xl sm:text-5xl font-black uppercase tracking-tighter leading-none ${
+            isDarkMode ? 'text-white' : 'text-slate-900'
+          }`}>
+            {t(activeGameDef.titleKey)}
+          </h1>
+          <ReportButton isDarkMode={isDarkMode} context={`ChallengesMenu-${activeGameDef.id}`} />
+        </div>
         <Suspense fallback={<GameLoader isDarkMode={isDarkMode} />}>
-          <GameComponent isDarkMode={isDarkMode} />
+          <GameComponent isDarkMode={isDarkMode} onBack={handleBackToMenu} />
         </Suspense>
       </div>
     );
   }
 
-  // ── Menu grid ───────────────────────────────────────────────────────────
+  // ── Menu grid ─────────────────────────────────────────────────────────────
   return (
-    <div className="w-full animate-in fade-in zoom-in-95">
+    <div className="flex flex-col gap-4">
       <Breadcrumb
         isDarkMode={isDarkMode}
         onBackToDashboard={onBack}
         onBackToMenu={handleBackToMenu}
       />
 
-      <div className="flex items-center justify-between mb-12 border-b-8 border-yellow-400 pb-4">
-        <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter">
+      {/* Page title + report flag */}
+      <div className="flex items-center justify-between gap-2">
+        <h1 className={`text-3xl sm:text-5xl font-black uppercase tracking-tighter leading-none ${
+          isDarkMode ? 'text-white' : 'text-slate-900'
+        }`}>
           {t("challenges.title")}
-        </h2>
+        </h1>
+        <ReportButton isDarkMode={isDarkMode} context="ChallengesMenu" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-3 mt-2">
         {GAMES.map((game) => (
           <GameCard
             key={game.id}
@@ -233,7 +234,7 @@ const ChallengesMenu = ({ isDarkMode, onBack }) => {
 
 ChallengesMenu.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
-  onBack: PropTypes.func.isRequired,
+  onBack:     PropTypes.func.isRequired,
 };
 
 export default ChallengesMenu;
