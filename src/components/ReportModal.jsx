@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { Flag, X, MessageSquare, Loader2, CheckCircle2 } from 'lucide-react';
 import { openWhatsAppReport } from '../services/reportService';
+import NeoDropdown from './NeoDropdown';
 
 /**
  * ReportModal — lets the user pick a category, write a description,
@@ -21,6 +22,8 @@ const CATEGORIES = [
   'Missing word / language',
   'Other',
 ];
+
+const CATEGORY_OPTIONS = CATEGORIES.map((c) => ({ value: c, label: c }));
 
 const ReportModal = ({ isDarkMode, context, onClose }) => {
   const { t } = useTranslation();
@@ -136,33 +139,15 @@ const ReportModal = ({ isDarkMode, context, onClose }) => {
         ) : (
           /* ── Form state ── */
           <>
-            {/* Category selector */}
-            <label
-              className={`block text-xs font-black uppercase tracking-widest mb-2 ${
-                isDarkMode ? 'text-slate-400' : 'text-slate-500'
-              }`}
-            >
-              {t('report.category', 'Category')}
-            </label>
-            <div className="flex flex-wrap gap-2 mb-5">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setCategory(cat)}
-                  className={`px-3 py-1 rounded-lg border-2 text-xs font-bold uppercase tracking-wide transition-all active:scale-95 ${
-                    category === cat
-                      ? isDarkMode
-                        ? 'bg-yellow-400 border-yellow-400 text-slate-900'
-                        : 'bg-yellow-400 border-yellow-400 text-slate-900'
-                      : isDarkMode
-                      ? 'bg-slate-700 border-slate-600 text-slate-300 hover:border-yellow-400'
-                      : 'bg-white border-slate-300 text-slate-600 hover:border-yellow-400'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+            {/* Category dropdown */}
+            <NeoDropdown
+              options={CATEGORY_OPTIONS}
+              value={category}
+              onChange={setCategory}
+              isDarkMode={isDarkMode}
+              label={t('report.category', 'Category')}
+              className="mb-5"
+            />
 
             {/* Message textarea */}
             <label
