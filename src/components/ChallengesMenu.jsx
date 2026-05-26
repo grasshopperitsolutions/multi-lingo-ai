@@ -33,15 +33,6 @@ const GAMES = [
     comingSoon: false,
   },
   {
-    id: "word_quiz",
-    icon: NotebookPen,
-    color: "bg-emerald-400",
-    titleKey: "challenges.word_quiz",
-    descKey: "challenges.word_quiz_desc",
-    component: WordQuizGame,
-    comingSoon: true,
-  },
-  {
     id: "word_search",
     icon: Search,
     color: "bg-purple-400",
@@ -49,6 +40,15 @@ const GAMES = [
     descKey: "challenges.word_search_desc",
     component: WordSearchGame,
     comingSoon: false,
+  },
+  {
+    id: "word_quiz",
+    icon: NotebookPen,
+    color: "bg-emerald-400",
+    titleKey: "challenges.word_quiz",
+    descKey: "challenges.word_quiz_desc",
+    component: WordQuizGame,
+    comingSoon: true,
   },
   {
     id: "crosswords",
