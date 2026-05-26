@@ -40,7 +40,12 @@
     "hero_line2": "sobre Português",
     "subtitle": "A primeira plataforma que te ensina Português Europeu a partir de qualquer língua ou dialeto que fales. Com IA, suporte humano.",
     "cta_start": "Começa Agora",
-    "marquee": ["APRENDE PORTUGUÊS RÁPIDO", "SEM GRAMÁTICA CHATA", "COM IA", "CALÃO NACIONAL"],
+    "marquee": [
+      "APRENDE PORTUGUÊS RÁPIDO",
+      "SEM GRAMÁTICA CHATA",
+      "COM IA",
+      "CALÃO NACIONAL"
+    ],
     "features": {
       "voice_tutor": "Tutor de Voz IA 24/7",
       "urban_dictionary": "Dicionário Urbano",
@@ -51,37 +56,150 @@
       "title": "O Input Universal",
       "subtitle": "A aprender de Irlandês? Gaélico Irlandês? Mandarim? Basta escreveres. A nossa IA faz a ponte."
     },
-    "language_pills": ["Gaélico ➜ PT", "Inglês EUA ➜ PT", "Tailandês ➜ PT", "Calão Australiano ➜ PT"],
+    "language_pills": [
+      "Gaélico ➜ PT",
+      "Inglês EUA ➜ PT",
+      "Tailandês ➜ PT",
+      "Calão Australiano ➜ PT"
+    ],
     "wall_of_love_heading": "Mural de Amor",
     "reviews": [
-      { "name": "Nadja", "date": "10 de Fevereiro, 2026", "quote": "O Nuno é um tutor incrível, ele adapta as aulas às necessidades dos alunos e é muito útil." },
-      { "name": "Claudia", "date": "16 de Janeiro, 2026", "quote": "O Nuno é um professor excecional que está a acelerar a minha aprendizagem de português. O seu método divertido e eficaz está a aumentar a minha confiança e competências." },
-      { "name": "Chloe", "date": "15 de Janeiro, 2026", "quote": "ADORO aprender com o Nuno. Ele é inteligente, engraçado, e as aulas dele são muito interessantes. Sinto que aprendo muito e os 50 minutos voam. Sinto-me confiante a aprender com ele." },
-      { "name": "Fabian", "date": "8 de Janeiro, 2026", "quote": "O Nuno é um ótimo professor, é paciente e está feliz por adaptar cada aula ao que precisamos. O conhecimento dele sobre línguas é vasto e ele explica tudo claramente com exemplos." },
-      { "name": "Kelsey", "date": "17 de Dezembro, 2025", "quote": "As aulas do Nuno são fáceis de entender e ele realmente se adapta às tuas necessidades e nível de capacidade. Recomendo definitivamente!" },
-      { "name": "Jacob", "date": "15 de Dezembro, 2025", "quote": "O Nuno é um ótimo tutor; ele ouve realmente os seus alunos e, através disso, torna-se um melhor tutor do que muitos outros." },
-      { "name": "Erek", "date": "21 de Novembro, 2025", "quote": "Excelente para conversa casual no dia a dia com estrutura verbal e revisão. Bom tipo e acessível, fácil de relacionar." },
-      { "name": "Alasdair", "date": "6 de Novembro, 2025", "quote": "O Nuno é um ótimo professor. Ele é muito paciente e disposto a adaptar-se às necessidades dos alunos. Tem muito conhecimento e é capaz de explicar as coisas muito claramente." },
+      {
+        "name": "Nadja",
+        "date": "10 de Fevereiro, 2026",
+        "quote": "O Nuno é um tutor incrível, ele adapta as aulas às necessidades dos alunos e é muito útil."
+      },
+      {
+        "name": "Claudia",
+        "date": "16 de Janeiro, 2026",
+        "quote": "O Nuno é um professor excecional que está a acelerar a minha aprendizagem de português. O seu método divertido e eficaz está a aumentar a minha confiança e competências."
+      },
+      {
+        "name": "Chloe",
+        "date": "15 de Janeiro, 2026",
+        "quote": "ADORO aprender com o Nuno. Ele é inteligente, engraçado, e as aulas dele são muito interessantes. Sinto que aprendo muito e os 50 minutos voam. Sinto-me confiante a aprender com ele."
+      },
+      {
+        "name": "Fabian",
+        "date": "8 de Janeiro, 2026",
+        "quote": "O Nuno é um ótimo professor, é paciente e está feliz por adaptar cada aula ao que precisamos. O conhecimento dele sobre línguas é vasto e ele explica tudo claramente com exemplos."
+      },
+      {
+        "name": "Kelsey",
+        "date": "17 de Dezembro, 2025",
+        "quote": "As aulas do Nuno são fáceis de entender e ele realmente se adapta às tuas necessidades e nível de capacidade. Recomendo definitivamente!"
+      },
+      {
+        "name": "Jacob",
+        "date": "15 de Dezembro, 2025",
+        "quote": "O Nuno é um ótimo tutor; ele ouve realmente os seus alunos e, através disso, torna-se um melhor tutor do que muitos outros."
+      },
+      {
+        "name": "Erek",
+        "date": "21 de Novembro, 2025",
+        "quote": "Excelente para conversa casual no dia a dia com estrutura verbal e revisão. Bom tipo e acessível, fácil de relacionar."
+      },
+      {
+        "name": "Alasdair",
+        "date": "6 de Novembro, 2025",
+        "quote": "O Nuno é um ótimo professor. Ele é muito paciente e disposto a adaptar-se às necessidades dos alunos. Tem muito conhecimento e é capaz de explicar as coisas muito claramente."
+      },
       { "name": "Ludovic", "date": "7 de Outubro, 2025", "quote": "Perfeito!" },
-      { "name": "Nia", "date": "7 de Outubro, 2025", "quote": "O Nuno é um professor dedicado que aborda as necessidades individuais e adota uma abordagem prática." },
-      { "name": "Mark", "date": "6 de Outubro, 2025", "quote": "Muito simpático." },
-      { "name": "Jade", "date": "6 de Outubro, 2025", "quote": "Gosto da abordagem personalizada que o Nuno tem nas suas aulas. Ele vai ao ritmo que precisas/queres sem adicionar demasiada pressão." },
-      { "name": "Ludovica", "date": "2 de Outubro, 2025", "quote": "O Nuno é um ótimo professor. Ele é paciente e realmente focado nas tuas necessidades. Notei progresso depois de apenas algumas aulas. As nossas aulas são uma mistura de leitura, gramática e escrita, o que as torna muito completas." },
-      { "name": "Andrew", "date": "29 de Janeiro, 2025", "quote": "Trabalhar com o Nuno tem sido ótimo. Já estou a notar progresso depois de apenas duas aulas. Ansioso pela próxima!" },
-      { "name": "Michael", "date": "29 de Janeiro, 2025", "quote": "Tenho aprendido português com o Nuno e tem sido uma excelente experiência! Ele é paciente, inteligente e dedica tempo a personalizar a aprendizagem." },
-      { "name": "George", "date": "29 de Novembro, 2024", "quote": "A abordagem do Nuno ao ensino é fantástica, envolvente e interessante. Ele fornece orientação e explicações claras e úteis de uma forma descontraída e informal." },
-      { "name": "Philipp", "date": "26 de Setembro, 2024", "quote": "Comecei a minha jornada no Preply com o Nuno e estou muito feliz com as nossas aulas. Ele é divertido e pode-se falar facilmente sobre a vida quotidiana e hobbies." },
-      { "name": "Charles", "date": "25 de Setembro, 2024", "quote": "A fazer grande progresso no meu português! Recomendo muito o Nuno para começar, ele faz um ótimo trabalho a deixar-te confortável com o básico." },
-      { "name": "Sh", "date": "15 de Setembro, 2024", "quote": "São aulas claras e agradáveis, ele tem paciência e diverte-se com as aulas." },
-      { "name": "Laura", "date": "10 de Setembro, 2024", "quote": "O Nuno é muito paciente. Ele consegue explicar palavras e significados de forma que faça sentido." },
-      { "name": "Hlib", "date": "6 de Setembro, 2024", "quote": "O Nuno é um excelente tutor de português. Ele explica tudo claramente, tornando fácil acompanhar. Especialmente para quem trabalha em TI." },
-      { "name": "Jennifer", "date": "8 de Agosto, 2024", "quote": "Muito divertido de conversar." },
-      { "name": "Yegane", "date": "5 de Agosto, 2024", "quote": "O Nuno é um professor fantástico, e recomendo-o vivamente. A sua simpatia colocou-me rapidamente à vontade com a língua portuguesa." },
-      { "name": "Rosa", "date": "1 de Agosto, 2024", "quote": "Ele tem muita paciência e é muito encorajador!" },
-      { "name": "Angie", "date": "29 de Julho, 2024", "quote": "O Nuno é um tutor incrível, amigável e conhecedor. Desde a primeira sessão, a sua natureza acolhedora tornou a aprendizagem divertida e fácil." },
-      { "name": "Josep", "date": "20 de Julho, 2024", "quote": "O Nuno é um professor de português excecional. As suas aulas são sempre dinâmicas e envolventes. Graças à sua personalidade amigável e paciência, cada aula é muito agradável." },
-      { "name": "Isobelle", "date": "16 de Julho, 2024", "quote": "Muito obrigada Nuno, as minhas aulas são muito divertidas e interessantes." },
-      { "name": "Bas", "date": "12 de Julho, 2024", "quote": "Hoje tive a minha primeira aula com o Nuno, foi muito agradável, ele tem muita paciência. Deu-me um trabalho de casa muito divertido." }
+      {
+        "name": "Nia",
+        "date": "7 de Outubro, 2025",
+        "quote": "O Nuno é um professor dedicado que aborda as necessidades individuais e adota uma abordagem prática."
+      },
+      {
+        "name": "Mark",
+        "date": "6 de Outubro, 2025",
+        "quote": "Muito simpático."
+      },
+      {
+        "name": "Jade",
+        "date": "6 de Outubro, 2025",
+        "quote": "Gosto da abordagem personalizada que o Nuno tem nas suas aulas. Ele vai ao ritmo que precisas/queres sem adicionar demasiada pressão."
+      },
+      {
+        "name": "Ludovica",
+        "date": "2 de Outubro, 2025",
+        "quote": "O Nuno é um ótimo professor. Ele é paciente e realmente focado nas tuas necessidades. Notei progresso depois de apenas algumas aulas. As nossas aulas são uma mistura de leitura, gramática e escrita, o que as torna muito completas."
+      },
+      {
+        "name": "Andrew",
+        "date": "29 de Janeiro, 2025",
+        "quote": "Trabalhar com o Nuno tem sido ótimo. Já estou a notar progresso depois de apenas duas aulas. Ansioso pela próxima!"
+      },
+      {
+        "name": "Michael",
+        "date": "29 de Janeiro, 2025",
+        "quote": "Tenho aprendido português com o Nuno e tem sido uma excelente experiência! Ele é paciente, inteligente e dedica tempo a personalizar a aprendizagem."
+      },
+      {
+        "name": "George",
+        "date": "29 de Novembro, 2024",
+        "quote": "A abordagem do Nuno ao ensino é fantástica, envolvente e interessante. Ele fornece orientação e explicações claras e úteis de uma forma descontraída e informal."
+      },
+      {
+        "name": "Philipp",
+        "date": "26 de Setembro, 2024",
+        "quote": "Comecei a minha jornada no Preply com o Nuno e estou muito feliz com as nossas aulas. Ele é divertido e pode-se falar facilmente sobre a vida quotidiana e hobbies."
+      },
+      {
+        "name": "Charles",
+        "date": "25 de Setembro, 2024",
+        "quote": "A fazer grande progresso no meu português! Recomendo muito o Nuno para começar, ele faz um ótimo trabalho a deixar-te confortável com o básico."
+      },
+      {
+        "name": "Sh",
+        "date": "15 de Setembro, 2024",
+        "quote": "São aulas claras e agradáveis, ele tem paciência e diverte-se com as aulas."
+      },
+      {
+        "name": "Laura",
+        "date": "10 de Setembro, 2024",
+        "quote": "O Nuno é muito paciente. Ele consegue explicar palavras e significados de forma que faça sentido."
+      },
+      {
+        "name": "Hlib",
+        "date": "6 de Setembro, 2024",
+        "quote": "O Nuno é um excelente tutor de português. Ele explica tudo claramente, tornando fácil acompanhar. Especialmente para quem trabalha em TI."
+      },
+      {
+        "name": "Jennifer",
+        "date": "8 de Agosto, 2024",
+        "quote": "Muito divertido de conversar."
+      },
+      {
+        "name": "Yegane",
+        "date": "5 de Agosto, 2024",
+        "quote": "O Nuno é um professor fantástico, e recomendo-o vivamente. A sua simpatia colocou-me rapidamente à vontade com a língua portuguesa."
+      },
+      {
+        "name": "Rosa",
+        "date": "1 de Agosto, 2024",
+        "quote": "Ele tem muita paciência e é muito encorajador!"
+      },
+      {
+        "name": "Angie",
+        "date": "29 de Julho, 2024",
+        "quote": "O Nuno é um tutor incrível, amigável e conhecedor. Desde a primeira sessão, a sua natureza acolhedora tornou a aprendizagem divertida e fácil."
+      },
+      {
+        "name": "Josep",
+        "date": "20 de Julho, 2024",
+        "quote": "O Nuno é um professor de português excecional. As suas aulas são sempre dinâmicas e envolventes. Graças à sua personalidade amigável e paciência, cada aula é muito agradável."
+      },
+      {
+        "name": "Isobelle",
+        "date": "16 de Julho, 2024",
+        "quote": "Muito obrigada Nuno, as minhas aulas são muito divertidas e interessantes."
+      },
+      {
+        "name": "Bas",
+        "date": "12 de Julho, 2024",
+        "quote": "Hoje tive a minha primeira aula com o Nuno, foi muito agradável, ele tem muita paciência. Deu-me um trabalho de casa muito divertido."
+      }
     ],
     "how_it_works_heading": "Como Funciona",
     "how_it_works_step1_title": "Escolhe a Tua Língua",
@@ -96,13 +214,34 @@
     "final_cta_subtitle": "Junta-te a milhares de alunos a dominar o Português real do dia a dia.",
     "final_cta_button": "Começa Grátis",
     "faqs": [
-      { "question": "Isto é estritamente Português Europeu?", "answer": "100%. Construímos isto especificamente porque todas as outras aplicações usam Português Brasileiro. Sem 'você' aqui a não ser que estejamos a ser estritamente formais!" },
-      { "question": "Preciso de saber Inglês para usar isto?", "answer": "Não! O Multi Lingo AI é alimentado por um motor que traduz e explica conceitos usando QUALQUER língua ou dialeto que forneças." },
-      { "question": "Posso falar com um humano real?", "answer": "Sim! Embora o nosso tutor IA esteja disponível 24/7, podes facilmente marcar sessões ao vivo com tutores humanos verificados através do nosso Agendamento Inteligente." },
-      { "question": "O que torna o Multi Lingo AI diferente?", "answer": "Focamo-nos em Português real e conversacional com calão e expressões autênticas. Sem linguagem de manual aqui — apenas comunicação prática e quotidiana." },
-      { "question": "Quanto custa?", "answer": "Oferecemos planos de preços flexíveis a começar com um nível gratuito. Os planos premium desbloqueiam conversas IA ilimitadas e sessões com tutores ao vivo." },
-      { "question": "Posso experimentar grátis?", "answer": "Claro! Podes usar o nosso nível gratuito para explorar todas as funcionalidades. A maioria dos alunos começa com o nosso plano gratuito para ver se o Multi Lingo AI é ideal para eles." },
-      { "question": "Os meus dados de aprendizagem são privados?", "answer": "Sim! A tua privacidade é importante para nós. Todos os dados de conversação são encriptados e manténs controlo total sobre a tua informação de aprendizagem." }
+      {
+        "question": "Isto é estritamente Português Europeu?",
+        "answer": "100%. Construímos isto especificamente porque todas as outras aplicações usam Português Brasileiro. Sem 'você' aqui a não ser que estejamos a ser estritamente formais!"
+      },
+      {
+        "question": "Preciso de saber Inglês para usar isto?",
+        "answer": "Não! O Multi Lingo AI é alimentado por um motor que traduz e explica conceitos usando QUALQUER língua ou dialeto que forneças."
+      },
+      {
+        "question": "Posso falar com um humano real?",
+        "answer": "Sim! Embora o nosso tutor IA esteja disponível 24/7, podes facilmente marcar sessões ao vivo com tutores humanos verificados através do nosso Agendamento Inteligente."
+      },
+      {
+        "question": "O que torna o Multi Lingo AI diferente?",
+        "answer": "Focamo-nos em Português real e conversacional com calão e expressões autênticas. Sem linguagem de manual aqui — apenas comunicação prática e quotidiana."
+      },
+      {
+        "question": "Quanto custa?",
+        "answer": "Oferecemos planos de preços flexíveis a começar com um nível gratuito. Os planos premium desbloqueiam conversas IA ilimitadas e sessões com tutores ao vivo."
+      },
+      {
+        "question": "Posso experimentar grátis?",
+        "answer": "Claro! Podes usar o nosso nível gratuito para explorar todas as funcionalidades. A maioria dos alunos começa com o nosso plano gratuito para ver se o Multi Lingo AI é ideal para eles."
+      },
+      {
+        "question": "Os meus dados de aprendizagem são privados?",
+        "answer": "Sim! A tua privacidade é importante para nós. Todos os dados de conversação são encriptados e manténs controlo total sobre a tua informação de aprendizagem."
+      }
     ]
   },
   "login": {
@@ -370,7 +509,6 @@
     "victory_title": "Todos encontrados!",
     "words_found": "{{found}} / {{total}} encontrados",
     "words_count": "{{count}} palavras encontradas"
-    }
   },
   "report": {
     "buttonLabel": "Reportar",
