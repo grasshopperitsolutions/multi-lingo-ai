@@ -178,7 +178,7 @@ const DashboardPage = () => {
     <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-10 space-y-10">
       {/* Header row */}
       <div className="flex items-center justify-between gap-3">
-        {/* Left: avatar + greeting — min-w-0 lets this shrink on small screens */}
+        {/* Left: avatar + greeting */}
         <div className="flex items-center gap-4 min-w-0">
           <Avatar
             src={user?.photoURL}
@@ -187,13 +187,14 @@ const DashboardPage = () => {
             isDarkMode={isDarkMode}
             className="shrink-0"
           />
-          <div className="min-w-0">
-            <h1 className={`text-xl sm:text-3xl font-black uppercase tracking-tighter truncate ${
+          {/* Greeting text — hidden on mobile, visible from sm breakpoint */}
+          <div className="hidden sm:block min-w-0">
+            <h1 className={`text-3xl font-black uppercase tracking-tighter truncate ${
               isDarkMode ? "text-white" : "text-slate-900"
             }`}>
               {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || t("dashboard.learner") })}
             </h1>
-            <p className={`font-bold uppercase tracking-widest text-xs sm:text-sm mt-1 ${
+            <p className={`font-bold uppercase tracking-widest text-sm mt-1 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"
             }`}>{t("dashboard.welcome_subtitle")}</p>
           </div>
