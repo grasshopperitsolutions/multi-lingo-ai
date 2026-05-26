@@ -37,8 +37,6 @@ const ReportModal = ({ isDarkMode, context, onClose }) => {
   const handleSubmit = () => {
     if (!canSubmit) return;
     setIsLoading(true);
-
-    // Small delay so the user sees the loading state before the tab opens
     setTimeout(() => {
       openWhatsAppReport({ category, message, context });
       setIsLoading(false);
@@ -66,10 +64,10 @@ const ReportModal = ({ isDarkMode, context, onClose }) => {
 
       {/* Panel */}
       <div
-        className={`relative z-10 w-full max-w-md p-8 rounded-[2rem] border-4 shadow-[8px_8px_0px_0px_#f59e0b] ${
+        className={`relative z-10 w-full max-w-md p-8 rounded-[2rem] border-4 shadow-[8px_8px_0px_0px_#1d4ed8] ${
           isDarkMode
-            ? 'bg-slate-800 border-yellow-400'
-            : 'bg-white border-yellow-400'
+            ? 'bg-slate-800 border-blue-500'
+            : 'bg-white border-blue-600'
         }`}
       >
         {/* Close */}
@@ -88,8 +86,8 @@ const ReportModal = ({ isDarkMode, context, onClose }) => {
 
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 rounded-2xl border-4 border-slate-900 flex items-center justify-center shrink-0 bg-yellow-400">
-            <Flag size={22} className="text-slate-900" />
+          <div className="w-12 h-12 rounded-2xl border-4 border-slate-900 flex items-center justify-center shrink-0 bg-blue-600">
+            <Flag size={22} className="text-white" />
           </div>
           <h2
             id="report-modal-title"
@@ -106,7 +104,7 @@ const ReportModal = ({ isDarkMode, context, onClose }) => {
           <div className="flex flex-col items-center gap-4 py-6 text-center">
             <CheckCircle2
               size={48}
-              className={isDarkMode ? 'text-yellow-400' : 'text-yellow-500'}
+              className={isDarkMode ? 'text-blue-400' : 'text-blue-600'}
             />
             <p
               className={`font-black text-lg uppercase tracking-tight ${
@@ -176,8 +174,8 @@ const ReportModal = ({ isDarkMode, context, onClose }) => {
                 )}
                 className={`w-full pl-9 pr-4 py-3 rounded-xl border-2 font-semibold text-sm resize-none outline-none transition-colors ${
                   isDarkMode
-                    ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-500 focus:border-yellow-400'
-                    : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-yellow-400'
+                    ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-500 focus:border-blue-400'
+                    : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600'
                 }`}
               />
             </div>
@@ -187,7 +185,11 @@ const ReportModal = ({ isDarkMode, context, onClose }) => {
               <button
                 onClick={handleSubmit}
                 disabled={!canSubmit || isLoading}
-                className="w-full flex items-center justify-center gap-3 py-4 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-400 hover:bg-yellow-300 border-yellow-400 hover:border-yellow-300 shadow-[4px_4px_0px_0px_#854d0e] text-slate-900"
+                className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-[4px_4px_0px_0px_#1e3a8a] text-white ${
+                  isDarkMode
+                    ? 'bg-blue-500 border-blue-400 hover:bg-blue-400'
+                    : 'bg-blue-600 border-blue-700 hover:bg-blue-700'
+                }`}
               >
                 {isLoading ? (
                   <><Loader2 size={18} className="animate-spin" /> {t('common.loading', 'Loading…')}</>
