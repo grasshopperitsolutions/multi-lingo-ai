@@ -14,11 +14,51 @@ const ScrambledWordGame = lazy(() => import("./ScrambledWordGame"));
 
 // ── Game Registry ─────────────────────────────────────────────────────────────
 const GAMES = [
-  { id: "hangman",       icon: Swords,      color: "bg-rose-400",    titleKey: "challenges.hangman",       descKey: "challenges.hangman_desc",       component: HangmanGame,      comingSoon: false },
-  { id: "scrambled_word",icon: EggFried,    color: "bg-yellow-400",  titleKey: "challenges.scrambled_word", descKey: "challenges.scrambled_word_desc", component: ScrambledWordGame,comingSoon: false },
-  { id: "word_quiz",     icon: NotebookPen, color: "bg-emerald-400", titleKey: "challenges.word_quiz",      descKey: "challenges.word_quiz_desc",     component: WordQuizGame,     comingSoon: true },
-  { id: "word_search",   icon: Search,      color: "bg-purple-400",  titleKey: "challenges.word_search",   descKey: "challenges.word_search_desc",  component: WordSearchGame,   comingSoon: true },
-  { id: "crosswords",    icon: BrainCircuit,color: "bg-blue-400",    titleKey: "challenges.crosswords",    descKey: "challenges.crosswords_desc",   component: CrosswordsGame,   comingSoon: true },
+  {
+    id: "hangman",
+    icon: Swords,
+    color: "bg-rose-400",
+    titleKey: "challenges.hangman",
+    descKey: "challenges.hangman_desc",
+    component: HangmanGame,
+    comingSoon: false,
+  },
+  {
+    id: "scrambled_word",
+    icon: EggFried,
+    color: "bg-yellow-400",
+    titleKey: "challenges.scrambled_word",
+    descKey: "challenges.scrambled_word_desc",
+    component: ScrambledWordGame,
+    comingSoon: false,
+  },
+  {
+    id: "word_quiz",
+    icon: NotebookPen,
+    color: "bg-emerald-400",
+    titleKey: "challenges.word_quiz",
+    descKey: "challenges.word_quiz_desc",
+    component: WordQuizGame,
+    comingSoon: true,
+  },
+  {
+    id: "word_search",
+    icon: Search,
+    color: "bg-purple-400",
+    titleKey: "challenges.word_search",
+    descKey: "challenges.word_search_desc",
+    component: WordSearchGame,
+    comingSoon: false,
+  },
+  {
+    id: "crosswords",
+    icon: BrainCircuit,
+    color: "bg-blue-400",
+    titleKey: "challenges.crosswords",
+    descKey: "challenges.crosswords_desc",
+    component: CrosswordsGame,
+    comingSoon: true,
+  },
 ];
 
 // ── Sub-components ────────────────────────────────────────────────────────────

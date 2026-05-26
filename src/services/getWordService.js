@@ -50,17 +50,20 @@
  *
  * Flow:
  *   1. Query wordPool where status == "ready", limit 200.
- *   2. Find the first concept whose ID is not in seenConceptIds.
+ *   2. Filter client-side: if maxLength provided, keep only concepts whose
+ *      normalizedKey length is <= maxLength.
+ *   3. Find the first concept whose ID is not in seenConceptIds.
  *
  *   BRANCH A — Unseen concept found:
  *     a. Fetch translations/{learningDialect} for that concept.
- *     b. Translation exists → resolve hint → if missing, await AI generation
- *        and patch into Firestore for future users → return.
+ *     b. Translation exists → check translated word length fits maxLength
+ *        → resolve hint → patch if missing → return.
  *     c. Translation missing → AI generates word + hints[userDialect],
- *        write full translation doc, return.
+ *        check length, write full translation doc, return.
  *
  *   BRANCH B — All concepts seen (pool exhausted for this user):
  *     a. AI generates a brand-new concept + translation with hints[userDialect].
+ *        The prompt includes maxLength constraint so AI produces short words.
  *     b. Write wordPool/{newConceptId} + translations/{learningDialect}.
  *     c. Return the fresh word.
  *
@@ -77,6 +80,7 @@
  * @property {string}   userDialect      - BCP-47 native language, e.g. 'en-US'
  * @property {string}   learningDialect  - BCP-47 target language, e.g. 'pt-PT'
  * @property {string[]} seenConceptIds   - Already-seen concept IDs for this game
+ * @property {number}   [maxLength]      - Optional max character length for the translated word
  */
 
 /**
@@ -102,56 +106,82 @@ const POOL_LIMIT   = 200;
 /**
  * Return the next unseen word for the given dialect.
  *
+ * When maxLength is provided:
+ *   - The full word pool is fetched (up to POOL_LIMIT).
+ *   - Concepts are filtered client-side: only those whose normalizedKey
+ *     (source English word) has length <= maxLength are considered.
+ *   - After fetching a translation, its word length is also checked; if it
+ *     exceeds maxLength the concept is skipped.
+ *   - If no qualifying unseen concept exists in the pool, the AI is asked
+ *     to generate a new word with an explicit length constraint.
+ *
  * @param {GetWordParams} params
  * @returns {Promise<WordResult>}
  */
-export async function getWord({ token, userDialect, learningDialect, seenConceptIds }) {
+export async function getWord({ token, userDialect, learningDialect, seenConceptIds, maxLength }) {
   const seenSet = new Set(seenConceptIds ?? []);
 
-  const concepts = await _fetchReadyConcepts(token);
+  const allConcepts = await _fetchReadyConcepts(token);
 
-  const unseenConcept = concepts.find((c) => !seenSet.has(c.id));
+  // Client-side filter: exclude concepts whose source word is too long.
+  // This is a fast pre-filter; the translated word length is checked separately
+  // after fetching the translation (it may differ from the English source).
+  const concepts = (maxLength != null)
+    ? allConcepts.filter((c) => (c.normalizedKey ?? c.sourceWord ?? '').length <= maxLength)
+    : allConcepts;
 
-  if (unseenConcept) {
-    const translation = await _fetchTranslation(unseenConcept.id, learningDialect, token);
+  // Walk unseen concepts in order, skipping any whose translation is too long.
+  for (const concept of concepts) {
+    if (seenSet.has(concept.id)) continue;
+
+    const translation = await _fetchTranslation(concept.id, learningDialect, token);
 
     if (translation) {
+      // Skip if the translated word itself exceeds maxLength
+      if (maxLength != null && translation.word.length > maxLength) continue;
+
       let hint = _resolveHint(translation.hints, userDialect);
 
-      // No hint found for userDialect — generate one now so the current user
-      // sees it immediately, then patch it into Firestore for future users.
       if (!hint) {
-        hint = await _generateHintForDialect(unseenConcept.sourceWord, userDialect, token);
-        _patchHint(unseenConcept.id, learningDialect, userDialect, hint, token)
+        hint = await _generateHintForDialect(concept.sourceWord, userDialect, token);
+        _patchHint(concept.id, learningDialect, userDialect, hint, token)
           .catch((err) => console.warn('[getWordService] hint patch failed:', err));
       }
 
       return {
         word:      translation.word,
         hint:      hint || '',
-        conceptId: unseenConcept.id,
+        conceptId: concept.id,
         source:    'db',
       };
     }
 
+    // No translation yet — generate one via AI
     const generated = await _generateTranslation(
-      unseenConcept.sourceWord,
+      concept.sourceWord,
       { userDialect, learningDialect },
-      token
+      token,
+      maxLength
     );
-    await _writeTranslation(unseenConcept.id, learningDialect, generated, token);
+
+    // Skip if AI returned a word that's still too long
+    if (maxLength != null && generated.word.length > maxLength) continue;
+
+    await _writeTranslation(concept.id, learningDialect, generated, token);
 
     return {
       word:      generated.word,
       hint:      generated.hints[userDialect] || '',
-      conceptId: unseenConcept.id,
+      conceptId: concept.id,
       source:    'ai',
     };
   }
 
-  const knownWords = concepts.map((c) => c.normalizedKey);
+  // Pool exhausted for this user (all qualifying concepts seen) —
+  // ask AI to generate a brand-new concept with the length constraint.
+  const knownWords = allConcepts.map((c) => c.normalizedKey);
   const generated  = await _generateNewConcept(
-    { userDialect, learningDialect, knownWords },
+    { userDialect, learningDialect, knownWords, maxLength },
     token
   );
 
@@ -200,7 +230,6 @@ function _resolveHint(hints, userDialect) {
   const lang      = userDialect.split('-')[0];
   const langMatch = Object.keys(hints).find((k) => k.startsWith(`${lang}-`));
   if (langMatch) return hints[langMatch];
-  // No suitable hint found — return '' so the caller triggers on-demand generation.
   return '';
 }
 
@@ -319,7 +348,16 @@ async function _writeNewConcept(generated, learningDialect, token) {
 // AI helpers
 // ---------------------------------------------------------------------------
 
-async function _generateTranslation(sourceWord, { userDialect, learningDialect }, token) {
+/**
+ * Generate a translation for an existing English concept.
+ * When maxLength is provided, the prompt instructs the AI to keep the
+ * translated word within that character limit.
+ */
+async function _generateTranslation(sourceWord, { userDialect, learningDialect }, token, maxLength) {
+  const lengthConstraint = maxLength
+    ? `The translated word MUST be ${maxLength} characters or fewer.`
+    : '';
+
   const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
     method:  'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -327,11 +365,12 @@ async function _generateTranslation(sourceWord, { userDialect, learningDialect }
       prompt: [
         `You are a language learning assistant.`,
         `Translate the English word "${sourceWord}" into ${learningDialect}.`,
+        lengthConstraint,
         `Return a JSON object with:`,
         `  - "word": the translated word in ${learningDialect}, lowercase, no extra spaces.`,
         `  - "hint": one sentence in ${userDialect} describing the word without saying it, suitable for a guessing game.`,
         `Return ONLY valid JSON. No markdown, no explanation.`,
-      ].join('\n'),
+      ].filter(Boolean).join('\n'),
       providerParams: {
         provider:    'gemini',
         model:       GEMINI_MODEL,
@@ -395,9 +434,18 @@ async function _generateHintForDialect(sourceWord, userDialect, token) {
   return parsed.hint.trim();
 }
 
-async function _generateNewConcept({ userDialect, learningDialect, knownWords }, token) {
+/**
+ * Generate a completely new concept + translation.
+ * When maxLength is provided, both the English source word and translated word
+ * are constrained to that length in the prompt.
+ */
+async function _generateNewConcept({ userDialect, learningDialect, knownWords, maxLength }, token) {
   const avoidList = knownWords.length > 0
     ? `Do NOT use any of these (already in the database): ${knownWords.join(', ')}`
+    : '';
+
+  const lengthConstraint = maxLength
+    ? `Both the English word and the ${learningDialect} translation MUST be ${maxLength} characters or fewer.`
     : '';
 
   const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
@@ -407,6 +455,7 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords },
       prompt: [
         `You are a language learning assistant.`,
         `Generate exactly ONE common vocabulary word.`,
+        lengthConstraint,
         `Return a JSON object with:`,
         `  - "sourceWord": the English label for the concept, lowercase.`,
         `  - "word": the translation in ${learningDialect}, lowercase.`,
