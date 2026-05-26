@@ -365,5 +365,16 @@
       "reset_warning": "⚠ Esto no se puede deshacer.",
       "reset_confirm": "Sí, restablecer progreso"
     }
+  },
+  "report": {
+    "buttonLabel": "Reportar",
+    "buttonAriaLabel": "Reportar un problema",
+    "title": "Reportar un problema",
+    "successTitle": "¡Gracias!",
+    "successMessage": "WhatsApp abierto con tu reporte. Por favor presiona Enviar para enviarlo.",
+    "category": "Categoría",
+    "description": "Descripción",
+    "placeholder": "Describe el problema en pocas palabras…",
+    "send": "Enviar por WhatsApp"
   }
 }

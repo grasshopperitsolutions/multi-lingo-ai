@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, BookMarked, Copy, Volume2, Trash2, Search, Turtle } from 'lucide-react';
+import { ArrowLeft, Copy, Volume2, Trash2, Search, Turtle } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { lookupWord } from '../services/dictionaryService';
 import { speak } from '../services/ttsService';

@@ -365,5 +365,16 @@
       "reset_warning": "⚠ Cette action est irréversible.",
       "reset_confirm": "Oui, réinitialiser la progression"
     }
+  },
+  "report": {
+    "buttonLabel": "Signaler",
+    "buttonAriaLabel": "Signaler un problème",
+    "title": "Signaler un problème",
+    "successTitle": "Merci !",
+    "successMessage": "WhatsApp ouvert avec ton signalement. Appuie sur Envoyer pour le soumettre.",
+    "category": "Catégorie",
+    "description": "Description",
+    "placeholder": "Décris le problème en quelques mots…",
+    "send": "Envoyer par WhatsApp"
   }
 }
