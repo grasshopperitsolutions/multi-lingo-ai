@@ -12,6 +12,7 @@ import {
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import ChallengeSidebar from "./ChallengeSidebar";
 import TooltipButton from "./TooltipButton";
+import { sanitizeAIError } from "../utils/errorUtils";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -268,7 +269,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
         window.location.reload();
         return;
       }
-      setError(err.message ?? t("challenges.word_fetch_error"));
+      setError(sanitizeAIError(err.message, t("challenges.word_fetch_error")));
     } finally {
       setLoading(false);
     }
@@ -285,7 +286,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
             window.location.reload();
             return;
           }
-          setError(err.message ?? t("challenges.word_fetch_error"));
+          setError(sanitizeAIError(err.message, t("challenges.word_fetch_error")));
         }
       })
       .finally(() => { if (!cancelled) setLoading(false); });
