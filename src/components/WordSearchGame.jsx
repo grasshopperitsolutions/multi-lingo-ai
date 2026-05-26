@@ -20,7 +20,7 @@ import ChallengeSidebar from "./ChallengeSidebar";
 const GAME_ID    = "word_search";
 const GRID_SIZE  = 12;
 const WORD_COUNT = 6;
-const MAX_LENGTH = GRID_SIZE; // words must fit within the grid
+const MAX_LENGTH = GRID_SIZE;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -41,10 +41,6 @@ const formatTime = (seconds) => {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-/**
- * A single grid cell.
- * States: idle | selected | found | flash (brief invalid-tap indicator)
- */
 const GridCell = ({ letter, isSelected, isFound, onClick, isDarkMode }) => {
   let bg, text, border;
 
@@ -86,10 +82,6 @@ GridCell.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
 };
 
-/**
- * Word list panel — shown to the left of the grid on desktop, above it on mobile.
- * Displays the translated word + hint, struck through when found.
- */
 const WordListPanel = ({ words, foundWords, isDarkMode, t }) => (
   <div className={`rounded-2xl border-4 p-4 flex flex-col gap-3 ${
     isDarkMode
@@ -170,7 +162,26 @@ const WordSearchGame = ({ isDarkMode }) => {
   const [totalWords,     setTotalWords]     = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  const markedRef = useRef(new Set());
+  // ── Refs ───────────────────────────────────────────────────────────────────
+  //
+  // progressRef  — always holds the latest progress value so markConceptSeen
+  //               and recordPlay never use a stale closure value.
+  //
+  // markedRef    — Set of conceptIds already sent to markConceptSeen this round.
+  //               Prevents duplicate writes if the cell tap fires twice.
+  //
+  // gameRecordedRef — flips true the moment recordPlay is dispatched for this
+  //                   round.  Prevents the win useEffect from firing again when
+  //                   fetchStats() updates `progress` state after the round ends.
+  //
+  const progressRef      = useRef(null);
+  const markedRef        = useRef(new Set());
+  const gameRecordedRef  = useRef(false);
+
+  // Keep progressRef in sync with progress state at all times.
+  useEffect(() => {
+    progressRef.current = progress;
+  }, [progress]);
 
   // ── Timer management ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -197,21 +208,6 @@ const WordSearchGame = ({ isDarkMode }) => {
     }
   }, [user, learningDialect]);
 
-  useEffect(() => {
-    if (!user?.token || !user?.uid) return;
-    let cancelled = false;
-    Promise.all([
-      getUserGameProgress(user.token, user.uid, GAME_ID, learningDialect),
-      getWordPoolCount(user.token),
-    ])
-      .then(([prog, count]) => {
-        if (!cancelled) { setProgress(prog); setTotalWords(count); }
-      })
-      .catch((err) => console.warn("[WordSearchGame] stats init failed:", err))
-      .finally(() => { if (!cancelled) setIsLoadingStats(false); });
-    return () => { cancelled = true; };
-  }, [user, learningDialect]);
-
   // ── Core word fetch ───────────────────────────────────────────────────────
   const fetchAllWords = useCallback(async () => {
     if (!user) throw new Error(t("challenges.word_fetch_error"));
@@ -224,7 +220,6 @@ const WordSearchGame = ({ isDarkMode }) => {
 
     for (let i = 0; i < WORD_COUNT; i++) {
       const combinedSeen = [...seenIds, ...fetchedThisSession.map((r) => r.conceptId)];
-
       const result = await getWord({
         token,
         userDialect:     interfaceLang,
@@ -232,7 +227,6 @@ const WordSearchGame = ({ isDarkMode }) => {
         seenConceptIds:  combinedSeen,
         maxLength:       MAX_LENGTH,
       });
-
       results.push(result);
       fetchedThisSession.push(result);
     }
@@ -263,7 +257,8 @@ const WordSearchGame = ({ isDarkMode }) => {
     setElapsed(0);
     setGameWon(false);
     setProgress(prog);
-    markedRef.current = new Set();
+    markedRef.current       = new Set();
+    gameRecordedRef.current = false;  // reset round guard
   }, []);
 
   const resetGame = useCallback(() => {
@@ -279,7 +274,8 @@ const WordSearchGame = ({ isDarkMode }) => {
     setFlashCells(new Set());
     setElapsed(0);
     setGameWon(false);
-    markedRef.current = new Set();
+    markedRef.current       = new Set();
+    gameRecordedRef.current = false;  // reset round guard
   }, []);
 
   const fetchGame = useCallback(async () => {
@@ -298,23 +294,40 @@ const WordSearchGame = ({ isDarkMode }) => {
     }
   }, [fetchAllWords, applyWords, t]);
 
+  // Initial load — also initialises stats (single fetch, no duplicate)
   useEffect(() => {
+    if (!user?.token || !user?.uid) return;
     let cancelled = false;
-    fetchAllWords()
-      .then(({ results, progress: prog }) => { if (!cancelled) applyWords(results, prog); })
-      .catch((err) => {
-        if (!cancelled) {
-          if (isSessionExpiredError(err)) {
-            alert(t("challenges.session_expired"));
-            window.location.reload();
-            return;
-          }
-          setError(err.message ?? t("challenges.word_fetch_error"));
+
+    const init = async () => {
+      try {
+        // Fetch words + stats in parallel; words fetch already reads progress
+        // internally, so we reuse that result for stats to save a round-trip.
+        const [{ results, progress: prog }, count] = await Promise.all([
+          fetchAllWords(),
+          getWordPoolCount(user.token),
+        ]);
+        if (cancelled) return;
+        applyWords(results, prog);
+        setTotalWords(count);
+        setIsLoadingStats(false);
+      } catch (err) {
+        if (cancelled) return;
+        if (isSessionExpiredError(err)) {
+          alert(t("challenges.session_expired"));
+          window.location.reload();
+          return;
         }
-      })
-      .finally(() => { if (!cancelled) setLoading(false); });
+        setError(err.message ?? t("challenges.word_fetch_error"));
+        setIsLoadingStats(false);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    init();
     return () => { cancelled = true; };
-  }, [fetchAllWords, applyWords, t]);
+  }, [fetchAllWords, applyWords, user, t]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Reset seen words ──────────────────────────────────────────────────────
   const handleResetSeenWords = useCallback(async () => {
@@ -324,19 +337,31 @@ const WordSearchGame = ({ isDarkMode }) => {
   }, [user, learningDialect, fetchStats]);
 
   // ── Win detection ─────────────────────────────────────────────────────────
+  //
+  // IMPORTANT: `progress`, `fetchStats`, and `user` are intentionally omitted
+  // from the dependency array. We read them via progressRef.current / closure
+  // refs to avoid this effect re-firing when fetchStats() updates `progress`
+  // state after the round ends — which would cause an infinite recordPlay loop.
+  // The gameRecordedRef boolean is the hard gate that ensures recordPlay is
+  // called at most once per round regardless of re-renders.
+  //
   useEffect(() => {
     if (words.length === 0 || loading) return;
     if (foundWords.size < words.length) return;
+    if (gameRecordedRef.current) return;         // hard gate — run exactly once
+    gameRecordedRef.current = true;
 
     clearInterval(timerRef.current);
     Promise.resolve().then(() => setGameWon(true));
 
-    if (user?.token && user?.uid) {
-      recordPlay(user.token, user.uid, GAME_ID, learningDialect, progress)
-        .then(() => fetchStats())
-        .catch((err) => console.warn("[WordSearchGame] recordPlay failed:", err));
-    }
-  }, [foundWords, words, loading, user, learningDialect, progress, fetchStats]);
+    if (!user?.token || !user?.uid) return;
+    const { token, uid } = user;
+
+    // recordPlay uses progressRef.current so it always has the freshest value.
+    recordPlay(token, uid, GAME_ID, learningDialect, progressRef.current)
+      .then(() => fetchStats())
+      .catch((err) => console.warn("[WordSearchGame] recordPlay failed:", err));
+  }, [foundWords, words, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Cell tap handler ──────────────────────────────────────────────────────
   const handleCellTap = useCallback((row, col) => {
@@ -355,7 +380,8 @@ const WordSearchGame = ({ isDarkMode }) => {
         const dr0 = next[1].row - next[0].row;
         const dc0 = next[1].col - next[0].col;
 
-        const firstStepValid = Math.abs(dr0) <= 1 && Math.abs(dc0) <= 1 && (dr0 !== 0 || dc0 !== 0);
+        const firstStepValid =
+          Math.abs(dr0) <= 1 && Math.abs(dc0) <= 1 && (dr0 !== 0 || dc0 !== 0);
 
         const allAligned = firstStepValid && next.every((cell, i) => {
           if (i === 0) return true;
@@ -374,10 +400,12 @@ const WordSearchGame = ({ isDarkMode }) => {
       const matchedPlacement = checkSelection(placements, next);
       if (matchedPlacement) {
         const cellKeys = new Set(matchedPlacement.cells.map((c) => `${c.row}-${c.col}`));
-
         setFoundCells((prevFound) => new Set([...prevFound, ...cellKeys]));
         setFoundWords((prevFoundWords) => new Set([...prevFoundWords, matchedPlacement.conceptId]));
 
+        // Mark concept seen immediately when word is found.
+        // Uses progressRef.current so we always have the freshest progress,
+        // even when multiple words are found before fetchStats() has run.
         if (!markedRef.current.has(matchedPlacement.conceptId) && user?.token && user?.uid) {
           markedRef.current.add(matchedPlacement.conceptId);
           markConceptSeen(
@@ -386,8 +414,15 @@ const WordSearchGame = ({ isDarkMode }) => {
             GAME_ID,
             learningDialect,
             matchedPlacement.conceptId,
-            progress
-          ).catch((err) => console.warn("[WordSearchGame] markConceptSeen failed:", err));
+            progressRef.current      // always fresh — never stale
+          ).then((updatedProg) => {
+            // If the service returns the updated doc, keep progressRef in sync
+            // so subsequent markConceptSeen calls build on the latest seenConceptIds.
+            if (updatedProg) {
+              progressRef.current = updatedProg;
+              setProgress(updatedProg);
+            }
+          }).catch((err) => console.warn("[WordSearchGame] markConceptSeen failed:", err));
         }
 
         return [];
@@ -395,7 +430,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
       return next;
     });
-  }, [gameWon, foundCells, placements, user, learningDialect, progress]);
+  }, [gameWon, foundCells, placements, user, learningDialect]);
 
   // ── Shared sidebar props ────────────────────────────────────────────────────
   const sidebarProps = {
