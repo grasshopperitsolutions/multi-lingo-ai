@@ -5,9 +5,10 @@ import { RotateCcw, Check, EggFried } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import {
   getUserGameProgress,
-  markConceptSeen,
+  markConceptSeenGlobal,
+  getGlobalSeenIds,
   recordPlay,
-  resetSeenWords,
+  resetAllSeenWords,
 } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import ChallengeSidebar from "./ChallengeSidebar";
@@ -147,8 +148,9 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   const [error, setError]     = useState(null);
 
   // ── Sidebar / stats ──────────────────────────────────────────────────────
-  const [progress, setProgress]           = useState(null);
-  const [totalWords, setTotalWords]       = useState(null);
+  const [progress,       setProgress]       = useState(null);
+  const [seenCount,      setSeenCount]      = useState(0);
+  const [totalWords,     setTotalWords]     = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   // Guard: prevent double-recording inside checkAnswer / useEffect
@@ -175,17 +177,19 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     [getDisplayLetter]
   );
 
-  // ── Fetch stats ──────────────────────────────────────────────────────────
+  // ── Fetch stats (progress + pool count + global seen count) ─────────────
   const fetchStats = useCallback(async () => {
     if (!user?.token || !user?.uid) return;
     setIsLoadingStats(true);
     try {
-      const [prog, count] = await Promise.all([
+      const [prog, count, seenIds] = await Promise.all([
         getUserGameProgress(user.token, user.uid, GAME_ID, learningDialect),
         getWordPoolCount(user.token),
+        getGlobalSeenIds(user.token, user.uid),
       ]);
       setProgress(prog);
       setTotalWords(count);
+      setSeenCount(seenIds.length);
     } catch (err) {
       console.warn("[ScrambledWordGame] fetchStats failed:", err);
     } finally {
@@ -199,11 +203,13 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     Promise.all([
       getUserGameProgress(user.token, user.uid, GAME_ID, learningDialect),
       getWordPoolCount(user.token),
+      getGlobalSeenIds(user.token, user.uid),
     ])
-      .then(([prog, count]) => {
+      .then(([prog, count, seenIds]) => {
         if (!cancelled) {
           setProgress(prog);
           setTotalWords(count);
+          setSeenCount(seenIds.length);
         }
       })
       .catch((err) => console.warn("[ScrambledWordGame] fetchStats failed:", err))
@@ -211,18 +217,22 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     return () => { cancelled = true; };
   }, [user, learningDialect]);
 
-  // ── Core word fetch — pure fetch, no side-effects on progress ───────────
+  // ── Core word fetch — reads global seenConceptIds ────────────────────────
   const fetchWordData = useCallback(async () => {
     if (!user) throw new Error(t("challenges.word_fetch_error"));
     const { token, uid } = user;
     if (!token) throw new Error(t("challenges.word_fetch_error"));
 
-    const prog = await getUserGameProgress(token, uid, GAME_ID, learningDialect);
+    const [prog, seenIds] = await Promise.all([
+      getUserGameProgress(token, uid, GAME_ID, learningDialect),
+      getGlobalSeenIds(token, uid),
+    ]);
+
     const result = await getWord({
       token,
       userDialect: interfaceLang,
       learningDialect,
-      seenConceptIds: prog?.seenConceptIds ?? [],
+      seenConceptIds: seenIds,
     });
 
     return { word: result.word.toUpperCase(), hint: result.hint, conceptId: result.conceptId, progress: prog };
@@ -294,12 +304,12 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     return () => { cancelled = true; };
   }, [fetchWordData, applyWordData, t]);
 
-  // ── Reset seen words (passed to sidebar) ─────────────────────────────────
+  // ── Reset seen words handler — global reset ──────────────────────────────
   const handleResetSeenWords = useCallback(async () => {
     if (!user?.token || !user?.uid) return;
-    await resetSeenWords(user.token, user.uid, GAME_ID, learningDialect);
+    await resetAllSeenWords(user.token, user.uid);
     await fetchStats();
-  }, [user, learningDialect, fetchStats]);
+  }, [user, fetchStats]);
 
   // ── Re-shuffle same word (reshuffle button during play) ─────────────────
   const handleReshuffle = useCallback(() => {
@@ -374,9 +384,12 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       setGameStatus("won");
       recordPlay(user.token, user.uid, GAME_ID, learningDialect, progress)
         .catch((err) => console.warn("[ScrambledWordGame] recordPlay failed:", err));
-      markConceptSeen(user.token, user.uid, GAME_ID, learningDialect, conceptId, progress)
+      getGlobalSeenIds(user.token, user.uid)
+        .then((currentSeenIds) =>
+          markConceptSeenGlobal(user.token, user.uid, conceptId, currentSeenIds)
+        )
         .then(() => fetchStats())
-        .catch((err) => console.warn("[ScrambledWordGame] markConceptSeen failed:", err));
+        .catch((err) => console.warn("[ScrambledWordGame] markConceptSeenGlobal failed:", err));
     } else {
       const remaining = attemptsLeft - 1;
       setAttemptsLeft(remaining);
@@ -637,6 +650,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       {/* ── Sidebar ── */}
       <ChallengeSidebar
         isDarkMode={isDarkMode}
+        seenCount={seenCount}
         progress={progress}
         totalWords={totalWords}
         isLoadingStats={isLoadingStats}

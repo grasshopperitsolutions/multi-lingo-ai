@@ -503,7 +503,8 @@
       "reset_title": "Réinitialiser la Progression",
       "reset_message": "Cela effacera tous les mots vus, vous permettant de revoir les mots déjà joués.",
       "reset_warning": "⚠ Cette action est irréversible.",
-      "reset_confirm": "Oui, réinitialiser la progression"
+      "reset_confirm": "Oui, réinitialiser la progression",
+      "reset_seen_words_btn": "Réinitialiser les Mots Vus"
     },
     "word_search_panel": "Trouve ces mots",
     "clear_selection": "Effacer la sélection",

@@ -5,9 +5,10 @@ import { Trophy, RotateCcw } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import {
   getUserGameProgress,
-  markConceptSeen,
+  markConceptSeenGlobal,
+  getGlobalSeenIds,
   recordPlay,
-  resetSeenWords,
+  resetAllSeenWords,
 } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import { buildGrid, checkSelection } from "../utils/wordSearchUtils";
@@ -20,7 +21,7 @@ import Loader from "./Loader";
 
 const GAME_ID    = "word_search";
 const GRID_SIZE  = 12;
-const WORD_COUNT = 6;
+const WORD_COUNT = 15;
 const MAX_LENGTH = GRID_SIZE;
 
 // ---------------------------------------------------------------------------
@@ -35,7 +36,7 @@ const isSessionExpiredError = (err) => {
 const formatTime = (seconds) => {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
+  return `${m}:${String(s).padStart(2, "00")}`;
 };
 
 // ---------------------------------------------------------------------------
@@ -103,7 +104,7 @@ const WordListPanel = ({ words, foundWords, isDarkMode, t }) => (
               ? "line-through text-emerald-500"
               : isDarkMode ? "text-white" : "text-slate-900"
           }`}>
-            {found ? "✓ " : ""}{word.toUpperCase()}
+            {found ? "\u2713 " : ""}{word.toUpperCase()}
           </span>
           <span className={`text-xs italic ${
             isDarkMode ? "text-slate-400" : "text-slate-500"
@@ -160,6 +161,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
   // ── Sidebar stats ─────────────────────────────────────────────────────────
   const [progress,       setProgress]       = useState(null);
+  const [seenCount,      setSeenCount]      = useState(0);
   const [totalWords,     setTotalWords]     = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
@@ -168,7 +170,6 @@ const WordSearchGame = ({ isDarkMode }) => {
   const markedRef        = useRef(new Set());
   const gameRecordedRef  = useRef(false);
 
-  // Keep progressRef in sync with progress state at all times.
   useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
@@ -185,12 +186,14 @@ const WordSearchGame = ({ isDarkMode }) => {
     if (!user?.token || !user?.uid) return;
     setIsLoadingStats(true);
     try {
-      const [prog, count] = await Promise.all([
+      const [prog, count, seenIds] = await Promise.all([
         getUserGameProgress(user.token, user.uid, GAME_ID, learningDialect),
         getWordPoolCount(user.token),
+        getGlobalSeenIds(user.token, user.uid),
       ]);
       setProgress(prog);
       setTotalWords(count);
+      setSeenCount(seenIds.length);
     } catch (err) {
       console.warn("[WordSearchGame] fetchStats failed:", err);
     } finally {
@@ -198,18 +201,22 @@ const WordSearchGame = ({ isDarkMode }) => {
     }
   }, [user, learningDialect]);
 
-  // ── Core word fetch ───────────────────────────────────────────────────────
+  // ── Core word fetch — reads global seenConceptIds ────────────────────────
   const fetchAllWords = useCallback(async () => {
     if (!user) throw new Error(t("challenges.word_fetch_error"));
     const { token, uid } = user;
 
-    const prog = await getUserGameProgress(token, uid, GAME_ID, learningDialect);
-    const seenIds = new Set(prog?.seenConceptIds ?? []);
+    const [prog, globalSeenIds] = await Promise.all([
+      getUserGameProgress(token, uid, GAME_ID, learningDialect),
+      getGlobalSeenIds(token, uid),
+    ]);
+
+    const seenIdsSet = new Set(globalSeenIds);
     const fetchedThisSession = [];
     const results = [];
 
     for (let i = 0; i < WORD_COUNT; i++) {
-      const combinedSeen = [...seenIds, ...fetchedThisSession.map((r) => r.conceptId)];
+      const combinedSeen = [...seenIdsSet, ...fetchedThisSession.map((r) => r.conceptId)];
       const result = await getWord({
         token,
         userDialect:     interfaceLang,
@@ -291,13 +298,15 @@ const WordSearchGame = ({ isDarkMode }) => {
 
     const init = async () => {
       try {
-        const [{ results, progress: prog }, count] = await Promise.all([
+        const [{ results, progress: prog }, count, seenIds] = await Promise.all([
           fetchAllWords(),
           getWordPoolCount(user.token),
+          getGlobalSeenIds(user.token, user.uid),
         ]);
         if (cancelled) return;
         applyWords(results, prog);
         setTotalWords(count);
+        setSeenCount(seenIds.length);
         setIsLoadingStats(false);
       } catch (err) {
         if (cancelled) return;
@@ -317,12 +326,12 @@ const WordSearchGame = ({ isDarkMode }) => {
     return () => { cancelled = true; };
   }, [fetchAllWords, applyWords, user, t]);
 
-  // ── Reset seen words ──────────────────────────────────────────────────────
+  // ── Reset seen words — global reset ──────────────────────────────────────
   const handleResetSeenWords = useCallback(async () => {
     if (!user?.token || !user?.uid) return;
-    await resetSeenWords(user.token, user.uid, GAME_ID, learningDialect);
+    await resetAllSeenWords(user.token, user.uid);
     await fetchStats();
-  }, [user, learningDialect, fetchStats]);
+  }, [user, fetchStats]);
 
   // ── Win detection ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -385,28 +394,25 @@ const WordSearchGame = ({ isDarkMode }) => {
         if (!markedRef.current.has(matchedPlacement.conceptId) && user?.token && user?.uid) {
           markedRef.current.add(matchedPlacement.conceptId);
 
+          // Update local progress optimistically (for sidebar display)
           const updatedProgress = {
             ...(progressRef.current ?? {}),
-            seenConceptIds: [
-              ...new Set([
-                ...(progressRef.current?.seenConceptIds ?? []),
-                matchedPlacement.conceptId,
-              ]),
-            ],
           };
           progressRef.current = updatedProgress;
           setProgress(updatedProgress);
 
-          markConceptSeen(
-            user.token,
-            user.uid,
-            GAME_ID,
-            learningDialect,
-            matchedPlacement.conceptId,
-            updatedProgress
-          )
+          // Write to global seen list
+          getGlobalSeenIds(user.token, user.uid)
+            .then((currentSeenIds) =>
+              markConceptSeenGlobal(
+                user.token,
+                user.uid,
+                matchedPlacement.conceptId,
+                currentSeenIds
+              )
+            )
             .then(() => fetchStats())
-            .catch((err) => console.warn("[WordSearchGame] markConceptSeen failed:", err));
+            .catch((err) => console.warn("[WordSearchGame] markConceptSeenGlobal failed:", err));
         }
 
         return [];
@@ -416,9 +422,10 @@ const WordSearchGame = ({ isDarkMode }) => {
     });
   }, [gameWon, foundCells, placements, user, learningDialect, fetchStats]);
 
-  // ── Shared sidebar props ────────────────────────────────────────────────────
+  // ── Shared sidebar props ──────────────────────────────────────────────────
   const sidebarProps = {
     isDarkMode,
+    seenCount,
     progress,
     totalWords,
     isLoadingStats,
@@ -542,7 +549,7 @@ const WordSearchGame = ({ isDarkMode }) => {
               return (
                 <GridCell
                   key={key}
-                  letter={isFlash ? "✗" : cell.letter}
+                  letter={isFlash ? "\u2717" : cell.letter}
                   isSelected={isSel && !isFnd}
                   isFound={isFnd}
                   onClick={() => handleCellTap(rIdx, cIdx)}

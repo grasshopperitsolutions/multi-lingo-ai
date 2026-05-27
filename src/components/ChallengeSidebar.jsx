@@ -62,21 +62,23 @@ StatRow.propTypes = {
  * ChallengeSidebar — pure UI component.
  *
  * Fully presentational: no fetching, no service imports.
- * The parent (HangmanGame, FlashcardGame, etc.) owns all state
+ * The parent (HangmanGame, ScrambledWordGame, etc.) owns all state
  * and passes data + callbacks down.
  *
  * Props:
  *   isDarkMode      boolean
+ *   seenCount       number                — global seen words count (users/{uid}.seenConceptIds.length)
  *   progress        UserGameProgress | null
- *                     shape: { seenConceptIds, totalPlayed, lastPlayedAt, learningDialect }
- *   totalWords      number | null        — total word pool size
+ *                     shape: { totalPlayed, lastPlayedAt, learningDialect }
+ *                     NOTE: seenConceptIds is no longer part of this shape.
+ *   totalWords      number | null         — total word pool size
  *   isLoadingStats  boolean
- *   onReset         () => Promise<void>  — called when the user confirms reset
+ *   onReset         () => Promise<void>   — called when the user confirms reset
  *
  *   // Modal copy — lets each game customise the reset dialog text
  *   resetTitle      string
  *   resetMessage    string
- *   resetWarning    string               — optional second line in the modal
+ *   resetWarning    string                — optional second line in the modal
  *   resetConfirmLabel string
  *
  *   // Sidebar heading
@@ -84,6 +86,7 @@ StatRow.propTypes = {
  */
 const ChallengeSidebar = ({
   isDarkMode,
+  seenCount,
   progress,
   totalWords,
   isLoadingStats,
@@ -100,7 +103,6 @@ const ChallengeSidebar = ({
   const [showConfirm, setShowConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
-  const seenCount   = progress?.seenConceptIds?.length ?? 0;
   const pct         = _seenPercent(seenCount, totalWords);
   const totalPlayed = progress?.totalPlayed ?? 0;
   const lastPlayed  = _relativeTime(progress?.lastPlayedAt, t);
@@ -209,7 +211,7 @@ const ChallengeSidebar = ({
                   aria-valuemax={99}
                 />
               </div>
-              {/* Label — percentage only, seen/total count removed */}
+              {/* Label */}
               <div className="flex items-center">
                 <span className={`text-2xl font-black ${
                   isDarkMode ? "text-yellow-400" : "text-slate-900"
@@ -256,7 +258,7 @@ const ChallengeSidebar = ({
           }`}
         >
           <RotateCcw size={14} />
-          {t("challenges.sidebar.reset_btn")}
+          {t("challenges.sidebar.reset_seen_words_btn")}
         </button>
       </aside>
 
@@ -291,7 +293,7 @@ const ChallengeSidebar = ({
                 aria-valuemax={99}
               />
             </div>
-            {/* Percentage label only — seen/total count removed */}
+            {/* Percentage label */}
             <div className="flex items-center">
               <span className={`font-black text-sm ${
                 isDarkMode ? "text-yellow-400" : "text-slate-900"
@@ -320,7 +322,7 @@ const ChallengeSidebar = ({
                   : "border-slate-300 text-slate-500 hover:border-slate-900 hover:text-slate-900"
               }`}
             >
-              <RotateCcw size={12} /> {t("challenges.sidebar.reset_btn")}
+              <RotateCcw size={12} /> {t("challenges.sidebar.reset_seen_words_btn")}
             </button>
           </div>
         )}
@@ -331,8 +333,8 @@ const ChallengeSidebar = ({
 
 ChallengeSidebar.propTypes = {
   isDarkMode:        PropTypes.bool.isRequired,
+  seenCount:         PropTypes.number,
   progress:          PropTypes.shape({
-    seenConceptIds:  PropTypes.arrayOf(PropTypes.string),
     totalPlayed:     PropTypes.number,
     lastPlayedAt:    PropTypes.string,
     learningDialect: PropTypes.string,
@@ -348,6 +350,7 @@ ChallengeSidebar.propTypes = {
 };
 
 ChallengeSidebar.defaultProps = {
+  seenCount:    0,
   progress:     null,
   totalWords:   null,
   resetWarning: undefined,

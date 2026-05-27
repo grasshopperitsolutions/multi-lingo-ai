@@ -507,7 +507,8 @@
       "reset_title": "Restablecer Progreso",
       "reset_message": "Esto borrará todas las palabras vistas, permitiéndote ver palabras jugadas anteriormente de nuevo.",
       "reset_warning": "⚠ Esto no se puede deshacer.",
-      "reset_confirm": "Sí, restablecer progreso"
+      "reset_confirm": "Sí, restablecer progreso",
+      "reset_seen_words_btn": "Restablecer Palabras Vistas"
     },
     "word_search_panel": "Encuentra estas palabras",
     "clear_selection": "Limpiar selección",

@@ -503,7 +503,8 @@
       "reset_title": "Repor Progresso",
       "reset_message": "Isto irá limpar todas as palavras vistas, permitindo-te ver palavras já jogadas novamente.",
       "reset_warning": "⚠ Isto não pode ser desfeito.",
-      "reset_confirm": "Sim, repor progresso"
+      "reset_confirm": "Sim, repor progresso",
+      "reset_seen_words_btn": "Repor Palavras Vistas"
     },
     "word_search_panel": "Encontra estas palavras",
     "clear_selection": "Limpar seleção",
