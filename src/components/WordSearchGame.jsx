@@ -502,7 +502,7 @@ const WordSearchGame = ({ isDarkMode }) => {
     <div className="flex flex-col lg:flex-row items-start gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95">
 
       {/* ── LEFT: word list (desktop only) ── */}
-      <div className="hidden lg:block w-52 shrink-0">
+      <div className="hidden lg:block w-64 shrink-0">
         <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} t={t} />
       </div>
 
