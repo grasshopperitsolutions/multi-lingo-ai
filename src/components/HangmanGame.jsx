@@ -3,7 +3,13 @@ import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Trophy, Skull } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
-import { getUserGameProgress, markConceptSeen, recordPlay, resetSeenWords } from "../services/userService";
+import {
+  getUserGameProgress,
+  markConceptSeenGlobal,
+  getGlobalSeenIds,
+  recordPlay,
+  resetAllSeenWords,
+} from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import ChallengeSidebar from "./ChallengeSidebar";
 import Loader from "./Loader";
@@ -72,8 +78,8 @@ const HangmanGame = ({ isDarkMode }) => {
   const [hardMode, setHardMode] = useState(false);
 
   // ── Word state ──
-  const [word, setWord]         = useState("");
-  const [hint, setHint]         = useState("");
+  const [word, setWord]           = useState("");
+  const [hint, setHint]           = useState("");
   const [conceptId, setConceptId] = useState(null);
 
   // ── Game state ──
@@ -85,7 +91,8 @@ const HangmanGame = ({ isDarkMode }) => {
   const [error, setError]     = useState(null);
 
   // ── Sidebar / stats state ──
-  const [progress,       setProgress]      = useState(null);
+  const [progress,       setProgress]       = useState(null);
+  const [seenCount,      setSeenCount]      = useState(0);
   const [totalWords,     setTotalWords]     = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
@@ -132,17 +139,19 @@ const HangmanGame = ({ isDarkMode }) => {
     hasMarkedRef.current = false;
   }, []);
 
-  // ── Fetch stats (progress + pool count) ─────────────────────────────────
+  // ── Fetch stats (progress + pool count + global seen count) ─────────────
   const fetchStats = useCallback(async () => {
     if (!user?.token || !user?.uid) return;
     setIsLoadingStats(true);
     try {
-      const [prog, count] = await Promise.all([
+      const [prog, count, seenIds] = await Promise.all([
         getUserGameProgress(user.token, user.uid, "hangman", learningDialect),
         getWordPoolCount(user.token),
+        getGlobalSeenIds(user.token, user.uid),
       ]);
       setProgress(prog);
       setTotalWords(count);
+      setSeenCount(seenIds.length);
     } catch (err) {
       console.warn("[HangmanGame] fetchStats failed:", err);
     } finally {
@@ -156,35 +165,36 @@ const HangmanGame = ({ isDarkMode }) => {
     Promise.all([
       getUserGameProgress(user.token, user.uid, "hangman", learningDialect),
       getWordPoolCount(user.token),
+      getGlobalSeenIds(user.token, user.uid),
     ])
-      .then(([prog, count]) => {
+      .then(([prog, count, seenIds]) => {
         if (!cancelled) {
           setProgress(prog);
           setTotalWords(count);
+          setSeenCount(seenIds.length);
         }
       })
-      .catch((err) => {
-        console.warn("[HangmanGame] fetchStats failed:", err);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingStats(false);
-      });
+      .catch((err) => console.warn("[HangmanGame] fetchStats failed:", err))
+      .finally(() => { if (!cancelled) setIsLoadingStats(false); });
     return () => { cancelled = true; };
   }, [user, learningDialect]);
 
-  // ── Core word fetch — pure fetch, no side-effects on progress ───────────
+  // ── Core word fetch — reads global seenConceptIds ────────────────────────
   const fetchWordData = useCallback(async () => {
     if (!user) throw new Error(t("challenges.word_fetch_error"));
     const { token, uid } = user;
     if (!token) throw new Error(t("challenges.word_fetch_error"));
 
-    const prog = await getUserGameProgress(token, uid, "hangman", learningDialect);
+    const [prog, seenIds] = await Promise.all([
+      getUserGameProgress(token, uid, "hangman", learningDialect),
+      getGlobalSeenIds(token, uid),
+    ]);
 
     const result = await getWord({
       token,
       userDialect:    interfaceLang,
       learningDialect,
-      seenConceptIds: prog?.seenConceptIds ?? [],
+      seenConceptIds: seenIds,
     });
 
     return { word: result.word.toUpperCase(), hint: result.hint, conceptId: result.conceptId, progress: prog };
@@ -230,37 +240,36 @@ const HangmanGame = ({ isDarkMode }) => {
           setError(sanitizeAIError(err.message, t("challenges.word_fetch_error")));
         }
       })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [fetchWordData, t]);
 
-  // ── Record play + mark seen when game ends ───────────────────────────────
+  // ── Record play + mark seen globally when game ends ──────────────────────
   useEffect(() => {
     if ((!isWinner && !isLoser) || hasMarkedRef.current || !conceptId || !user?.token || !user?.uid) return;
     hasMarkedRef.current = true;
 
-    // Always record the play (increments totalPlayed + lastPlayedAt)
     recordPlay(user.token, user.uid, "hangman", learningDialect, progress)
       .catch((err) => console.warn("[HangmanGame] recordPlay failed:", err));
 
-    // Only add to seenConceptIds on a win
     if (isWinner) {
-      markConceptSeen(user.token, user.uid, "hangman", learningDialect, conceptId, progress)
+      getGlobalSeenIds(user.token, user.uid)
+        .then((currentSeenIds) =>
+          markConceptSeenGlobal(user.token, user.uid, conceptId, currentSeenIds)
+        )
         .then(() => fetchStats())
-        .catch((err) => console.warn("[HangmanGame] markConceptSeen failed:", err));
+        .catch((err) => console.warn("[HangmanGame] markConceptSeenGlobal failed:", err));
     } else {
       Promise.resolve().then(() => fetchStats());
     }
   }, [isWinner, isLoser]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Reset seen words handler (owned by HangmanGame, passed as callback) ──
+  // ── Reset seen words handler — global reset ──────────────────────────────
   const handleResetSeenWords = useCallback(async () => {
     if (!user?.token || !user?.uid) return;
-    await resetSeenWords(user.token, user.uid, "hangman", learningDialect);
+    await resetAllSeenWords(user.token, user.uid);
     await fetchStats();
-  }, [user, learningDialect, fetchStats]);
+  }, [user, fetchStats]);
 
   // ── Guess handler ────────────────────────────────────────────────────────
   const handleGuess = (char) => {
@@ -451,9 +460,10 @@ const HangmanGame = ({ isDarkMode }) => {
         )}
       </div>
 
-      {/* ── Sidebar — pure UI, all data and callbacks owned by HangmanGame ── */}
+      {/* ── Sidebar ── */}
       <ChallengeSidebar
         isDarkMode={isDarkMode}
+        seenCount={seenCount}
         progress={progress}
         totalWords={totalWords}
         isLoadingStats={isLoadingStats}
