@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Copy, Volume2, Trash2, Search, Turtle } from 'lucide-react';
@@ -88,14 +88,14 @@ SynonymChip.propTypes = {
 // ---------------------------------------------------------------------------
 // DictionaryPanel
 // ---------------------------------------------------------------------------
-const DictionaryPanel = ({ isDarkMode, onBack }) => {
+const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
   const { t } = useTranslation();
   const { user, interfaceLang } = useAppContext();
 
   const learningLang         = user?.learningDialect ?? 'pt-PT';
   const resolvedInterfaceLang = interfaceLang ?? 'en-US';
 
-  const [inputText,    setInputText]    = useState('');
+  const [inputText,    setInputText]    = useState(initialQuery ?? '');
   const [definition,   setDefinition]   = useState('');
   const [synonyms,     setSynonyms]     = useState([]);
   const [isLoading,    setIsLoading]    = useState(false);
@@ -146,6 +146,38 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
       setIsLoading(false);
     }
   }, [inputText, user, resolvedInterfaceLang, learningLang, t]);
+
+  // Auto-trigger lookup when the panel is opened with a pre-filled query
+  // (e.g. when navigating here from the TranslatorPanel)
+  useEffect(() => {
+    const performInitialLookup = async () => {
+      if (initialQuery?.trim()) {
+        const word = initialQuery.trim();
+        setInputText(word);
+        setIsLoading(true);
+        setError(null);
+        setDefinition('');
+        setSynonyms([]);
+        setLookedUpWord(word);
+        try {
+          const result = await lookupWord({
+            token: user?.token,
+            word,
+            interfaceLang: resolvedInterfaceLang,
+            learningLang,
+          });
+          setDefinition(result.definition);
+          setSynonyms(result.synonyms);
+        } catch (err) {
+          setError(err.message ?? t('dictionary.error_failed'));
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    performInitialLookup();
+  }, []);
 
   const panelBase = `rounded-2xl border-4 p-1 flex flex-col ${
     isDarkMode
@@ -301,8 +333,13 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
 };
 
 DictionaryPanel.propTypes = {
-  isDarkMode: PropTypes.bool.isRequired,
-  onBack:     PropTypes.func.isRequired,
+  isDarkMode:   PropTypes.bool.isRequired,
+  onBack:       PropTypes.func.isRequired,
+  initialQuery: PropTypes.string,
+};
+
+DictionaryPanel.defaultProps = {
+  initialQuery: '',
 };
 
 export default DictionaryPanel;

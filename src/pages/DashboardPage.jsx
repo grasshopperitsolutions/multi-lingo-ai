@@ -66,6 +66,7 @@ const DashboardPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [selectedFeature, setSelectedFeature] = useState(null);
+  const [dictionaryPreFill, setDictionaryPreFill] = useState('');
 
   if (!user) {
     return (
@@ -88,6 +89,13 @@ const DashboardPage = () => {
 
   const handleBackToDashboard = () => {
     setSelectedFeature(null);
+    setDictionaryPreFill('');
+  };
+
+  // Called from TranslatorPanel when user clicks "Look up in Dictionary"
+  const handleLookupInDictionary = (phrase) => {
+    setDictionaryPreFill(phrase);
+    setSelectedFeature(features.find((f) => f.id === 'dictionary'));
   };
 
   const stats = [
@@ -237,6 +245,7 @@ const DashboardPage = () => {
         <TranslatorPanel
           isDarkMode={isDarkMode}
           onBack={handleBackToDashboard}
+          onLookupInDictionary={handleLookupInDictionary}
         />
       )}
 
@@ -253,6 +262,7 @@ const DashboardPage = () => {
         <DictionaryPanel
           isDarkMode={isDarkMode}
           onBack={handleBackToDashboard}
+          initialQuery={dictionaryPreFill}
         />
       )}
 

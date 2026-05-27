@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowLeftRight, Copy, Volume2, Trash2, Languages, Turtle } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, Copy, Volume2, Trash2, Languages, Turtle, BookMarked } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { translateText } from '../services/translatorService';
 import { speak } from '../services/ttsService';
@@ -67,7 +67,7 @@ IconButton.propTypes = {
 // ---------------------------------------------------------------------------
 // TranslatorPanel
 // ---------------------------------------------------------------------------
-const TranslatorPanel = ({ isDarkMode, onBack }) => {
+const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
   const { t } = useTranslation();
   const { user, interfaceLang } = useAppContext();
 
@@ -230,6 +230,22 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
               isDarkMode ? 'text-sky-400' : 'text-sky-600'
             }`}>{t('translator.copied')}</span>
           )}
+          {/* ── Look up in Dictionary button — only visible when there is output ── */}
+          {outputText && (
+            <TooltipButton tooltip={t('translator.lookup_in_dictionary')} isDarkMode={isDarkMode}>
+              <button
+                onClick={() => onLookupInDictionary(outputText)}
+                aria-label={t('translator.lookup_in_dictionary')}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  isDarkMode
+                    ? 'text-violet-400 hover:text-violet-300'
+                    : 'text-violet-600 hover:text-violet-800'
+                }`}
+              >
+                <BookMarked size={16} />
+              </button>
+            </TooltipButton>
+          )}
         </div>
       </div>
 
@@ -270,8 +286,9 @@ const TranslatorPanel = ({ isDarkMode, onBack }) => {
 };
 
 TranslatorPanel.propTypes = {
-  isDarkMode: PropTypes.bool.isRequired,
-  onBack:     PropTypes.func.isRequired,
+  isDarkMode:            PropTypes.bool.isRequired,
+  onBack:                PropTypes.func.isRequired,
+  onLookupInDictionary:  PropTypes.func.isRequired,
 };
 
 export default TranslatorPanel;

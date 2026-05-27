@@ -400,7 +400,8 @@
     "swap": "Swap",
     "translate": "Translate",
     "keyboard_hint": "Tip: Press Ctrl+Enter (or \u2318+Enter) to translate",
-    "error_failed": "Translation failed. Please try again."
+    "error_failed": "Translation failed. Please try again.",
+    "lookup_in_dictionary": "Look up in Dictionary"
   },
   "dashboard": {
     "loading": "Loading your dashboard\u2026",
