@@ -43,9 +43,6 @@
 /** @type {'idle' | 'playing' | 'paused'} */
 let _state = 'idle';
 
-/** @type {SpeechSynthesisUtterance | null} */
-let _currentUtterance = null;
-
 /** @type {Set<Function>} */
 const _listeners = new Set();
 
@@ -101,10 +98,8 @@ export function speak(text, lang, { rate = 1.0 } = {}) {
     utterance.onstart  = () => _setState('playing');
     utterance.onpause  = () => _setState('paused');
     utterance.onresume = () => _setState('playing');
-    utterance.onend    = () => { _setState('idle'); _currentUtterance = null; };
-    utterance.onerror  = () => { _setState('idle'); _currentUtterance = null; };
-
-    _currentUtterance = utterance;
+    utterance.onend    = () => _setState('idle');
+    utterance.onerror  = () => _setState('idle');
     window.speechSynthesis.speak(utterance);
   }, 50);
 }
@@ -125,7 +120,6 @@ export function pause() {
     if (!window.speechSynthesis.paused && _state !== 'idle') {
       // Browser cancelled rather than paused — reflect real state
       _setState('idle');
-      _currentUtterance = null;
     } else if (window.speechSynthesis.paused) {
       _setState('paused');
     }
@@ -149,7 +143,6 @@ export function stopSpeaking() {
   if (!_isSupported()) return;
   window.speechSynthesis.cancel();
   _setState('idle');
-  _currentUtterance = null;
 }
 
 /**
