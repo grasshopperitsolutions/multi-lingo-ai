@@ -75,8 +75,8 @@ export const AppProvider = ({ children }) => {
    *   1. Firestore value  — set by the user in Settings (custom name / uploaded avatar)
    *   2. Auth provider    — Google / Facebook / Apple / X display name and photo
    *
-   * All other profile fields (theme, interfaceLang,
-   * learningDialect, interests, seenStoryIds) come from Firestore only.
+   * All other profile fields (theme, interfaceLang, learningDialect,
+   * interests, seenStoryIds, seenConceptIds) come from Firestore only.
    *
    * @param {object} authUser - The raw Firebase Auth user object fields + token.
    *                            Used as fallback source for displayName and photoURL.
@@ -117,6 +117,8 @@ export const AppProvider = ({ children }) => {
         interests: profile?.interests ?? prev?.interests ?? [],
         // seenStoryIds: Firestore → keep previous → empty array
         seenStoryIds: profile?.seenStoryIds ?? prev?.seenStoryIds ?? [],
+        // seenConceptIds: Firestore → keep previous → empty array
+        seenConceptIds: profile?.seenConceptIds ?? prev?.seenConceptIds ?? [],
       }));
     } catch (err) {
       showAlert("error", `Could not load your profile: ${err.message}`);
@@ -159,6 +161,21 @@ export const AppProvider = ({ children }) => {
       const current = prev?.seenStoryIds ?? [];
       if (current.includes(storyId)) return prev;
       return { ...prev, seenStoryIds: [...current, storyId] };
+    });
+  };
+
+  /**
+   * Optimistically append a concept ID to user.seenConceptIds in context.
+   * The caller is responsible for persisting to Firestore.
+   *
+   * @param {string} conceptId - Firestore document ID of the seen concept.
+   */
+  const addSeenConceptId = (conceptId) => {
+    if (!conceptId) return;
+    setUser((prev) => {
+      const current = prev?.seenConceptIds ?? [];
+      if (current.includes(conceptId)) return prev;
+      return { ...prev, seenConceptIds: [...current, conceptId] };
     });
   };
 
@@ -244,6 +261,7 @@ export const AppProvider = ({ children }) => {
         logoutUser,
         refreshUser,
         addSeenStoryId,
+        addSeenConceptId,
       }}
     >
       {children}
