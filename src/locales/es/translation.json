@@ -404,7 +404,8 @@
     "swap": "Intercambiar",
     "translate": "Traducir",
     "keyboard_hint": "Consejo: presiona Ctrl+Enter (o ⌘+Enter) para traducir",
-    "error_failed": "La traducción falló. Por favor, inténtalo de nuevo."
+    "error_failed": "La traducción falló. Por favor, inténtalo de nuevo.",
+    "lookup_in_dictionary": "Buscar en el Diccionario"
   },
   "dashboard": {
     "loading": "Cargando tu panel...",

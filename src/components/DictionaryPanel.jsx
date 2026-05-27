@@ -150,11 +150,33 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
   // Auto-trigger lookup when the panel is opened with a pre-filled query
   // (e.g. when navigating here from the TranslatorPanel)
   useEffect(() => {
-    if (initialQuery?.trim()) {
-      handleLookup(initialQuery.trim());
-    }
-    // Only run on mount — intentionally omitting handleLookup from deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const performInitialLookup = async () => {
+      if (initialQuery?.trim()) {
+        const word = initialQuery.trim();
+        setInputText(word);
+        setIsLoading(true);
+        setError(null);
+        setDefinition('');
+        setSynonyms([]);
+        setLookedUpWord(word);
+        try {
+          const result = await lookupWord({
+            token: user?.token,
+            word,
+            interfaceLang: resolvedInterfaceLang,
+            learningLang,
+          });
+          setDefinition(result.definition);
+          setSynonyms(result.synonyms);
+        } catch (err) {
+          setError(err.message ?? t('dictionary.error_failed'));
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    performInitialLookup();
   }, []);
 
   const panelBase = `rounded-2xl border-4 p-1 flex flex-col ${

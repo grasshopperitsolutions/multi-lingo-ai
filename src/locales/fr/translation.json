@@ -400,7 +400,8 @@
     "swap": "Échanger",
     "translate": "Traduire",
     "keyboard_hint": "Astuce : appuie sur Ctrl+Entrée (ou ⌘+Entrée) pour traduire",
-    "error_failed": "La traduction a échoué. Veuillez réessayer."
+    "error_failed": "La traduction a échoué. Veuillez réessayer.",
+    "lookup_in_dictionary": "Chercher dans le Dictionnaire"
   },
   "dashboard": {
     "loading": "Chargement de ton tableau de bord...",
