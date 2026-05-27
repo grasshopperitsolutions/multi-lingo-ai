@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { RefreshCw, Trophy, RotateCcw } from "lucide-react";
+import { Trophy, RotateCcw } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import {
   getUserGameProgress,
@@ -12,6 +12,7 @@ import {
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import { buildGrid, checkSelection } from "../utils/wordSearchUtils";
 import ChallengeSidebar from "./ChallengeSidebar";
+import Loader from "./Loader";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -314,7 +315,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
     init();
     return () => { cancelled = true; };
-  }, [fetchAllWords, applyWords, user, t]);  
+  }, [fetchAllWords, applyWords, user, t]);
 
   // ── Reset seen words ──────────────────────────────────────────────────────
   const handleResetSeenWords = useCallback(async () => {
@@ -384,10 +385,6 @@ const WordSearchGame = ({ isDarkMode }) => {
         if (!markedRef.current.has(matchedPlacement.conceptId) && user?.token && user?.uid) {
           markedRef.current.add(matchedPlacement.conceptId);
 
-          // Optimistically update progressRef so the next markConceptSeen call
-          // receives the accumulated seenConceptIds rather than the stale
-          // snapshot from game load. Without this, each call overwrites the
-          // previous one because it spreads the same original array every time.
           const updatedProgress = {
             ...(progressRef.current ?? {}),
             seenConceptIds: [
@@ -435,21 +432,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
-    return (
-      <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in">
-        <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter mb-8">
-          {t("challenges.word_search")}
-        </h2>
-        <div className={`w-48 h-48 mb-8 rounded-2xl border-4 flex items-center justify-center ${
-          isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900"
-        }`}>
-          <RefreshCw className="w-10 h-10 animate-spin opacity-40" />
-        </div>
-        <p className={`text-sm italic ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`}>
-          {t("challenges.loading_word")}
-        </p>
-      </div>
-    );
+    return <Loader isDarkMode={isDarkMode} message={t("challenges.loading_word")} />;
   }
 
   // ── Error ──────────────────────────────────────────────────────────────────
@@ -511,10 +494,6 @@ const WordSearchGame = ({ isDarkMode }) => {
   }
 
   // ── Game render ───────────────────────────────────────────────────────────
-  //
-  // Desktop: [WordList (left, w-52)] [Grid (center, flex-1)] [Sidebar (right, w-64)]
-  // Mobile:  [WordList] [Grid] [Sidebar] stacked vertically
-  //
   return (
     <div className="flex flex-col lg:flex-row items-start gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95">
 

@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { Trophy, Skull, RefreshCw } from "lucide-react";
+import { Trophy, Skull } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { getUserGameProgress, markConceptSeen, recordPlay, resetSeenWords } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import ChallengeSidebar from "./ChallengeSidebar";
+import Loader from "./Loader";
 import { sanitizeAIError } from "../utils/errorUtils";
 
 // ---------------------------------------------------------------------------
@@ -277,18 +278,7 @@ const HangmanGame = ({ isDarkMode }) => {
 
   // ── Loading state ────────────────────────────────────────────────────────
   if (loading) {
-    return (
-      <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in">
-        <div className={`w-48 h-48 mb-8 rounded-2xl border-4 flex items-center justify-center ${
-          isDarkMode ? "bg-slate-800 border-slate-700" : "bg-yellow-100 border-slate-900"
-        }`}>
-          <RefreshCw className="w-10 h-10 animate-spin opacity-40" />
-        </div>
-        <p className={`text-sm italic ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`}>
-          {t("challenges.loading_word")}
-        </p>
-      </div>
-    );
+    return <Loader isDarkMode={isDarkMode} message={t("challenges.loading_word")} />;
   }
 
   // ── Error state ──────────────────────────────────────────────────────────
