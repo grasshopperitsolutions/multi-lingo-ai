@@ -91,6 +91,16 @@
  * @property {'db'|'ai'} source
  */
 
+/**
+ * @typedef {Object} GetRandomWordsParams
+ * @property {string}    token            - Firebase ID token
+ * @property {string}    learningDialect  - BCP-47 target language, e.g. 'pt-PT'
+ * @property {number}    [limit=50]       - Max number of words to return
+ * @property {boolean}   [fromSeenOnly=false] - When true, only return words the user has seen
+ * @property {string[]}  [seenConceptIds=[]]  - Required when fromSeenOnly is true;
+ *                                              pass user.seenConceptIds from AppContext
+ */
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -209,6 +219,66 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
 export async function getWordPoolCount(token) {
   const concepts = await _fetchReadyConcepts(token);
   return concepts.length;
+}
+
+/**
+ * Return up to `limit` translated words from the word pool, randomly selected.
+ *
+ * When fromSeenOnly is true, only concepts whose IDs appear in seenConceptIds
+ * are considered. This is used by the Story Generator to build a word list
+ * from vocabulary the user has already encountered.
+ *
+ * When fromSeenOnly is false (default), the full pool is used regardless of
+ * seenConceptIds.
+ *
+ * The caller is responsible for providing seenConceptIds from AppContext
+ * (user.seenConceptIds) — this function does not fetch it from Firestore.
+ *
+ * Concepts that have no translation doc for the requested learningDialect are
+ * silently skipped, so the returned array may be shorter than limit.
+ *
+ * @param {GetRandomWordsParams} params
+ * @returns {Promise<string[]>} Array of translated word strings
+ */
+export async function getRandomWords({
+  token,
+  learningDialect,
+  limit = 50,
+  fromSeenOnly = false,
+  seenConceptIds = [],
+}) {
+  // Guard: fromSeenOnly with an empty seen list → nothing to return
+  if (fromSeenOnly && seenConceptIds.length === 0) return [];
+
+  const allConcepts = await _fetchReadyConcepts(token);
+
+  // Filter pool based on fromSeenOnly flag
+  const seenSet = new Set(seenConceptIds);
+  const candidates = fromSeenOnly
+    ? allConcepts.filter((c) => seenSet.has(c.id))
+    : allConcepts;
+
+  if (candidates.length === 0) return [];
+
+  // Fisher-Yates shuffle to randomise selection
+  const shuffled = [...candidates];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  // Fetch translations for the first `limit` candidates, skipping missing ones
+  const words = [];
+  for (const concept of shuffled) {
+    if (words.length >= limit) break;
+
+    const translation = await _fetchTranslation(concept.id, learningDialect, token);
+    if (translation?.word) {
+      words.push(translation.word);
+    }
+  }
+
+  return words;
 }
 
 // ---------------------------------------------------------------------------

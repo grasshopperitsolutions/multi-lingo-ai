@@ -8,6 +8,7 @@ import Avatar from "../components/Avatar";
 import ChallengesMenu from "../components/ChallengesMenu";
 import TranslatorPanel from "../components/TranslatorPanel";
 import DictionaryPanel from "../components/DictionaryPanel";
+import StoryPanel from "../components/StoryPanel";
 import TooltipButton from "../components/TooltipButton";
 import {
   Languages,
@@ -25,10 +26,11 @@ import {
   Flame,
   Star,
   ArrowLeft,
+  ScrollText,
 } from "lucide-react";
 import PropTypes from "prop-types";
 
-// ── StatCard ────────────────────────────────────────────────────────────────────────────────────────────
+// ── StatCard ──────────────────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
   <div
     className={`p-6 rounded-2xl border-4 flex flex-col gap-3 transition-all hover:-translate-y-1
@@ -53,19 +55,19 @@ const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
 );
 
 StatCard.propTypes = {
-  icon: PropTypes.elementType.isRequired,
-  label: PropTypes.string.isRequired,
-  value: PropTypes.string.isRequired,
-  color: PropTypes.string.isRequired,
+  icon:       PropTypes.elementType.isRequired,
+  label:      PropTypes.string.isRequired,
+  value:      PropTypes.string.isRequired,
+  color:      PropTypes.string.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
 };
 
-// ── DashboardPage ─────────────────────────────────────────────────────────────────────────────
+// ── DashboardPage ─────────────────────────────────────────────────────────────
 const DashboardPage = () => {
   const { isDarkMode, user, logoutUser } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [selectedFeature, setSelectedFeature] = useState(null);
+  const [selectedFeature,   setSelectedFeature]   = useState(null);
   const [dictionaryPreFill, setDictionaryPreFill] = useState('');
 
   if (!user) {
@@ -99,88 +101,89 @@ const DashboardPage = () => {
   };
 
   const stats = [
-    { icon: BookOpen, label: t("dashboard.languages"), value: "3",   color: "text-blue-500" },
-    { icon: Zap,      label: t("dashboard.sessions"),  value: "24",  color: "text-yellow-500" },
-    { icon: Flame,    label: t("dashboard.day_streak"), value: "7",  color: "text-rose-500" },
+    { icon: BookOpen, label: t("dashboard.languages"),  value: "3",   color: "text-blue-500"    },
+    { icon: Zap,      label: t("dashboard.sessions"),   value: "24",  color: "text-yellow-500"  },
+    { icon: Flame,    label: t("dashboard.day_streak"), value: "7",   color: "text-rose-500"    },
     { icon: Star,     label: t("dashboard.words"),      value: "312", color: "text-emerald-500" },
   ];
 
   const features = [
     {
-      id: "challenges",
-      icon: Gamepad2,
-      title: t("dashboard.challenges"),
+      id:          "challenges",
+      icon:        Gamepad2,
+      title:       t("dashboard.challenges"),
       description: t("dashboard.challenges_desc"),
-      color: "text-yellow-500",
+      color:       "text-yellow-500",
     },
     {
-      id: "translator",
-      icon: Languages,
-      title: t("dashboard.translator"),
+      id:          "translator",
+      icon:        Languages,
+      title:       t("dashboard.translator"),
       description: t("dashboard.translator_desc"),
-      color: "text-sky-500",
+      color:       "text-sky-500",
     },
     {
-      id: "dictionary",
-      icon: BookMarked,
-      title: t("dashboard.dictionary"),
+      id:          "dictionary",
+      icon:        BookMarked,
+      title:       t("dashboard.dictionary"),
       description: t("dashboard.dictionary_desc"),
-      color: "text-violet-500",
+      color:       "text-violet-500",
     },
     {
-      id: "grammar",
-      icon: PenLine,
-      title: t("dashboard.grammar"),
-      description: t("dashboard.grammar_desc"),
-      color: "text-amber-500",
+      id:              "story_generator",
+      icon:            ScrollText,
+      title:           t("dashboard.story_generator"),
+      description:     t("dashboard.story_generator_desc"),
+      color:           "text-rose-500",
+      // statusBadgeLabel removed — feature is now live
+    },
+    {
+      id:              "grammar",
+      icon:            PenLine,
+      title:           t("dashboard.grammar"),
+      description:     t("dashboard.grammar_desc"),
+      color:           "text-amber-500",
       statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
-      id: "ai_tutor",
-      icon: BotMessageSquare,
-      title: t("dashboard.ai_tutor"),
-      description: t("dashboard.ai_tutor_desc"),
-      color: "text-blue-500",
+      id:              "ai_tutor",
+      icon:            BotMessageSquare,
+      title:           t("dashboard.ai_tutor"),
+      description:     t("dashboard.ai_tutor_desc"),
+      color:           "text-blue-500",
       statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
-      id: "real_person_tutor",
-      icon: UserRound,
-      title: t("dashboard.real_person_tutor"),
-      description: t("dashboard.real_person_tutor_desc"),
-      color: "text-emerald-500",
+      id:              "real_person_tutor",
+      icon:            UserRound,
+      title:           t("dashboard.real_person_tutor"),
+      description:     t("dashboard.real_person_tutor_desc"),
+      color:           "text-emerald-500",
       statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
-      id: "voice_practice",
-      icon: Video,
-      title: t("dashboard.voice_practice"),
-      description: t("dashboard.voice_practice_desc"),
-      color: "text-purple-500",
+      id:              "voice_practice",
+      icon:            Video,
+      title:           t("dashboard.voice_practice"),
+      description:     t("dashboard.voice_practice_desc"),
+      color:           "text-purple-500",
       statusBadgeLabel: t("dashboard.in_progress"),
     },
     {
-      id: "story_generator",
-      icon: BookOpen,
-      title: t("dashboard.story_generator"),
-      description: t("dashboard.story_generator_desc"),
-      color: "text-rose-500",
-      statusBadgeLabel: t("dashboard.in_progress"),
-    },
-    {
-      id: "history_culture",
-      icon: Landmark,
-      title: t("dashboard.history_culture"),
-      description: t("dashboard.history_culture_desc"),
-      color: "text-orange-500",
+      id:              "history_culture",
+      icon:            Landmark,
+      title:           t("dashboard.history_culture"),
+      description:     t("dashboard.history_culture_desc"),
+      color:           "text-orange-500",
       statusBadgeLabel: t("dashboard.in_progress"),
     },
   ];
 
-  const isTranslator   = selectedFeature?.id === 'translator';
-  const isChallenges   = selectedFeature?.id === 'challenges';
-  const isDictionary   = selectedFeature?.id === 'dictionary';
-  const isOtherFeature = selectedFeature && !isTranslator && !isChallenges && !isDictionary;
+  const isTranslator     = selectedFeature?.id === 'translator';
+  const isChallenges     = selectedFeature?.id === 'challenges';
+  const isDictionary     = selectedFeature?.id === 'dictionary';
+  const isStoryGenerator = selectedFeature?.id === 'story_generator';
+  const isOtherFeature   = selectedFeature && !isTranslator && !isChallenges && !isDictionary && !isStoryGenerator;
 
   return (
     <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-10 space-y-10">
@@ -263,6 +266,14 @@ const DashboardPage = () => {
           isDarkMode={isDarkMode}
           onBack={handleBackToDashboard}
           initialQuery={dictionaryPreFill}
+        />
+      )}
+
+      {/* ── Story Generator ── */}
+      {isStoryGenerator && (
+        <StoryPanel
+          isDarkMode={isDarkMode}
+          onBack={handleBackToDashboard}
         />
       )}
 
