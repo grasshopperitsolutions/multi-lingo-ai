@@ -41,20 +41,21 @@ Breadcrumb.propTypes = {
 };
 
 // ---------------------------------------------------------------------------
-// IconButton — small utility button
+// IconButton — small utility button wrapped in styled TooltipButton
 // ---------------------------------------------------------------------------
 const IconButton = ({ onClick, label, disabled, isDarkMode, children }) => (
-  <button
-    onClick={onClick}
-    disabled={disabled}
-    aria-label={label}
-    title={label}
-    className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 ${
-      isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
-    }`}
-  >
-    {children}
-  </button>
+  <TooltipButton tooltip={label} isDarkMode={isDarkMode}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 ${
+        isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+      }`}
+    >
+      {children}
+    </button>
+  </TooltipButton>
 );
 IconButton.propTypes = {
   onClick:    PropTypes.func.isRequired,
