@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { ArrowLeft, Plus, X, RefreshCw, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Plus, X, RefreshCw, Copy, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../contexts/AppContext';
-import { generateStory } from '../services/storyService';
+import { fetchOrGenerateStory } from '../services/storyService';
 import TTSPlayer from './TTSPlayer';
 import ReportButton from './ReportButton';
 
@@ -62,8 +62,8 @@ const WordChip = ({ word, onRemove, isDarkMode }) => (
   </span>
 );
 WordChip.propTypes = {
-  word:      PropTypes.string.isRequired,
-  onRemove:  PropTypes.func.isRequired,
+  word:       PropTypes.string.isRequired,
+  onRemove:   PropTypes.func.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
 };
 
@@ -116,22 +116,41 @@ LevelPicker.propTypes = {
 };
 
 // ---------------------------------------------------------------------------
+// CacheIndicator — subtle badge showing if story came from pool or was AI-fresh
+// ---------------------------------------------------------------------------
+const CacheIndicator = ({ fromCache, isDarkMode }) => (
+  <span className={`text-xs font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${
+    fromCache
+      ? isDarkMode
+        ? 'border-slate-600 text-slate-500'
+        : 'border-slate-300 text-slate-400'
+      : isDarkMode
+        ? 'border-violet-500/40 text-violet-400'
+        : 'border-violet-300 text-violet-500'
+  }`}>
+    {fromCache ? 'From library' : 'AI generated'}
+  </span>
+);
+CacheIndicator.propTypes = {
+  fromCache:  PropTypes.bool.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+};
+
+// ---------------------------------------------------------------------------
 // StoryPanel
 // ---------------------------------------------------------------------------
 const StoryPanel = ({ isDarkMode, onBack }) => {
-  const { user, interfaceLang } = useAppContext();
+  const { user, addSeenStoryId } = useAppContext();
 
-  const learningLang     = user?.learningDialect ?? 'pt-PT';
-  const resolvedIfaceLang = interfaceLang ?? 'en-US';
+  const learningLang = user?.learningDialect ?? 'pt-PT';
 
-  const [inputWord,       setInputWord]       = useState('');
-  const [wordList,        setWordList]        = useState([]);
-  const [level,           setLevel]           = useState('intermediate');
-  const [isLoading,       setIsLoading]       = useState(false);
-  const [error,           setError]           = useState(null);
-  const [story,           setStory]           = useState(null);
-  const [showTranslation, setShowTranslation] = useState(false);
-  const [copyFeedback,    setCopyFeedback]    = useState(false);
+  const [inputWord,    setInputWord]    = useState('');
+  const [wordList,     setWordList]     = useState([]);
+  const [level,        setLevel]        = useState('intermediate');
+  const [isLoading,    setIsLoading]    = useState(false);
+  const [error,        setError]        = useState(null);
+  const [story,        setStory]        = useState(null);
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
   // ── Word management ──
   const addWord = useCallback(() => {
@@ -154,20 +173,21 @@ const StoryPanel = ({ isDarkMode, onBack }) => {
     if (e.key === 'Enter') { e.preventDefault(); addWord(); }
   };
 
-  // ── Generate ──
+  // ── Generate / Fetch ──
   const handleGenerate = useCallback(async () => {
     if (!wordList.length || isLoading) return;
     setIsLoading(true);
     setError(null);
     setStory(null);
-    setShowTranslation(false);
     try {
-      const result = await generateStory({
-        token:         user?.token,
-        words:         wordList,
+      const result = await fetchOrGenerateStory({
+        token:        user?.token,
+        uid:          user?.uid,
+        words:        wordList,
         learningLang,
-        interfaceLang: resolvedIfaceLang,
         level,
+        seenStoryIds: user?.seenStoryIds ?? [],
+        onSeenUpdate: addSeenStoryId,
       });
       setStory(result);
     } catch (err) {
@@ -175,7 +195,7 @@ const StoryPanel = ({ isDarkMode, onBack }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [wordList, isLoading, user, learningLang, resolvedIfaceLang, level]);
+  }, [wordList, isLoading, user, learningLang, level, addSeenStoryId]);
 
   // ── Copy story text ──
   const handleCopy = useCallback(async () => {
@@ -295,7 +315,7 @@ const StoryPanel = ({ isDarkMode, onBack }) => {
           ) : (
             <>
               <RefreshCw size={14} />
-              {story ? 'Regenerate' : 'Generate Story'}
+              {story ? 'Next Story' : 'Generate Story'}
             </>
           )}
         </button>
@@ -314,17 +334,20 @@ const StoryPanel = ({ isDarkMode, onBack }) => {
             : 'bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]'
         }`}>
 
-          {/* Words used */}
-          {story.wordsUsed.length > 0 && (
-            <div>
-              <p className={labelClass}>Words used</p>
-              <div className="flex flex-wrap gap-2">
-                {story.wordsUsed.map((w) => (
-                  <ResultWordChip key={w} word={w} isDarkMode={isDarkMode} />
-                ))}
+          {/* Header row: words used + cache indicator */}
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            {story.wordsUsed.length > 0 && (
+              <div className="flex-1">
+                <p className={labelClass}>Words used</p>
+                <div className="flex flex-wrap gap-2">
+                  {story.wordsUsed.map((w) => (
+                    <ResultWordChip key={w} word={w} isDarkMode={isDarkMode} />
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            <CacheIndicator fromCache={story.fromCache} isDarkMode={isDarkMode} />
+          </div>
 
           <div className={dividerClass} />
 
@@ -340,10 +363,8 @@ const StoryPanel = ({ isDarkMode, onBack }) => {
 
           <div className={dividerClass} />
 
-          {/* Action row: copy + translation toggle */}
+          {/* Action row: copy */}
           <div className="flex items-center gap-3 flex-wrap">
-
-            {/* Copy */}
             <button
               onClick={handleCopy}
               aria-label={copyFeedback ? 'Copied' : 'Copy story'}
@@ -356,36 +377,7 @@ const StoryPanel = ({ isDarkMode, onBack }) => {
               {copyFeedback ? <Check size={12} /> : <Copy size={12} />}
               {copyFeedback ? 'Copied!' : 'Copy'}
             </button>
-
-            {/* Translation toggle */}
-            <button
-              onClick={() => setShowTranslation((v) => !v)}
-              aria-expanded={showTranslation}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 text-xs font-black uppercase tracking-widest transition-all hover:-translate-y-0.5 active:scale-95 ${
-                showTranslation
-                  ? isDarkMode
-                    ? 'bg-violet-500 border-violet-400 text-white'
-                    : 'bg-violet-500 border-violet-600 text-white'
-                  : isDarkMode
-                    ? 'bg-slate-700 border-slate-600 text-slate-300 hover:border-violet-400'
-                    : 'bg-white border-slate-300 text-slate-600 hover:border-violet-400'
-              }`}
-            >
-              {showTranslation ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              {showTranslation ? 'Hide Translation' : 'Show Translation'}
-            </button>
           </div>
-
-          {/* Translation */}
-          {showTranslation && (
-            <p className={`text-sm font-bold leading-relaxed border-l-4 pl-4 ${
-              isDarkMode
-                ? 'text-slate-400 border-slate-600'
-                : 'text-slate-500 border-slate-300'
-            }`}>
-              {story.translation}
-            </p>
-          )}
         </div>
       )}
     </div>
