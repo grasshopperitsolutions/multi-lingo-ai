@@ -446,9 +446,6 @@ const WordSearchGame = ({ isDarkMode }) => {
   if (error) {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in gap-4">
-        <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter">
-          {t("challenges.word_search")}
-        </h2>
         <p className="text-rose-500 font-semibold text-center px-4">{error}</p>
         <button
           onClick={() => { resetGame(); fetchGame(); }}
