@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Copy, Volume2, Trash2, Search, Turtle } from 'lucide-react';
@@ -88,14 +88,14 @@ SynonymChip.propTypes = {
 // ---------------------------------------------------------------------------
 // DictionaryPanel
 // ---------------------------------------------------------------------------
-const DictionaryPanel = ({ isDarkMode, onBack }) => {
+const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
   const { t } = useTranslation();
   const { user, interfaceLang } = useAppContext();
 
   const learningLang         = user?.learningDialect ?? 'pt-PT';
   const resolvedInterfaceLang = interfaceLang ?? 'en-US';
 
-  const [inputText,    setInputText]    = useState('');
+  const [inputText,    setInputText]    = useState(initialQuery ?? '');
   const [definition,   setDefinition]   = useState('');
   const [synonyms,     setSynonyms]     = useState([]);
   const [isLoading,    setIsLoading]    = useState(false);
@@ -146,6 +146,16 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
       setIsLoading(false);
     }
   }, [inputText, user, resolvedInterfaceLang, learningLang, t]);
+
+  // Auto-trigger lookup when the panel is opened with a pre-filled query
+  // (e.g. when navigating here from the TranslatorPanel)
+  useEffect(() => {
+    if (initialQuery?.trim()) {
+      handleLookup(initialQuery.trim());
+    }
+    // Only run on mount — intentionally omitting handleLookup from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const panelBase = `rounded-2xl border-4 p-1 flex flex-col ${
     isDarkMode
@@ -301,8 +311,13 @@ const DictionaryPanel = ({ isDarkMode, onBack }) => {
 };
 
 DictionaryPanel.propTypes = {
-  isDarkMode: PropTypes.bool.isRequired,
-  onBack:     PropTypes.func.isRequired,
+  isDarkMode:   PropTypes.bool.isRequired,
+  onBack:       PropTypes.func.isRequired,
+  initialQuery: PropTypes.string,
+};
+
+DictionaryPanel.defaultProps = {
+  initialQuery: '',
 };
 
 export default DictionaryPanel;
