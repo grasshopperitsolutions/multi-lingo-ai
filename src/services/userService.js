@@ -11,7 +11,6 @@ const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.
  * @typedef {Object} UserGameProgress
  * @property {string}   gameId            - e.g. 'hangman'
  * @property {string}   learningDialect   - BCP-47, e.g. 'pt-PT'
- * @property {string[]} seenConceptIds    - conceptId refs from wordPool
  * @property {number}   totalPlayed
  * @property {string}   lastPlayedAt      - ISO timestamp
  */
@@ -105,17 +104,73 @@ export const deleteAccount = async (token) => {
 };
 
 // ---------------------------------------------------------------------------
-// Game progress
+// Global seen words — stored on users/{uid}.seenConceptIds
+// Shared across ALL app features (games, challenges, etc.)
 // ---------------------------------------------------------------------------
 
 /**
- * Collection path:  userGameProgress/{uid}/games
- * Document ID:      {gameId}__{learningDialect}   e.g. hangman__pt-PT
+ * Get the global list of seen concept IDs for a user.
+ * Reads users/{uid}.seenConceptIds — returns [] if not yet set.
+ *
+ * @param {string} token
+ * @param {string} uid
+ * @returns {Promise<string[]>}
  */
+export const getGlobalSeenIds = async (token, uid) => {
+  const profile = await getUserProfile(token, uid);
+  return profile?.seenConceptIds ?? [];
+};
+
+/**
+ * Append a conceptId to the global seen list on users/{uid}.
+ * Safe to call concurrently — uses a Set to deduplicate.
+ * Should only be called on a correct answer / successful word completion.
+ *
+ * @param {string}   token
+ * @param {string}   uid
+ * @param {string}   conceptId
+ * @param {string[]} currentSeenIds  - current value from getGlobalSeenIds() to avoid extra read
+ */
+export const markConceptSeenGlobal = async (token, uid, conceptId, currentSeenIds = []) => {
+  const updated = [...new Set([...currentSeenIds, conceptId])];
+  await updateUserProfile(token, uid, { seenConceptIds: updated });
+};
+
+/**
+ * Clear all seen concept IDs globally.
+ * Resets users/{uid}.seenConceptIds to [].
+ * Affects ALL features — used from global Settings reset.
+ *
+ * @param {string} token
+ * @param {string} uid
+ */
+export const resetAllSeenWords = async (token, uid) => {
+  await updateUserProfile(token, uid, {
+    seenConceptIds: [],
+    seenWordsResetAt: new Date().toISOString(),
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Game progress — userGameProgress/{uid}/games/{gameId}__{learningDialect}
+// Stores per-game stats ONLY: totalPlayed, lastPlayedAt, etc.
+// seenConceptIds is NO LONGER stored here — see getGlobalSeenIds above.
+// ---------------------------------------------------------------------------
 
 const PROGRESS_COLLECTION = (uid) => `userGameProgress/${uid}/games`;
 const PROGRESS_DOC_ID     = (gameId, learningDialect) => `${gameId}__${learningDialect}`;
 
+/**
+ * Get per-game stats for a specific game + dialect.
+ * Used by the sidebar to show totalPlayed, lastPlayedAt, etc.
+ * Does NOT return seenConceptIds — use getGlobalSeenIds() for that.
+ *
+ * @param {string} token
+ * @param {string} uid
+ * @param {string} gameId
+ * @param {string} learningDialect
+ * @returns {Promise<UserGameProgress|null>}
+ */
 export const getUserGameProgress = async (token, uid, gameId, learningDialect) => {
   const collection = PROGRESS_COLLECTION(uid);
   const id         = PROGRESS_DOC_ID(gameId, learningDialect);
@@ -140,75 +195,16 @@ export const getUserGameProgress = async (token, uid, gameId, learningDialect) =
 };
 
 /**
- * Mark a concept as seen for a given game. Only updates seenConceptIds.
- * Does NOT touch totalPlayed or lastPlayedAt — call recordPlay() for that.
- * Should only be called on a correct answer.
- */
-export const markConceptSeen = async (
-  token,
-  uid,
-  gameId,
-  learningDialect,
-  conceptId,
-  currentProgress
-) => {
-  const collection = PROGRESS_COLLECTION(uid);
-  const id         = PROGRESS_DOC_ID(gameId, learningDialect);
-
-  if (!currentProgress) {
-    // Doc doesn't exist yet — create it with seenConceptIds only.
-    // recordPlay() will have already created/updated totalPlayed & lastPlayedAt,
-    // so if we arrive here without a doc something is off; create defensively.
-    await fetch(`${PROXY_URL}/api/firestore`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        collection,
-        id,
-        data: {
-          gameId,
-          learningDialect,
-          seenConceptIds: [conceptId],
-          totalPlayed: 1,
-          lastPlayedAt: new Date().toISOString(),
-        },
-      }),
-    }).then(async (r) => {
-      if (!r.ok) {
-        const j = await r.json();
-        throw new Error(j?.error || j?.message || 'Failed to create game progress');
-      }
-    });
-  } else {
-    const updatedSeenIds = [...new Set([...(currentProgress.seenConceptIds ?? []), conceptId])];
-    await fetch(`${PROXY_URL}/api/firestore`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        collection,
-        id,
-        data: { seenConceptIds: updatedSeenIds },
-      }),
-    }).then(async (r) => {
-      if (!r.ok) {
-        const j = await r.json();
-        throw new Error(j?.error || j?.message || 'Failed to update seen concepts');
-      }
-    });
-  }
-};
-
-/**
  * Record a play attempt (correct or incorrect).
  * Increments totalPlayed and sets lastPlayedAt.
- * Does NOT touch seenConceptIds — call markConceptSeen() for that.
+ * Does NOT touch seenConceptIds — call markConceptSeenGlobal() for that.
  * Should be called on every answer submission (win or lose).
+ *
+ * @param {string}             token
+ * @param {string}             uid
+ * @param {string}             gameId
+ * @param {string}             learningDialect
+ * @param {UserGameProgress|null} currentProgress
  */
 export const recordPlay = async (
   token,
@@ -234,7 +230,6 @@ export const recordPlay = async (
         data: {
           gameId,
           learningDialect,
-          seenConceptIds: [],
           totalPlayed: 1,
           lastPlayedAt: now,
         },
@@ -270,29 +265,59 @@ export const recordPlay = async (
 };
 
 /**
- * Reset the seen words list for a given game + dialect.
- * Only clears seenConceptIds — totalPlayed and other fields are preserved.
+ * @deprecated — seenConceptIds is no longer stored per-game.
+ * This function is kept for backward compatibility only.
+ * Use markConceptSeenGlobal() instead.
+ *
+ * If the game progress doc does not yet exist, it will be created
+ * (without seenConceptIds) so that recordPlay() has a doc to update.
  */
-export const resetSeenWords = async (token, uid, gameId, learningDialect) => {
-  const collection = PROGRESS_COLLECTION(uid);
-  const id         = PROGRESS_DOC_ID(gameId, learningDialect);
-  const now        = new Date().toISOString();
+export const markConceptSeen = async (
+  token,
+  uid,
+  gameId,
+  learningDialect,
+  conceptId,
+  currentProgress
+) => {
+  // Redirect to the global implementation
+  const currentSeenIds = await getGlobalSeenIds(token, uid);
+  await markConceptSeenGlobal(token, uid, conceptId, currentSeenIds);
 
-  const response = await fetch(`${PROXY_URL}/api/firestore`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      collection,
-      id,
-      data: {
-        seenConceptIds: [],
-        updatedAt: now,
+  // If there's no game progress doc yet, create a minimal one so stats work
+  if (!currentProgress) {
+    const collection = PROGRESS_COLLECTION(uid);
+    const id         = PROGRESS_DOC_ID(gameId, learningDialect);
+    await fetch(`${PROXY_URL}/api/firestore`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-    }),
-  });
-  const json = await response.json();
-  if (!response.ok) throw new Error(json?.error || json?.message || 'Failed to reset seen words');
+      body: JSON.stringify({
+        collection,
+        id,
+        data: {
+          gameId,
+          learningDialect,
+          totalPlayed: 0,
+          lastPlayedAt: new Date().toISOString(),
+        },
+      }),
+    }).then(async (r) => {
+      // 409 Conflict = doc already exists, safe to ignore
+      if (!r.ok && r.status !== 409) {
+        const j = await r.json();
+        throw new Error(j?.error || j?.message || 'Failed to create game progress');
+      }
+    });
+  }
+};
+
+/**
+ * @deprecated — use resetAllSeenWords() instead.
+ * Kept for backward compatibility. Redirects to the global reset.
+ */
+export const resetSeenWords = async (token, uid) => {
+  await resetAllSeenWords(token, uid);
 };
