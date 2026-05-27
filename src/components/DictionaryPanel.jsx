@@ -177,7 +177,7 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
     };
 
     performInitialLookup();
-  }, []);
+  }, [initialQuery, learningLang, resolvedInterfaceLang, t, user?.token]);
 
   const panelBase = `rounded-2xl border-4 p-1 flex flex-col ${
     isDarkMode

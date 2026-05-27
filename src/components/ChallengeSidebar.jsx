@@ -1,7 +1,7 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { ChevronLeft, ChevronRight, RotateCcw, Loader2, Trophy, Clock, Hash } from "lucide-react";
+import { RotateCcw, Loader2, Trophy, Clock, Hash } from "lucide-react";
 import ConfirmModal from "./ConfirmModal";
 
 // ---------------------------------------------------------------------------
@@ -99,7 +99,6 @@ const ChallengeSidebar = ({
 }) => {
   const { t } = useTranslation();
 
-  const [collapsed,   setCollapsed]   = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
@@ -116,36 +115,6 @@ const ChallengeSidebar = ({
       setShowConfirm(false);
     }
   };
-
-  // ── Collapsed toggle button ──────────────────────────────────────────────
-  const toggleBtn = (
-    <button
-      onClick={() => setCollapsed((v) => !v)}
-      aria-label={collapsed ? t("challenges.sidebar.expand") : t("challenges.sidebar.collapse")}
-      className={`flex items-center justify-center w-7 h-7 rounded-lg border-2 transition-colors shrink-0 ${
-        isDarkMode
-          ? "border-slate-600 text-slate-400 hover:border-yellow-400 hover:text-yellow-400"
-          : "border-slate-300 text-slate-400 hover:border-slate-900 hover:text-slate-900"
-      }`}
-    >
-      {collapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-    </button>
-  );
-
-  // ── Collapsed state — thin vertical strip ────────────────────────────────
-  if (collapsed) {
-    return (
-      <aside
-        className={`hidden lg:flex flex-col items-center pt-6 gap-4 w-10 rounded-2xl border-4 transition-all ${
-          isDarkMode
-            ? "bg-slate-800 border-slate-700"
-            : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
-        }`}
-      >
-        {toggleBtn}
-      </aside>
-    );
-  }
 
   // ── Expanded state ────────────────────────────────────────────────────────
   const panelBase = `rounded-2xl border-4 p-5 ${
@@ -181,7 +150,6 @@ const ChallengeSidebar = ({
           }`}>
             {title}
           </span>
-          {toggleBtn}
         </div>
 
         {/* Progress section */}

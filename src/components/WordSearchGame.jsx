@@ -20,8 +20,8 @@ import Loader from "./Loader";
 // ---------------------------------------------------------------------------
 
 const GAME_ID    = "word_search";
-const GRID_SIZE  = 12;
-const WORD_COUNT = 15;
+const GRID_SIZE  = 10;
+const WORD_COUNT = 10;
 const MAX_LENGTH = GRID_SIZE;
 
 // ---------------------------------------------------------------------------
@@ -420,7 +420,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
       return next;
     });
-  }, [gameWon, foundCells, placements, user, learningDialect, fetchStats]);
+  }, [gameWon, foundCells, placements, user, fetchStats]);
 
   // ── Shared sidebar props ──────────────────────────────────────────────────
   const sidebarProps = {
