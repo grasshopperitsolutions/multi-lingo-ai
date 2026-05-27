@@ -21,7 +21,7 @@ import Loader from "./Loader";
 
 const GAME_ID    = "word_search";
 const GRID_SIZE  = 12;
-const WORD_COUNT = 6;
+const WORD_COUNT = 15;
 const MAX_LENGTH = GRID_SIZE;
 
 // ---------------------------------------------------------------------------

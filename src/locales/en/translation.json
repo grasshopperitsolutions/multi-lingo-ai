@@ -503,7 +503,8 @@
       "reset_title": "Reset Progress",
       "reset_message": "This will clear all your seen words, allowing you to see previously played words again.",
       "reset_warning": "⚠ This cannot be undone.",
-      "reset_confirm": "Yes, reset progress"
+      "reset_confirm": "Yes, reset progress",
+      "reset_seen_words_btn": "Reset Seen Words"
     },
     "word_search_panel": "Find these words",
     "clear_selection": "Clear selection",
