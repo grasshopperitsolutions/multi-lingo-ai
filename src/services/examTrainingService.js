@@ -70,8 +70,17 @@
 // Constants
 // ---------------------------------------------------------------------------
 
-const PROXY_URL    = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-const OPENAI_MODEL = 'gpt-4o-mini';
+const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
+
+/**
+ * Gemini 2.5 Flash — fast, cost-effective, strong JSON output.
+ *
+ * ⚠️  DEPRECATION NOTICE: gemini-2.5-flash is scheduled for deprecation on
+ *     June 17, 2026. Upgrade to gemini-3.5-flash before that date.
+ *     Cost comparison per 100 sessions: 2.5-flash ~$0.43 vs 3.5-flash ~$1.59.
+ *     See: https://ai.google.dev/gemini-api/docs/models
+ */
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 /** Word count bounds by CEFR level (pt-PT certification standards) */
 const WORD_COUNT_BOUNDS = {
@@ -103,8 +112,8 @@ async function callAskAI(token, prompt) {
     body: JSON.stringify({
       prompt,
       providerParams: {
-        provider:    'openai',
-        model:       OPENAI_MODEL,
+        provider:    'gemini',
+        model:       GEMINI_MODEL,
         temperature: 0.7,
         jsonMode:    true,
       },
