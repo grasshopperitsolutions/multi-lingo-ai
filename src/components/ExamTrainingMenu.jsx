@@ -22,7 +22,7 @@ const EXERCISES = [
     color: "bg-amber-400",
     titleKey: "exam.writing",
     descKey: "exam.writing_desc",
-    comingSoon: false,
+    comingSoon: true,
   },
   {
     id: "reading",
