@@ -1,117 +1,265 @@
 /**
  * WritingExercise.jsx
  *
- * Full 3-step writing exercise flow for the Exam Training feature.
+ * Full writing exercise flow for the Exam Training feature.
  *
- * Steps:
- *   1. Setup  — select CEFR level, click "Get Exercise"
- *   2. Writing — read prompt + instructions, use timer, write text
- *   3. Results — score out of 25, per-parameter breakdown (A–E), general feedback
+ * State machine:
+ *   'setup'   -> user selects CEFR level and requests an exercise
+ *   'writing' -> user reads the prompt, writes text, and submits for evaluation
+ *   'results' -> user sees score breakdown and feedback
  *
- * Changes in this version:
- *   - Replaced direct generateWritingPrompt() call with getExercise() so that
- *     exercises are fetched from the shared Firestore pool first, and only
- *     generated via AI when the pool is exhausted for this user.
- *   - uid is now read from AppContext (no prop needed).
+ * Props:
+ *   isDarkMode {bool}  - theme flag
+ *   onBack     {func}  - navigates back to ExamTrainingMenu
  */
 
 import { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, RefreshCw, Loader2 } from 'lucide-react';
+import { BarChart2, PenLine, RotateCcw, Wand2, AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
+import NeoDropdown from './NeoDropdown';
+import Loader from './Loader';
 import ExamTimer from './ExamTimer';
-import {
-  getExercise,
-  evaluateWriting,
-} from '../services/examTrainingService';
+import StatusBadge from './StatusBadge';
+import ReportButton from './ReportButton';
+import { generateWritingPrompt, evaluateWriting } from '../services/examTrainingService';
 
-// CEFR levels
-const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
-// Steps
-const STEP_SETUP   = 'setup';
-const STEP_WRITING = 'writing';
-const STEP_RESULTS = 'results';
+// TODO: When multi-language support is added, replace this with the user's
+//       selected learning language from context.
+// const LEARNING_LANGUAGE = 'pt-PT';
 
-// ── Sub-components ────────────────────────────────────────────────────────
+const CEFR_LEVELS = [
+  { value: 'A1', label: 'A1 — Iniciante' },
+  { value: 'A2', label: 'A2 — Elementar' },
+  { value: 'B1', label: 'B1 — Intermédio' },
+  { value: 'B2', label: 'B2 — Independente' },
+  { value: 'C1', label: 'C1 — Avançado' },
+  { value: 'C2', label: 'C2 — Proficiente' },
+];
 
-function ParameterRow({ param, isDarkMode }) {
-  const pct = Math.round((param.score / param.maxScore) * 100);
-  const color =
-    pct >= 80 ? 'var(--color-success)'
-    : pct >= 50 ? 'var(--color-gold)'
-    : 'var(--color-error)';
-
-  return (
-    <div style={{ marginBottom: 'var(--space-4)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-1)' }}>
-        <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: isDarkMode ? 'var(--color-text)' : 'var(--color-text)' }}>
-          {param.id}. {param.name}
-        </span>
-        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
-          {param.score}/{param.maxScore}
-        </span>
-      </div>
-      <div style={{ height: 6, borderRadius: 'var(--radius-full)', background: 'var(--color-surface-offset)', overflow: 'hidden', marginBottom: 'var(--space-1)' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 'var(--radius-full)', transition: 'width 0.5s ease' }} />
-      </div>
-      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', margin: 0 }}>{param.feedback}</p>
-    </div>
-  );
+/** Score colour coding */
+function getScoreColor(score, max, isDarkMode) {
+  const pct = score / max;
+  if (pct >= 0.8) return isDarkMode ? 'text-emerald-400' : 'text-emerald-600';
+  if (pct >= 0.5) return isDarkMode ? 'text-yellow-400' : 'text-yellow-600';
+  return isDarkMode ? 'text-rose-400' : 'text-rose-600';
 }
 
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+/** Section heading */
+const SectionHeading = ({ children, isDarkMode }) => (
+  <h2 className={`text-xs font-black uppercase tracking-widest mb-3 ${
+    isDarkMode ? 'text-slate-400' : 'text-slate-500'
+  }`}>
+    {children}
+  </h2>
+);
+SectionHeading.propTypes = { children: PropTypes.node.isRequired, isDarkMode: PropTypes.bool.isRequired };
+
+/** Card wrapper */
+const Card = ({ children, isDarkMode, className = '' }) => (
+  <div className={`rounded-2xl border-4 p-4 sm:p-5 ${
+    isDarkMode
+      ? 'bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]'
+      : 'bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]'
+  } ${className}`}>
+    {children}
+  </div>
+);
+Card.propTypes = { children: PropTypes.node.isRequired, isDarkMode: PropTypes.bool.isRequired, className: PropTypes.string };
+Card.defaultProps = { className: '' };
+
+/** Primary action button */
+const PrimaryButton = ({ children, onClick, disabled, isDarkMode, loading = false, className = '' }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled || loading}
+    className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-4 font-black uppercase
+      tracking-widest text-sm transition-all active:scale-95 select-none
+      ${ disabled || loading
+        ? 'opacity-50 cursor-not-allowed'
+        : 'hover:-translate-y-0.5'
+      }
+      ${ isDarkMode
+        ? 'bg-teal-500 border-teal-400 text-slate-900 shadow-[4px_4px_0px_0px_#0f766e] hover:bg-teal-400'
+        : 'bg-teal-600 border-slate-900 text-white shadow-[4px_4px_0px_0px_#0f172a] hover:bg-teal-700'
+      } ${className}`}
+  >
+    {children}
+  </button>
+);
+PrimaryButton.propTypes = {
+  children: PropTypes.node.isRequired,
+  onClick:  PropTypes.func.isRequired,
+  disabled: PropTypes.bool,
+  isDarkMode: PropTypes.bool.isRequired,
+  loading:  PropTypes.bool,
+  className: PropTypes.string,
+};
+PrimaryButton.defaultProps = { disabled: false, loading: false, className: '' };
+
+/** Ghost / secondary button */
+const GhostButton = ({ children, onClick, disabled, isDarkMode, className = '' }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl border-4 font-black uppercase
+      tracking-widest text-sm transition-all active:scale-95 select-none
+      ${ disabled ? 'opacity-50 cursor-not-allowed' : 'hover:-translate-y-0.5' }
+      ${ isDarkMode
+        ? 'bg-transparent border-slate-600 text-slate-300 hover:bg-slate-700'
+        : 'bg-transparent border-slate-900 text-slate-700 hover:bg-slate-100'
+      } ${className}`}
+  >
+    {children}
+  </button>
+);
+GhostButton.propTypes = {
+  children: PropTypes.node.isRequired,
+  onClick:  PropTypes.func.isRequired,
+  disabled: PropTypes.bool,
+  isDarkMode: PropTypes.bool.isRequired,
+  className: PropTypes.string,
+};
+GhostButton.defaultProps = { disabled: false, className: '' };
+
+// ---------------------------------------------------------------------------
+// Error banner (declared outside of component to avoid recreation on render)
+// ---------------------------------------------------------------------------
+const ErrorBanner = ({ error, isDarkMode }) => error ? (
+  <div className={`flex items-start gap-3 p-4 rounded-xl border-2 ${
+    isDarkMode
+      ? 'bg-rose-900/30 border-rose-700 text-rose-300'
+      : 'bg-rose-50 border-rose-300 text-rose-700'
+  }`}>
+    <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+    <p className="text-sm font-semibold">{error}</p>
+  </div>
+) : null;
+ErrorBanner.propTypes = {
+  error: PropTypes.string,
+  isDarkMode: PropTypes.bool.isRequired,
+};
+ErrorBanner.defaultProps = { error: null };
+
+// ---------------------------------------------------------------------------
+// Parameter row in results
+// ---------------------------------------------------------------------------
+const ParameterRow = ({ param, isDarkMode }) => {
+  const [expanded, setExpanded] = useState(false);
+  const scoreColor = getScoreColor(param.score, param.maxScore, isDarkMode);
+
+  return (
+    <button
+      onClick={() => setExpanded((p) => !p)}
+      className={`w-full text-left rounded-xl border-2 px-4 py-3 transition-all ${
+        isDarkMode
+          ? 'border-slate-700 hover:bg-slate-700/50'
+          : 'border-slate-200 hover:bg-slate-50'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        {/* Parameter label */}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`shrink-0 w-7 h-7 rounded-lg border-2 flex items-center justify-center
+            font-black text-xs ${
+              isDarkMode ? 'border-slate-600 bg-slate-700 text-white' : 'border-slate-300 bg-slate-100 text-slate-900'
+            }`}
+          >
+            {param.id}
+          </span>
+          <span className={`font-bold text-sm truncate ${
+            isDarkMode ? 'text-slate-200' : 'text-slate-800'
+          }`}>
+            {param.name}
+          </span>
+        </div>
+
+        {/* Score badge + chevron */}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`font-black text-sm tabular-nums ${scoreColor}`}>
+            {param.score}<span className={isDarkMode ? 'text-slate-500' : 'text-slate-400'}>/{param.maxScore}</span>
+          </span>
+          <ChevronRight
+            size={14}
+            className={`transition-transform ${
+              expanded ? 'rotate-90' : ''
+            } ${ isDarkMode ? 'text-slate-500' : 'text-slate-400' }`}
+          />
+        </div>
+      </div>
+
+      {/* Expanded feedback */}
+      {expanded && (
+        <p className={`mt-2 text-sm leading-relaxed ${
+          isDarkMode ? 'text-slate-300' : 'text-slate-600'
+        }`}>
+          {param.feedback}
+        </p>
+      )}
+    </button>
+  );
+};
 ParameterRow.propTypes = {
-  param:      PropTypes.object.isRequired,
+  param: PropTypes.shape({
+    id:       PropTypes.string.isRequired,
+    name:     PropTypes.string.isRequired,
+    score:    PropTypes.number.isRequired,
+    maxScore: PropTypes.number.isRequired,
+    feedback: PropTypes.string.isRequired,
+  }).isRequired,
   isDarkMode: PropTypes.bool.isRequired,
 };
 
-// ── Main component ─────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 
-export default function WritingExercise({ onBack }) {
-  const { t }                       = useTranslation();
-  const { user, isDarkMode }        = useAppContext();
+const WritingExercise = ({ isDarkMode }) => {
+  const { t }      = useTranslation();
+  const { user }   = useAppContext();
 
-  const [step, setStep]             = useState(STEP_SETUP);
-  const [selectedLevel, setSelectedLevel] = useState('B1');
-  const [exercise, setExercise]     = useState(null);   // ExerciseDoc from pool or AI
-  const [userText, setUserText]     = useState('');
-  const [results, setResults]       = useState(null);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState(null);
+  // ── State ───────────────────────────────────────────────────────────────
+  const [step, setStep]           = useState('setup'); // 'setup' | 'writing' | 'results'
+  const [level, setLevel]         = useState('A1');
+  const [exercise, setExercise]   = useState(null);    // { prompt, instructions[], minWords, maxWords }
+  const [userText, setUserText]   = useState('');
+  const [evaluation, setEval]     = useState(null);    // EvaluateWritingResult
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState(null);
+  const timerRef                  = useRef(null);
 
-  const timerRef = useRef(null);
+  // Live word count
+  const wordCount = userText.trim() ? userText.trim().split(/\s+/).filter(Boolean).length : 0;
+  const minWords  = exercise?.minWords ?? 60;
+  const maxWords  = exercise?.maxWords ?? 100;
 
-  // ── Word count helpers ──
-  const wordCount  = userText.trim() ? userText.trim().split(/\s+/).filter(Boolean).length : 0;
-  const minWords   = exercise?.minWords ?? 0;
-  const maxWords   = exercise?.maxWords ?? 0;
-  const inRange    = wordCount >= minWords && wordCount <= maxWords;
-  const wcColor    = wordCount === 0
-    ? 'var(--color-text-faint)'
-    : inRange
-    ? 'var(--color-success)'
-    : 'var(--color-error)';
+  const wordCountColor = () => {
+    if (wordCount === 0)                           return isDarkMode ? 'text-slate-500' : 'text-slate-400';
+    if (wordCount < minWords || wordCount > maxWords) return isDarkMode ? 'text-rose-400' : 'text-rose-600';
+    return isDarkMode ? 'text-emerald-400' : 'text-emerald-600';
+  };
 
-  // ── Handlers ──
-
+  // ── Handlers ─────────────────────────────────────────────────────────────
   const handleGetExercise = async () => {
     setError(null);
     setLoading(true);
     try {
-      const doc = await getExercise({
-        token:        user.token,
-        uid:          user.uid,
-        level:        selectedLevel,
-        exerciseType: 'writing',
-        lang:         user.learningDialect ?? 'pt-PT',
-      });
-      setExercise(doc);
+      const result = await generateWritingPrompt({ token: user.token, level });
+      setExercise(result);
       setUserText('');
-      setResults(null);
-      setStep(STEP_WRITING);
+      timerRef.current?.reset();
+      setStep('writing');
     } catch (err) {
-      setError(err.message);
+      setError(err.message ?? t('common.error', 'Something went wrong. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -121,323 +269,337 @@ export default function WritingExercise({ onBack }) {
     if (!userText.trim()) return;
     setError(null);
     setLoading(true);
+    timerRef.current?.stop();
     try {
-      const res = await evaluateWriting({
-        token:         user.token,
-        level:         selectedLevel,
+      const result = await evaluateWriting({
+        token:          user.token,
+        level,
         exercisePrompt: exercise.prompt,
         userText,
       });
-      setResults(res);
-      setStep(STEP_RESULTS);
+      setEval(result);
+      setStep('results');
     } catch (err) {
-      setError(err.message);
+      setError(err.message ?? t('common.error', 'Something went wrong. Please try again.'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleTryAgain = () => {
-    setStep(STEP_SETUP);
+    setStep('setup');
     setExercise(null);
     setUserText('');
-    setResults(null);
+    setEval(null);
     setError(null);
-    if (timerRef.current) timerRef.current.reset();
+    timerRef.current?.reset();
   };
 
-  // ── Shared card style ──
-  const card = {
-    background:   'var(--color-surface)',
-    borderRadius: 'var(--radius-lg)',
-    border:       '1px solid var(--color-border)',
-    padding:      'var(--space-6)',
-    boxShadow:    'var(--shadow-sm)',
-  };
-
-  // ════════════════════════════════════════
-  // STEP: Setup
-  // ════════════════════════════════════════
-  if (step === STEP_SETUP) {
+  // ---------------------------------------------------------------------------
+  // STEP: setup
+  // ---------------------------------------------------------------------------
+  if (step === 'setup') {
     return (
-      <div>
-        <button
-          onClick={onBack}
-          style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-6)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-        >
-          <ChevronLeft size={16} />
-          {t('exam.title')}
-        </button>
-
-        <div style={card}>
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>
-            {t('exam.writing')}
-          </h2>
-          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginBottom: 'var(--space-6)' }}>
-            {t('exam.language_note')}
-          </p>
-
-          <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 'var(--space-2)' }}>
-            {t('exam.select_level')}
-          </label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-6)' }}>
-            {LEVELS.map((lvl) => (
-              <button
-                key={lvl}
-                onClick={() => setSelectedLevel(lvl)}
-                style={{
-                  padding:      'var(--space-2) var(--space-4)',
-                  borderRadius: 'var(--radius-md)',
-                  border:       `1px solid ${selectedLevel === lvl ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                  background:   selectedLevel === lvl ? 'var(--color-primary)' : 'transparent',
-                  color:        selectedLevel === lvl ? '#fff' : 'var(--color-text)',
-                  fontWeight:   selectedLevel === lvl ? 700 : 400,
-                  fontSize:     'var(--text-sm)',
-                  cursor:       'pointer',
-                  transition:   'all var(--transition-interactive)',
-                }}
-              >
-                {lvl}
-              </button>
-            ))}
+      <div className="flex flex-col gap-5">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl border-4 border-slate-900 bg-amber-400 flex items-center justify-center shrink-0">
+              <PenLine size={18} className="text-slate-900" />
+            </div>
+            <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
+              isDarkMode ? 'text-white' : 'text-slate-900'
+            }`}>
+              {t('exam.writing', 'Writing')}
+            </h2>
           </div>
-
-          {error && (
-            <p style={{ color: 'var(--color-error)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-4)' }}>{error}</p>
-          )}
-
-          <button
-            onClick={handleGetExercise}
-            disabled={loading}
-            style={{
-              display:      'flex',
-              alignItems:   'center',
-              gap:          'var(--space-2)',
-              padding:      'var(--space-3) var(--space-6)',
-              borderRadius: 'var(--radius-md)',
-              background:   'var(--color-primary)',
-              color:        '#fff',
-              fontWeight:   600,
-              fontSize:     'var(--text-sm)',
-              border:       'none',
-              cursor:       loading ? 'not-allowed' : 'pointer',
-              opacity:      loading ? 0.7 : 1,
-              transition:   'all var(--transition-interactive)',
-            }}
-          >
-            {loading ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : null}
-            {loading ? t('exam.generating') : t('exam.get_exercise')}
-          </button>
+          <ReportButton isDarkMode={isDarkMode} context="WritingExercise" />
         </div>
+
+        <ErrorBanner error={error} isDarkMode={isDarkMode} />
+
+        {/* Level selector */}
+        <Card isDarkMode={isDarkMode}>
+          <SectionHeading isDarkMode={isDarkMode}>
+            {t('exam.select_level', 'Select your level')}
+          </SectionHeading>
+          <NeoDropdown
+            options={CEFR_LEVELS}
+            value={level}
+            onChange={setLevel}
+            isDarkMode={isDarkMode}
+            className="w-full sm:w-64"
+          />
+        </Card>
+
+        {/* Language note */}
+        <p className={`text-xs font-semibold ${
+          isDarkMode ? 'text-slate-500' : 'text-slate-400'
+        }`}>
+          {/* TODO: update when multi-language support is added */}
+          {t('exam.language_note', 'Exercise is in European Portuguese (pt-PT).')}
+        </p>
+
+        {/* Get exercise button */}
+        {loading
+          ? <Loader isDarkMode={isDarkMode} message={t('exam.generating', 'Generating exercise...')} />
+          : (
+            <PrimaryButton onClick={handleGetExercise} isDarkMode={isDarkMode}>
+              {t('exam.get_exercise', 'Get Exercise')}
+              <ChevronRight size={16} />
+            </PrimaryButton>
+          )
+        }
       </div>
     );
   }
 
-  // ════════════════════════════════════════
-  // STEP: Writing
-  // ════════════════════════════════════════
-  if (step === STEP_WRITING) {
+  // ---------------------------------------------------------------------------
+  // STEP: writing
+  // ---------------------------------------------------------------------------
+  if (step === 'writing') {
     return (
-      <div>
-        <button
-          onClick={() => setStep(STEP_SETUP)}
-          style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-6)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-        >
-          <ChevronLeft size={16} />
-          {t('exam.select_level')}
-        </button>
+      <div className="flex flex-col gap-5">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-black uppercase tracking-widest px-2 py-1 rounded-lg border-2 ${
+              isDarkMode ? 'border-teal-700 text-teal-400 bg-teal-900/30' : 'border-teal-300 text-teal-700 bg-teal-50'
+            }`}>{level}</span>
+            <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
+              isDarkMode ? 'text-white' : 'text-slate-900'
+            }`}>
+              {t('exam.writing', 'Writing')}
+            </h2>
+          </div>
+          <ReportButton isDarkMode={isDarkMode} context="WritingExercise" />
+        </div>
 
-        <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-          {/* Task card */}
-          <div style={card}>
-            <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 700, marginBottom: 'var(--space-3)' }}>
-              {t('exam.task')} <span style={{ color: 'var(--color-primary)', marginLeft: 'var(--space-2)' }}>{selectedLevel}</span>
-            </h3>
-            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text)', marginBottom: 'var(--space-4)', lineHeight: 1.7 }}>
-              {exercise.prompt}
-            </p>
-            <ul style={{ paddingLeft: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-              {exercise.instructions.map((ins, i) => (
-                <li key={i} style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>{ins}</li>
+        <ErrorBanner error={error} isDarkMode={isDarkMode} />
+
+        {/* Exercise prompt card */}
+        <Card isDarkMode={isDarkMode}>
+          <SectionHeading isDarkMode={isDarkMode}>
+            {t('exam.task', 'Your Task')}
+          </SectionHeading>
+          <p className={`text-sm sm:text-base font-semibold leading-relaxed mb-3 ${
+            isDarkMode ? 'text-slate-200' : 'text-slate-800'
+          }`}>
+            {exercise.prompt}
+          </p>
+          {exercise.instructions?.length > 0 && (
+            <ul className="flex flex-col gap-1.5 mt-3">
+              {exercise.instructions.map((instr, i) => (
+                <li key={i} className={`flex items-start gap-2 text-sm ${
+                  isDarkMode ? 'text-slate-300' : 'text-slate-600'
+                }`}>
+                  <span className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${
+                    isDarkMode ? 'border-teal-600 text-teal-400' : 'border-teal-500 text-teal-600'
+                  }`}>
+                    {i + 1}
+                  </span>
+                  {instr}
+                </li>
               ))}
             </ul>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginTop: 'var(--space-3)' }}>
-              {t('exam.word_count_target', { min: exercise.minWords, max: exercise.maxWords })}
-            </p>
-          </div>
-
-          {/* Timer */}
-          <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{t('exam.timer')}</span>
-            <ExamTimer ref={timerRef} />
-          </div>
-
-          {/* Writing area */}
-          <div style={card}>
-            <label style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 'var(--space-2)' }}>
-              {t('exam.your_text')}
-            </label>
-            <textarea
-              value={userText}
-              onChange={(e) => setUserText(e.target.value)}
-              rows={10}
-              placeholder={t('exam.textarea_placeholder')}
-              style={{
-                width:        '100%',
-                borderRadius: 'var(--radius-md)',
-                border:       '1px solid var(--color-border)',
-                background:   'var(--color-surface-2)',
-                color:        'var(--color-text)',
-                padding:      'var(--space-3)',
-                fontSize:     'var(--text-base)',
-                lineHeight:   1.7,
-                resize:       'vertical',
-                outline:      'none',
-                fontFamily:   'inherit',
-              }}
-            />
-            <p style={{ fontSize: 'var(--text-xs)', color: wcColor, marginTop: 'var(--space-1)', textAlign: 'right' }}>
-              {wordCount} {t('exam.words')}
-              {wordCount > 0 && !inRange && ` · ${
-                wordCount < minWords ? t('exam.too_short') : t('exam.too_long')
-              }`}
-            </p>
-          </div>
-
-          {error && (
-            <p style={{ color: 'var(--color-error)', fontSize: 'var(--text-sm)' }}>{error}</p>
           )}
+          <p className={`mt-3 text-xs font-semibold ${
+            isDarkMode ? 'text-slate-500' : 'text-slate-400'
+          }`}>
+            {t('exam.word_count_target', 'Target: {{min}}–{{max}} words', { min: minWords, max: maxWords })}
+          </p>
+        </Card>
 
-          <button
-            onClick={handleEvaluate}
-            disabled={loading || wordCount === 0}
-            style={{
-              padding:      'var(--space-3) var(--space-6)',
-              borderRadius: 'var(--radius-md)',
-              background:   'var(--color-primary)',
-              color:        '#fff',
-              fontWeight:   600,
-              fontSize:     'var(--text-sm)',
-              border:       'none',
-              cursor:       (loading || wordCount === 0) ? 'not-allowed' : 'pointer',
-              opacity:      (loading || wordCount === 0) ? 0.7 : 1,
-              display:      'flex',
-              alignItems:   'center',
-              gap:          'var(--space-2)',
-              transition:   'all var(--transition-interactive)',
-            }}
-          >
-            {loading ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : null}
-            {loading ? t('exam.evaluating') : t('exam.evaluate')}
-          </button>
+        {/* Timer */}
+        <div>
+          <SectionHeading isDarkMode={isDarkMode}>
+            {t('exam.timer', 'Timer')}
+          </SectionHeading>
+          <ExamTimer ref={timerRef} isDarkMode={isDarkMode} />
         </div>
+
+        {/* Textarea + word count */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <SectionHeading isDarkMode={isDarkMode}>
+              {t('exam.your_text', 'Your Text')}
+            </SectionHeading>
+            <span className={`text-xs font-black tabular-nums ${wordCountColor()}`}>
+              {wordCount} {t('exam.words', 'words')}
+              {wordCount > 0 && (wordCount < minWords || wordCount > maxWords) && (
+                <span className="ml-1 opacity-75">
+                  ({wordCount < minWords
+                    ? t('exam.too_short', 'too short')
+                    : t('exam.too_long', 'too long')})
+                </span>
+              )}
+            </span>
+          </div>
+          <textarea
+            value={userText}
+            onChange={(e) => setUserText(e.target.value)}
+            placeholder={t('exam.textarea_placeholder', 'Escreve o teu texto aqui...')}
+            rows={10}
+            className={`w-full rounded-xl border-4 p-4 font-medium text-sm leading-relaxed resize-y
+              focus:outline-none focus:ring-0 transition-colors
+              ${ isDarkMode
+                ? 'bg-slate-800 border-slate-600 text-slate-100 placeholder-slate-500 focus:border-teal-500'
+                : 'bg-white border-slate-900 text-slate-900 placeholder-slate-400 focus:border-teal-600'
+              }`}
+            aria-label={t('exam.your_text', 'Your Text')}
+          />
+        </div>
+
+        {/* Actions */}
+        {loading
+          ? <Loader isDarkMode={isDarkMode} message={t('exam.evaluating', 'Evaluating your text...')} />
+          : (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <PrimaryButton
+                onClick={handleEvaluate}
+                isDarkMode={isDarkMode}
+                disabled={!userText.trim()}
+                className="flex-1"
+              >
+                <BarChart2 size={16} />
+                {t('exam.evaluate', 'Evaluate My Writing')}
+              </PrimaryButton>
+              <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
+                <RotateCcw size={14} />
+                {t('exam.try_again', 'Try Again')}
+              </GhostButton>
+            </div>
+          )
+        }
       </div>
     );
   }
 
-  // ════════════════════════════════════════
-  // STEP: Results
-  // ════════════════════════════════════════
-  const scorePct  = results ? Math.round((results.totalScore / results.maxScore) * 100) : 0;
-  const scoreColor =
-    scorePct >= 80 ? 'var(--color-success)'
-    : scorePct >= 50 ? 'var(--color-gold)'
-    : 'var(--color-error)';
+  // ---------------------------------------------------------------------------
+  // STEP: results
+  // ---------------------------------------------------------------------------
+  if (step === 'results' && evaluation) {
+    const scoreColor  = getScoreColor(evaluation.totalScore, evaluation.maxScore, isDarkMode);
+    const scorePct    = Math.round((evaluation.totalScore / evaluation.maxScore) * 100);
 
-  return (
-    <div>
-      <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
-        {/* Score card */}
-        <div style={{ ...card, textAlign: 'center' }}>
-          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', marginBottom: 'var(--space-2)' }}>
-            {t('exam.results')} · {selectedLevel}
-          </p>
-          <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: scoreColor, lineHeight: 1 }}>
-            {results.totalScore}<span style={{ fontSize: 'var(--text-base)', color: 'var(--color-text-muted)', fontWeight: 400 }}>/{results.maxScore}</span>
+    return (
+      <div className="flex flex-col gap-5">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-black uppercase tracking-widest px-2 py-1 rounded-lg border-2 ${
+              isDarkMode ? 'border-teal-700 text-teal-400 bg-teal-900/30' : 'border-teal-300 text-teal-700 bg-teal-50'
+            }`}>{level}</span>
+            <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
+              isDarkMode ? 'text-white' : 'text-slate-900'
+            }`}>
+              {t('exam.results', 'Results')}
+            </h2>
           </div>
-          {results.wordCountPenalty > 0 && (
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-error)', marginTop: 'var(--space-1)' }}>
-              {t('exam.penalty', { n: results.wordCountPenalty })}
-            </p>
-          )}
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginTop: 'var(--space-1)' }}>
-            {t('exam.word_count')}: {results.wordCount}
-          </p>
+          <ReportButton isDarkMode={isDarkMode} context="WritingExercise" />
         </div>
 
+        {/* Score card */}
+        <Card isDarkMode={isDarkMode}>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className={`text-xs font-black uppercase tracking-widest mb-1 ${
+                isDarkMode ? 'text-slate-400' : 'text-slate-500'
+              }`}>
+                {t('exam.score', 'Score')}
+              </p>
+              <p className={`text-5xl font-black tabular-nums leading-none ${scoreColor}`}>
+                {evaluation.totalScore}
+                <span className={`text-2xl ${ isDarkMode ? 'text-slate-500' : 'text-slate-400' }`}>
+                  /{evaluation.maxScore}
+                </span>
+              </p>
+              <p className={`text-xs font-semibold mt-1 ${
+                isDarkMode ? 'text-slate-400' : 'text-slate-500'
+              }`}>
+                {scorePct}%
+                {evaluation.wordCountPenalty > 0 && (
+                  <span className={`ml-2 ${ isDarkMode ? 'text-rose-400' : 'text-rose-600' }`}>
+                    ({t('exam.penalty', '-{{n}} word count penalty', { n: evaluation.wordCountPenalty })})
+                  </span>
+                )}
+              </p>
+            </div>
+            <CheckCircle2
+              size={48}
+              className={getScoreColor(evaluation.totalScore, evaluation.maxScore, isDarkMode)}
+            />
+          </div>
+
+          {/* Word count */}
+          <div className={`mt-3 pt-3 border-t-2 ${
+            isDarkMode ? 'border-slate-700' : 'border-slate-200'
+          }`}>
+            <p className={`text-xs font-semibold ${
+              isDarkMode ? 'text-slate-400' : 'text-slate-500'
+            }`}>
+              {t('exam.word_count', 'Word count')}: <span className="font-black">{evaluation.wordCount}</span>
+              {' '}({t('exam.word_count_target', 'Target: {{min}}–{{max}} words', { min: minWords, max: maxWords })})
+            </p>
+          </div>
+        </Card>
+
         {/* Parameter breakdown */}
-        <div style={card}>
-          <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: 'var(--space-4)' }}>
-            {t('exam.breakdown')}
-          </h3>
-          {results.parameters.map((p) => (
-            <ParameterRow key={p.id} param={p} isDarkMode={isDarkMode} />
-          ))}
+        <div>
+          <SectionHeading isDarkMode={isDarkMode}>
+            {t('exam.breakdown', 'Score Breakdown')}
+          </SectionHeading>
+          <div className="flex flex-col gap-2">
+            {evaluation.parameters.map((param) => (
+              <ParameterRow key={param.id} param={param} isDarkMode={isDarkMode} />
+            ))}
+          </div>
         </div>
 
         {/* General feedback */}
-        {results.generalFeedback && (
-          <div style={card}>
-            <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: 'var(--space-3)' }}>
-              {t('exam.general_feedback')}
-            </h3>
-            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', lineHeight: 1.7 }}>
-              {results.generalFeedback}
-            </p>
-          </div>
-        )}
+        <Card isDarkMode={isDarkMode}>
+          <SectionHeading isDarkMode={isDarkMode}>
+            {t('exam.general_feedback', 'General Feedback')}
+          </SectionHeading>
+          <p className={`text-sm leading-relaxed ${
+            isDarkMode ? 'text-slate-300' : 'text-slate-600'
+          }`}>
+            {evaluation.generalFeedback}
+          </p>
+        </Card>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-          <button
-            onClick={handleTryAgain}
-            style={{
-              display:      'flex',
-              alignItems:   'center',
-              gap:          'var(--space-2)',
-              padding:      'var(--space-3) var(--space-6)',
-              borderRadius: 'var(--radius-md)',
-              background:   'var(--color-primary)',
-              color:        '#fff',
-              fontWeight:   600,
-              fontSize:     'var(--text-sm)',
-              border:       'none',
-              cursor:       'pointer',
-              transition:   'all var(--transition-interactive)',
-            }}
-          >
-            <RefreshCw size={16} />
-            {t('exam.try_again')}
-          </button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode} className="flex-1">
+            <RotateCcw size={14} />
+            {t('exam.try_again', 'Try Again')}
+          </GhostButton>
 
-          {/* Coming soon */}
-          <button
-            disabled
-            style={{
-              display:      'flex',
-              alignItems:   'center',
-              gap:          'var(--space-2)',
-              padding:      'var(--space-3) var(--space-6)',
-              borderRadius: 'var(--radius-md)',
-              background:   'var(--color-surface-offset)',
-              color:        'var(--color-text-faint)',
-              fontWeight:   600,
-              fontSize:     'var(--text-sm)',
-              border:       '1px solid var(--color-border)',
-              cursor:       'not-allowed',
-            }}
-          >
-            {t('exam.improve')}
-            <span style={{ fontSize: 'var(--text-xs)', background: 'var(--color-surface-dynamic)', borderRadius: 'var(--radius-full)', padding: '2px 8px', color: 'var(--color-text-muted)' }}>
-              {t('challenges.coming_soon')}
-            </span>
-          </button>
+          {/* Improve My Text — Coming Soon */}
+          <div className="relative flex-1">
+            <GhostButton
+              onClick={() => {}}
+              isDarkMode={isDarkMode}
+              disabled
+              className="w-full"
+            >
+              <Wand2 size={14} />
+              {t('exam.improve', 'Improve My Text')}
+            </GhostButton>
+            <div className="absolute -top-2 -right-2">
+              <StatusBadge label={t('challenges.coming_soon', 'Coming Soon')} />
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
+
+  return null;
+};
 
 WritingExercise.propTypes = {
-  onBack: PropTypes.func.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
 };
+
+export default WritingExercise;
