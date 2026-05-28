@@ -436,7 +436,20 @@
     "history_culture": "Histoire et Culture",
     "history_culture_desc": "Explore l'histoire, les coutumes et la culture de la langue que tu apprends.",
     "challenges": "Défis",
-    "challenges_desc": "Teste tes compétences avec des mini-jeux, des quiz et des défis linguistiques quotidiens."
+    "challenges_desc": "Teste tes compétences avec des mini-jeux, des quiz et des défis linguistiques quotidiens.",
+    "exam_training": "Préparation aux Examens",
+    "exam_training_desc": "Prépare-toi pour les examens officiels de certification des langues."
+  },
+  "exam": {
+    "title": "Préparation aux Examens",
+    "listening": "Compréhension Orale",
+    "listening_desc": "Entraîne ton oreille avec des exercices de compréhension orale",
+    "writing": "Écriture",
+    "writing_desc": "Pratique l'expression écrite à ton niveau",
+    "reading": "Compréhension Écrite",
+    "reading_desc": "Comprends et analyse des textes écrits",
+    "full_exam": "Examen Complet",
+    "full_exam_desc": "Simule une session complète d'examen de certification"
   },
   "dictionary": {
     "lang_tooltip": "Saisie en {{lang}}",

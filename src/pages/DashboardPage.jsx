@@ -6,6 +6,7 @@ import FeatureCard from "../components/FeatureCard";
 import Loader from "../components/Loader";
 import Avatar from "../components/Avatar";
 import ChallengesMenu from "../components/ChallengesMenu";
+import ExamTrainingMenu from "../components/ExamTrainingMenu";
 import TranslatorPanel from "../components/TranslatorPanel";
 import DictionaryPanel from "../components/DictionaryPanel";
 import TooltipButton from "../components/TooltipButton";
@@ -19,6 +20,7 @@ import {
   BookOpen,
   Landmark,
   Gamepad2,
+  GraduationCap,
   Settings,
   LogOut,
   Flame,
@@ -129,6 +131,13 @@ const DashboardPage = () => {
       color: "text-yellow-500",
     },
     {
+      id: "exam_training",
+      icon: GraduationCap,
+      title: t("dashboard.exam_training"),
+      description: t("dashboard.exam_training_desc"),
+      color: "text-teal-500",
+    },
+    {
       id: "translator",
       icon: Languages,
       title: t("dashboard.translator"),
@@ -192,10 +201,11 @@ const DashboardPage = () => {
     },
   ];
 
-  const isTranslator   = selectedFeature?.id === 'translator';
-  const isChallenges   = selectedFeature?.id === 'challenges';
-  const isDictionary   = selectedFeature?.id === 'dictionary';
-  const isOtherFeature = selectedFeature && !isTranslator && !isChallenges && !isDictionary;
+  const isTranslator    = selectedFeature?.id === 'translator';
+  const isChallenges    = selectedFeature?.id === 'challenges';
+  const isDictionary    = selectedFeature?.id === 'dictionary';
+  const isExamTraining  = selectedFeature?.id === 'exam_training';
+  const isOtherFeature  = selectedFeature && !isTranslator && !isChallenges && !isDictionary && !isExamTraining;
 
   return (
     <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-10 space-y-10">
@@ -278,6 +288,14 @@ const DashboardPage = () => {
           isDarkMode={isDarkMode}
           onBack={handleBackToDashboard}
           initialQuery={dictionaryPreFill}
+        />
+      )}
+
+      {/* ── Exam Training ── */}
+      {isExamTraining && (
+        <ExamTrainingMenu
+          isDarkMode={isDarkMode}
+          onBack={handleBackToDashboard}
         />
       )}
 
