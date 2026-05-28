@@ -436,7 +436,20 @@
     "history_culture": "History & Culture",
     "history_culture_desc": "Explore the history, customs, and culture behind the language you're learning.",
     "challenges": "Challenges",
-    "challenges_desc": "Test your skills with mini-games, quizzes, and daily language challenges."
+    "challenges_desc": "Test your skills with mini-games, quizzes, and daily language challenges.",
+    "exam_training": "Exam Training",
+    "exam_training_desc": "Prepare for official language certification exams."
+  },
+  "exam": {
+    "title": "Exam Training",
+    "listening": "Listening",
+    "listening_desc": "Train your ear with audio comprehension exercises",
+    "writing": "Writing",
+    "writing_desc": "Practice written expression at your level",
+    "reading": "Reading Comprehension",
+    "reading_desc": "Understand and analyze written texts",
+    "full_exam": "Full Exam",
+    "full_exam_desc": "Simulate a complete certification exam session"
   },
   "dictionary": {
     "lang_tooltip": "Typing in {{lang}}",

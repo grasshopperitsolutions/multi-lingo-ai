@@ -436,7 +436,20 @@
     "history_culture": "História e Cultura",
     "history_culture_desc": "Explora a história, costumes e cultura da língua que estás a aprender.",
     "challenges": "Desafios",
-    "challenges_desc": "Testa as tuas competências com mini-jogos, questionários e desafios diários."
+    "challenges_desc": "Testa as tuas competências com mini-jogos, questionários e desafios diários.",
+    "exam_training": "Preparação para Exames",
+    "exam_training_desc": "Prepara-te para exames oficiais de certificação de idiomas."
+  },
+  "exam": {
+    "title": "Preparação para Exames",
+    "listening": "Compreensão Auditiva",
+    "listening_desc": "Treina o teu ouvido com exercícios de compreensão auditiva",
+    "writing": "Escrita",
+    "writing_desc": "Pratica a expressão escrita no teu nível",
+    "reading": "Compreensão Leitora",
+    "reading_desc": "Compreende e analisa textos escritos",
+    "full_exam": "Exame Completo",
+    "full_exam_desc": "Simula uma sessão completa de exame de certificação"
   },
   "dictionary": {
     "lang_tooltip": "A escrever em {{lang}}",
