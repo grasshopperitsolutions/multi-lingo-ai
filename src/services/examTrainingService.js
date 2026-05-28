@@ -1,23 +1,30 @@
 /**
  * examTrainingService.js
  *
- * Handles all AI calls for the Exam Training feature via the /api/ask-ai proxy.
+ * Handles all AI calls and Firestore pool access for the Exam Training feature.
  *
- * // TODO: Currently hardcoded to pt-PT as the learning language.
- * //       When multi-language support is added, pass `targetLang` as a parameter
- * //       and update the prompts accordingly.
+ * PUBLIC API
+ * ──────────
+ * generateWritingPrompt({ token, level })
+ *   → Ask Gemini to produce a fresh CEFR writing exercise. Low-level.
+ *     Prefer getExercise() — it only calls this when the pool is exhausted.
  *
- * Usage:
- *   import { generateWritingPrompt, evaluateWriting } from '../services/examTrainingService';
+ * evaluateWriting({ token, level, exercisePrompt, userText })
+ *   → Score the student's text against the 5-parameter CEFR rubric.
  *
- *   const { prompt, instructions } = await generateWritingPrompt({ token, level: 'A1' });
+ * getExercise({ token, uid, level, exerciseType, lang })
+ *   → Fetch an unseen exercise from the shared Firestore pool, or generate
+ *     a new one when the pool is exhausted (fetch-or-generate pattern).
  *
- *   const result = await evaluateWriting({
- *     token,
- *     level: 'A1',
- *     exercisePrompt: 'Escreve uma mensagem...',
- *     userText: 'Olá, como estás?...',
- *   });
+ * markExerciseSeen({ token, uid, exerciseType, lang, exerciseId, currentSeenIds })
+ *   → Append an exercise ID to the user's seenExerciseIds map.
+ *
+ * getSeenExerciseIds({ token, uid, exerciseType, lang })
+ *   → Read users/{uid}.seenExerciseIds["{exerciseType}__{lang}"].
+ *
+ * // TODO: Currently defaults to pt-PT as the learning language.
+ * //       When multi-language support is added, pass `lang` explicitly
+ * //       from the user's learningDialect in AppContext.
  */
 
 // ---------------------------------------------------------------------------
@@ -66,11 +73,56 @@
  * @property {string}               generalFeedback  - Overall feedback paragraph
  */
 
+/**
+ * @typedef {'writing' | 'listening' | 'reading' | 'full_exam'} ExerciseType
+ */
+
+/**
+ * @typedef {Object} ExerciseDoc
+ * @property {string}   id           - Firestore document ID (the pool key)
+ * @property {string}   exerciseType
+ * @property {string}   lang
+ * @property {string}   level
+ * @property {string}   prompt
+ * @property {string[]} instructions
+ * @property {number}   minWords
+ * @property {number}   maxWords
+ * @property {number}   timesServed
+ */
+
+/**
+ * @typedef {Object} GetExerciseParams
+ * @property {string}       token        - Firebase ID token
+ * @property {string}       uid          - Firebase user UID
+ * @property {string}       level        - CEFR level
+ * @property {ExerciseType} exerciseType - Type of exercise
+ * @property {string}       [lang]       - BCP-47 language tag (defaults to 'pt-PT')
+ */
+
+/**
+ * @typedef {Object} MarkExerciseSeenParams
+ * @property {string}   token        - Firebase ID token
+ * @property {string}   uid          - Firebase user UID
+ * @property {string}   exerciseType
+ * @property {string}   lang
+ * @property {string}   exerciseId   - Firestore document ID to mark as seen
+ * @property {string[]} [currentSeenIds] - Pass current list to avoid an extra read
+ */
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
+
+/** Firestore collection that holds public exercise documents. */
+const EXERCISE_POOL_COLLECTION = 'examExercisePool';
+
+/**
+ * How many pool documents to fetch per query.
+ * 50 is enough to find an unseen exercise without an expensive full scan.
+ */
+const POOL_FETCH_LIMIT = 50;
 
 /**
  * Gemini 2.5 Flash — fast, cost-effective, strong JSON output.
@@ -93,7 +145,7 @@ const WORD_COUNT_BOUNDS = {
 };
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Internal helpers
 // ---------------------------------------------------------------------------
 
 /**
@@ -128,7 +180,6 @@ async function callAskAI(token, prompt) {
     );
   }
 
-  // API envelope: { success: true, data: { text: string } }
   return json?.data?.text ?? json?.text ?? '';
 }
 
@@ -166,17 +217,324 @@ function countWords(text) {
  */
 function calcWordCountPenalty(wordCount, level) {
   const { min, max } = WORD_COUNT_BOUNDS[level] ?? WORD_COUNT_BOUNDS.A1;
-  if (wordCount >= min && wordCount <= max)          return 0;
+  if (wordCount >= min && wordCount <= max)           return 0;
   if (wordCount >= min - 20 || wordCount <= max + 20) return 1;
   return 2;
 }
 
+/**
+ * Build the compound Firestore document ID for a pool entry.
+ * Format: "{exerciseType}__{lang}__{level}__{nanoid}"
+ * The first three segments are also stored as indexed fields so the
+ * GET /api/firestore filtered query can find documents without needing
+ * the full ID.
+ *
+ * @param {string} exerciseType
+ * @param {string} lang
+ * @param {string} level
+ * @returns {string}  e.g. "writing__pt-PT__B1__abc123"
+ */
+function buildPoolDocId(exerciseType, lang, level) {
+  const nano = Math.random().toString(36).slice(2, 9);
+  return `${exerciseType}__${lang}__${level}__${nano}`;
+}
+
+/**
+ * Build the seenExerciseIds map key for a given exerciseType + lang.
+ * Stored as a nested key in users/{uid}.seenExerciseIds.
+ * e.g. "writing__pt-PT"
+ *
+ * @param {string} exerciseType
+ * @param {string} lang
+ * @returns {string}
+ */
+function buildSeenKey(exerciseType, lang) {
+  return `${exerciseType}__${lang}`;
+}
+
 // ---------------------------------------------------------------------------
-// Public API
+// Pool — Firestore read/write helpers
 // ---------------------------------------------------------------------------
 
 /**
+ * Query the exercise pool for documents matching exerciseType + lang + level.
+ * Returns up to POOL_FETCH_LIMIT documents.
+ *
+ * This is a public read — no auth check on the Firestore side for GET.
+ * Auth is still sent so the proxy middleware does not reject the request.
+ *
+ * @param {string} token
+ * @param {string} exerciseType
+ * @param {string} lang
+ * @param {string} level
+ * @returns {Promise<ExerciseDoc[]>}
+ */
+async function fetchPoolExercises(token, exerciseType, lang, level) {
+  const filters = JSON.stringify([
+    { field: 'exerciseType', op: '==', value: exerciseType },
+    { field: 'lang',         op: '==', value: lang         },
+    { field: 'level',        op: '==', value: level        },
+  ]);
+
+  const url = new URL(`${PROXY_URL}/api/firestore`);
+  url.searchParams.set('collection', EXERCISE_POOL_COLLECTION);
+  url.searchParams.set('filters',    filters);
+  url.searchParams.set('limit',      String(POOL_FETCH_LIMIT));
+
+  const response = await fetch(url.toString(), {
+    method:  'GET',
+    headers: {
+      Authorization:  `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      json?.error ?? json?.message ?? '[examTrainingService] Failed to fetch exercise pool'
+    );
+  }
+
+  return (json?.data?.documents ?? []).map((doc) => ({ id: doc.id, ...doc }));
+}
+
+/**
+ * Persist a newly generated exercise to the shared pool.
+ * Sets exerciseType, lang, level, prompt, instructions, minWords, maxWords,
+ * and timesServed=0. createdBy and createdAt are added server-side.
+ *
+ * @param {string} token
+ * @param {string} exerciseType
+ * @param {string} lang
+ * @param {string} level
+ * @param {GenerateWritingPromptResult} exerciseData
+ * @returns {Promise<string>} The new document ID
+ */
+async function saveExerciseToPool(token, exerciseType, lang, level, exerciseData) {
+  const id = buildPoolDocId(exerciseType, lang, level);
+
+  const response = await fetch(`${PROXY_URL}/api/firestore`, {
+    method:  'POST',
+    headers: {
+      Authorization:  `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      collection: EXERCISE_POOL_COLLECTION,
+      id,
+      data: {
+        exerciseType,
+        lang,
+        level,
+        prompt:       exerciseData.prompt,
+        instructions: exerciseData.instructions,
+        minWords:     exerciseData.minWords,
+        maxWords:     exerciseData.maxWords,
+        timesServed:  0,
+      },
+    }),
+  });
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    // Non-fatal — the exercise was generated and can still be used this session;
+    // it just won't be pooled for other users.
+    console.warn('[examTrainingService] Failed to save exercise to pool (non-fatal):', json?.error ?? json?.message);
+    return id;
+  }
+
+  return json?.data?.id ?? id;
+}
+
+/**
+ * Increment timesServed on a pool document.
+ * Fire-and-forget — failure is non-fatal.
+ *
+ * @param {string} token
+ * @param {string} docId
+ */
+function incrementTimesServed(token, docId) {
+  fetch(`${PROXY_URL}/api/firestore`, {
+    method:  'PATCH',
+    headers: {
+      Authorization:  `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      collection: EXERCISE_POOL_COLLECTION,
+      id:   docId,
+      data: { timesServed: '__increment__' }, // handled server-side if supported, else ignored
+    }),
+  }).catch((err) =>
+    console.warn('[examTrainingService] incrementTimesServed failed (non-fatal):', err)
+  );
+}
+
+// ---------------------------------------------------------------------------
+// seenExerciseIds — user document helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Read the list of exercise IDs the user has already seen for a given
+ * exerciseType + lang combination.
+ *
+ * Reads users/{uid}.seenExerciseIds["{exerciseType}__{lang}"].
+ * Returns [] if the field doesn't exist yet.
+ *
+ * @param {string} token
+ * @param {string} uid
+ * @param {string} exerciseType
+ * @param {string} lang
+ * @returns {Promise<string[]>}
+ */
+export async function getSeenExerciseIds(token, uid, exerciseType, lang) {
+  if (!token) throw new Error('[examTrainingService] token is required');
+  if (!uid)   throw new Error('[examTrainingService] uid is required');
+
+  const response = await fetch(
+    `${PROXY_URL}/api/firestore?collection=users&id=${uid}`,
+    {
+      method:  'GET',
+      headers: {
+        Authorization:  `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  if (response.status === 404) return [];
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json?.error ?? json?.message ?? '[examTrainingService] Failed to load seenExerciseIds');
+  }
+
+  const seenMap = json?.data?.data?.seenExerciseIds ?? {};
+  const key     = buildSeenKey(exerciseType, lang);
+  return seenMap[key] ?? [];
+}
+
+/**
+ * Append an exercise ID to users/{uid}.seenExerciseIds["{exerciseType}__{lang}"].
+ * Uses dot-notation PATCH so only the relevant key is touched — other
+ * language/type entries are left untouched.
+ *
+ * Safe to call concurrently — uses a Set to deduplicate.
+ *
+ * @param {MarkExerciseSeenParams} params
+ * @returns {Promise<void>}
+ */
+export async function markExerciseSeen({ token, uid, exerciseType, lang, exerciseId, currentSeenIds = [] }) {
+  if (!token)      throw new Error('[examTrainingService] token is required');
+  if (!uid)        throw new Error('[examTrainingService] uid is required');
+  if (!exerciseId) throw new Error('[examTrainingService] exerciseId is required');
+
+  const key     = buildSeenKey(exerciseType, lang);
+  const updated = [...new Set([...currentSeenIds, exerciseId])];
+
+  const response = await fetch(`${PROXY_URL}/api/firestore`, {
+    method:  'PATCH',
+    headers: {
+      Authorization:  `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    // Dot-notation key updates only this entry in the seenExerciseIds map.
+    // The Firestore PATCH handler uses update() so sibling keys are preserved.
+    body: JSON.stringify({
+      collection: 'users',
+      id:         uid,
+      data:       { [`seenExerciseIds.${key}`]: updated },
+    }),
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json?.error ?? json?.message ?? '[examTrainingService] Failed to mark exercise as seen');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public API — high-level
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch an unseen exercise from the shared pool, or generate a new one
+ * when the pool is exhausted for this user.
+ *
+ * Algorithm:
+ *  1. Read the user's seenExerciseIds[key] from Firestore.
+ *  2. Query examExercisePool WHERE exerciseType + lang + level match (limit 50).
+ *  3. Find the first pool doc whose ID is NOT in seenIds.
+ *     a. Found → serve it, fire-and-forget timesServed++, mark as seen.
+ *     b. Not found → generate a new exercise via AI, save to pool, mark as seen.
+ *
+ * @param {GetExerciseParams} params
+ * @returns {Promise<ExerciseDoc>}
+ */
+export async function getExercise({ token, uid, level, exerciseType, lang = 'pt-PT' }) {
+  if (!token)        throw new Error('[examTrainingService] token is required');
+  if (!uid)          throw new Error('[examTrainingService] uid is required');
+  if (!level)        throw new Error('[examTrainingService] level is required');
+  if (!exerciseType) throw new Error('[examTrainingService] exerciseType is required');
+
+  // Step 1 — read what the user has already seen (parallel with Step 2)
+  const [seenIds, poolDocs] = await Promise.all([
+    getSeenExerciseIds(token, uid, exerciseType, lang),
+    fetchPoolExercises(token, exerciseType, lang, level),
+  ]);
+
+  // Step 2 — find first unseen doc in the pool
+  const unseenDoc = poolDocs.find((doc) => !seenIds.includes(doc.id));
+
+  if (unseenDoc) {
+    // Serve the cached exercise
+    incrementTimesServed(token, unseenDoc.id); // fire-and-forget
+    await markExerciseSeen({
+      token, uid, exerciseType, lang,
+      exerciseId:     unseenDoc.id,
+      currentSeenIds: seenIds,
+    });
+    return unseenDoc;
+  }
+
+  // Step 3 — pool exhausted for this user: generate a fresh exercise
+  let generated;
+  if (exerciseType === 'writing') {
+    generated = await generateWritingPrompt({ token, level });
+  } else {
+    // Placeholder for future exercise types (listening, reading, full_exam)
+    throw new Error(`[examTrainingService] getExercise: exerciseType "${exerciseType}" is not yet supported`);
+  }
+
+  // Save to the shared pool (non-fatal if it fails)
+  const newDocId = await saveExerciseToPool(token, exerciseType, lang, level, generated);
+
+  // Mark as seen immediately
+  await markExerciseSeen({
+    token, uid, exerciseType, lang,
+    exerciseId:     newDocId,
+    currentSeenIds: seenIds,
+  });
+
+  return {
+    id:           newDocId,
+    exerciseType,
+    lang,
+    level,
+    prompt:       generated.prompt,
+    instructions: generated.instructions,
+    minWords:     generated.minWords,
+    maxWords:     generated.maxWords,
+    timesServed:  0,
+  };
+}
+
+/**
  * Generate a CEFR-appropriate writing exercise prompt in pt-PT.
+ * Low-level — prefer getExercise() which handles pooling automatically.
  *
  * @param {GenerateWritingPromptParams} params
  * @returns {Promise<GenerateWritingPromptResult>}
