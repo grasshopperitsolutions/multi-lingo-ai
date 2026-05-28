@@ -82,6 +82,13 @@ const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.
  */
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
+/**
+ * Maximum number of output tokens for AI calls.
+ * Set to 2048 to prevent truncated JSON responses on verbose outputs
+ * such as evaluateWriting (5 parameter feedbacks + generalFeedback).
+ */
+const MAX_OUTPUT_TOKENS = 2048;
+
 /** Word count bounds by CEFR level (pt-PT certification standards) */
 const WORD_COUNT_BOUNDS = {
   A1: { min: 60,  max: 100 },
@@ -112,10 +119,11 @@ async function callAskAI(token, prompt) {
     body: JSON.stringify({
       prompt,
       providerParams: {
-        provider:    'gemini',
-        model:       GEMINI_MODEL,
-        temperature: 0.7,
-        jsonMode:    true,
+        provider:        'gemini',
+        model:           GEMINI_MODEL,
+        temperature:     0.7,
+        jsonMode:        true,
+        maxOutputTokens: MAX_OUTPUT_TOKENS,
       },
     }),
   });
