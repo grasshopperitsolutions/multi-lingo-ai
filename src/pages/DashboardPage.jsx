@@ -21,9 +21,9 @@ import {
   Gamepad2,
   Settings,
   LogOut,
-  Zap,
   Flame,
   Star,
+  Trophy,
   ArrowLeft,
 } from "lucide-react";
 import PropTypes from "prop-types";
@@ -98,11 +98,26 @@ const DashboardPage = () => {
     setSelectedFeature(features.find((f) => f.id === 'dictionary'));
   };
 
+  // ── Stats ── live values from context; awards fixed at 0 until feature is built
   const stats = [
-    { icon: BookOpen, label: t("dashboard.languages"), value: "3",   color: "text-blue-500" },
-    { icon: Zap,      label: t("dashboard.sessions"),  value: "24",  color: "text-yellow-500" },
-    { icon: Flame,    label: t("dashboard.day_streak"), value: "7",  color: "text-rose-500" },
-    { icon: Star,     label: t("dashboard.words"),      value: "312", color: "text-emerald-500" },
+    {
+      icon: Flame,
+      label: t("dashboard.day_streak"),
+      value: String(user?.dayStreak ?? 0),
+      color: "text-rose-500",
+    },
+    {
+      icon: Star,
+      label: t("dashboard.words"),
+      value: String(user?.wordsFound ?? 0),
+      color: "text-emerald-500",
+    },
+    {
+      icon: Trophy,
+      label: t("dashboard.awards"),
+      value: "0",
+      color: "text-yellow-500",
+    },
   ];
 
   const features = [
@@ -328,7 +343,7 @@ const DashboardPage = () => {
             <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"
             }`}>{t("dashboard.your_progress")}</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               {stats.map((s) => (
                 <StatCard key={s.label} {...s} isDarkMode={isDarkMode} />
               ))}

@@ -3,7 +3,7 @@ import {
   loginWithGoogle,
   logout as logoutUserService,
 } from "../services/authService";
-import { getUserProfile } from "../services/userService";
+import { getUserProfile, updateDayStreak } from "../services/userService";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
 
@@ -76,7 +76,7 @@ export const AppProvider = ({ children }) => {
    *   2. Auth provider    — Google / Facebook / Apple / X display name and photo
    *
    * All other profile fields (theme, interfaceLang,
-   * learningDialect, interests) come from Firestore only.
+   * learningDialect, interests, dayStreak, wordsFound) come from Firestore only.
    *
    * @param {object} authUser - The raw Firebase Auth user object fields + token.
    *                            Used as fallback source for displayName and photoURL.
@@ -102,6 +102,13 @@ export const AppProvider = ({ children }) => {
         // localStorage unavailable
       }
 
+      // Day streak — update in Firestore (no-op if already updated today)
+      // Returns the current or newly incremented streak value.
+      const dayStreak = await updateDayStreak(authUser.token, authUser.uid, profile);
+
+      // Words found — derived from the length of seenConceptIds (no extra read needed)
+      const wordsFound = profile?.seenConceptIds?.length ?? 0;
+
       setUser((prev) => ({
         ...prev,
         // displayName: Firestore → auth provider → keep previous
@@ -115,6 +122,9 @@ export const AppProvider = ({ children }) => {
         learningDialect: profile?.learningDialect ?? "pt-PT",
         // interests: Firestore → keep previous → empty array
         interests: profile?.interests ?? prev?.interests ?? [],
+        // ── Stats fields ─────────────────────────────────────────────────────
+        dayStreak,
+        wordsFound,
       }));
     } catch (err) {
       showAlert("error", `Could not load your profile: ${err.message}`);

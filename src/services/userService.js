@@ -152,6 +152,70 @@ export const resetAllSeenWords = async (token, uid) => {
 };
 
 // ---------------------------------------------------------------------------
+// Day streak — stored on users/{uid}.dayStreak + users/{uid}.lastStreakDate
+// lastStreakDate is stored as a YYYY-MM-DD string (UTC).
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns today's date as a YYYY-MM-DD string in UTC.
+ * @returns {string}
+ */
+const getTodayUTC = () => new Date().toISOString().slice(0, 10);
+
+/**
+ * Returns yesterday's date as a YYYY-MM-DD string in UTC.
+ * @returns {string}
+ */
+const getYesterdayUTC = () => {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+};
+
+/**
+ * Update the user's day streak based on their last active date.
+ *
+ * Rules:
+ *  - Same day as lastStreakDate  → no-op (already counted today)
+ *  - lastStreakDate was yesterday → increment streak by 1
+ *  - lastStreakDate is older or missing → reset streak to 1
+ *
+ * Writes { dayStreak, lastStreakDate } to users/{uid} and returns the
+ * updated streak value so the caller can update context immediately
+ * without an extra read.
+ *
+ * @param {string}      token
+ * @param {string}      uid
+ * @param {object}      profile  - the already-fetched Firestore profile object
+ * @returns {Promise<number>}    - the new (or unchanged) streak value
+ */
+export const updateDayStreak = async (token, uid, profile) => {
+  const today     = getTodayUTC();
+  const yesterday = getYesterdayUTC();
+  const last      = profile?.lastStreakDate ?? null;
+  const current   = profile?.dayStreak ?? 0;
+
+  // Already updated today — return existing value without writing
+  if (last === today) return current;
+
+  let newStreak;
+  if (last === yesterday) {
+    // Consecutive day — keep the streak going
+    newStreak = current + 1;
+  } else {
+    // First ever login, or streak broken — start fresh
+    newStreak = 1;
+  }
+
+  await updateUserProfile(token, uid, {
+    dayStreak: newStreak,
+    lastStreakDate: today,
+  });
+
+  return newStreak;
+};
+
+// ---------------------------------------------------------------------------
 // Game progress — userGameProgress/{uid}/games/{gameId}__{learningDialect}
 // Stores per-game stats ONLY: totalPlayed, lastPlayedAt, etc.
 // seenConceptIds is NO LONGER stored here — see getGlobalSeenIds above.
