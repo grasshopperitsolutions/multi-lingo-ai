@@ -31,21 +31,26 @@ import PropTypes from "prop-types";
 // ── StatCard ────────────────────────────────────────────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
   <div
-    className={`p-6 rounded-2xl border-4 flex flex-col gap-3 transition-all hover:-translate-y-1
+    className={`p-4 sm:p-6 rounded-2xl border-4 flex flex-col gap-2 sm:gap-3 transition-all hover:-translate-y-1
     ${
       isDarkMode
         ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
         : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
     }`}
   >
-    <div className={`w-12 h-12 rounded-xl border-2 border-current flex items-center justify-center ${color}`}>
-      <Icon size={22} />
+    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-2 border-current flex items-center justify-center ${color}`}>
+      <Icon size={18} className="sm:hidden" />
+      <Icon size={22} className="hidden sm:block" />
     </div>
     <div>
-      <p className={`text-3xl font-black tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}>
+      <p className={`text-2xl sm:text-3xl font-black tracking-tighter ${
+        isDarkMode ? "text-white" : "text-slate-900"
+      }`}>
         {value}
       </p>
-      <p className={`text-xs font-black uppercase tracking-widest mt-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+      <p className={`text-[10px] sm:text-xs font-black uppercase tracking-widest mt-1 leading-tight ${
+        isDarkMode ? "text-slate-400" : "text-slate-500"
+      }`}>
         {label}
       </p>
     </div>
@@ -343,9 +348,13 @@ const DashboardPage = () => {
             <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"
             }`}>{t("dashboard.your_progress")}</h2>
-            <div className="grid grid-cols-3 gap-4">
+            {/* On mobile: horizontal scroll row so cards never crush.
+                On sm+: regular 3-column grid. */}
+            <div className="flex gap-3 overflow-x-auto pb-1 sm:pb-0 sm:grid sm:grid-cols-3 sm:gap-4 snap-x snap-mandatory">
               {stats.map((s) => (
-                <StatCard key={s.label} {...s} isDarkMode={isDarkMode} />
+                <div key={s.label} className="snap-start shrink-0 w-[calc(50%-6px)] min-w-[140px] sm:w-auto sm:min-w-0">
+                  <StatCard {...s} isDarkMode={isDarkMode} />
+                </div>
               ))}
             </div>
           </section>
