@@ -31,7 +31,7 @@ import { generateWritingPrompt, evaluateWriting } from '../services/examTraining
 
 // TODO: When multi-language support is added, replace this with the user's
 //       selected learning language from context.
-const LEARNING_LANGUAGE = 'pt-PT';
+// const LEARNING_LANGUAGE = 'pt-PT';
 
 const CEFR_LEVELS = [
   { value: 'A1', label: 'A1 — Iniciante' },
@@ -132,6 +132,25 @@ GhostButton.propTypes = {
 GhostButton.defaultProps = { disabled: false, className: '' };
 
 // ---------------------------------------------------------------------------
+// Error banner (declared outside of component to avoid recreation on render)
+// ---------------------------------------------------------------------------
+const ErrorBanner = ({ error, isDarkMode }) => error ? (
+  <div className={`flex items-start gap-3 p-4 rounded-xl border-2 ${
+    isDarkMode
+      ? 'bg-rose-900/30 border-rose-700 text-rose-300'
+      : 'bg-rose-50 border-rose-300 text-rose-700'
+  }`}>
+    <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+    <p className="text-sm font-semibold">{error}</p>
+  </div>
+) : null;
+ErrorBanner.propTypes = {
+  error: PropTypes.string,
+  isDarkMode: PropTypes.bool.isRequired,
+};
+ErrorBanner.defaultProps = { error: null };
+
+// ---------------------------------------------------------------------------
 // Parameter row in results
 // ---------------------------------------------------------------------------
 const ParameterRow = ({ param, isDarkMode }) => {
@@ -204,7 +223,7 @@ ParameterRow.propTypes = {
 // Main component
 // ---------------------------------------------------------------------------
 
-const WritingExercise = ({ isDarkMode, onBack }) => {
+const WritingExercise = ({ isDarkMode }) => {
   const { t }      = useTranslation();
   const { user }   = useAppContext();
 
@@ -276,18 +295,6 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
     timerRef.current?.reset();
   };
 
-  // ── Error banner ───────────────────────────────────────────────────────────
-  const ErrorBanner = () => error ? (
-    <div className={`flex items-start gap-3 p-4 rounded-xl border-2 ${
-      isDarkMode
-        ? 'bg-rose-900/30 border-rose-700 text-rose-300'
-        : 'bg-rose-50 border-rose-300 text-rose-700'
-    }`}>
-      <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-      <p className="text-sm font-semibold">{error}</p>
-    </div>
-  ) : null;
-
   // ---------------------------------------------------------------------------
   // STEP: setup
   // ---------------------------------------------------------------------------
@@ -309,7 +316,7 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
           <ReportButton isDarkMode={isDarkMode} context="WritingExercise" />
         </div>
 
-        <ErrorBanner />
+        <ErrorBanner error={error} isDarkMode={isDarkMode} />
 
         {/* Level selector */}
         <Card isDarkMode={isDarkMode}>
@@ -368,7 +375,7 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
           <ReportButton isDarkMode={isDarkMode} context="WritingExercise" />
         </div>
 
-        <ErrorBanner />
+        <ErrorBanner error={error} isDarkMode={isDarkMode} />
 
         {/* Exercise prompt card */}
         <Card isDarkMode={isDarkMode}>
@@ -593,7 +600,6 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
 
 WritingExercise.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
-  onBack:     PropTypes.func.isRequired,
 };
 
 export default WritingExercise;
