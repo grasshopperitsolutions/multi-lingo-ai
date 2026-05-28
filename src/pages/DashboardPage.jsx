@@ -38,22 +38,22 @@ const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
         : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
     }`}
   >
-    <div className={`w-7 h-7 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border-2 border-current flex items-center justify-center ${color}`}>
-      <Icon size={14} className="sm:hidden" />
-      <Icon size={22} className="hidden sm:block" />
-    </div>
-    <div>
+    <div className="flex items-center gap-2 sm:gap-3">
+      <div className={`w-7 h-7 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border-2 border-current flex items-center justify-center shrink-0 ${color}`}>
+        <Icon size={14} className="sm:hidden" />
+        <Icon size={22} className="hidden sm:block" />
+      </div>
       <p className={`text-lg sm:text-3xl font-black tracking-tighter ${
         isDarkMode ? "text-white" : "text-slate-900"
       }`}>
         {value}
       </p>
-      <p className={`text-[9px] sm:text-xs font-black uppercase tracking-widest mt-0.5 leading-tight ${
-        isDarkMode ? "text-slate-400" : "text-slate-500"
-      }`}>
-        {label}
-      </p>
     </div>
+    <p className={`text-[9px] sm:text-xs font-black uppercase tracking-widest leading-tight ${
+      isDarkMode ? "text-slate-400" : "text-slate-500"
+    }`}>
+      {label}
+    </p>
   </div>
 );
 
@@ -353,7 +353,7 @@ const DashboardPage = () => {
                 On mobile: horizontal scroll with snap. On sm+: regular 3-column grid. */}
             <div className="flex gap-3 overflow-x-auto py-2 px-0.5 sm:py-1 sm:grid sm:grid-cols-3 sm:gap-4 snap-x snap-mandatory">
               {stats.map((s) => (
-                <div key={s.label} className="snap-start shrink-0 w-[calc(33.333%-8px)] min-w-[100px] sm:w-auto sm:min-w-0">
+                <div key={s.label} className="snap-start shrink-0 w-[calc(50%-8px)] min-w-[100px] sm:w-auto sm:min-w-0">
                   <StatCard {...s} isDarkMode={isDarkMode} />
                 </div>
               ))}
