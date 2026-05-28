@@ -148,7 +148,7 @@ const DashboardPage = () => {
       title: t("dashboard.grammar"),
       description: t("dashboard.grammar_desc"),
       color: "text-amber-500",
-      statusBadgeLabel: t("dashboard.in_progress"),
+      statusBadgeLabel: t("dashboard.coming_soon"),
     },
     {
       id: "ai_tutor",
@@ -156,7 +156,7 @@ const DashboardPage = () => {
       title: t("dashboard.ai_tutor"),
       description: t("dashboard.ai_tutor_desc"),
       color: "text-blue-500",
-      statusBadgeLabel: t("dashboard.in_progress"),
+      statusBadgeLabel: t("dashboard.coming_soon"),
     },
     {
       id: "real_person_tutor",
@@ -164,7 +164,7 @@ const DashboardPage = () => {
       title: t("dashboard.real_person_tutor"),
       description: t("dashboard.real_person_tutor_desc"),
       color: "text-emerald-500",
-      statusBadgeLabel: t("dashboard.in_progress"),
+      statusBadgeLabel: t("dashboard.coming_soon"),
     },
     {
       id: "voice_practice",
@@ -172,7 +172,7 @@ const DashboardPage = () => {
       title: t("dashboard.voice_practice"),
       description: t("dashboard.voice_practice_desc"),
       color: "text-purple-500",
-      statusBadgeLabel: t("dashboard.in_progress"),
+      statusBadgeLabel: t("dashboard.coming_soon"),
     },
     {
       id: "story_generator",
@@ -180,7 +180,7 @@ const DashboardPage = () => {
       title: t("dashboard.story_generator"),
       description: t("dashboard.story_generator_desc"),
       color: "text-rose-500",
-      statusBadgeLabel: t("dashboard.in_progress"),
+      statusBadgeLabel: t("dashboard.coming_soon"),
     },
     {
       id: "history_culture",
@@ -188,7 +188,7 @@ const DashboardPage = () => {
       title: t("dashboard.history_culture"),
       description: t("dashboard.history_culture_desc"),
       color: "text-orange-500",
-      statusBadgeLabel: t("dashboard.in_progress"),
+      statusBadgeLabel: t("dashboard.coming_soon"),
     },
   ];
 
