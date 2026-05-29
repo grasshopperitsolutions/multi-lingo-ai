@@ -36,12 +36,12 @@ import { markExerciseSeen } from '../services/userService';
 // const LEARNING_LANGUAGE = 'pt-PT';
 
 const CEFR_LEVELS = [
-  { value: 'A1', label: 'A1 &mdash; Iniciante' },
-  { value: 'A2', label: 'A2 &mdash; Elementar' },
-  { value: 'B1', label: 'B1 &mdash; Interm&eacute;dio' },
-  { value: 'B2', label: 'B2 &mdash; Independente' },
-  { value: 'C1', label: 'C1 &mdash; Avan&ccedil;ado' },
-  { value: 'C2', label: 'C2 &mdash; Proficiente' },
+  { value: 'A1', label: 'A1 - Iniciante' },
+  { value: 'A2', label: 'A2 - Elementar' },
+  { value: 'B1', label: 'B1 - Intermédio' },
+  { value: 'B2', label: 'B2 - Independente' },
+  { value: 'C1', label: 'C1 - Avançado' },
+  { value: 'C2', label: 'C2 - Proficiente' },
 ];
 
 /** Score colour coding */
