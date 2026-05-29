@@ -44,6 +44,18 @@ const CEFR_LEVELS = [
   { value: 'C2', label: 'C2 - Proficiente' },
 ];
 
+/**
+ * Maps rubric parameter IDs (A–E) to their i18n translation keys.
+ * The keys must exist in all locale files under the "exam" namespace.
+ */
+const PARAM_NAME_KEYS = {
+  A: 'exam.param_a_name',
+  B: 'exam.param_b_name',
+  C: 'exam.param_c_name',
+  D: 'exam.param_d_name',
+  E: 'exam.param_e_name',
+};
+
 /** Score colour coding */
 function getScoreColor(score, max, isDarkMode) {
   const pct = score / max;
@@ -155,7 +167,7 @@ ErrorBanner.defaultProps = { error: null };
 // ---------------------------------------------------------------------------
 // Parameter row in results
 // ---------------------------------------------------------------------------
-const ParameterRow = ({ param, isDarkMode }) => {
+const ParameterRow = ({ param, isDarkMode, paramLabel }) => {
   const [expanded, setExpanded] = useState(false);
   const scoreColor = getScoreColor(param.score, param.maxScore, isDarkMode);
 
@@ -181,7 +193,7 @@ const ParameterRow = ({ param, isDarkMode }) => {
           <span className={`font-bold text-sm truncate ${
             isDarkMode ? 'text-slate-200' : 'text-slate-800'
           }`}>
-            {param.name}
+            {paramLabel}
           </span>
         </div>
 
@@ -219,6 +231,8 @@ ParameterRow.propTypes = {
     feedback: PropTypes.string.isRequired,
   }).isRequired,
   isDarkMode: PropTypes.bool.isRequired,
+  /** Translated display name for the parameter (overrides param.name from AI) */
+  paramLabel: PropTypes.string.isRequired,
 };
 
 // ---------------------------------------------------------------------------
@@ -229,7 +243,7 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
   const { t }      = useTranslation();
   const { user, setUser }   = useAppContext();
 
-  // ── State ───────────────────────────────────────────────────────────────
+  // ── State ───────────────────────────────────────────────────────────────────
   const [step, setStep]           = useState('setup'); // 'setup' | 'writing' | 'results'
   const [level, setLevel]         = useState('A1');
   const [exercise, setExercise]   = useState(null);    // { prompt, instructions[], minWords, maxWords }
@@ -251,7 +265,7 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
     return isDarkMode ? 'text-emerald-400' : 'text-emerald-600';
   };
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────────────────────
 
   /**
    * Persist the current exercise ID to the user's seenExerciseIds in Firestore
@@ -267,7 +281,7 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
     }));
   };
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleGetExercise = async () => {
     setError(null);
     setLoading(true);
@@ -302,6 +316,7 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
         token:          user.token,
         level,
         targetLang:     user.learningDialect || 'pt-PT',
+        interfaceLang:  user.interfaceLang   || 'en-US',
         exercisePrompt: exercise.prompt,
         userText,
       });
@@ -582,7 +597,12 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
           </SectionHeading>
           <div className="flex flex-col gap-2">
             {evaluation.parameters.map((param) => (
-              <ParameterRow key={param.id} param={param} isDarkMode={isDarkMode} />
+              <ParameterRow
+                key={param.id}
+                param={param}
+                isDarkMode={isDarkMode}
+                paramLabel={t(PARAM_NAME_KEYS[param.id], param.name)}
+              />
             ))}
           </div>
         </div>
