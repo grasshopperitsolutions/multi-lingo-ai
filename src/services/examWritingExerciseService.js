@@ -19,6 +19,7 @@
  *     token,
  *     level: 'A1',
  *     targetLang: 'pt-PT',
+ *     interfaceLang: 'es-ES',
  *     exercisePrompt: exercise.prompt,
  *     userText: 'Olá, como estás?...',
  *   });
@@ -48,7 +49,8 @@
  * @typedef {Object} EvaluateWritingParams
  * @property {string} token          - Firebase ID token
  * @property {string} level          - CEFR level
- * @property {string} targetLang     - Target language
+ * @property {string} targetLang     - Target language (the language being learned)
+ * @property {string} interfaceLang  - Interface language (the language feedback should be written in)
  * @property {string} exercisePrompt - The original task shown to the user
  * @property {string} userText       - The text written by the user
  */
@@ -79,6 +81,40 @@
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 const GEMINI_MODEL = 'gemini-2.5-flash';
+
+/**
+ * Maps BCP-47 locale codes to plain language names used in AI prompts.
+ * Add more entries when new interface languages are supported.
+ */
+const LOCALE_TO_LANGUAGE_NAME = {
+  'en':    'English',
+  'en-US': 'English',
+  'en-GB': 'English',
+  'es':    'Spanish',
+  'es-ES': 'Spanish',
+  'fr':    'French',
+  'fr-FR': 'French',
+  'pt':    'European Portuguese',
+  'pt-PT': 'European Portuguese',
+  'pt-BR': 'Brazilian Portuguese',
+};
+
+/**
+ * Resolves a locale code to a plain language name for AI prompts.
+ * Falls back to English if the locale is not mapped.
+ *
+ * @param {string} locale - BCP-47 locale code, e.g. 'es-ES'
+ * @returns {string} Plain language name, e.g. 'Spanish'
+ */
+function _resolveLanguageName(locale) {
+  if (!locale) return 'English';
+  // Try exact match first, then language-only prefix (e.g. 'es' from 'es-ES')
+  return (
+    LOCALE_TO_LANGUAGE_NAME[locale] ??
+    LOCALE_TO_LANGUAGE_NAME[locale.split('-')[0]] ??
+    'English'
+  );
+}
 
 /**
  * Max output tokens for writing exercise generation.
@@ -180,7 +216,7 @@ export async function generateWritingExercise({ token, level, targetLang }) {
  * @param {EvaluateWritingParams} params
  * @returns {Promise<EvaluateWritingResult>}
  */
-export async function evaluateWriting({ token, level, targetLang, exercisePrompt, userText }) {
+export async function evaluateWriting({ token, level, targetLang, interfaceLang, exercisePrompt, userText }) {
   if (!token)          throw new Error('[examWritingExerciseService] token is required');
   if (!level)          throw new Error('[examWritingExerciseService] level is required');
   if (!targetLang)     throw new Error('[examWritingExerciseService] targetLang is required');
@@ -190,6 +226,7 @@ export async function evaluateWriting({ token, level, targetLang, exercisePrompt
   const wordCount        = _countWords(userText);
   const wordCountPenalty = _calcWordCountPenalty(wordCount, level);
   const { min, max }     = WORD_COUNT_BOUNDS[level] ?? WORD_COUNT_BOUNDS.A1;
+  const feedbackLanguage = _resolveLanguageName(interfaceLang);
 
   const prompt = [
     `You are an expert language examiner evaluating a CEFR ${level} writing exercise in ${targetLang}.`,
@@ -234,19 +271,19 @@ export async function evaluateWriting({ token, level, targetLang, exercisePrompt
     `- Scores may be intermediate values (e.g. 2, 4) when between levels.`,
     `- Expected word count range: ${min}–${max} words. Student wrote ${wordCount} words.`,
     `- Do NOT apply the word count penalty yourself — it will be applied programmatically.`,
-    `- Write all feedback in English.`,
+    `- Write ALL feedback (the "feedback" fields and "generalFeedback") in ${feedbackLanguage}. This is mandatory.`,
     `- Be specific and constructive in each parameter's feedback.`,
     ``,
     `Return ONLY a valid JSON object with this exact shape:`,
     `{`,
     `  "parameters": [`,
-    `    { "id": "A", "name": "Tema, tipologia, informação e coerência", "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback>" },`,
-    `    { "id": "B", "name": "Estrutura e coesão",                      "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback>" },`,
-    `    { "id": "C", "name": "Morfologia e sintaxe",                    "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback>" },`,
-    `    { "id": "D", "name": "Vocabulário",                             "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback>" },`,
-    `    { "id": "E", "name": "Ortografia",                              "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback>" }`,
+    `    { "id": "A", "name": "Tema, tipologia, informação e coerência", "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback in ${feedbackLanguage}>" },`,
+    `    { "id": "B", "name": "Estrutura e coesão",                      "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback in ${feedbackLanguage}>" },`,
+    `    { "id": "C", "name": "Morfologia e sintaxe",                    "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback in ${feedbackLanguage}>" },`,
+    `    { "id": "D", "name": "Vocabulário",                             "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback in ${feedbackLanguage}>" },`,
+    `    { "id": "E", "name": "Ortografia",                              "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback in ${feedbackLanguage}>" }`,
     `  ],`,
-    `  "generalFeedback": "<overall constructive feedback paragraph>"`,
+    `  "generalFeedback": "<overall constructive feedback paragraph in ${feedbackLanguage}>"`,
     `}`,
     ``,
     `Do NOT include any text outside the JSON object.`,
