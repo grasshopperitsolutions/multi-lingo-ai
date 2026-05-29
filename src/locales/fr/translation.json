@@ -475,7 +475,12 @@
     "word_count": "Nombre de mots",
     "breakdown": "Détail du Score",
     "general_feedback": "Commentaires Généraux",
-    "improve": "Améliorer Mon Texte"
+    "improve": "Améliorer Mon Texte",
+    "param_a_name": "Réalisation de la Tâche",
+    "param_b_name": "Cohérence & Cohésion",
+    "param_c_name": "Ressource Lexicale",
+    "param_d_name": "Étendue Grammaticale & Précision",
+    "param_e_name": "Contrôle Orthographique"
   },
   "dictionary": {
     "lang_tooltip": "Saisie en {{lang}}",

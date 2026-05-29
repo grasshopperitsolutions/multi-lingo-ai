@@ -475,7 +475,12 @@
     "word_count": "Word count",
     "breakdown": "Score Breakdown",
     "general_feedback": "General Feedback",
-    "improve": "Improve My Text"
+    "improve": "Improve My Text",
+    "param_a_name": "Task Achievement",
+    "param_b_name": "Coherence & Cohesion",
+    "param_c_name": "Lexical Resource",
+    "param_d_name": "Grammatical Range & Accuracy",
+    "param_e_name": "Orthographic Control"
   },
   "dictionary": {
     "lang_tooltip": "Typing in {{lang}}",

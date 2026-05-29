@@ -475,7 +475,12 @@
     "word_count": "Contagem de palavras",
     "breakdown": "Desagregação da Pontuação",
     "general_feedback": "Feedback Geral",
-    "improve": "Melhorar o Meu Texto"
+    "improve": "Melhorar o Meu Texto",
+    "param_a_name": "Realização da Tarefa",
+    "param_b_name": "Coerência & Coesão",
+    "param_c_name": "Recurso Lexical",
+    "param_d_name": "Amplitude Gramatical & Precisão",
+    "param_e_name": "Controlo Ortográfico"
   },
   "dictionary": {
     "lang_tooltip": "A escrever em {{lang}}",
