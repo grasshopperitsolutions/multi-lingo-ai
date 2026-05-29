@@ -109,6 +109,9 @@ export const AppProvider = ({ children }) => {
       // Words found — derived from the length of seenConceptIds (no extra read needed)
       const wordsFound = profile?.seenConceptIds?.length ?? 0;
 
+      // Seen exercise IDs — tracked globally for exam training features
+      const seenExerciseIds = profile?.seenExerciseIds ?? [];
+
       setUser((prev) => ({
         ...prev,
         // displayName: Firestore → auth provider → keep previous
@@ -125,6 +128,7 @@ export const AppProvider = ({ children }) => {
         // ── Stats fields ─────────────────────────────────────────────────────
         dayStreak,
         wordsFound,
+        seenExerciseIds,
       }));
     } catch (err) {
       showAlert("error", `Could not load your profile: ${err.message}`);

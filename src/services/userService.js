@@ -152,6 +152,39 @@ export const resetAllSeenWords = async (token, uid) => {
 };
 
 // ---------------------------------------------------------------------------
+// Seen exercise IDs — stored on users/{uid}.seenExerciseIds
+// Tracks which exam exercises the user has already been shown.
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the list of seen exercise IDs for a user.
+ * Reads users/{uid}.seenExerciseIds — returns [] if not yet set.
+ *
+ * @param {string} token
+ * @param {string} uid
+ * @returns {Promise<string[]>}
+ */
+export const getSeenExerciseIds = async (token, uid) => {
+  const profile = await getUserProfile(token, uid);
+  return profile?.seenExerciseIds ?? [];
+};
+
+/**
+ * Append an exerciseId to the seen list on users/{uid}.
+ * Safe to call concurrently — uses a Set to deduplicate.
+ * Should be called after an exercise has been completed/evaluated.
+ *
+ * @param {string}   token
+ * @param {string}   uid
+ * @param {string}   exerciseId
+ * @param {string[]} currentSeenIds  - current value to avoid extra read
+ */
+export const markExerciseSeen = async (token, uid, exerciseId, currentSeenIds = []) => {
+  const updated = [...new Set([...currentSeenIds, exerciseId])];
+  await updateUserProfile(token, uid, { seenExerciseIds: updated });
+};
+
+// ---------------------------------------------------------------------------
 // Day streak — stored on users/{uid}.dayStreak + users/{uid}.lastStreakDate
 // lastStreakDate is stored as a YYYY-MM-DD string (UTC).
 // ---------------------------------------------------------------------------

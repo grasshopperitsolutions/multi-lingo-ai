@@ -23,7 +23,9 @@ import Loader from './Loader';
 import ExamTimer from './ExamTimer';
 import StatusBadge from './StatusBadge';
 import ReportButton from './ReportButton';
-import { generateWritingPrompt, evaluateWriting } from '../services/examTrainingService';
+import { getExercise } from '../services/examExerciseService';
+import { evaluateWriting } from '../services/examWritingExerciseService';
+import { markExerciseSeen } from '../services/userService';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -34,12 +36,12 @@ import { generateWritingPrompt, evaluateWriting } from '../services/examTraining
 // const LEARNING_LANGUAGE = 'pt-PT';
 
 const CEFR_LEVELS = [
-  { value: 'A1', label: 'A1 — Iniciante' },
-  { value: 'A2', label: 'A2 — Elementar' },
-  { value: 'B1', label: 'B1 — Intermédio' },
-  { value: 'B2', label: 'B2 — Independente' },
-  { value: 'C1', label: 'C1 — Avançado' },
-  { value: 'C2', label: 'C2 — Proficiente' },
+  { value: 'A1', label: 'A1 &mdash; Iniciante' },
+  { value: 'A2', label: 'A2 &mdash; Elementar' },
+  { value: 'B1', label: 'B1 &mdash; Interm&eacute;dio' },
+  { value: 'B2', label: 'B2 &mdash; Independente' },
+  { value: 'C1', label: 'C1 &mdash; Avan&ccedil;ado' },
+  { value: 'C2', label: 'C2 &mdash; Proficiente' },
 ];
 
 /** Score colour coding */
@@ -223,14 +225,15 @@ ParameterRow.propTypes = {
 // Main component
 // ---------------------------------------------------------------------------
 
-const WritingExercise = ({ isDarkMode }) => {
+const WritingExercise = ({ isDarkMode, onBack }) => {
   const { t }      = useTranslation();
-  const { user }   = useAppContext();
+  const { user, setUser }   = useAppContext();
 
   // ── State ───────────────────────────────────────────────────────────────
   const [step, setStep]           = useState('setup'); // 'setup' | 'writing' | 'results'
   const [level, setLevel]         = useState('A1');
   const [exercise, setExercise]   = useState(null);    // { prompt, instructions[], minWords, maxWords }
+  const [exerciseId, setExerciseId] = useState(null);  // Firestore doc ID for seen tracking
   const [userText, setUserText]   = useState('');
   const [evaluation, setEval]     = useState(null);    // EvaluateWritingResult
   const [loading, setLoading]     = useState(false);
@@ -248,13 +251,37 @@ const WritingExercise = ({ isDarkMode }) => {
     return isDarkMode ? 'text-emerald-400' : 'text-emerald-600';
   };
 
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  /**
+   * Persist the current exercise ID to the user's seenExerciseIds in Firestore
+   * and update local context state.
+   */
+  const markCurrentExerciseSeen = async () => {
+    if (!exerciseId || !user?.token || !user?.uid) return;
+    const currentSeen = user.seenExerciseIds ?? [];
+    await markExerciseSeen(user.token, user.uid, exerciseId, currentSeen);
+    setUser((prev) => ({
+      ...prev,
+      seenExerciseIds: [...new Set([...currentSeen, exerciseId])],
+    }));
+  };
+
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleGetExercise = async () => {
     setError(null);
     setLoading(true);
     try {
-      const result = await generateWritingPrompt({ token: user.token, level });
-      setExercise(result);
+      const result = await getExercise({
+        token: user.token,
+        level,
+        type: 'writing',
+        targetLang: user.learningDialect || 'pt-PT',
+        userDialect: user.interfaceLang || 'en-US',
+        seenExerciseIds: user.seenExerciseIds ?? [],
+      });
+      setExercise(result.content);
+      setExerciseId(result.exerciseId);
       setUserText('');
       timerRef.current?.reset();
       setStep('writing');
@@ -274,11 +301,14 @@ const WritingExercise = ({ isDarkMode }) => {
       const result = await evaluateWriting({
         token:          user.token,
         level,
+        targetLang:     user.learningDialect || 'pt-PT',
         exercisePrompt: exercise.prompt,
         userText,
       });
       setEval(result);
       setStep('results');
+      // Mark the exercise as seen after successful evaluation
+      await markCurrentExerciseSeen();
     } catch (err) {
       setError(err.message ?? t('common.error', 'Something went wrong. Please try again.'));
     } finally {
@@ -289,6 +319,7 @@ const WritingExercise = ({ isDarkMode }) => {
   const handleTryAgain = () => {
     setStep('setup');
     setExercise(null);
+    setExerciseId(null);
     setUserText('');
     setEval(null);
     setError(null);
@@ -406,7 +437,7 @@ const WritingExercise = ({ isDarkMode }) => {
           <p className={`mt-3 text-xs font-semibold ${
             isDarkMode ? 'text-slate-500' : 'text-slate-400'
           }`}>
-            {t('exam.word_count_target', 'Target: {{min}}–{{max}} words', { min: minWords, max: maxWords })}
+            {t('exam.word_count_target', 'Target: {{min}}&ndash;{{max}} words', { min: minWords, max: maxWords })}
           </p>
         </Card>
 
@@ -464,7 +495,7 @@ const WritingExercise = ({ isDarkMode }) => {
                 <BarChart2 size={16} />
                 {t('exam.evaluate', 'Evaluate My Writing')}
               </PrimaryButton>
-              <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
+              <GhostButton onClick={onBack || handleTryAgain} isDarkMode={isDarkMode}>
                 <RotateCcw size={14} />
                 {t('exam.try_again', 'Try Again')}
               </GhostButton>
@@ -539,7 +570,7 @@ const WritingExercise = ({ isDarkMode }) => {
               isDarkMode ? 'text-slate-400' : 'text-slate-500'
             }`}>
               {t('exam.word_count', 'Word count')}: <span className="font-black">{evaluation.wordCount}</span>
-              {' '}({t('exam.word_count_target', 'Target: {{min}}–{{max}} words', { min: minWords, max: maxWords })})
+              {' '}({t('exam.word_count_target', 'Target: {{min}}&ndash;{{max}} words', { min: minWords, max: maxWords })})
             </p>
           </div>
         </Card>
@@ -570,7 +601,7 @@ const WritingExercise = ({ isDarkMode }) => {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode} className="flex-1">
+          <GhostButton onClick={onBack || handleTryAgain} isDarkMode={isDarkMode} className="flex-1">
             <RotateCcw size={14} />
             {t('exam.try_again', 'Try Again')}
           </GhostButton>
@@ -600,6 +631,11 @@ const WritingExercise = ({ isDarkMode }) => {
 
 WritingExercise.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
+  onBack:     PropTypes.func,
+};
+
+WritingExercise.defaultProps = {
+  onBack: undefined,
 };
 
 export default WritingExercise;

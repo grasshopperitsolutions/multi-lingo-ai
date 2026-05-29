@@ -20,7 +20,8 @@
   "common": {
     "loading": "Cargando...",
     "cancel": "Cancelar",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "error": "Algo salió mal. Por favor, inténtalo de nuevo."
   },
   "avatar": {
     "alt_fallback": "Avatar"

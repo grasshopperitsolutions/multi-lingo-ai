@@ -20,7 +20,8 @@
   "common": {
     "loading": "A carregar...",
     "cancel": "Cancelar",
-    "close": "Fechar"
+    "close": "Fechar",
+    "error": "Algo correu mal. Por favor, tente novamente."
   },
   "avatar": {
     "alt_fallback": "Avatar"

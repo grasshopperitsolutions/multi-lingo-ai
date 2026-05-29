@@ -1,21 +1,25 @@
 /**
- * examTrainingService.js
+ * examWritingExerciseService.js
  *
- * Handles all AI calls for the Exam Training feature via the /api/ask-ai proxy.
+ * Specialized service for writing exercises.
+ * Handles AI-powered generation of writing prompts and evaluation of student writing
+ * against a 5-parameter CEFR rubric (A–E parameters).
  *
- * // TODO: Currently hardcoded to pt-PT as the learning language.
- * //       When multi-language support is added, pass `targetLang` as a parameter
- * //       and update the prompts accordingly.
+ * Currently hardcoded to pt-PT as the target language.
+ * When multi-language support is added, these prompts will be parameterized.
  *
  * Usage:
- *   import { generateWritingPrompt, evaluateWriting } from '../services/examTrainingService';
+ *   import { generateWritingExercise, evaluateWriting } from '../services/examWritingExerciseService';
  *
- *   const { prompt, instructions } = await generateWritingPrompt({ token, level: 'A1' });
+ *   // Generate a new writing exercise
+ *   const exercise = await generateWritingExercise({ token, level: 'A1', targetLang: 'pt-PT' });
  *
+ *   // Evaluate student's response
  *   const result = await evaluateWriting({
  *     token,
  *     level: 'A1',
- *     exercisePrompt: 'Escreve uma mensagem...',
+ *     targetLang: 'pt-PT',
+ *     exercisePrompt: exercise.prompt,
  *     userText: 'Olá, como estás?...',
  *   });
  */
@@ -25,23 +29,26 @@
 // ---------------------------------------------------------------------------
 
 /**
- * @typedef {Object} GenerateWritingPromptParams
- * @property {string} token  - Firebase ID token
- * @property {string} level  - CEFR level: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
+ * @typedef {Object} GenerateWritingExerciseParams
+ * @property {string} token      - Firebase ID token
+ * @property {string} level      - CEFR level: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
+ * @property {string} targetLang - Target language: 'pt-PT' | 'en-US'
  */
 
 /**
- * @typedef {Object} GenerateWritingPromptResult
- * @property {string}   prompt       - The writing task description shown to the user
- * @property {string[]} instructions - Bullet-point instructions for the task
- * @property {number}   minWords     - Minimum word count required
- * @property {number}   maxWords     - Maximum word count required
+ * @typedef {Object} WritingExerciseContent
+ * @property {string}   prompt       - The writing task description
+ * @property {string[]} instructions - Bullet-point instructions
+ * @property {number}   minWords     - Minimum word count
+ * @property {number}   maxWords     - Maximum word count
+ * @property {Object}   hints        - Empty hints map (populated on-demand)
  */
 
 /**
  * @typedef {Object} EvaluateWritingParams
  * @property {string} token          - Firebase ID token
  * @property {string} level          - CEFR level
+ * @property {string} targetLang     - Target language
  * @property {string} exercisePrompt - The original task shown to the user
  * @property {string} userText       - The text written by the user
  */
@@ -71,23 +78,20 @@
 // ---------------------------------------------------------------------------
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-
-/**
- * Gemini 2.5 Flash — fast, cost-effective, strong JSON output.
- *
- * ⚠️  DEPRECATION NOTICE: gemini-2.5-flash is scheduled for deprecation on
- *     June 17, 2026. Upgrade to gemini-3.5-flash before that date.
- *     Cost comparison per 100 sessions: 2.5-flash ~$0.43 vs 3.5-flash ~$1.59.
- *     See: https://ai.google.dev/gemini-api/docs/models
- */
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
 /**
- * Maximum number of output tokens for AI calls.
- * Set to 2048 to prevent truncated JSON responses on verbose outputs
- * such as evaluateWriting (5 parameter feedbacks + generalFeedback).
+ * Max output tokens for writing exercise generation.
+ * 2048 is sufficient for prompt + instructions.
  */
-const MAX_OUTPUT_TOKENS = 2048;
+const MAX_OUTPUT_TOKENS_GENERATION = 2048;
+
+/**
+ * Max output tokens for writing evaluation.
+ * 4096 (2x) to prevent truncated JSON responses on verbose outputs
+ * with 5 parameter feedbacks + generalFeedback.
+ */
+const MAX_OUTPUT_TOKENS_EVALUATION = 4096;
 
 /** Word count bounds by CEFR level (pt-PT certification standards) */
 const WORD_COUNT_BOUNDS = {
@@ -100,98 +104,20 @@ const WORD_COUNT_BOUNDS = {
 };
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * POST to /api/ask-ai with JSON mode enabled.
- * @param {string} token
- * @param {string} prompt
- * @returns {Promise<string>} Raw text from the AI response
- */
-async function callAskAI(token, prompt) {
-  const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method:  'POST',
-    headers: {
-      Authorization:  `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      prompt,
-      providerParams: {
-        provider:        'gemini',
-        model:           GEMINI_MODEL,
-        temperature:     0.7,
-        jsonMode:        true,
-        maxOutputTokens: MAX_OUTPUT_TOKENS,
-      },
-    }),
-  });
-
-  const json = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      json?.error ?? json?.message ?? `[examTrainingService] Request failed (${response.status})`
-    );
-  }
-
-  // API envelope: { success: true, data: { text: string } }
-  return json?.data?.text ?? json?.text ?? '';
-}
-
-/**
- * Safely parse JSON from the AI response.
- * Strips markdown code fences if present.
- * @param {string} raw
- * @returns {object}
- */
-function parseJSON(raw) {
-  const cleaned = raw
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/```\s*$/i, '')
-    .trim();
-  return JSON.parse(cleaned);
-}
-
-/**
- * Count words in a string (splits on whitespace).
- * @param {string} text
- * @returns {number}
- */
-function countWords(text) {
-  return text.trim().split(/\s+/).filter(Boolean).length;
-}
-
-/**
- * Calculate the word count penalty based on pt-PT certification rules.
- * - ±0 if within [min, max]
- * - −1 if between (min−20, min) or (max, max+20]
- * - −2 if below (min−20) or above (max+20)
- * @param {number} wordCount
- * @param {string} level
- * @returns {number} 0 | 1 | 2
- */
-function calcWordCountPenalty(wordCount, level) {
-  const { min, max } = WORD_COUNT_BOUNDS[level] ?? WORD_COUNT_BOUNDS.A1;
-  if (wordCount >= min && wordCount <= max)          return 0;
-  if (wordCount >= min - 20 || wordCount <= max + 20) return 1;
-  return 2;
-}
-
-// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 /**
- * Generate a CEFR-appropriate writing exercise prompt in pt-PT.
+ * Generate a CEFR-appropriate writing exercise prompt.
+ * Currently hardcoded to pt-PT; will be parameterized in future.
  *
- * @param {GenerateWritingPromptParams} params
- * @returns {Promise<GenerateWritingPromptResult>}
+ * @param {GenerateWritingExerciseParams} params
+ * @returns {Promise<WritingExerciseContent>}
  */
-export async function generateWritingPrompt({ token, level }) {
-  if (!token) throw new Error('[examTrainingService] token is required');
-  if (!level) throw new Error('[examTrainingService] level is required');
+export async function generateWritingExercise({ token, level, targetLang }) {
+  if (!token) throw new Error('[examWritingExerciseService] token is required');
+  if (!level) throw new Error('[examWritingExerciseService] level is required');
+  if (!targetLang) throw new Error('[examWritingExerciseService] targetLang is required');
 
   const { min, max } = WORD_COUNT_BOUNDS[level] ?? WORD_COUNT_BOUNDS.A1;
 
@@ -217,21 +143,22 @@ export async function generateWritingPrompt({ token, level }) {
     `- Do NOT include any text outside the JSON object.`,
   ].join('\n');
 
-  const raw = await callAskAI(token, prompt);
+  const raw = await _callAskAI(token, prompt, MAX_OUTPUT_TOKENS_GENERATION);
 
-  if (!raw) throw new Error('[examTrainingService] Empty response from AI');
+  if (!raw) throw new Error('[examWritingExerciseService] Empty response from AI');
 
-  const data = parseJSON(raw);
+  const data = _parseJSON(raw);
 
   if (!data?.prompt || !Array.isArray(data?.instructions)) {
-    throw new Error('[examTrainingService] Unexpected response shape from generateWritingPrompt');
+    throw new Error('[examWritingExerciseService] Unexpected response shape from generateWritingExercise');
   }
 
   return {
-    prompt:       data.prompt,
+    prompt: data.prompt,
     instructions: data.instructions,
-    minWords:     data.minWords ?? min,
-    maxWords:     data.maxWords ?? max,
+    minWords: data.minWords ?? min,
+    maxWords: data.maxWords ?? max,
+    hints: {},
   };
 }
 
@@ -253,19 +180,20 @@ export async function generateWritingPrompt({ token, level }) {
  * @param {EvaluateWritingParams} params
  * @returns {Promise<EvaluateWritingResult>}
  */
-export async function evaluateWriting({ token, level, exercisePrompt, userText }) {
-  if (!token)          throw new Error('[examTrainingService] token is required');
-  if (!level)          throw new Error('[examTrainingService] level is required');
-  if (!exercisePrompt) throw new Error('[examTrainingService] exercisePrompt is required');
-  if (!userText?.trim()) throw new Error('[examTrainingService] userText is required');
+export async function evaluateWriting({ token, level, targetLang, exercisePrompt, userText }) {
+  if (!token)          throw new Error('[examWritingExerciseService] token is required');
+  if (!level)          throw new Error('[examWritingExerciseService] level is required');
+  if (!targetLang)     throw new Error('[examWritingExerciseService] targetLang is required');
+  if (!exercisePrompt) throw new Error('[examWritingExerciseService] exercisePrompt is required');
+  if (!userText?.trim()) throw new Error('[examWritingExerciseService] userText is required');
 
-  const wordCount        = countWords(userText);
-  const wordCountPenalty = calcWordCountPenalty(wordCount, level);
+  const wordCount        = _countWords(userText);
+  const wordCountPenalty = _calcWordCountPenalty(wordCount, level);
   const { min, max }     = WORD_COUNT_BOUNDS[level] ?? WORD_COUNT_BOUNDS.A1;
 
   const prompt = [
-    `You are an expert Portuguese language examiner evaluating a CEFR ${level} writing exercise.`,
-    `The student was asked to write in European Portuguese (pt-PT).`,
+    `You are an expert language examiner evaluating a CEFR ${level} writing exercise in ${targetLang}.`,
+    `The student was asked to write in ${targetLang}.`,
     ``,
     `--- EXERCISE PROMPT ---`,
     exercisePrompt,
@@ -277,27 +205,27 @@ export async function evaluateWriting({ token, level, exercisePrompt, userText }
     ``,
     `Evaluate the student text using the following 5 parameters, each scored from 1 to 5:`,
     ``,
-    `A. Tema, tipologia, informação e coerência`,
+    `A. Tema, tipologia, informação e coerência (Theme, text type, information & coherence)`,
     `   5: Fully follows task instructions, coherent, complete information.`,
     `   3: Partially follows instructions, generally coherent with some gaps.`,
     `   1: Insufficient task completion, very little intelligible content.`,
     ``,
-    `B. Estrutura e coesão`,
+    `B. Estrutura e coesão (Structure & cohesion)`,
     `   5: Well-defined structure, correct paragraphing, punctuation, cohesive devices, appropriate verb tenses.`,
     `   3: Satisfactory structure with minor inconsistencies in cohesion and verb tense.`,
     `   1: Very poor structure, breaks in cohesion, inconsistent verb tenses.`,
     ``,
-    `C. Morfologia e sintaxe`,
+    `C. Morfologia e sintaxe (Morphology & syntax)`,
     `   5: Good command of sentence construction, agreement, word order. Uses complex structures.`,
     `   3: Acceptable command with some errors in agreement, selection, inflection.`,
     `   1: Poor command, serious errors throughout. No complex structures.`,
     ``,
-    `D. Vocabulário`,
+    `D. Vocabulário (Vocabulary)`,
     `   5: Adequate, diverse, appropriate vocabulary for the topic.`,
     `   3: Adequate but limited vocabulary with occasional inadequacies.`,
     `   1: Limited, redundant, often inappropriate vocabulary.`,
     ``,
-    `E. Ortografia`,
+    `E. Ortografia (Spelling)`,
     `   5: Correct spelling or at most 1 error per 60 words.`,
     `   3: Some spelling errors (~4 per 60 words).`,
     `   1: Many spelling errors (more than 7 per 60 words).`,
@@ -306,7 +234,7 @@ export async function evaluateWriting({ token, level, exercisePrompt, userText }
     `- Scores may be intermediate values (e.g. 2, 4) when between levels.`,
     `- Expected word count range: ${min}–${max} words. Student wrote ${wordCount} words.`,
     `- Do NOT apply the word count penalty yourself — it will be applied programmatically.`,
-    `- Write all feedback in the same language as the student's interface (English unless detected otherwise).`,
+    `- Write all feedback in English.`,
     `- Be specific and constructive in each parameter's feedback.`,
     ``,
     `Return ONLY a valid JSON object with this exact shape:`,
@@ -324,14 +252,14 @@ export async function evaluateWriting({ token, level, exercisePrompt, userText }
     `Do NOT include any text outside the JSON object.`,
   ].join('\n');
 
-  const raw = await callAskAI(token, prompt);
+  const raw = await _callAskAI(token, prompt, MAX_OUTPUT_TOKENS_EVALUATION);
 
-  if (!raw) throw new Error('[examTrainingService] Empty response from AI');
+  if (!raw) throw new Error('[examWritingExerciseService] Empty response from AI');
 
-  const data = parseJSON(raw);
+  const data = _parseJSON(raw);
 
   if (!Array.isArray(data?.parameters) || data.parameters.length !== 5) {
-    throw new Error('[examTrainingService] Unexpected response shape from evaluateWriting');
+    throw new Error('[examWritingExerciseService] Unexpected response shape from evaluateWriting');
   }
 
   const rawScore   = data.parameters.reduce((sum, p) => sum + (p.score ?? 0), 0);
@@ -346,4 +274,60 @@ export async function evaluateWriting({ token, level, exercisePrompt, userText }
     parameters:      data.parameters,
     generalFeedback: data.generalFeedback ?? '',
   };
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * POST to /api/ask-ai with JSON mode enabled.
+ */
+async function _callAskAI(token, prompt, maxOutputTokens) {
+  const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
+    method:  'POST',
+    headers: {
+      Authorization:  `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      prompt,
+      providerParams: {
+        provider:        'gemini',
+        model:           GEMINI_MODEL,
+        temperature:     0.7,
+        jsonMode:        true,
+        maxOutputTokens: maxOutputTokens,
+      },
+    }),
+  });
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      json?.error ?? json?.message ?? `[examWritingExerciseService] Request failed (${response.status})`
+    );
+  }
+
+  return json?.data?.text ?? json?.text ?? '';
+}
+
+function _parseJSON(raw) {
+  const cleaned = raw
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
+  return JSON.parse(cleaned);
+}
+
+function _countWords(text) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function _calcWordCountPenalty(wordCount, level) {
+  const { min, max } = WORD_COUNT_BOUNDS[level] ?? WORD_COUNT_BOUNDS.A1;
+  if (wordCount >= min && wordCount <= max)          return 0;
+  if (wordCount >= min - 20 || wordCount <= max + 20) return 1;
+  return 2;
 }

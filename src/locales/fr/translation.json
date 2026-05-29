@@ -20,7 +20,8 @@
   "common": {
     "loading": "Chargement...",
     "cancel": "Annuler",
-    "close": "Fermer"
+    "close": "Fermer",
+    "error": "Une erreur s'est produite. Veuillez réessayer."
   },
   "avatar": {
     "alt_fallback": "Avatar"

@@ -20,7 +20,8 @@
   "common": {
     "loading": "Loading...",
     "cancel": "Cancel",
-    "close": "Close"
+    "close": "Close",
+    "error": "Something went wrong. Please try again."
   },
   "avatar": {
     "alt_fallback": "Avatar"
