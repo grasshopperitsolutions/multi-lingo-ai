@@ -14,7 +14,7 @@ const FeatureCard = ({ icon: Icon, title, description, delay, color, isDarkMode,
     <Tooltip text={description} isDarkMode={isDarkMode}>
       <button
         onClick={onClick}
-        className={`relative p-6 rounded-2xl border-4 transition-all duration-200 wiggle-hover flex flex-col items-center text-center w-full cursor-pointer ${
+        className={`relative p-6 rounded-2xl border-4 transition-all duration-200 wiggle-hover flex flex-col items-center text-center w-full cursor-pointer min-h-[200px] ${
           isDarkMode
             ? "bg-slate-800 border-slate-700 neo-shadow-dark text-slate-100 hover:-translate-y-1 active:scale-95"
             : "bg-white border-slate-900 neo-shadow-light text-slate-900 hover:-translate-y-1 active:scale-95"
