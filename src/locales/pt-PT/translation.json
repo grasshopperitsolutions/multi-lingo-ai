@@ -481,7 +481,12 @@
     "param_b_name": "Coerência & Coesão",
     "param_c_name": "Recurso Lexical",
     "param_d_name": "Amplitude Gramatical & Precisão",
-    "param_e_name": "Controlo Ortográfico"
+    "param_e_name": "Controlo Ortográfico",
+    "reading_passage": "Texto de Leitura",
+    "vocabulary": "Vocabulário",
+    "comprehension_questions": "Perguntas de Compreensão",
+    "questions_answered": "perguntas respondidas",
+    "check_answers": "Verificar as Minhas Respostas"
   },
   "dictionary": {
     "lang_tooltip": "A escrever em {{lang}}",
@@ -568,5 +573,11 @@
     "description": "Descrição",
     "placeholder": "Descreve o problema em poucas palavras…",
     "send": "Enviar via WhatsApp"
+  },
+  "session": {
+    "expired_title": "Sessão Expirada",
+    "expired_message": "A tua sessão expirou. Por favor, inicia sessão de novo para continuar.",
+    "refresh_button": "Iniciar Sessão de Novo",
+    "checking": "A verificar sessão..."
   }
 }

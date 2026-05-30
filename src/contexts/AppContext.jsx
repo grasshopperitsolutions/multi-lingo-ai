@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import {
   loginWithGoogle,
   logout as logoutUserService,
@@ -8,6 +8,9 @@ import { auth } from "../firebase";
 import PropTypes from "prop-types";
 
 const AppContext = createContext();
+
+// ── Token validation interval (50 min — Firebase ID tokens expire after 1 hr)
+const TOKEN_CHECK_INTERVAL_MS = 50 * 60 * 1000;
 
 // Helper to get saved theme from localStorage (fallback for non-logged-in users)
 const getSavedTheme = () => {
@@ -43,6 +46,8 @@ export const AppProvider = ({ children }) => {
   const [interfaceLang, setInterfaceLang] = useState(getSavedLanguage());
   const [alert, setAlert] = useState({ show: false, type: "", message: "" });
   const [user, setUser] = useState(null);
+  const [tokenExpired, setTokenExpired] = useState(false);
+  const tokenCheckRef = useRef(null);
 
   const showAlert = (type, message) => {
     setAlert({ show: true, type, message });
@@ -51,6 +56,80 @@ export const AppProvider = ({ children }) => {
   const closeAlert = () => {
     setAlert((prev) => ({ ...prev, show: false }));
   };
+
+  /**
+   * Attempt to force-refresh the Firebase ID token.
+   * Returns the fresh token on success, or null on failure (session expired).
+   */
+  const validateToken = useCallback(async () => {
+    const firebaseUser = auth?.currentUser;
+    if (!firebaseUser) return null;
+    try {
+      const freshToken = await firebaseUser.getIdToken(true);
+      return freshToken;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  /**
+   * Called when we detect the token can no longer be refreshed.
+   * Marks the session as expired and shows a persistent warning.
+   */
+  const handleTokenExpired = useCallback(() => {
+    setTokenExpired(true);
+    // Use a non-auto-dismissing alert so the user sees the warning
+    setAlert({
+      show: true,
+      type: "error",
+      message: "__SESSION_EXPIRED__", // sentinel; AlertMessage will resolve via i18n
+    });
+  }, []);
+
+  /**
+   * Dismiss the expired-session banner and attempt to recover by
+   * re-validating the token (e.g. after the user re-authenticates).
+   */
+  const dismissTokenExpired = useCallback(() => {
+    setTokenExpired(false);
+    setAlert({ show: false, type: "", message: "" });
+  }, []);
+
+  // ── Periodic token validation ──────────────────────────────────────────
+  // Every TOKEN_CHECK_INTERVAL_MS, try to force-refresh the ID token.
+  // If the refresh fails the session is considered expired.
+  useEffect(() => {
+    if (!auth) return;
+
+    const startTokenCheck = () => {
+      tokenCheckRef.current = setInterval(async () => {
+        const token = await validateToken();
+        if (!token && auth.currentUser) {
+          handleTokenExpired();
+        }
+      }, TOKEN_CHECK_INTERVAL_MS);
+    };
+
+    startTokenCheck();
+
+    return () => {
+      if (tokenCheckRef.current) clearInterval(tokenCheckRef.current);
+    };
+  }, [validateToken, handleTokenExpired]);
+
+  // ── Listen for auth state → clear expired flag when user re-auths ──────
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      if (firebaseUser && tokenExpired) {
+        // User re-authenticated (e.g. signed in again from another tab)
+        setTokenExpired(false);
+        setAlert({ show: false, type: "", message: "" });
+      }
+    });
+    return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Change interface language and persist
   const changeLanguage = (lang) => {
@@ -240,6 +319,10 @@ export const AppProvider = ({ children }) => {
         loginGoogle,
         logoutUser,
         refreshUser,
+        tokenExpired,
+        handleTokenExpired,
+        dismissTokenExpired,
+        validateToken,
       }}
     >
       {children}
