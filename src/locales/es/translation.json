@@ -13,6 +13,7 @@
     "lang_pt": "Portugués",
     "lang_es": "Español",
     "lang_fr": "Francés",
+    "lang_de": "Alemán",
     "open_menu": "Abrir menú",
     "close_menu": "Cerrar menú",
     "brand": "Multi Lingo AI"
@@ -479,7 +480,12 @@
     "word_count": "Recuento de palabras",
     "breakdown": "Desglose de Puntuación",
     "general_feedback": "Comentarios Generales",
-    "improve": "Mejorar Mi Texto"
+    "improve": "Mejorar Mi Texto",
+    "param_a_name": "Logro de la Tarea",
+    "param_b_name": "Coherencia & Cohesión",
+    "param_c_name": "Recurso Léxico",
+    "param_d_name": "Rango Gramatical & Precisión",
+    "param_e_name": "Control Ortográfico"
   },
   "dictionary": {
     "lang_tooltip": "Escribiendo en {{lang}}",

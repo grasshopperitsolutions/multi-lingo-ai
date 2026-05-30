@@ -13,6 +13,7 @@
     "lang_pt": "Portuguese",
     "lang_es": "Spanish",
     "lang_fr": "French",
+    "lang_de": "German",
     "open_menu": "Open menu",
     "close_menu": "Close menu",
     "brand": "Multi Lingo AI"
@@ -475,7 +476,12 @@
     "word_count": "Word count",
     "breakdown": "Score Breakdown",
     "general_feedback": "General Feedback",
-    "improve": "Improve My Text"
+    "improve": "Improve My Text",
+    "param_a_name": "Task Achievement",
+    "param_b_name": "Coherence & Cohesion",
+    "param_c_name": "Lexical Resource",
+    "param_d_name": "Grammatical Range & Accuracy",
+    "param_e_name": "Orthographic Control"
   },
   "dictionary": {
     "lang_tooltip": "Typing in {{lang}}",

@@ -1,0 +1,572 @@
+{
+  "nav": {
+    "home": "Startseite",
+    "contact": "Kontakt",
+    "login": "Anmelden",
+    "logout": "Abmelden",
+    "dashboard": "Dashboard",
+    "settings": "Einstellungen",
+    "light_mode": "Heller Modus",
+    "dark_mode": "Dunkler Modus",
+    "language": "Sprache",
+    "lang_en": "Englisch",
+    "lang_pt": "Portugiesisch",
+    "lang_es": "Spanisch",
+    "lang_fr": "Französisch",
+    "lang_de": "Deutsch",
+    "open_menu": "Menü öffnen",
+    "close_menu": "Menü schließen",
+    "brand": "Multi Lingo AI"
+  },
+  "common": {
+    "loading": "Wird geladen...",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "error": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+  },
+  "avatar": {
+    "alt_fallback": "Avatar"
+  },
+  "barcelos_rooster": {
+    "alt": "Hahn von Barcelos"
+  },
+  "confirm_modal": {
+    "loading": "Wird geladen&hellip;",
+    "cancel": "Abbrechen",
+    "close": "Schließen"
+  },
+  "home": {
+    "badge": "DIE KI-REVOLUTION IST DA",
+    "hero_line1": "Frag die KI",
+    "hero_highlight": "Alles",
+    "hero_line2": "über Portugiesisch",
+    "subtitle": "Die erste Plattform, die dir Europäisches Portugiesisch beibringt – von jeder Sprache oder jedem Dialekt, den du sprichst. KI-gestützt, menschlich unterstützt.",
+    "cta_start": "Jetzt lernen",
+    "marquee": [
+      "LERNE PORTUGIESISCH SCHNELL",
+      "KEINE LANGWEILIGE GRAMMATIK",
+      "KI-GESTÜTZT",
+      "EINHEIMISCHER SLANG"
+    ],
+    "features": {
+      "voice_tutor": "24/7 KI-Sprachtutor",
+      "urban_dictionary": "Urban Dictionary",
+      "smart_scheduler": "Intelligente Planung",
+      "human_sessions": "Menschliche Tutorsitzungen"
+    },
+    "universal_input": {
+      "title": "Die Universaleingabe",
+      "subtitle": "Lernst du von Irisch? Irisch-Gälisch? Mandarin? Gib es einfach ein. Unsere KI überbrückt die Lücke."
+    },
+    "language_pills": [
+      "Gälisch ➜ PT",
+      "US-Englisch ➜ PT",
+      "Thailändisch ➜ PT",
+      "Australischer Slang ➜ PT"
+    ],
+    "wall_of_love_heading": "Lobeswand",
+    "reviews": [
+      {
+        "name": "Nadja",
+        "date": "10. Februar 2026",
+        "quote": "Nuno ist ein großartiger Tutor, er passt den Unterricht an die Bedürfnisse der Schüler an und ist sehr hilfreich."
+      },
+      {
+        "name": "Claudia",
+        "date": "16. Januar 2026",
+        "quote": "Nuno ist ein außergewöhnlicher Lehrer, der mein Portugiesisch-Lernen beschleunigt. Seine unterhaltsame und effektive Methode stärkt mein Selbstvertrauen und meine Fähigkeiten."
+      },
+      {
+        "name": "Chloe",
+        "date": "15. Januar 2026",
+        "quote": "Ich LIEBE es, mit Nuno zu lernen. Er ist klug, lustig, und sein Unterricht ist wirklich interessant. Ich habe das Gefühl, viel zu lernen, und die 50 Minuten vergehen wie im Flug. Ich fühle mich sicher beim Lernen mit ihm."
+      },
+      {
+        "name": "Fabian",
+        "date": "8. Januar 2026",
+        "quote": "Nuno ist ein großartiger Lehrer, er ist geduldig und passt jede Lektion gerne an unsere Bedürfnisse an. Sein Sprachenwissen ist riesig und er erklärt alles klar mit Beispielen."
+      },
+      {
+        "name": "Kelsey",
+        "date": "17. Dezember 2025",
+        "quote": "Nunos Unterricht ist leicht zu verstehen und er geht wirklich auf deine Bedürfnisse und dein Niveau ein. Kann ich nur weiterempfehlen!"
+      },
+      {
+        "name": "Jacob",
+        "date": "15. Dezember 2025",
+        "quote": "Nuno ist ein großartiger Tutor; er hört seinen Schülern wirklich zu und wird dadurch ein besserer Tutor als viele andere."
+      },
+      {
+        "name": "Erek",
+        "date": "21. November 2025",
+        "quote": "Hervorragend für lockere Gespräche im Alltag mit Verbstruktur und Wiederholung. Netter Kerl und bodenständig, leicht zu verstehen."
+      },
+      {
+        "name": "Alasdair",
+        "date": "6. November 2025",
+        "quote": "Nuno ist ein großartiger Lehrer. Er ist sehr geduldig und bereit, sich an die Bedürfnisse der Schüler anzupassen. Er hat viel Wissen und kann Dinge sehr klar erklären."
+      },
+      { "name": "Ludovic", "date": "9. Oktober 2025", "quote": "Perfekt!" },
+      {
+        "name": "Nia",
+        "date": "7. Oktober 2025",
+        "quote": "Nuno ist ein engagierter Lehrer, der auf individuelle Bedürfnisse eingeht und einen praktischen Ansatz verfolgt."
+      },
+      {
+        "name": "Mark",
+        "date": "6. Oktober 2025",
+        "quote": "Sehr sympathisch."
+      },
+      {
+        "name": "Jade",
+        "date": "6. Oktober 2025",
+        "quote": "Mir gefällt der persönliche Ansatz, den Nuno in seinem Unterricht verfolgt. Er geht in dem Tempo vor, das du brauchst/möchtest, ohne zu viel Druck zu machen."
+      },
+      {
+        "name": "Ludovica",
+        "date": "2. Oktober 2025",
+        "quote": "Nuno ist ein großartiger Lehrer. Er ist geduldig und konzentriert sich wirklich auf deine Bedürfnisse. Ich habe bereits nach wenigen Unterrichtsstunden Fortschritte bemerkt. Unser Unterricht ist eine Mischung aus Lesen, Grammatik und Schreiben, was ihn sehr abwechslungsreich macht."
+      },
+      {
+        "name": "Andrew",
+        "date": "29. Januar 2025",
+        "quote": "Die Arbeit mit Nuno ist großartig. Ich mache bereits nach nur zwei Unterrichtsstunden bemerkbare Fortschritte. Freue mich auf die nächste!"
+      },
+      {
+        "name": "Michael",
+        "date": "4. Januar 2025",
+        "quote": "Ich lerne Portugiesisch mit Nuno und es ist eine hervorragende Erfahrung! Er ist geduldig, intelligent und nimmt sich Zeit, um das Lernen zu personalisieren."
+      },
+      {
+        "name": "George",
+        "date": "29. November 2024",
+        "quote": "Nunos Ansatz zum Unterrichten ist fantastisch, ansprechend und interessant. Er gibt klare, hilfreiche Anleitungen und Erklärungen auf entspannte und informelle Weise."
+      },
+      {
+        "name": "Philipp",
+        "date": "26. September 2024",
+        "quote": "Ich habe meine Preply-Reise mit Nuno begonnen und bin sehr zufrieden mit unserem Unterricht. Er ist ein lustiger Typ, mit dem man leicht über den Alltag und Hobbys sprechen kann."
+      },
+      {
+        "name": "Charles",
+        "date": "25. September 2024",
+        "quote": "Mache große Fortschritte in meinem Portugiesisch! Kann Nuno sehr empfehlen, um anzufangen. Er macht einen großartigen Job, um dich mit den Grundlagen vertraut zu machen."
+      },
+      {
+        "name": "Sh",
+        "date": "15. September 2024",
+        "quote": "Es sind klare und schöne Unterrichtsstunden, er hat Geduld und hat Spaß am Unterricht."
+      },
+      {
+        "name": "Laura",
+        "date": "10. September 2024",
+        "quote": "Nuno ist sehr geduldig. Er kann Wörter und Bedeutungen so erklären, dass sie Sinn ergeben."
+      },
+      {
+        "name": "Hlib",
+        "date": "6. September 2024",
+        "quote": "Nuno ist ein ausgezeichneter Portugiesisch-Tutor. Er erklärt alles klar und macht es leicht, mitzukommen. Besonders für diejenigen, die in der IT arbeiten."
+      },
+      {
+        "name": "Jennifer",
+        "date": "8. August 2024",
+        "quote": "Sehr lustig im Gespräch."
+      },
+      {
+        "name": "Yegane",
+        "date": "5. August 2024",
+        "quote": "Nuno ist ein fantastischer Lehrer, und ich kann ihn wärmstens empfehlen. Seine freundliche Art hat mir schnell die Angst vor der portugiesischen Sprache genommen."
+      },
+      {
+        "name": "Rosa",
+        "date": "1. August 2024",
+        "quote": "Er hat viel Geduld und ist sehr ermutigend!"
+      },
+      {
+        "name": "Angie",
+        "date": "29. Juli 2024",
+        "quote": "Nuno ist ein unglaublicher Tutor, sowohl freundlich als auch kenntnisreich. Von der ersten Sitzung an hat seine einladende Art das Lernen unterhaltsam und einfach gemacht."
+      },
+      {
+        "name": "Josep",
+        "date": "20. Juli 2024",
+        "quote": "Nuno ist ein außergewöhnlicher Portugiesischlehrer. Sein Unterricht ist immer dynamisch und fesselnd. Dank seiner freundlichen Persönlichkeit und Geduld ist jede Stunde sehr angenehm."
+      },
+      {
+        "name": "Isobelle",
+        "date": "16. Juli 2024",
+        "quote": "Vielen Dank Nuno, mein Unterricht macht sehr viel Spaß und ist sehr interessant."
+      },
+      {
+        "name": "Bas",
+        "date": "12. Juli 2024",
+        "quote": "Heute hatte ich meine erste Stunde bei Nuno, es war sehr angenehm, er hat viel Geduld. Er hat mir eine sehr lustige Hausaufgabe gegeben."
+      }
+    ],
+    "how_it_works_heading": "Wie es funktioniert",
+    "how_it_works_step1_title": "Wähle deine Sprache",
+    "how_it_works_step1_desc": "Sprichst du Englisch, Thailändisch oder australischen Slang? Wir beginnen dort, wo DU bist.",
+    "how_it_works_step2_title": "Frag die KI",
+    "how_it_works_step2_desc": "Keine starren Lektionen. Frage, wie man eine \"Bifana\" bestellt oder in Lissabon natürlich flirtet.",
+    "how_it_works_step3_title": "Meistere den Slang",
+    "how_it_works_step3_desc": "Lade personalisierte Spickzettel herunter und übe mit unserem 24/7-Sprachtutor.",
+    "cta_watch_demo": "Demo ansehen",
+    "faq_heading": "Hast du Fragen?",
+    "final_cta_heading": "Bereit, die Lehrbücher beiseitezulegen?",
+    "final_cta_subtitle": "Schließe dich Tausenden von Lernenden an, die echtes Alltagsportugiesisch meistern.",
+    "final_cta_button": "Kostenlos starten",
+    "faqs": [
+      {
+        "question": "Ist das ausschließlich Europäisches Portugiesisch?",
+        "answer": "100%. Wir haben dies speziell entwickelt, weil alle anderen Apps brasilianisches Portugiesisch verwenden. Hier kein 'você', es sei denn, wir sind streng formell!"
+      },
+      {
+        "question": "Muss ich Englisch können, um dies zu nutzen?",
+        "answer": "Nein! Multi Lingo AI wird von einer Engine betrieben, die Konzepte mit JEDER von dir angegebenen Startsprache oder jedem Dialekt übersetzt und erklärt."
+      },
+      {
+        "question": "Kann ich mit einem echten Menschen sprechen?",
+        "answer": "Ja! Obwohl unser KI-Tutor rund um die Uhr verfügbar ist, kannst du ganz einfach Live-Sitzungen mit geprüften menschlichen Tutoren über unsere intelligente Planung buchen."
+      },
+      {
+        "question": "Was macht Multi Lingo AI anders?",
+        "answer": "Wir konzentrieren uns auf echtes, gesprochenes Portugiesisch mit authentischem Slang und Ausdrücken. Keine Lehrbuchsprache – nur praktische, alltägliche Kommunikation."
+      },
+      {
+        "question": "Wie viel kostet es?",
+        "answer": "Wir bieten flexible Preispläne ab einer kostenlosen Stufe. Premium-Pläne schalten unbegrenzte KI-Gespräche und Live-Tutorsitzungen frei."
+      },
+      {
+        "question": "Kann ich es kostenlos ausprobieren?",
+        "answer": "Absolut! Du kannst unsere kostenlose Stufe nutzen, um alle Funktionen zu erkunden. Die meisten Lernenden beginnen mit unserem kostenlosen Plan, um zu sehen, ob Multi Lingo AI das Richtige für sie ist."
+      },
+      {
+        "question": "Sind meine Lerndaten privat?",
+        "answer": "Ja! Deine Privatsphäre ist uns wichtig. Alle Gesprächsdaten sind verschlüsselt und du behältst die volle Kontrolle über deine Lerninformationen."
+      }
+    ]
+  },
+  "login": {
+    "title": "Anmelden",
+    "subtitle": "Wähle deine bevorzugte Anmeldeoption, um fortzufahren.",
+    "google": "Weiter mit Google",
+    "apple": "Weiter mit Apple",
+    "facebook": "Weiter mit Facebook",
+    "x": "Weiter mit X",
+    "terms_note": "Mit der Anmeldung stimmst du unseren",
+    "terms": "Nutzungsbedingungen",
+    "privacy": "Datenschutzbestimmungen",
+    "not_available": "Diese Anmeldeoption ist noch nicht verfügbar – schau bald wieder vorbei!",
+    "signing_in": "Anmelden mit Google…",
+    "back_home": "Zurück zur Startseite"
+  },
+  "contact": {
+    "title": "Kontaktiere uns",
+    "subtitle": "Hast du Fragen zu Europäischem Portugiesisch? Unser Team ist hier, um dir zu helfen.",
+    "title_touch": "Kontakt",
+    "email_label": "Schreib uns eine E-Mail",
+    "whatsapp_label": "WhatsApp (schnellste Antwort)",
+    "location_label": "Standort",
+    "location_value": "🌍 Vollständig Remote & Weltweit",
+    "hours_label": "Geschäftszeiten",
+    "hours_value": "🟢 24/7 / Täglich",
+    "faq_title": "Häufig gestellte Fragen",
+    "faq_q1": "Wie schnell erhalte ich eine Antwort?",
+    "faq_a1": "Wir antworten in der Regel innerhalb von 24 Stunden an Werktagen. Für dringende Angelegenheiten nutze WhatsApp für die schnellste Antwort.",
+    "faq_q2": "Bietet ihr individuelle Pläne für Schulen an?",
+    "faq_a2": "Ja! Wir haben spezielle Bildungspakete für Schulen und Sprachinstitute. Schick uns eine Nachricht, um deine Bedürfnisse zu besprechen.",
+    "faq_q3": "Kann ich neue Funktionen anfragen?",
+    "faq_a3": "Absolut! Wir freuen uns über Benutzervorschläge. Viele unserer besten Funktionen entstanden direkt aus Benutzeranfragen.",
+    "faq_q4": "Ist Multi Lingo AI wirklich 100% remote?",
+    "faq_a4": "Ja! Wir sind ein vollständig verteiltes Team, das von Stränden, Cafés und Coworking-Spaces auf der ganzen Welt arbeitet. Kein Büro, keine Kleiderordnung, nur großartiges Sprachenlernen.",
+    "form": {
+      "name": "Vollständiger Name",
+      "name_placeholder": "Nuno Silva",
+      "email": "E-Mail",
+      "email_placeholder": "nuno@beispiel.de",
+      "phone": "Telefon (Optional)",
+      "phone_placeholder": "+49 170 12345678",
+      "subject": "Betreff",
+      "subject_general": "Allgemeine Frage",
+      "subject_support": "Technischer Support",
+      "subject_feedback": "Feedback",
+      "subject_business": "Geschäftsanfrage",
+      "subject_bug": "Fehler melden",
+      "message": "Nachricht",
+      "message_placeholder": "Was beschäftigt dich?",
+      "submit": "Nachricht senden",
+      "sending": "Wird gesendet...",
+      "success": "Nachricht erfolgreich gesendet! Wir melden uns bald bei dir.",
+      "error": "Bitte fülle alle erforderlichen Felder aus"
+    }
+  },
+  "footer": {
+    "tagline": "Europäisches Portugiesisch mit KI für alle.",
+    "links": "Links",
+    "legal": "Rechtliches",
+    "terms": "Nutzungsbedingungen",
+    "privacy": "Datenschutzbestimmungen",
+    "contact": "Kontakt",
+    "rights": "Alle Rechte vorbehalten.",
+    "built_by": "Hol dir deine eigene großartige Website von Grasshopper IT Solutions",
+    "brand": "Multi Lingo AI"
+  },
+  "terms": {
+    "title": "Nutzungsbedingungen",
+    "section1_title": "1. Annahme der Bedingungen",
+    "section1_text": "Durch den Zugriff auf und die Nutzung dieser Website erklärst du dich mit den Bedingungen dieser Vereinbarung einverstanden. Wenn du diesen Bedingungen nicht zustimmst, nutze diese Website bitte nicht.",
+    "section2_title": "2. Nutzungslizenz",
+    "section2_text": "Es wird die Erlaubnis erteilt, die Materialien auf dieser Website vorübergehend für den persönlichen, nicht-kommerziellen Gebrauch anzusehen. Dies ist eine Lizenzgewährung, keine Eigentumsübertragung.",
+    "section3_title": "3. Haftungsausschluss",
+    "section3_text": "Die Materialien auf dieser Website werden 'wie besehen' bereitgestellt. Wir übernehmen keine ausdrücklichen oder stillschweigenden Garantien und lehnen hiermit alle anderen Garantien ab.",
+    "section4_title": "4. Beschränkungen",
+    "section4_text": "In keinem Fall haften wir für Schäden (einschließlich, ohne Einschränkung, Schäden durch Daten- oder Gewinnverlust), die aus der Nutzung oder der Unfähigkeit zur Nutzung der Materialien auf dieser Website entstehen.",
+    "section5_title": "5. Änderungen",
+    "section5_text": "Wir können diese Nutzungsbedingungen jederzeit ohne vorherige Ankündigung überarbeiten. Durch die Nutzung dieser Website erklärst du dich mit der jeweils aktuellen Version dieser Bedingungen einverstanden.",
+    "last_updated": "Zuletzt aktualisiert: April 2026"
+  },
+  "privacy": {
+    "title": "Datenschutzbestimmungen",
+    "section1_title": "1. Informationen, die wir sammeln",
+    "section1_text": "Wir können persönliche Informationen wie deinen Namen, deine E-Mail-Adresse und alle anderen Informationen sammeln, die du bei der Nutzung unserer Website freiwillig angibst.",
+    "section2_title": "2. Wie wir deine Informationen verwenden",
+    "section2_text": "Die von uns gesammelten Informationen können verwendet werden, um dein Erlebnis zu personalisieren, unsere Website zu verbessern, regelmäßige E-Mails zu senden oder Wettbewerbe, Umfragen oder andere Website-Funktionen zu verwalten.",
+    "section3_title": "3. Cookies",
+    "section3_text": "Diese Website kann Cookies verwenden, um das Benutzererlebnis zu verbessern. Dein Webbrowser platziert Cookies auf deiner Festplatte zu Aufzeichnungszwecken und manchmal, um Informationen über dich zu verfolgen.",
+    "section4_title": "4. Datenschutz",
+    "section4_text": "Wir ergreifen angemessene Datenerfassungs-, Speicher- und Verarbeitungspraktiken sowie Sicherheitsmaßnahmen, um vor unbefugtem Zugriff, Änderung, Offenlegung oder Zerstörung deiner persönlichen Daten zu schützen.",
+    "section5_title": "5. Weitergabe deiner Informationen",
+    "section5_text": "Wir verkaufen, handeln oder vermieten deine persönlichen Daten nicht an Dritte. Wir können allgemeine, aggregierte demografische Informationen, die nicht mit persönlichen Daten verknüpft sind, an unsere Geschäftspartner weitergeben.",
+    "section6_title": "6. Änderungen dieser Richtlinie",
+    "section6_text": "Wir behalten uns das Recht vor, diese Datenschutzbestimmungen jederzeit zu aktualisieren. Wenn wir dies tun, werden wir das Aktualisierungsdatum am Ende dieser Seite überarbeiten.",
+    "last_updated": "Zuletzt aktualisiert: April 2026"
+  },
+  "settings": {
+    "back_to_dashboard": "Zurück zum Dashboard",
+    "title": "Einstellungen",
+    "profile": "Profil",
+    "display_name": "Anzeigename",
+    "display_name_placeholder": "Dein Anzeigename",
+    "email": "E-Mail",
+    "change_photo": "Foto ändern",
+    "uploading": "Wird hochgeladen...",
+    "profile_photo_alt": "Profilfoto",
+    "appearance": "Erscheinungsbild",
+    "app_theme": "App-Design",
+    "dark_mode": "Dunkler Modus",
+    "light_mode": "Heller Modus",
+    "interface_language": "Oberflächensprache",
+    "save_settings": "Einstellungen speichern",
+    "saving": "Wird gespeichert...",
+    "account": "Konto",
+    "sign_out": "Abmelden",
+    "delete_account": "Konto löschen",
+    "delete_confirm_title": "Konto löschen",
+    "delete_confirm_message": "Dies wird <1>dein Konto und alle zugehörigen Daten unwiderruflich löschen</1> – einschließlich deines Profils, hochgeladener Dateien und des Gesprächsverlaufs.",
+    "delete_confirm_warning": "⚠ Diese Aktion kann nicht rückgängig gemacht werden.",
+    "delete_confirm_button": "Ja, mein Konto löschen",
+    "upload_failed": "Fehler beim Hochladen des Profilbilds. Bitte versuche es erneut.",
+    "account_deleted": "Dein Konto wurde unwiderruflich gelöscht.",
+    "delete_failed": "Fehler beim Löschen des Kontos. Bitte versuche es erneut.",
+    "portuguese_label": "Portugiesisch (Portugal)",
+    "errors": {
+      "not_signed_in": "Du musst angemeldet sein, um Einstellungen zu speichern.",
+      "save_failed": "Fehler beim Speichern der Einstellungen. Bitte versuche es erneut.",
+      "network_error": "Der Server konnte nicht erreicht werden. Bitte überprüfe deine Verbindung und versuche es erneut."
+    },
+    "success_message": "Einstellungen erfolgreich gespeichert!",
+    "delete_not_implemented": "Die Kontolöschung ist noch nicht implementiert.",
+    "language_learning": "Sprachenlernen",
+    "learning_language": "Lernsprache",
+    "learning_locked_hint": "Gesperrt — Europäisches Portugiesisch ist derzeit die einzige angebotene Sprache.",
+    "interests": "Interessen",
+    "interests_hint": "Wähle Themen aus, die dir gefallen, um dein Lernerlebnis zu personalisieren.",
+    "categories": {
+      "general": "Allgemein",
+      "food": "Essen",
+      "travel": "Reisen",
+      "sports": "Sport",
+      "tech": "Technik",
+      "nature": "Natur"
+    }
+  },
+  "translator": {
+    "input_placeholder": "Text hier eingeben oder einfügen\u2026",
+    "listen": "Anhören",
+    "listen_slow": "Langsam anhören",
+    "clear": "Löschen",
+    "translating": "Wird übersetzt\u2026",
+    "output_placeholder": "Die Übersetzung erscheint hier\u2026",
+    "copy": "Kopieren",
+    "copied": "Kopiert!",
+    "swap": "Tauschen",
+    "translate": "Übersetzen",
+    "keyboard_hint": "Tipp: Drücke Strg+Eingabe (oder \u2318+Eingabe) zum Übersetzen",
+    "error_failed": "Übersetzung fehlgeschlagen. Bitte versuche es erneut.",
+    "lookup_in_dictionary": "Im Wörterbuch nachschlagen"
+  },
+  "dashboard": {
+    "loading": "Dein Dashboard wird geladen\u2026",
+    "welcome": "Hallo, {{name}} 👋",
+    "welcome_subtitle": "Willkommen zurück in deinem Sprachzentrum",
+    "your_progress": "Dein Fortschritt",
+    "languages": "Sprachen",
+    "sessions": "Sitzungen",
+    "day_streak": "Tägliche Serie",
+    "words": "Wörter",
+    "awards": "Auszeichnungen",
+    "what_you_can_do": "Was du tun kannst",
+    "back": "Zurück zum Dashboard",
+    "not_implemented": "Diese Funktion kommt bald – bleib dran!",
+    "coming_soon": "Demnächst verfügbar...",
+    "learner": "Lernender",
+    "profile_alt": "Profil",
+    "translator": "Übersetzer",
+    "translator_desc": "Übersetze Text zwischen zwei Sprachen sofort mit kontextbewusster KI.",
+    "dictionary": "Wörterbuch",
+    "dictionary_desc": "Schlage Wörter, Bedeutungen, Beispiele und Konjugationen in jeder Sprache nach.",
+    "grammar": "Grammatik",
+    "grammar_desc": "Überprüfe und korrigiere deine Grammatik, erhalte Erklärungen und Schreibtipps.",
+    "ai_tutor": "KI-Tutor",
+    "ai_tutor_desc": "Unterhalte dich mit einem KI-Sprachtutor zum Üben, für Korrekturen und Feedback.",
+    "real_person_tutor": "Menschlicher Tutor",
+    "real_person_tutor_desc": "Buche eine Live-Sitzung mit einem zertifizierten muttersprachlichen Tutor.",
+    "voice_practice": "Sprechpraxis",
+    "voice_practice_desc": "Nimm dich beim Sprechen auf und erhalte KI-gestütztes Aussprache-Feedback.",
+    "story_generator": "Geschichtengenerator",
+    "story_generator_desc": "Lese und höre KI-generierte Geschichten, die auf dein Niveau zugeschnitten sind.",
+    "history_culture": "Geschichte & Kultur",
+    "history_culture_desc": "Entdecke die Geschichte, Bräuche und Kultur hinter der Sprache, die du lernst.",
+    "challenges": "Herausforderungen",
+    "challenges_desc": "Teste deine Fähigkeiten mit Minispielen, Quizfragen und täglichen Sprachherausforderungen.",
+    "exam_training": "Prüfungsvorbereitung",
+    "exam_training_desc": "Bereite dich auf offizielle Sprachzertifikatsprüfungen vor."
+  },
+  "exam": {
+    "title": "Prüfungsvorbereitung",
+    "listening": "Hörverständnis",
+    "listening_desc": "Trainiere dein Gehör mit Hörverständnisübungen",
+    "writing": "Schreiben",
+    "writing_desc": "Übe den schriftlichen Ausdruck auf deinem Niveau",
+    "reading": "Leseverständnis",
+    "reading_desc": "Verstehe und analysiere schriftliche Texte",
+    "full_exam": "Komplette Prüfung",
+    "full_exam_desc": "Simuliere eine vollständige Zertifikatsprüfungssitzung",
+    "select_level": "Wähle dein Niveau",
+    "language_note": "Die Übung ist auf Europäisches Portugiesisch (pt-PT).",
+    "generating": "Übung wird generiert...",
+    "get_exercise": "Übung starten",
+    "task": "Deine Aufgabe",
+    "word_count_target": "Ziel: {{min}}\u2013{{max}} Wörter",
+    "timer": "Timer",
+    "timer_start": "Starten",
+    "timer_pause": "Pause",
+    "timer_reset": "Zurücksetzen",
+    "your_text": "Dein Text",
+    "words": "Wörter",
+    "too_short": "zu kurz",
+    "too_long": "zu lang",
+    "textarea_placeholder": "Schreibe deinen Text hier...",
+    "evaluating": "Dein Text wird bewertet...",
+    "evaluate": "Meinen Text bewerten",
+    "try_again": "Erneut versuchen",
+    "results": "Ergebnisse",
+    "score": "Punktzahl",
+    "penalty": "-{{n}} Wortanzahlabzug",
+    "word_count": "Wortanzahl",
+    "breakdown": "Punktzahlaufschlüsselung",
+    "general_feedback": "Allgemeines Feedback",
+    "improve": "Meinen Text verbessern",
+    "param_a_name": "Aufgabenerfüllung",
+    "param_b_name": "Kohärenz & Kohäsion",
+    "param_c_name": "Lexikalische Ressourcen",
+    "param_d_name": "Grammatikalische Bandbreite & Genauigkeit",
+    "param_e_name": "Orthografische Kontrolle"
+  },
+  "dictionary": {
+    "lang_tooltip": "Eingabe in {{lang}}",
+    "input_placeholder": "Gib ein Wort oder einen Ausdruck ein\u2026",
+    "looking_up": "Wird nachgeschlagen\u2026",
+    "look_up": "Nachschlagen",
+    "keyboard_hint": "Tipp: Drücke Strg+Eingabe (oder \u2318+Eingabe) zum Nachschlagen",
+    "definition": "Definition",
+    "synonyms": "Synonyme",
+    "error_failed": "Nachschlagen fehlgeschlagen. Bitte versuche es erneut."
+  },
+  "challenges": {
+    "title": "Challenge Hub",
+    "coming_soon": "Demnächst verfügbar...",
+    "crosswords": "Kreuzworträtsel",
+    "crosswords_desc": "Teste deinen Wortschatz mit täglichen portugiesischen Kreuzworträtseln.",
+    "hangman": "Galgenmännchen",
+    "hangman_desc": "Errate den Slang, bevor der Mann fällt.",
+    "hangman_azulejo_desc": "Eine traditionelle portugiesische Keramikfliese, oft blau und weiß.",
+    "easy": "Leicht",
+    "hard": "Schwer",
+    "session_expired": "Sitzung abgelaufen. Die Seite wird aktualisiert.",
+    "hangman_drawing_alt": "Galgenmännchen-Zeichnung: {{wrongCount}} falsche Versuche",
+    "word_quiz": "Wort-Quiz",
+    "word_quiz_desc": "Schnelle Vokabelfragen, um deine Fähigkeiten zu schärfen.",
+    "word_search": "Wortsuche",
+    "word_search_desc": "Finde portugiesische Wörter, die im Gitter versteckt sind.",
+    "crossword_crushed": "KREUZWORTRÄTSEL GELÖST!",
+    "you_survived": "DU HAST ÜBERLEBT!",
+    "hung_up": "AUFGEHÄNGT!",
+    "play_again": "Noch einmal spielen",
+    "clues": "HINWEISE",
+    "across": "WAAGERECHT",
+    "down": "SENKRECHT",
+    "clue_bread": "Unverzichtbares Backwarenprodukt (Brot)",
+    "clue_father": "Familienmitglied (Vater)",
+    "submit": "Absenden",
+    "try_again": "Nicht ganz – versuche es erneut!",
+    "word_fetch_error": "Fehler beim Laden des Wortes. Bitte versuche es erneut.",
+    "loading_word": "Ein Wort wird ausgewählt...",
+    "scrambled_word": "Durcheinandergeratenes Wort",
+    "scrambled_word_desc": "Entwirre die Buchstaben, um das portugiesische Wort zu finden.",
+    "scrambled_word_reshuffle": "Buchstaben neu mischen",
+    "scrambled_word_won": "DU HAST ES GEKNACKT!",
+    "scrambled_word_lost": "DURCHEINANDER!",
+    "scrambled_word_answer": "Das Wort war:",
+    "next_word": "Frag nach mehr!",
+    "sidebar": {
+      "never": "Nie",
+      "just_now": "Gerade eben",
+      "minutes_ago": "Vor {{count}} Min.",
+      "minutes_ago_plural": "Vor {{count}} Min.",
+      "hours_ago": "Vor {{count}} Std.",
+      "hours_ago_plural": "Vor {{count}} Std.",
+      "days_ago": "Vor {{count}} Tagen",
+      "days_ago_plural": "Vor {{count}} Tagen",
+      "expand": "Seitenleiste erweitern",
+      "collapse": "Seitenleiste einklappen",
+      "title": "Aktuelle Statistiken",
+      "words_seen": "Gesehene Wörter",
+      "played": "Gespielt",
+      "last_played": "Zuletzt gespielt",
+      "dialect": "Dialekt",
+      "reset_btn": "Fortschritt zurücksetzen",
+      "reset_title": "Fortschritt zurücksetzen",
+      "reset_message": "Dies löscht alle gesehenen Wörter und ermöglicht dir, bereits gespielte Wörter erneut zu sehen.",
+      "reset_warning": "⚠ Dies kann nicht rückgängig gemacht werden.",
+      "reset_confirm": "Ja, Fortschritt zurücksetzen",
+      "reset_seen_words_btn": "Gesehene Wörter zurücksetzen"
+    },
+    "word_search_panel": "Finde diese Wörter",
+    "clear_selection": "Auswahl löschen",
+    "victory_title": "Alle gefunden!",
+    "words_found": "{{found}} / {{total}} gefunden",
+    "words_count": "{{count}} Wörter gefunden"
+  },
+  "report": {
+    "buttonLabel": "Melden",
+    "buttonAriaLabel": "Ein Problem melden",
+    "title": "Ein Problem melden",
+    "successTitle": "Vielen Dank!",
+    "successMessage": "WhatsApp wurde mit deiner Meldung geöffnet. Bitte drücke auf Senden, um sie zu übermitteln.",
+    "category": "Kategorie",
+    "description": "Beschreibung",
+    "placeholder": "Beschreibe das Problem in ein paar Worten…",
+    "send": "Per WhatsApp senden"
+  }
+}
