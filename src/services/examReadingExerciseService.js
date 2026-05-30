@@ -67,10 +67,18 @@ const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
 /**
- * Max output tokens for reading exercise generation.
- * 2048 is sufficient for passage + questions.
+ * Max output tokens for reading exercise generation, scaled by CEFR level.
+ * Higher levels produce longer, more complex passages & questions.
  */
-const MAX_OUTPUT_TOKENS_GENERATION = 2048;
+const MAX_OUTPUT_TOKENS_BY_LEVEL = {
+  A1: 2048,
+  A2: 3072,
+  B1: 4096,
+  B2: 4096,
+  C1: 6144,
+  C2: 6144,
+};
+const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -117,7 +125,8 @@ export async function generateReadingExercise({ token, level, targetLang }) {
     `- Do NOT include any text outside the JSON object.`,
   ].join('\n');
 
-  const raw = await _callAskAI(token, prompt, MAX_OUTPUT_TOKENS_GENERATION);
+  const maxTokens = MAX_OUTPUT_TOKENS_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS;
+  const raw = await _callAskAI(token, prompt, maxTokens);
 
   if (!raw) throw new Error('[examReadingExerciseService] Empty response from AI');
 
