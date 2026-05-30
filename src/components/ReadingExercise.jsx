@@ -23,6 +23,7 @@ import {
   XCircle,
   ChevronRight,
   AlertTriangle,
+  ArrowLeft,
 } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import NeoDropdown from './NeoDropdown';
@@ -136,6 +137,25 @@ GhostButton.propTypes = {
   className: PropTypes.string,
 };
 GhostButton.defaultProps = { disabled: false, className: '' };
+
+const BackButton = ({ onBack, isDarkMode, t }) => (
+  <button
+    onClick={onBack}
+    className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-widest
+      transition-all hover:-translate-x-0.5 ${
+        isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
+      }`}
+    aria-label={t('common.back', 'Back')}
+  >
+    <ArrowLeft size={14} />
+    {t('common.back', 'Back')}
+  </button>
+);
+BackButton.propTypes = {
+  onBack: PropTypes.func.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+  t: PropTypes.func.isRequired,
+};
 
 const ErrorBanner = ({ error, isDarkMode }) =>
   error ? (
@@ -399,13 +419,15 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
     await markCurrentExerciseSeen();
   };
 
-  const handleTryAgain = () => {
-    setStep('setup');
+  // Try Again: clears state and immediately fetches a new exercise using the
+  // current level — no need to go back to the setup screen.
+  const handleTryAgain = async () => {
     setExercise(null);
     setExerciseId(null);
     setAnswers({});
     setResult(null);
     setError(null);
+    await handleGetExercise();
   };
 
   // ── Shared inline elements ───────────────────────────────────────────
@@ -431,6 +453,9 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
   if (step === 'setup') {
     return (
       <div className="flex flex-col gap-5">
+        {/* Back button */}
+        <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
+
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
@@ -491,6 +516,9 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
   if (step === 'reading') {
     return (
       <div className="flex flex-col gap-5">
+        {/* Back button */}
+        <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
+
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -642,6 +670,9 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
 
     return (
       <div className="flex flex-col gap-5">
+        {/* Back button */}
+        <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
+
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -712,7 +743,15 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3">
           <GhostButton
-            onClick={onBack || handleTryAgain}
+            onClick={onBack}
+            isDarkMode={isDarkMode}
+            className="flex-1"
+          >
+            <ArrowLeft size={14} />
+            {t('common.back', 'Back')}
+          </GhostButton>
+          <GhostButton
+            onClick={handleTryAgain}
             isDarkMode={isDarkMode}
             className="flex-1"
           >
@@ -729,10 +768,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
 
 ReadingExercise.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
-  onBack: PropTypes.func,
-};
-ReadingExercise.defaultProps = {
-  onBack: undefined,
+  onBack: PropTypes.func.isRequired,
 };
 
 export default ReadingExercise;
