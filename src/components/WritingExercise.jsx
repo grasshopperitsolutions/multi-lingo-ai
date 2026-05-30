@@ -16,7 +16,7 @@
 import { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { BarChart2, PenLine, RotateCcw, Wand2, AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react';
+import { BarChart2, PenLine, RotateCcw, Wand2, AlertTriangle, CheckCircle2, ChevronRight, ArrowLeft } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import NeoDropdown from './NeoDropdown';
 import Loader from './Loader';
@@ -144,6 +144,26 @@ GhostButton.propTypes = {
   className: PropTypes.string,
 };
 GhostButton.defaultProps = { disabled: false, className: '' };
+
+/** Back link — top of every step */
+const BackButton = ({ onBack, isDarkMode, t }) => (
+  <button
+    onClick={onBack}
+    className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-widest
+      transition-all hover:-translate-x-0.5 ${
+        isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
+      }`}
+    aria-label={t('common.back', 'Back')}
+  >
+    <ArrowLeft size={14} />
+    {t('common.back', 'Back')}
+  </button>
+);
+BackButton.propTypes = {
+  onBack: PropTypes.func.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+  t: PropTypes.func.isRequired,
+};
 
 // ---------------------------------------------------------------------------
 // Error banner (declared outside of component to avoid recreation on render)
@@ -349,6 +369,9 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
   if (step === 'setup') {
     return (
       <div className="flex flex-col gap-5">
+        {/* Back button */}
+        <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
+
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
@@ -408,6 +431,9 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
   if (step === 'writing') {
     return (
       <div className="flex flex-col gap-5">
+        {/* Back button */}
+        <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
+
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -532,6 +558,9 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
 
     return (
       <div className="flex flex-col gap-5">
+        {/* Back button */}
+        <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
+
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -623,6 +652,10 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3">
+          <GhostButton onClick={onBack} isDarkMode={isDarkMode} className="flex-1">
+            <ArrowLeft size={14} />
+            {t('common.back', 'Back')}
+          </GhostButton>
           <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode} className="flex-1">
             <RotateCcw size={14} />
             {t('exam.try_again', 'Try Again')}
@@ -653,11 +686,7 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
 
 WritingExercise.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
-  onBack:     PropTypes.func,
-};
-
-WritingExercise.defaultProps = {
-  onBack: undefined,
+  onBack:     PropTypes.func.isRequired,
 };
 
 export default WritingExercise;
