@@ -6,6 +6,7 @@ import enTranslation from './locales/en/translation.json';
 import ptPTTranslation from './locales/pt-PT/translation.json';
 import esTranslation from './locales/es/translation.json';
 import frTranslation from './locales/fr/translation.json';
+import deTranslation from './locales/de/translation.json';
 
 i18n
   .use(LanguageDetector)
@@ -16,9 +17,10 @@ i18n
       'pt-PT': { translation: ptPTTranslation },
       'es-ES': { translation: esTranslation },
       'fr-FR': { translation: frTranslation },
+      'de-DE': { translation: deTranslation },
     },
     fallbackLng: 'en-US',
-    supportedLngs: ['en-US', 'pt-PT', 'es-ES', 'fr-FR'],
+    supportedLngs: ['en-US', 'pt-PT', 'es-ES', 'fr-FR', 'de-DE'],
     interpolation: {
       escapeValue: false,
     },
