@@ -408,14 +408,14 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
     setError(null);
   };
 
-  // ── Header icon shared across steps ───────────────────────────────────
-  const HeaderIcon = () => (
+  // ── Shared inline elements ───────────────────────────────────────────
+  const headerIcon = (
     <div className="w-10 h-10 rounded-xl border-4 border-slate-900 bg-emerald-400 flex items-center justify-center shrink-0">
       <BookOpen size={18} className="text-slate-900" />
     </div>
   );
 
-  const LevelBadge = () => (
+  const levelBadge = (
     <span
       className={`text-xs font-black uppercase tracking-widest px-2 py-1 rounded-lg border-2 ${
         isDarkMode
@@ -434,7 +434,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
-            <HeaderIcon />
+            {headerIcon}
             <h2
               className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
                 isDarkMode ? 'text-white' : 'text-slate-900'
@@ -494,7 +494,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <LevelBadge />
+            {levelBadge}
             <h2
               className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
                 isDarkMode ? 'text-white' : 'text-slate-900'
@@ -645,7 +645,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <LevelBadge />
+            {levelBadge}
             <h2
               className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
                 isDarkMode ? 'text-white' : 'text-slate-900'
