@@ -30,6 +30,7 @@ const LANGUAGES = [
   { value: "pt-PT", labelKey: "nav.lang_pt" },
   { value: "es-ES", labelKey: "nav.lang_es" },
   { value: "fr-FR", labelKey: "nav.lang_fr" },
+  { value: "de-DE", labelKey: "nav.lang_de" },
 ];
 
 const INTEREST_CATEGORIES = [
