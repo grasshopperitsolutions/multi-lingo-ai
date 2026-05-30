@@ -27,10 +27,11 @@ const Header = () => {
   };
 
   const languages = [
-    { code: "en-US", label: t("nav.lang_en") },
-    { code: "pt-PT", label: t("nav.lang_pt") },
-    { code: "es-ES", label: t("nav.lang_es") },
-    { code: "fr-FR", label: t("nav.lang_fr") },
+    { code: "en-US", label: t("nav.lang_en"), short: "EN" },
+    { code: "pt-PT", label: t("nav.lang_pt"), short: "PT" },
+    { code: "es-ES", label: t("nav.lang_es"), short: "ES" },
+    { code: "fr-FR", label: t("nav.lang_fr"), short: "FR" },
+    { code: "de-DE", label: t("nav.lang_de"), short: "DE" },
   ];
 
   return (
@@ -211,7 +212,9 @@ const Header = () => {
                           : "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-900"
                     }`}
                 >
-                  {lang.label}
+                  {/* Full label on sm+, short code on xs */}
+                  <span className="hidden sm:inline">{lang.label}</span>
+                  <span className="inline sm:hidden">{lang.short}</span>
                 </button>
               ))}
             </div>
