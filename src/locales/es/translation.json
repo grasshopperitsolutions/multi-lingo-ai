@@ -485,7 +485,12 @@
     "param_b_name": "Coherencia & Cohesión",
     "param_c_name": "Recurso Léxico",
     "param_d_name": "Rango Gramatical & Precisión",
-    "param_e_name": "Control Ortográfico"
+    "param_e_name": "Control Ortográfico",
+    "reading_passage": "Texto de Lectura",
+    "vocabulary": "Vocabulario",
+    "comprehension_questions": "Preguntas de Comprensión",
+    "questions_answered": "preguntas respondidas",
+    "check_answers": "Comprobar Mis Respuestas"
   },
   "dictionary": {
     "lang_tooltip": "Escribiendo en {{lang}}",

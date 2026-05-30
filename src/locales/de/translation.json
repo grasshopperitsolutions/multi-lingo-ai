@@ -481,7 +481,12 @@
     "param_b_name": "Kohärenz & Kohäsion",
     "param_c_name": "Lexikalische Ressourcen",
     "param_d_name": "Grammatikalische Bandbreite & Genauigkeit",
-    "param_e_name": "Orthografische Kontrolle"
+    "param_e_name": "Orthografische Kontrolle",
+    "reading_passage": "Lesetext",
+    "vocabulary": "Wortschatz",
+    "comprehension_questions": "Verständnisfragen",
+    "questions_answered": "Fragen beantwortet",
+    "check_answers": "Meine Antworten überprüfen"
   },
   "dictionary": {
     "lang_tooltip": "Eingabe in {{lang}}",

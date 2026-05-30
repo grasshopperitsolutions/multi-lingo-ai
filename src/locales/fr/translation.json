@@ -481,7 +481,12 @@
     "param_b_name": "Cohérence & Cohésion",
     "param_c_name": "Ressource Lexicale",
     "param_d_name": "Étendue Grammaticale & Précision",
-    "param_e_name": "Contrôle Orthographique"
+    "param_e_name": "Contrôle Orthographique",
+    "reading_passage": "Texte de Lecture",
+    "vocabulary": "Vocabulaire",
+    "comprehension_questions": "Questions de Compréhension",
+    "questions_answered": "questions répondues",
+    "check_answers": "Vérifier Mes Réponses"
   },
   "dictionary": {
     "lang_tooltip": "Saisie en {{lang}}",

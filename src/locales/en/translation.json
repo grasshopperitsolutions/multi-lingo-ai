@@ -481,7 +481,12 @@
     "param_b_name": "Coherence & Cohesion",
     "param_c_name": "Lexical Resource",
     "param_d_name": "Grammatical Range & Accuracy",
-    "param_e_name": "Orthographic Control"
+    "param_e_name": "Orthographic Control",
+    "reading_passage": "Reading Passage",
+    "vocabulary": "Vocabulary",
+    "comprehension_questions": "Comprehension Questions",
+    "questions_answered": "questions answered",
+    "check_answers": "Check My Answers"
   },
   "dictionary": {
     "lang_tooltip": "Typing in {{lang}}",
