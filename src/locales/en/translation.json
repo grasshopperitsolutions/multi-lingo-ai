@@ -573,5 +573,11 @@
     "description": "Description",
     "placeholder": "Describe the issue in a few words…",
     "send": "Send via WhatsApp"
+  },
+  "session": {
+    "expired_title": "Session Expired",
+    "expired_message": "Your session has expired. Please sign in again to continue.",
+    "refresh_button": "Sign In Again",
+    "checking": "Checking session..."
   }
 }

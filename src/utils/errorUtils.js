@@ -5,6 +5,37 @@
  * Keep provider-specific details away from the user.
  */
 
+// ── authFetch ─────────────────────────────────────────────────────────────
+
+/**
+ * A thin wrapper around `fetch` that detects 401 (Unauthorized) responses
+ * and triggers the global session-expired handler.
+ *
+ * Usage — drop-in replacement for `fetch`:
+ *   import { authFetch } from "../utils/errorUtils";
+ *   const res = await authFetch(url, options);
+ *
+ * The second parameter `onTokenExpired` is a callback that should call
+ * handleTokenExpired() from AppContext.  It is only invoked once per 401
+ * to avoid spamming the user with multiple alerts.
+ *
+ * @param {string|URL} url
+ * @param {RequestInit} [options]
+ * @param {Function}    [onTokenExpired] - called when a 401 is received
+ * @returns {Promise<Response>}
+ */
+export async function authFetch(url, options, onTokenExpired) {
+  const response = await fetch(url, options);
+
+  if (response.status === 401 && onTokenExpired) {
+    onTokenExpired();
+  }
+
+  return response;
+}
+
+// ── sanitizeAIError ───────────────────────────────────────────────────────
+
 /**
  * Replaces any error message that leaks an AI provider name
  * (Gemini, OpenAI, Perplexity, Anthropic, etc.) with a generic

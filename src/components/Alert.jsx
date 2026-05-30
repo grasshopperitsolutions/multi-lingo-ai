@@ -1,14 +1,22 @@
 import { useEffect } from "react";
 import { AlertTriangle, CheckCircle, Info, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import PropTypes from "prop-types";
 
 const AlertMessage = ({ alert, onClose }) => {
+  const { t } = useTranslation();
+
+  const isSessionExpired = alert.message === "__SESSION_EXPIRED__";
+  const displayMessage = isSessionExpired
+    ? t("session.expired_title")
+    : alert.message;
+
   useEffect(() => {
-    if (alert.show) {
+    if (alert.show && !isSessionExpired) {
       const timer = setTimeout(onClose, 4000);
       return () => clearTimeout(timer);
     }
-  }, [alert.show, onClose]);
+  }, [alert.show, onClose, isSessionExpired]);
 
   if (!alert.show) return null;
 
@@ -31,15 +39,33 @@ const AlertMessage = ({ alert, onClose }) => {
         className={`flex items-center gap-4 px-6 py-4 rounded-2xl border-4 border-slate-900 shadow-[6px_6px_0px_0px_#0f172a] ${currentStyle.bg} ${currentStyle.text}`}
       >
         <Icon size={24} className="flex-shrink-0" />
-        <span className="font-black uppercase tracking-tight text-lg">
-          {alert.message}
-        </span>
-        <button
-          onClick={onClose}
-          className="ml-4 opacity-70 hover:opacity-100 hover:scale-110 transition-all active:scale-90"
-        >
-          <X size={20} />
-        </button>
+        <div className="flex flex-col gap-1">
+          <span className="font-black uppercase tracking-tight text-lg">
+            {displayMessage}
+          </span>
+          {isSessionExpired && (
+            <span className="text-sm font-normal normal-case tracking-normal opacity-90">
+              {t("session.expired_message")}
+            </span>
+          )}
+        </div>
+        {isSessionExpired ? (
+          <button
+            onClick={() => {
+              window.location.href = "/login";
+            }}
+            className="ml-4 px-4 py-2 rounded-xl bg-white text-rose-500 font-bold uppercase text-sm hover:scale-105 transition-all active:scale-95 whitespace-nowrap"
+          >
+            {t("session.refresh_button")}
+          </button>
+        ) : (
+          <button
+            onClick={onClose}
+            className="ml-4 opacity-70 hover:opacity-100 hover:scale-110 transition-all active:scale-90"
+          >
+            <X size={20} />
+          </button>
+        )}
       </div>
     </div>
   );
