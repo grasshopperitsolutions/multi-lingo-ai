@@ -331,14 +331,16 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
     }
   };
 
-  const handleTryAgain = () => {
-    setStep('setup');
+  // Try Again: clears state and immediately fetches a new exercise using the
+  // current level — no need to go back to the setup screen.
+  const handleTryAgain = async () => {
     setExercise(null);
     setExerciseId(null);
     setUserText('');
     setEval(null);
     setError(null);
     timerRef.current?.reset();
+    await handleGetExercise();
   };
 
   // ---------------------------------------------------------------------------
@@ -510,7 +512,7 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
                 <BarChart2 size={16} />
                 {t('exam.evaluate', 'Evaluate My Writing')}
               </PrimaryButton>
-              <GhostButton onClick={onBack || handleTryAgain} isDarkMode={isDarkMode}>
+              <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
                 <RotateCcw size={14} />
                 {t('exam.try_again', 'Try Again')}
               </GhostButton>
@@ -621,7 +623,7 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <GhostButton onClick={onBack || handleTryAgain} isDarkMode={isDarkMode} className="flex-1">
+          <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode} className="flex-1">
             <RotateCcw size={14} />
             {t('exam.try_again', 'Try Again')}
           </GhostButton>

@@ -399,13 +399,15 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
     await markCurrentExerciseSeen();
   };
 
-  const handleTryAgain = () => {
-    setStep('setup');
+  // Try Again: clears state and immediately fetches a new exercise using the
+  // current level — no need to go back to the setup screen.
+  const handleTryAgain = async () => {
     setExercise(null);
     setExerciseId(null);
     setAnswers({});
     setResult(null);
     setError(null);
+    await handleGetExercise();
   };
 
   // ── Shared inline elements ───────────────────────────────────────────
@@ -712,7 +714,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3">
           <GhostButton
-            onClick={onBack || handleTryAgain}
+            onClick={handleTryAgain}
             isDarkMode={isDarkMode}
             className="flex-1"
           >
