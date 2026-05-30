@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import BarcelosRooster from "./BarcelosRooster";
+import MobileMenuDrawer from "./MobileMenuDrawer";
 
 const Header = () => {
   const {
@@ -21,9 +22,7 @@ const Header = () => {
 
   const handleLogout = async () => {
     const result = await logoutUser();
-    if (result?.success) {
-      navigate("/");
-    }
+    if (result?.success) navigate("/");
   };
 
   const languages = [
@@ -54,7 +53,7 @@ const Header = () => {
           </span>
         </Link>
 
-        {/* ── DESKTOP NAV (md+) ───────────────────────────────────────── */}
+        {/* ── DESKTOP NAV (md+) ──────────────────────────────────────── */}
         <div className="hidden md:flex items-center space-x-4">
           {/* Theme Toggle */}
           <button
@@ -152,7 +151,7 @@ const Header = () => {
           )}
         </div>
 
-        {/* ── MOBILE HAMBURGER BUTTON (< md) ─────────────────────────── */}
+        {/* ── MOBILE HAMBURGER BUTTON (< md) ──────────────────────────── */}
         <button
           className={`flex md:hidden p-3 rounded-full border-2 transition-transform active:scale-95 hover:scale-110
             ${isDarkMode ? "bg-slate-700 border-slate-600 text-white" : "bg-white border-slate-900 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"}`}
@@ -163,103 +162,14 @@ const Header = () => {
         </button>
       </div>
 
-      {/* ── MOBILE DRAWER ───────────────────────────────────────────────── */}
+      {/* ── MOBILE DRAWER ──────────────────────────────────────────────── */}
       {showMobileMenu && (
-        <div
-          className={`md:hidden mx-4 mb-4 rounded-2xl border-4 overflow-hidden
-            ${isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900"}`}
-        >
-          {/* Theme Toggle Row */}
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className={`w-full flex items-center justify-between px-5 py-4 font-black uppercase tracking-wide text-sm border-b-2 transition-colors
-              ${isDarkMode ? "border-slate-700 hover:bg-slate-700" : "border-slate-100 hover:bg-slate-50"}`}
-          >
-            <span>{isDarkMode ? t("nav.light_mode") : t("nav.dark_mode")}</span>
-            <div className={`p-2 rounded-full border-2
-              ${isDarkMode ? "bg-slate-600 border-yellow-400" : "bg-yellow-400 border-slate-900"}`}
-            >
-              {isDarkMode ? (
-                <Sun size={18} className="text-yellow-400" />
-              ) : (
-                <Moon size={18} className="text-slate-900" />
-              )}
-            </div>
-          </button>
-
-          {/* Language Section */}
-          <div className={`border-b-2 ${isDarkMode ? "border-slate-700" : "border-slate-100"}`}>
-            <p className={`px-5 pt-4 pb-2 text-xs font-black uppercase tracking-widest
-              ${isDarkMode ? "text-slate-400" : "text-slate-400"}`}
-            >
-              <Globe size={12} className="inline mr-1 mb-0.5" />
-              {t("nav.language")}
-            </p>
-            <div className="grid grid-cols-2 gap-2 px-4 pb-4">
-              {languages.map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => {
-                    changeLanguage(lang.code);
-                    setShowMobileMenu(false);
-                  }}
-                  className={`py-2.5 px-3 rounded-xl border-2 font-bold uppercase text-sm transition-all active:scale-95
-                    ${
-                      interfaceLang === lang.code
-                        ? "bg-blue-600 border-blue-600 text-white shadow-[2px_2px_0px_0px_#1e40af]"
-                        : isDarkMode
-                          ? "bg-slate-700 border-slate-600 text-slate-200 hover:border-blue-400"
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-900"
-                    }`}
-                >
-                  {/* Full label on sm+, short code on xs */}
-                  <span className="hidden sm:inline">{lang.label}</span>
-                  <span className="inline sm:hidden">{lang.short}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Auth Buttons */}
-          <div className="px-4 py-4 flex flex-col gap-3">
-            {user ? (
-              <>
-                <Link
-                  to="/settings"
-                  onClick={() => setShowMobileMenu(false)}
-                  className={`flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 font-black uppercase tracking-wide transition-all active:scale-95
-                    ${
-                      isDarkMode
-                        ? "bg-slate-700 border-slate-600 text-white shadow-[3px_3px_0px_0px_#1e293b]"
-                        : "bg-white border-slate-900 text-slate-900 shadow-[3px_3px_0px_0px_#0f172a]"
-                    }`}
-                >
-                  <Settings size={18} />
-                  {t('nav.settings')}
-                </Link>
-                <button
-                  onClick={() => { handleLogout(); setShowMobileMenu(false); }}
-                  className={`flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 font-black uppercase tracking-wide transition-all active:scale-95
-                    ${
-                      isDarkMode
-                        ? "bg-slate-700 border-rose-500 text-rose-400 shadow-[3px_3px_0px_0px_#1e293b]"
-                        : "bg-white border-rose-500 text-rose-500 shadow-[3px_3px_0px_0px_#0f172a]"
-                    }`}
-                >
-                  <LogOut size={18} />
-                  {t('nav.logout')}
-                </button>
-              </>
-            ) : (
-              <Link
-                to="/login"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 font-black uppercase tracking-wide bg-blue-600 border-slate-900 text-white transition-all active:scale-95 shadow-[3px_3px_0px_0px_#0f172a]"
-              >
-                {t('nav.login')}
-              </Link>
-            )}
-          </div>
+        <div className="px-4 pb-4">
+          <MobileMenuDrawer
+            onThemeToggle={() => setIsDarkMode(!isDarkMode)}
+            onLanguageChange={(code) => changeLanguage(code)}
+            onClose={() => setShowMobileMenu(false)}
+          />
         </div>
       )}
     </header>
