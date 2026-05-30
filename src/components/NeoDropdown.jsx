@@ -33,7 +33,7 @@ const NeoDropdown = ({
 
   return (
     <div
-      className={`relative inline-block w-full sm:w-auto ${className}`}
+      className={`relative inline-block w-full sm:w-auto sm:min-w-[200px] ${className}`}
       ref={dropdownRef}
     >
       {label && (
