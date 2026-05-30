@@ -10,6 +10,7 @@ import ExamTrainingMenu from "../components/ExamTrainingMenu";
 import TranslatorPanel from "../components/TranslatorPanel";
 import DictionaryPanel from "../components/DictionaryPanel";
 import TooltipButton from "../components/TooltipButton";
+import MobileMenuDrawer from "../components/MobileMenuDrawer";
 import { auth } from "../firebase";
 import { updateUserProfile } from "../services/userService";
 import {
@@ -37,7 +38,7 @@ import {
 } from "lucide-react";
 import PropTypes from "prop-types";
 
-// ── StatCard ──────────────────────────────────────────────────────────────────────────────────────────────
+// ── StatCard ────────────────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
   <div
     className={`p-2.5 sm:p-6 rounded-xl sm:rounded-2xl border-4 flex flex-col gap-1.5 sm:gap-3 transition-all hover:-translate-y-1
@@ -74,7 +75,7 @@ StatCard.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
 };
 
-// ── DashboardPage ──────────────────────────────────────────────────────────────────────────────────
+// ── DashboardPage ────────────────────────────────────────────────────────────
 const DashboardPage = () => {
   const {
     isDarkMode,
@@ -111,7 +112,7 @@ const DashboardPage = () => {
     { code: "de-DE", label: t("nav.lang_de"), short: "DE" },
   ];
 
-  // ── Persist theme or language to Firestore (fire-and-forget) ─────────────────
+  // ── Persist theme or language to Firestore (fire-and-forget) ──────────────
   const persistPreference = async ({ theme, lang }) => {
     const firebaseUser = auth?.currentUser;
     if (!firebaseUser) return;
@@ -139,8 +140,6 @@ const DashboardPage = () => {
   const handleLanguageChange = (code) => {
     changeLanguage(code);
     persistPreference({ lang: code });
-    setShowLangMenu(false);
-    setShowMobileMenu(false);
   };
 
   const handleLogout = async () => {
@@ -148,9 +147,7 @@ const DashboardPage = () => {
     if (result?.success) navigate("/");
   };
 
-  const handleFeatureClick = (feature) => {
-    setSelectedFeature(feature);
-  };
+  const handleFeatureClick = (feature) => setSelectedFeature(feature);
 
   const handleBackToDashboard = () => {
     setSelectedFeature(null);
@@ -164,118 +161,38 @@ const DashboardPage = () => {
 
   // ── Stats ──
   const stats = [
-    {
-      icon: Flame,
-      label: t("dashboard.day_streak"),
-      value: String(user?.dayStreak ?? 0),
-      color: "text-rose-500",
-    },
-    {
-      icon: Star,
-      label: t("dashboard.words"),
-      value: String(user?.wordsFound ?? 0),
-      color: "text-emerald-500",
-    },
-    {
-      icon: Trophy,
-      label: t("dashboard.awards"),
-      value: "0",
-      color: "text-yellow-500",
-    },
+    { icon: Flame,  label: t("dashboard.day_streak"), value: String(user?.dayStreak ?? 0),  color: "text-rose-500" },
+    { icon: Star,   label: t("dashboard.words"),       value: String(user?.wordsFound ?? 0), color: "text-emerald-500" },
+    { icon: Trophy, label: t("dashboard.awards"),      value: "0",                            color: "text-yellow-500" },
   ];
 
   const features = [
-    {
-      id: "challenges",
-      icon: Gamepad2,
-      title: t("dashboard.challenges"),
-      description: t("dashboard.challenges_desc"),
-      color: "text-yellow-500",
-    },
-    {
-      id: "exam_training",
-      icon: GraduationCap,
-      title: t("dashboard.exam_training"),
-      description: t("dashboard.exam_training_desc"),
-      color: "text-teal-500",
-    },
-    {
-      id: "translator",
-      icon: Languages,
-      title: t("dashboard.translator"),
-      description: t("dashboard.translator_desc"),
-      color: "text-sky-500",
-    },
-    {
-      id: "dictionary",
-      icon: BookMarked,
-      title: t("dashboard.dictionary"),
-      description: t("dashboard.dictionary_desc"),
-      color: "text-violet-500",
-    },
-    {
-      id: "grammar",
-      icon: PenLine,
-      title: t("dashboard.grammar"),
-      description: t("dashboard.grammar_desc"),
-      color: "text-amber-500",
-      statusBadgeLabel: t("dashboard.coming_soon"),
-    },
-    {
-      id: "ai_tutor",
-      icon: BotMessageSquare,
-      title: t("dashboard.ai_tutor"),
-      description: t("dashboard.ai_tutor_desc"),
-      color: "text-blue-500",
-      statusBadgeLabel: t("dashboard.coming_soon"),
-    },
-    {
-      id: "real_person_tutor",
-      icon: UserRound,
-      title: t("dashboard.real_person_tutor"),
-      description: t("dashboard.real_person_tutor_desc"),
-      color: "text-emerald-500",
-      statusBadgeLabel: t("dashboard.coming_soon"),
-    },
-    {
-      id: "voice_practice",
-      icon: Video,
-      title: t("dashboard.voice_practice"),
-      description: t("dashboard.voice_practice_desc"),
-      color: "text-purple-500",
-      statusBadgeLabel: t("dashboard.coming_soon"),
-    },
-    {
-      id: "story_generator",
-      icon: BookOpen,
-      title: t("dashboard.story_generator"),
-      description: t("dashboard.story_generator_desc"),
-      color: "text-rose-500",
-      statusBadgeLabel: t("dashboard.coming_soon"),
-    },
-    {
-      id: "history_culture",
-      icon: Landmark,
-      title: t("dashboard.history_culture"),
-      description: t("dashboard.history_culture_desc"),
-      color: "text-orange-500",
-      statusBadgeLabel: t("dashboard.coming_soon"),
-    },
+    { id: "challenges",       icon: Gamepad2,       title: t("dashboard.challenges"),        description: t("dashboard.challenges_desc"),        color: "text-yellow-500" },
+    { id: "exam_training",    icon: GraduationCap,  title: t("dashboard.exam_training"),     description: t("dashboard.exam_training_desc"),     color: "text-teal-500" },
+    { id: "translator",       icon: Languages,      title: t("dashboard.translator"),        description: t("dashboard.translator_desc"),        color: "text-sky-500" },
+    { id: "dictionary",       icon: BookMarked,     title: t("dashboard.dictionary"),        description: t("dashboard.dictionary_desc"),        color: "text-violet-500" },
+    { id: "grammar",          icon: PenLine,        title: t("dashboard.grammar"),           description: t("dashboard.grammar_desc"),           color: "text-amber-500",   statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "ai_tutor",         icon: BotMessageSquare, title: t("dashboard.ai_tutor"),        description: t("dashboard.ai_tutor_desc"),          color: "text-blue-500",    statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "real_person_tutor",icon: UserRound,      title: t("dashboard.real_person_tutor"), description: t("dashboard.real_person_tutor_desc"), color: "text-emerald-500", statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "voice_practice",   icon: Video,          title: t("dashboard.voice_practice"),    description: t("dashboard.voice_practice_desc"),    color: "text-purple-500",  statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "story_generator",  icon: BookOpen,       title: t("dashboard.story_generator"),   description: t("dashboard.story_generator_desc"),   color: "text-rose-500",    statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "history_culture",  icon: Landmark,       title: t("dashboard.history_culture"),   description: t("dashboard.history_culture_desc"),   color: "text-orange-500",  statusBadgeLabel: t("dashboard.coming_soon") },
   ];
 
-  const isTranslator    = selectedFeature?.id === 'translator';
-  const isChallenges    = selectedFeature?.id === 'challenges';
-  const isDictionary    = selectedFeature?.id === 'dictionary';
-  const isExamTraining  = selectedFeature?.id === 'exam_training';
-  const isOtherFeature  = selectedFeature && !isTranslator && !isChallenges && !isDictionary && !isExamTraining;
+  const isTranslator   = selectedFeature?.id === 'translator';
+  const isChallenges   = selectedFeature?.id === 'challenges';
+  const isDictionary   = selectedFeature?.id === 'dictionary';
+  const isExamTraining = selectedFeature?.id === 'exam_training';
+  const isOtherFeature = selectedFeature && !isTranslator && !isChallenges && !isDictionary && !isExamTraining;
 
   return (
     <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-10 space-y-10">
 
       {/* ── DASHBOARD HEADER ROW ──────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3">
-        {/* Left: avatar + greeting */}
-        <div className="flex items-center gap-4 min-w-0">
+
+        {/* Left: avatar + greeting (always visible, smaller on mobile) */}
+        <div className="flex items-center gap-3 min-w-0">
           <Avatar
             src={user?.photoURL}
             alt={user?.displayName || t("dashboard.profile_alt")}
@@ -283,15 +200,17 @@ const DashboardPage = () => {
             isDarkMode={isDarkMode}
             className="shrink-0"
           />
-          <div className="hidden sm:block min-w-0">
-            <h1 className={`text-3xl font-black uppercase tracking-tighter truncate ${
+          <div className="min-w-0">
+            <h1 className={`text-base sm:text-3xl font-black uppercase tracking-tighter truncate ${
               isDarkMode ? "text-white" : "text-slate-900"
             }`}>
               {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || t("dashboard.learner") })}
             </h1>
-            <p className={`font-bold uppercase tracking-widest text-sm mt-1 ${
+            <p className={`hidden sm:block font-bold uppercase tracking-widest text-sm mt-1 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"
-            }`}>{t("dashboard.welcome_subtitle")}</p>
+            }`}>
+              {t("dashboard.welcome_subtitle")}
+            </p>
           </div>
         </div>
 
@@ -344,15 +263,11 @@ const DashboardPage = () => {
                 {languages.map((lang) => (
                   <button
                     key={lang.code}
-                    onClick={() => handleLanguageChange(lang.code)}
+                    onClick={() => { handleLanguageChange(lang.code); setShowLangMenu(false); }}
                     className={`block w-full px-4 py-2 text-left font-bold uppercase text-sm transition-colors ${
                       interfaceLang === lang.code
-                        ? isDarkMode
-                          ? "bg-blue-600 text-white"
-                          : "bg-blue-500 text-white"
-                        : isDarkMode
-                          ? "text-slate-300 hover:bg-slate-700"
-                          : "text-slate-700 hover:bg-slate-100"
+                        ? isDarkMode ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
+                        : isDarkMode ? "text-slate-300 hover:bg-slate-700" : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
                     {lang.label}
@@ -362,35 +277,39 @@ const DashboardPage = () => {
             )}
           </div>
 
-          {/* ── Settings ── */}
-          <TooltipButton tooltip={t("nav.settings")} isDarkMode={isDarkMode}>
-            <button
-              onClick={() => navigate("/settings")}
-              className={`p-3 rounded-xl border-4 transition-all hover:-translate-y-0.5 active:scale-95 ${
-                isDarkMode
-                  ? "bg-slate-800 border-slate-700 text-white shadow-[4px_4px_0px_0px_#1e293b]"
-                  : "bg-white border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
-              }`}
-              aria-label={t("nav.settings")}
-            >
-              <Settings size={20} />
-            </button>
-          </TooltipButton>
+          {/* ── Settings — desktop only ── */}
+          <div className="hidden md:block">
+            <TooltipButton tooltip={t("nav.settings")} isDarkMode={isDarkMode}>
+              <button
+                onClick={() => navigate("/settings")}
+                aria-label={t("nav.settings")}
+                className={`p-3 rounded-xl border-4 transition-all hover:-translate-y-0.5 active:scale-95 ${
+                  isDarkMode
+                    ? "bg-slate-800 border-slate-700 text-white shadow-[4px_4px_0px_0px_#1e293b]"
+                    : "bg-white border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
+                }`}
+              >
+                <Settings size={20} />
+              </button>
+            </TooltipButton>
+          </div>
 
-          {/* ── Logout ── */}
-          <TooltipButton tooltip={t("nav.logout")} isDarkMode={isDarkMode}>
-            <button
-              onClick={handleLogout}
-              className={`p-3 rounded-xl border-4 transition-all hover:-translate-y-0.5 active:scale-95 ${
-                isDarkMode
-                  ? "bg-slate-800 border-slate-700 text-rose-400 shadow-[4px_4px_0px_0px_#1e293b]"
-                  : "bg-white border-slate-900 text-rose-500 shadow-[4px_4px_0px_0px_#0f172a]"
-              }`}
-              aria-label={t("nav.logout")}
-            >
-              <LogOut size={20} />
-            </button>
-          </TooltipButton>
+          {/* ── Logout — desktop only ── */}
+          <div className="hidden md:block">
+            <TooltipButton tooltip={t("nav.logout")} isDarkMode={isDarkMode}>
+              <button
+                onClick={handleLogout}
+                aria-label={t("nav.logout")}
+                className={`p-3 rounded-xl border-4 transition-all hover:-translate-y-0.5 active:scale-95 ${
+                  isDarkMode
+                    ? "bg-slate-800 border-slate-700 text-rose-400 shadow-[4px_4px_0px_0px_#1e293b]"
+                    : "bg-white border-slate-900 text-rose-500 shadow-[4px_4px_0px_0px_#0f172a]"
+                }`}
+              >
+                <LogOut size={20} />
+              </button>
+            </TooltipButton>
+          </div>
 
           {/* ── Mobile Hamburger — mobile only ── */}
           <button
@@ -406,58 +325,13 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* ── MOBILE DRAWER ───────────────────────────────────────────── */}
+      {/* ── MOBILE DRAWER ─────────────────────────────────────────────── */}
       {showMobileMenu && (
-        <div
-          className={`md:hidden rounded-2xl border-4 overflow-hidden -mt-6
-            ${isDarkMode ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]" : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"}`}
-        >
-          {/* Theme Toggle Row */}
-          <button
-            onClick={() => { handleThemeToggle(); setShowMobileMenu(false); }}
-            className={`w-full flex items-center justify-between px-5 py-4 font-black uppercase tracking-wide text-sm border-b-2 transition-colors
-              ${isDarkMode ? "border-slate-700 hover:bg-slate-700" : "border-slate-100 hover:bg-slate-50"}`}
-          >
-            <span>{isDarkMode ? t("nav.light_mode") : t("nav.dark_mode")}</span>
-            <div className={`p-2 rounded-full border-2
-              ${isDarkMode ? "bg-slate-600 border-yellow-400" : "bg-yellow-400 border-slate-900"}`}
-            >
-              {isDarkMode
-                ? <Sun size={18} className="text-yellow-400" />
-                : <Moon size={18} className="text-slate-900" />}
-            </div>
-          </button>
-
-          {/* Language Section */}
-          <div className={`border-b-2 ${isDarkMode ? "border-slate-700" : "border-slate-100"}`}>
-            <p className={`px-5 pt-4 pb-2 text-xs font-black uppercase tracking-widest
-              ${isDarkMode ? "text-slate-400" : "text-slate-400"}`}
-            >
-              <Globe size={12} className="inline mr-1 mb-0.5" />
-              {t("nav.language")}
-            </p>
-            <div className="grid grid-cols-2 gap-2 px-4 pb-4">
-              {languages.map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => handleLanguageChange(lang.code)}
-                  className={`py-2.5 px-3 rounded-xl border-2 font-bold uppercase text-sm transition-all active:scale-95
-                    ${
-                      interfaceLang === lang.code
-                        ? "bg-blue-600 border-blue-600 text-white shadow-[2px_2px_0px_0px_#1e40af]"
-                        : isDarkMode
-                          ? "bg-slate-700 border-slate-600 text-slate-200 hover:border-blue-400"
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-900"
-                    }`}
-                >
-                  {/* Full label on sm+, short code on xs */}
-                  <span className="hidden sm:inline">{lang.label}</span>
-                  <span className="inline sm:hidden">{lang.short}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <MobileMenuDrawer
+          onThemeToggle={handleThemeToggle}
+          onLanguageChange={handleLanguageChange}
+          onClose={() => setShowMobileMenu(false)}
+        />
       )}
 
       {/* ── Translator ── */}
@@ -471,10 +345,7 @@ const DashboardPage = () => {
 
       {/* ── Challenges Hub ── */}
       {isChallenges && (
-        <ChallengesMenu
-          isDarkMode={isDarkMode}
-          onBack={handleBackToDashboard}
-        />
+        <ChallengesMenu isDarkMode={isDarkMode} onBack={handleBackToDashboard} />
       )}
 
       {/* ── Dictionary ── */}
@@ -488,10 +359,7 @@ const DashboardPage = () => {
 
       {/* ── Exam Training ── */}
       {isExamTraining && (
-        <ExamTrainingMenu
-          isDarkMode={isDarkMode}
-          onBack={handleBackToDashboard}
-        />
+        <ExamTrainingMenu isDarkMode={isDarkMode} onBack={handleBackToDashboard} />
       )}
 
       {/* ── Other features (not yet implemented) ── */}
@@ -500,25 +368,18 @@ const DashboardPage = () => {
           <button
             onClick={handleBackToDashboard}
             className={`flex items-center gap-2 font-black uppercase tracking-widest text-sm transition-all hover:-translate-x-1 ${
-              isDarkMode
-                ? "text-slate-400 hover:text-white"
-                : "text-slate-500 hover:text-slate-900"
+              isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
             }`}
           >
             <ArrowLeft size={16} />
             {t("dashboard.back")}
           </button>
-
-          <div
-            className={`p-10 rounded-2xl border-4 flex flex-col items-center text-center gap-6 ${
-              isDarkMode
-                ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
-                : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
-            }`}
-          >
-            <div
-              className={`w-20 h-20 rounded-full flex items-center justify-center border-2 border-current shadow-[4px_4px_0px_0px_currentColor] ${selectedFeature.color}`}
-            >
+          <div className={`p-10 rounded-2xl border-4 flex flex-col items-center text-center gap-6 ${
+            isDarkMode
+              ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
+              : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
+          }`}>
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center border-2 border-current shadow-[4px_4px_0px_0px_currentColor] ${selectedFeature.color}`}>
               <selectedFeature.icon className="w-10 h-10" />
             </div>
             <div>
@@ -527,19 +388,15 @@ const DashboardPage = () => {
               }`}>
                 {selectedFeature.title}
               </h2>
-              <p className={`font-bold ${
-                isDarkMode ? "text-slate-400" : "text-slate-500"
-              }`}>
+              <p className={`font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
                 {selectedFeature.description}
               </p>
             </div>
-            <div
-              className={`w-full rounded-xl border-4 p-5 flex items-center gap-4 ${
-                isDarkMode
-                  ? "bg-slate-900 border-rose-500/40 text-rose-400"
-                  : "bg-rose-50 border-rose-300 text-rose-600"
-              }`}
-            >
+            <div className={`w-full rounded-xl border-4 p-5 flex items-center gap-4 ${
+              isDarkMode
+                ? "bg-slate-900 border-rose-500/40 text-rose-400"
+                : "bg-rose-50 border-rose-300 text-rose-600"
+            }`}>
               <span className="text-2xl" aria-hidden="true">🚧</span>
               <p className="font-black uppercase tracking-widest text-sm text-left">
                 {t("dashboard.not_implemented")}
@@ -564,7 +421,6 @@ const DashboardPage = () => {
               ))}
             </div>
           </section>
-
           <section>
             <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"
