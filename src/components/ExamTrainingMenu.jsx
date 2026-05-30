@@ -5,6 +5,7 @@ import { ArrowLeft, Headphones, PenLine, BookOpen, ClipboardList } from "lucide-
 import StatusBadge from "./StatusBadge";
 import ReportButton from "./ReportButton";
 import WritingExercise from "./WritingExercise";
+import ReadingExercise from "./ReadingExercise";
 
 // ── Exercise Registry ─────────────────────────────────────────────────────────
 const EXERCISES = [
@@ -30,7 +31,7 @@ const EXERCISES = [
     color: "bg-emerald-400",
     titleKey: "exam.reading",
     descKey: "exam.reading_desc",
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: "full_exam",
@@ -159,6 +160,21 @@ const ExamTrainingMenu = ({ isDarkMode, onBack }) => {
               currentViewLabel={t(activeExerciseMeta?.titleKey)}
             />
             <WritingExercise
+              isDarkMode={isDarkMode}
+              onBack={handleBackToMenu}
+            />
+          </>
+        );
+      case "reading":
+        return (
+          <>
+            <Breadcrumb
+              isDarkMode={isDarkMode}
+              onBackToDashboard={onBack}
+              onBackToMenu={handleBackToMenu}
+              currentViewLabel={t(activeExerciseMeta?.titleKey)}
+            />
+            <ReadingExercise
               isDarkMode={isDarkMode}
               onBack={handleBackToMenu}
             />
