@@ -128,12 +128,16 @@ export async function generateReadingExercise({ token, level, targetLang }) {
   const maxTokens = MAX_OUTPUT_TOKENS_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS;
   const raw = await _callAskAI(token, prompt, maxTokens);
 
-  if (!raw) throw new Error('[examReadingExerciseService] Empty response from AI');
+  if (!raw) {
+    console.error('[examReadingExerciseService] Empty response from AI');
+    throw new Error('Something went wrong. Please try again.');
+  }
 
   const data = _parseJSON(raw);
 
   if (!data?.text || !Array.isArray(data?.questions)) {
-    throw new Error('[examReadingExerciseService] Unexpected response shape from generateReadingExercise');
+    console.error('[examReadingExerciseService] Unexpected response shape', data);
+    throw new Error('Something went wrong. Please try again.');
   }
 
   return {
@@ -218,9 +222,8 @@ async function _callAskAI(token, prompt, maxOutputTokens) {
   const json = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      json?.error ?? json?.message ?? `[examReadingExerciseService] Request failed (${response.status})`
-    );
+    console.error(`[examReadingExerciseService] Request failed (${response.status})`, json);
+    throw new Error('Something went wrong. Please try again.');
   }
 
   return json?.data?.text ?? json?.text ?? '';
@@ -231,5 +234,16 @@ function _parseJSON(raw) {
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/```\s*$/i, '')
     .trim();
-  return JSON.parse(cleaned);
+
+  if (!cleaned) {
+    console.error('[examReadingExerciseService] AI returned an empty body');
+    throw new Error('Something went wrong. Please try again.');
+  }
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (err) {
+    console.error(`[examReadingExerciseService] Failed to parse AI response: ${err.message}`, cleaned.slice(0, 200));
+    throw new Error('Something went wrong. Please try again.');
+  }
 }

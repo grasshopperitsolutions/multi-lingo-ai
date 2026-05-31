@@ -108,7 +108,6 @@ const LOCALE_TO_LANGUAGE_NAME = {
  */
 function _resolveLanguageName(locale) {
   if (!locale) return 'English';
-  // Try exact match first, then language-only prefix (e.g. 'es' from 'es-ES')
   return (
     LOCALE_TO_LANGUAGE_NAME[locale] ??
     LOCALE_TO_LANGUAGE_NAME[locale.split('-')[0]] ??
@@ -117,17 +116,25 @@ function _resolveLanguageName(locale) {
 }
 
 /**
- * Max output tokens for writing exercise generation.
- * 2048 is sufficient for prompt + instructions.
+ * Max output tokens for writing exercise generation, scaled by CEFR level.
+ * Generation only produces a prompt + instructions so needs less than evaluation.
  */
-const MAX_OUTPUT_TOKENS_GENERATION = 2048;
+const MAX_OUTPUT_TOKENS_GENERATION_BY_LEVEL = {
+  A1: 2048,
+  A2: 3072,
+  B1: 4096,
+  B2: 4096,
+  C1: 6144,
+  C2: 6144,
+};
+const DEFAULT_MAX_OUTPUT_TOKENS_GENERATION = 4096;
 
 /**
  * Max output tokens for writing evaluation.
- * 4096 (2x) to prevent truncated JSON responses on verbose outputs
- * with 5 parameter feedbacks + generalFeedback.
+ * Kept flat at 6144 — evaluation always produces 5 verbose parameter feedbacks
+ * + generalFeedback regardless of level.
  */
-const MAX_OUTPUT_TOKENS_EVALUATION = 4096;
+const MAX_OUTPUT_TOKENS_EVALUATION = 6144;
 
 /** Word count bounds by CEFR level (pt-PT certification standards) */
 const WORD_COUNT_BOUNDS = {
@@ -145,7 +152,6 @@ const WORD_COUNT_BOUNDS = {
 
 /**
  * Generate a CEFR-appropriate writing exercise prompt.
- * Currently hardcoded to pt-PT; will be parameterized in future.
  *
  * @param {GenerateWritingExerciseParams} params
  * @returns {Promise<WritingExerciseContent>}
@@ -179,14 +185,19 @@ export async function generateWritingExercise({ token, level, targetLang }) {
     `- Do NOT include any text outside the JSON object.`,
   ].join('\n');
 
-  const raw = await _callAskAI(token, prompt, MAX_OUTPUT_TOKENS_GENERATION);
+  const maxTokens = MAX_OUTPUT_TOKENS_GENERATION_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS_GENERATION;
+  const raw = await _callAskAI(token, prompt, maxTokens);
 
-  if (!raw) throw new Error('[examWritingExerciseService] Empty response from AI');
+  if (!raw) {
+    console.error('[examWritingExerciseService] Empty response from AI (generation)');
+    throw new Error('Something went wrong. Please try again.');
+  }
 
   const data = _parseJSON(raw);
 
   if (!data?.prompt || !Array.isArray(data?.instructions)) {
-    throw new Error('[examWritingExerciseService] Unexpected response shape from generateWritingExercise');
+    console.error('[examWritingExerciseService] Unexpected response shape from generateWritingExercise', data);
+    throw new Error('Something went wrong. Please try again.');
   }
 
   return {
@@ -291,12 +302,16 @@ export async function evaluateWriting({ token, level, targetLang, interfaceLang,
 
   const raw = await _callAskAI(token, prompt, MAX_OUTPUT_TOKENS_EVALUATION);
 
-  if (!raw) throw new Error('[examWritingExerciseService] Empty response from AI');
+  if (!raw) {
+    console.error('[examWritingExerciseService] Empty response from AI (evaluation)');
+    throw new Error('Something went wrong. Please try again.');
+  }
 
   const data = _parseJSON(raw);
 
   if (!Array.isArray(data?.parameters) || data.parameters.length !== 5) {
-    throw new Error('[examWritingExerciseService] Unexpected response shape from evaluateWriting');
+    console.error('[examWritingExerciseService] Unexpected response shape from evaluateWriting', data);
+    throw new Error('Something went wrong. Please try again.');
   }
 
   const rawScore   = data.parameters.reduce((sum, p) => sum + (p.score ?? 0), 0);
@@ -317,9 +332,6 @@ export async function evaluateWriting({ token, level, targetLang, interfaceLang,
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * POST to /api/ask-ai with JSON mode enabled.
- */
 async function _callAskAI(token, prompt, maxOutputTokens) {
   const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
     method:  'POST',
@@ -342,9 +354,8 @@ async function _callAskAI(token, prompt, maxOutputTokens) {
   const json = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      json?.error ?? json?.message ?? `[examWritingExerciseService] Request failed (${response.status})`
-    );
+    console.error(`[examWritingExerciseService] Request failed (${response.status})`, json);
+    throw new Error('Something went wrong. Please try again.');
   }
 
   return json?.data?.text ?? json?.text ?? '';
@@ -355,7 +366,18 @@ function _parseJSON(raw) {
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/```\s*$/i, '')
     .trim();
-  return JSON.parse(cleaned);
+
+  if (!cleaned) {
+    console.error('[examWritingExerciseService] AI returned an empty body');
+    throw new Error('Something went wrong. Please try again.');
+  }
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (err) {
+    console.error(`[examWritingExerciseService] Failed to parse AI response: ${err.message}`, cleaned.slice(0, 200));
+    throw new Error('Something went wrong. Please try again.');
+  }
 }
 
 function _countWords(text) {
@@ -364,7 +386,7 @@ function _countWords(text) {
 
 function _calcWordCountPenalty(wordCount, level) {
   const { min, max } = WORD_COUNT_BOUNDS[level] ?? WORD_COUNT_BOUNDS.A1;
-  if (wordCount >= min && wordCount <= max)          return 0;
+  if (wordCount >= min && wordCount <= max)           return 0;
   if (wordCount >= min - 20 || wordCount <= max + 20) return 1;
   return 2;
 }

@@ -66,10 +66,19 @@ const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.
 const GEMINI_MODEL = 'gemini-3.5-flash';
 
 /**
- * Max output tokens for listening exercise generation.
- * 2048 is sufficient for transcript + questions.
+ * Max output tokens for listening exercise generation, scaled by CEFR level.
+ * Listening transcripts are shorter than reading passages but C1/C2 need
+ * room for complex dialogue + 5 questions + instructions.
  */
-const MAX_OUTPUT_TOKENS_GENERATION = 2048;
+const MAX_OUTPUT_TOKENS_BY_LEVEL = {
+  A1: 2048,
+  A2: 3072,
+  B1: 4096,
+  B2: 4096,
+  C1: 6144,
+  C2: 6144,
+};
+const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -118,18 +127,23 @@ export async function generateListeningExercise({ token, level, targetLang }) {
     `- Do NOT include any text outside the JSON object.`,
   ].join('\n');
 
-  const raw = await _callAskAI(token, prompt, MAX_OUTPUT_TOKENS_GENERATION);
+  const maxTokens = MAX_OUTPUT_TOKENS_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS;
+  const raw = await _callAskAI(token, prompt, maxTokens);
 
-  if (!raw) throw new Error('[examListeningExerciseService] Empty response from AI');
+  if (!raw) {
+    console.error('[examListeningExerciseService] Empty response from AI');
+    throw new Error('Something went wrong. Please try again.');
+  }
 
   const data = _parseJSON(raw);
 
   if (!data?.transcript || !Array.isArray(data?.questions)) {
-    throw new Error('[examListeningExerciseService] Unexpected response shape from generateListeningExercise');
+    console.error('[examListeningExerciseService] Unexpected response shape from generateListeningExercise', data);
+    throw new Error('Something went wrong. Please try again.');
   }
 
   return {
-    audioUrl: '', // Placeholder — audio generation handled separately
+    audioUrl: '',
     transcript: data.transcript,
     duration: data.duration ?? 60,
     instructions: data.instructions ?? [],
@@ -185,9 +199,6 @@ export function checkListeningAnswers(userAnswers, questions) {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * POST to /api/ask-ai with JSON mode enabled.
- */
 async function _callAskAI(token, prompt, maxOutputTokens) {
   const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
     method:  'POST',
@@ -210,9 +221,8 @@ async function _callAskAI(token, prompt, maxOutputTokens) {
   const json = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      json?.error ?? json?.message ?? `[examListeningExerciseService] Request failed (${response.status})`
-    );
+    console.error(`[examListeningExerciseService] Request failed (${response.status})`, json);
+    throw new Error('Something went wrong. Please try again.');
   }
 
   return json?.data?.text ?? json?.text ?? '';
@@ -223,5 +233,16 @@ function _parseJSON(raw) {
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/```\s*$/i, '')
     .trim();
-  return JSON.parse(cleaned);
+
+  if (!cleaned) {
+    console.error('[examListeningExerciseService] AI returned an empty body');
+    throw new Error('Something went wrong. Please try again.');
+  }
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (err) {
+    console.error(`[examListeningExerciseService] Failed to parse AI response: ${err.message}`, cleaned.slice(0, 200));
+    throw new Error('Something went wrong. Please try again.');
+  }
 }
