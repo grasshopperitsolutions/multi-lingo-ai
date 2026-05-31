@@ -145,25 +145,6 @@ GhostButton.propTypes = {
 };
 GhostButton.defaultProps = { disabled: false, className: '' };
 
-/** Back link — top of every step */
-const BackButton = ({ onBack, isDarkMode, t }) => (
-  <button
-    onClick={onBack}
-    className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-widest
-      transition-all hover:-translate-x-0.5 ${
-        isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'
-      }`}
-    aria-label={t('common.back', 'Back')}
-  >
-    <ArrowLeft size={14} />
-    {t('common.back', 'Back')}
-  </button>
-);
-BackButton.propTypes = {
-  onBack: PropTypes.func.isRequired,
-  isDarkMode: PropTypes.bool.isRequired,
-  t: PropTypes.func.isRequired,
-};
 
 // ---------------------------------------------------------------------------
 // Error banner (declared outside of component to avoid recreation on render)
@@ -369,9 +350,6 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
   if (step === 'setup') {
     return (
       <div className="flex flex-col gap-5">
-        {/* Back button */}
-        <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
-
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
@@ -434,7 +412,6 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
       if (loading) {
         return (
           <div className="flex flex-col gap-5">
-            <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
             <Loader
               isDarkMode={isDarkMode}
               message={t('exam.generating', 'Generating exercise...')}
@@ -446,7 +423,6 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
       if (error) {
         return (
           <div className="flex flex-col gap-5">
-            <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
             <ErrorBanner error={error} isDarkMode={isDarkMode} />
             <PrimaryButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
               <RotateCcw size={14} />
@@ -460,9 +436,6 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
 
     return (
       <div className="flex flex-col gap-5">
-        {/* Back button */}
-        <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
-
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -587,7 +560,6 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
       if (loading) {
         return (
           <div className="flex flex-col gap-5">
-            <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
             <Loader
               isDarkMode={isDarkMode}
               message={t('exam.generating', 'Generating exercise...')}
@@ -599,7 +571,6 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
       if (error) {
         return (
           <div className="flex flex-col gap-5">
-            <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
             <ErrorBanner error={error} isDarkMode={isDarkMode} />
             <PrimaryButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
               <RotateCcw size={14} />
@@ -618,9 +589,6 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
 
     return (
       <div className="flex flex-col gap-5">
-        {/* Back button */}
-        <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
-
         {/* Header */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
