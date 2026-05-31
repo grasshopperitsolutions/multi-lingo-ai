@@ -6,8 +6,9 @@ import StatusBadge from "./StatusBadge";
 import ReportButton from "./ReportButton";
 import WritingExercise from "./WritingExercise";
 import ReadingExercise from "./ReadingExercise";
+import ListeningExercise from "./ListeningExercise";
 
-// ── Exercise Registry ─────────────────────────────────────────────────────────
+// ── Exercise Registry ────────────────────────────────────────────────────────────────
 const EXERCISES = [
   {
     id: "listening",
@@ -15,7 +16,7 @@ const EXERCISES = [
     color: "bg-sky-400",
     titleKey: "exam.listening",
     descKey: "exam.listening_desc",
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: "writing",
@@ -43,7 +44,7 @@ const EXERCISES = [
   },
 ];
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────────
 const Breadcrumb = ({ isDarkMode, onBackToDashboard, onBackToMenu, currentViewLabel }) => {
   const { t } = useTranslation();
   return (
@@ -138,7 +139,7 @@ ExerciseCard.defaultProps = {
   comingSoonLabel: "",
 };
 
-// ── ExamTrainingMenu ──────────────────────────────────────────────────────────
+// ── ExamTrainingMenu ────────────────────────────────────────────────────────────────
 const ExamTrainingMenu = ({ isDarkMode, onBack }) => {
   const { t } = useTranslation();
   const [activeExercise, setActiveExercise] = useState(null);
@@ -147,9 +148,24 @@ const ExamTrainingMenu = ({ isDarkMode, onBack }) => {
 
   const activeExerciseMeta = EXERCISES.find((e) => e.id === activeExercise);
 
-  // ── Render active exercise ─────────────────────────────────────────────────
+  // ── Render active exercise ─────────────────────────────────────────────────────
   const renderExercise = () => {
     switch (activeExercise) {
+      case "listening":
+        return (
+          <>
+            <Breadcrumb
+              isDarkMode={isDarkMode}
+              onBackToDashboard={onBack}
+              onBackToMenu={handleBackToMenu}
+              currentViewLabel={t(activeExerciseMeta?.titleKey)}
+            />
+            <ListeningExercise
+              isDarkMode={isDarkMode}
+              onBack={handleBackToMenu}
+            />
+          </>
+        );
       case "writing":
         return (
           <>
@@ -185,7 +201,7 @@ const ExamTrainingMenu = ({ isDarkMode, onBack }) => {
     }
   };
 
-  // ── Active exercise view ───────────────────────────────────────────────────
+  // ── Active exercise view ──────────────────────────────────────────────────────
   if (activeExercise) {
     return (
       <div className="flex flex-col gap-4">
@@ -194,7 +210,7 @@ const ExamTrainingMenu = ({ isDarkMode, onBack }) => {
     );
   }
 
-  // ── Menu grid ─────────────────────────────────────────────────────────────
+  // ── Menu grid ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4">
       <Breadcrumb
