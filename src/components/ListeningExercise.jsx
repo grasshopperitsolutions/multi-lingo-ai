@@ -516,6 +516,35 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
 
   // ── STEP: listening ──────────────────────────────────────────────────
   if (step === 'listening') {
+    // Null-guard: exercise is null during fetch/generation or after an error
+    if (!exercise) {
+      if (loading) {
+        return (
+          <div className="flex flex-col gap-5">
+            <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
+            <Loader
+              isDarkMode={isDarkMode}
+              message={t('exam.generating', 'Generating exercise...')}
+            />
+            {error && <ErrorBanner error={error} isDarkMode={isDarkMode} />}
+          </div>
+        );
+      }
+      if (error) {
+        return (
+          <div className="flex flex-col gap-5">
+            <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
+            <ErrorBanner error={error} isDarkMode={isDarkMode} />
+            <PrimaryButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
+              <RotateCcw size={14} />
+              {t('exam.try_again', 'Try Again')}
+            </PrimaryButton>
+          </div>
+        );
+      }
+      return null;
+    }
+
     return (
       <div className="flex flex-col gap-5">
         <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
@@ -670,7 +699,38 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
   }
 
   // ── STEP: results ────────────────────────────────────────────────────
-  if (step === 'results' && result) {
+  if (step === 'results') {
+    // Null-guard: exercise is null during fetch/generation or after an error
+    if (!exercise) {
+      if (loading) {
+        return (
+          <div className="flex flex-col gap-5">
+            <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
+            <Loader
+              isDarkMode={isDarkMode}
+              message={t('exam.generating', 'Generating exercise...')}
+            />
+            {error && <ErrorBanner error={error} isDarkMode={isDarkMode} />}
+          </div>
+        );
+      }
+      if (error) {
+        return (
+          <div className="flex flex-col gap-5">
+            <BackButton onBack={onBack} isDarkMode={isDarkMode} t={t} />
+            <ErrorBanner error={error} isDarkMode={isDarkMode} />
+            <PrimaryButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
+              <RotateCcw size={14} />
+              {t('exam.try_again', 'Try Again')}
+            </PrimaryButton>
+          </div>
+        );
+      }
+      return null;
+    }
+
+    if (!result) return null;
+
     const scoreColor = getScoreColor(result.score, result.maxScore, isDarkMode);
 
     return (
