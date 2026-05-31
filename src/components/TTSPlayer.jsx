@@ -2,7 +2,8 @@
  * TTSPlayer.jsx
  *
  * Reusable Text-to-Speech player component.
- * Uses ttsService (Web Speech API) to play back any text at variable speeds.
+ * Uses the Web Speech API directly for playback (to support onend/onerror callbacks)
+ * and stopSpeaking from ttsService for cancel logic.
  *
  * Props:
  *   text       {string} - The text to be spoken
@@ -13,7 +14,7 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Play, Square } from 'lucide-react';
-import { speak, stopSpeaking } from '../services/ttsService';
+import { stopSpeaking } from '../services/ttsService';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -50,6 +51,8 @@ const TTSPlayer = ({ text, lang, isDarkMode }) => {
       utterance.lang = lang;
       utterance.rate = rate;
 
+      // onend/onerror reset playing state — this is why we construct the
+      // utterance directly instead of delegating to ttsService.speak()
       utterance.onend = () => setIsPlaying(false);
       utterance.onerror = () => setIsPlaying(false);
 
