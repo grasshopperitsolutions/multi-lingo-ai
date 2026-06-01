@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 
-const BestTitleExercise = ({ passage, titles, selectedId, onSelect, isDarkMode, level }) => (
+const BestTitleExercise = ({ passage, titles, selectedId, onSelect, isDarkMode }) => (
   <div className="flex flex-col gap-3">
     {passage && (
       <div className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]' : 'bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]'}`}>

@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import { FileText } from 'lucide-react';
 
-const TranscriptionExercise = ({ text, prompt, userInput, onChange, isDarkMode, level }) => (
+const TranscriptionExercise = ({ text, prompt, userInput, onChange, isDarkMode }) => (
   <div className="flex flex-col gap-3">
     <div className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]' : 'bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]'}`}>
       <p className={`text-xs font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}><FileText size={14} className="inline mr-1" /> Texto</p>

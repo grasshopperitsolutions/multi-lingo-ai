@@ -187,7 +187,7 @@ async function _callAskAI(token, prompt, maxOutputTokens) {
 function _parseJSON(raw) {
   const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
   if (!cleaned) throw new Error('Empty response');
-  try { return JSON.parse(cleaned); } catch (err) {
+  try { return JSON.parse(cleaned); } catch {
     throw new Error('Failed to parse AI response');
   }
 }

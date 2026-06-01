@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
-const TrueFalseExercise = ({ statements, answers, corrections, onAnswer, onCorrection, isDarkMode, level, requireCorrection }) => {
+const TrueFalseExercise = ({ statements, answers, corrections, onAnswer, onCorrection, isDarkMode, requireCorrection }) => {
   const [expandedCorrection, setExpandedCorrection] = useState(null);
   return (
     <div className="flex flex-col gap-3">

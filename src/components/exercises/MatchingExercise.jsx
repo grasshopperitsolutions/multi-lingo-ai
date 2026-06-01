@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 
-const MatchingExercise = ({ pairs, extraItems, matches, onMatch, showExample, example, isDarkMode, level }) => {
+const MatchingExercise = ({ pairs, extraItems, matches, onMatch, showExample, example, isDarkMode }) => {
   const [shuffledB] = useState(() => {
     const allB = [...pairs.map((p) => ({ text: p.itemB, isCorrect: true })), ...extraItems.map((text) => ({ text, isCorrect: false }))];
     return allB.sort(() => Math.random() - 0.5);
