@@ -1,15 +1,16 @@
 import { lazy, Suspense, useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, BrainCircuit, Swords, NotebookPen, Search, EggFried } from "lucide-react";
+import { BrainCircuit, Swords, NotebookPen, Search, EggFried } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import ReportButton from "./ReportButton";
+import { Breadcrumb } from "./ui";
 
 // ── Lazy-loaded game components ───────────────────────────────────────────────
-const HangmanGame     = lazy(() => import("./HangmanGame"));
-const CrosswordsGame  = lazy(() => import("./CrosswordsGame"));
-const WordQuizGame    = lazy(() => import("./WordQuizGame"));
-const WordSearchGame  = lazy(() => import("./WordSearchGame"));
+const HangmanGame       = lazy(() => import("./HangmanGame"));
+const CrosswordsGame    = lazy(() => import("./CrosswordsGame"));
+const WordQuizGame      = lazy(() => import("./WordQuizGame"));
+const WordSearchGame    = lazy(() => import("./WordSearchGame"));
 const ScrambledWordGame = lazy(() => import("./ScrambledWordGame"));
 
 // ── Game Registry ─────────────────────────────────────────────────────────────
@@ -62,54 +63,6 @@ const GAMES = [
 ];
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-const Breadcrumb = ({ isDarkMode, onBackToDashboard, onBackToMenu, currentViewLabel }) => {
-  const { t } = useTranslation();
-  return (
-    <div className="flex items-center gap-2 mb-4 flex-wrap">
-      <button
-        onClick={onBackToDashboard}
-        className={`flex items-center gap-1 text-xs sm:text-sm font-black uppercase tracking-widest transition-colors ${
-          isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
-        }`}
-      >
-        <ArrowLeft size={14} />
-        <span className="hidden xs:inline">{t("dashboard.back")}</span>
-      </button>
-      <span className={isDarkMode ? "text-slate-600" : "text-slate-400"}>/</span>
-      {currentViewLabel ? (
-        <>
-          <button
-            onClick={onBackToMenu}
-            className={`text-xs sm:text-sm font-black uppercase tracking-widest transition-colors ${
-              isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
-            }`}
-          >
-            {t("challenges.title")}
-          </button>
-          <span className={isDarkMode ? "text-slate-600" : "text-slate-400"}>/</span>
-          <span className={`text-xs sm:text-sm font-black uppercase tracking-widest ${
-            isDarkMode ? "text-rose-400" : "text-rose-600"
-          }`}>
-            {currentViewLabel}
-          </span>
-        </>
-      ) : (
-        <span className={`text-xs sm:text-sm font-black uppercase tracking-widest ${
-          isDarkMode ? "text-rose-400" : "text-rose-600"
-        }`}>
-          {t("challenges.title")}
-        </span>
-      )}
-    </div>
-  );
-};
-Breadcrumb.propTypes = {
-  isDarkMode:        PropTypes.bool.isRequired,
-  onBackToDashboard: PropTypes.func.isRequired,
-  onBackToMenu:      PropTypes.func.isRequired,
-  currentViewLabel:  PropTypes.string,
-};
-
 const GameCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, comingSoon, comingSoonLabel }) => (
   <button
     onClick={onClick}
@@ -139,14 +92,14 @@ const GameCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, 
   </button>
 );
 GameCard.propTypes = {
-  title:          PropTypes.string.isRequired,
-  description:    PropTypes.string.isRequired,
-  icon:           PropTypes.elementType.isRequired,
-  color:          PropTypes.string.isRequired,
-  onClick:        PropTypes.func.isRequired,
-  isDarkMode:     PropTypes.bool.isRequired,
-  comingSoon:     PropTypes.bool,
-  comingSoonLabel:PropTypes.string,
+  title:           PropTypes.string.isRequired,
+  description:     PropTypes.string.isRequired,
+  icon:            PropTypes.elementType.isRequired,
+  color:           PropTypes.string.isRequired,
+  onClick:         PropTypes.func.isRequired,
+  isDarkMode:      PropTypes.bool.isRequired,
+  comingSoon:      PropTypes.bool,
+  comingSoonLabel: PropTypes.string,
 };
 
 const GameLoader = ({ isDarkMode }) => (
@@ -175,9 +128,12 @@ const ChallengesMenu = ({ isDarkMode, onBack }) => {
       <div className="flex flex-col gap-4">
         <Breadcrumb
           isDarkMode={isDarkMode}
-          onBackToDashboard={onBack}
-          onBackToMenu={handleBackToMenu}
-          currentViewLabel={t(activeGameDef.titleKey)}
+          accentColor="rose"
+          items={[
+            { label: t('common.back', 'Back'), onClick: onBack },
+            { label: t('challenges.title', 'Challenges'), onClick: handleBackToMenu },
+            { label: t(activeGameDef.titleKey) },
+          ]}
         />
         <div className="flex items-center justify-between gap-2">
           <h1 className={`text-3xl sm:text-5xl font-black uppercase tracking-tighter leading-none ${
@@ -199,8 +155,8 @@ const ChallengesMenu = ({ isDarkMode, onBack }) => {
     <div className="flex flex-col gap-4">
       <Breadcrumb
         isDarkMode={isDarkMode}
-        onBackToDashboard={onBack}
-        onBackToMenu={handleBackToMenu}
+        accentColor="rose"
+        items={[{ label: t('common.back', 'Back'), onClick: onBack }]}
       />
 
       {/* Page title + report flag */}
@@ -208,7 +164,7 @@ const ChallengesMenu = ({ isDarkMode, onBack }) => {
         <h1 className={`text-3xl sm:text-5xl font-black uppercase tracking-tighter leading-none ${
           isDarkMode ? 'text-white' : 'text-slate-900'
         }`}>
-          {t("challenges.title")}
+          {t('challenges.title', 'Challenges')}
         </h1>
         <ReportButton isDarkMode={isDarkMode} context="ChallengesMenu" />
       </div>
@@ -224,7 +180,7 @@ const ChallengesMenu = ({ isDarkMode, onBack }) => {
             onClick={() => handleGameSelect(game.id)}
             isDarkMode={isDarkMode}
             comingSoon={game.comingSoon}
-            comingSoonLabel={t("challenges.coming_soon")}
+            comingSoonLabel={t('challenges.coming_soon', 'Coming Soon')}
           />
         ))}
       </div>

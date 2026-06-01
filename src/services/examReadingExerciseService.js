@@ -8,7 +8,14 @@
  * Currently hardcoded to pt-PT as the target language.
  *
  * Usage:
- *   import { generateReadingExercise, checkReadingAnswers } from '../services/examReadingExerciseService';
+ *   import { generateReadingExercise } from '../services/examReadingExerciseService';
+ *   import { checkReadingAnswers } from '../services/examUtils';
+ *
+ *   // Generate a new reading exercise
+ *   const exercise = await generateReadingExercise({ token, level: 'A1', targetLang: 'pt-PT' });
+ *
+ *   // Check student's answers
+ *   const result = checkReadingAnswers(userAnswers, exercise.content.questions);
  *
  *   // Generate a new reading exercise
  *   const exercise = await generateReadingExercise({ token, level: 'A1', targetLang: 'pt-PT' });
@@ -81,6 +88,12 @@ const MAX_OUTPUT_TOKENS_BY_LEVEL = {
 const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 
 // ---------------------------------------------------------------------------
+// Imports
+// ---------------------------------------------------------------------------
+
+import { getReadingPrompt } from './examPromptTemplates';
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -95,35 +108,9 @@ export async function generateReadingExercise({ token, level, targetLang }) {
   if (!level) throw new Error('[examReadingExerciseService] level is required');
   if (!targetLang) throw new Error('[examReadingExerciseService] targetLang is required');
 
-  const prompt = [
-    `You are a language examiner creating a reading exercise for CEFR level ${level} in ${targetLang}.`,
-    ``,
-    `Create a realistic reading passage and 3-5 comprehension questions.`,
-    `Make the text and questions appropriate for level ${level}.`,
-    ``,
-    `Return ONLY a valid JSON object with this exact shape:`,
-    `{`,
-    `  "text": "<the main reading passage in ${targetLang}>",`,
-    `  "instructions": ["<bullet instruction 1>", ...],`,
-    `  "questions": [`,
-    `    {`,
-    `      "id": "r1",`,
-    `      "text": "<question in ${targetLang}>",`,
-    `      "options": ["<option A>", "<option B>", "<option C>"],`,
-    `      "correctAnswer": "<correct option>"`,
-    `    },`,
-    `    ...`,
-    `  ],`,
-    `  "vocabulary": []`,
-    `}`,
-    ``,
-    `Rules:`,
-    `- All text, instructions, questions, and options must be in ${targetLang}.`,
-    `- Create 3-5 questions with 3-4 options each.`,
-    `- Ensure one option is clearly correct.`,
-    `- Keep vocabulary array empty for now (can be populated manually).`,
-    `- Do NOT include any text outside the JSON object.`,
-  ].join('\n');
+  const exerciseTypes = ['multiple-choice', 'true-false', 'best-title'];
+  const type = exerciseTypes[Math.floor(Math.random() * exerciseTypes.length)];
+  const prompt = getReadingPrompt(level, targetLang, { type, questionCount: 4 });
 
   const maxTokens = MAX_OUTPUT_TOKENS_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS;
   const raw = await _callAskAI(token, prompt, maxTokens);
@@ -157,41 +144,16 @@ export async function generateReadingExercise({ token, level, targetLang }) {
  * @param {ReadingQuestion[]} questions - Exercise questions with correct answers
  * @returns {CheckAnswersResult}
  */
-export function checkReadingAnswers(userAnswers, questions) {
-  if (!Array.isArray(userAnswers)) {
-    throw new Error('[examReadingExerciseService] userAnswers must be an array');
-  }
-  if (!Array.isArray(questions)) {
-    throw new Error('[examReadingExerciseService] questions must be an array');
-  }
-
-  const answerMap = new Map(userAnswers.map((a) => [a.questionId, a.selectedAnswer]));
-
-  let correctCount = 0;
-  const breakdown = questions.map((q) => {
-    const userAnswer = answerMap.get(q.id);
-    const isCorrect = userAnswer === q.correctAnswer;
-    if (isCorrect) correctCount++;
-
-    return {
-      questionId: q.id,
-      question: q.text,
-      userAnswer: userAnswer || null,
-      correctAnswer: q.correctAnswer,
-      isCorrect,
-    };
-  });
-
-  const maxScore = questions.length;
-  const percentage = maxScore > 0 ? Math.round((correctCount / maxScore) * 100) : 0;
-
-  return {
-    score: correctCount,
-    maxScore,
-    percentage,
-    breakdown,
-  };
-}
+/**
+ * Check reading exercise answers by comparing user selections to correct answers.
+ * Delegates to examUtils.checkAnswers for the actual logic.
+ *
+ * @param {Object[]} userAnswers - Array of { questionId, selectedAnswer }
+ * @param {ReadingQuestion[]} questions - Exercise questions with correct answers
+ * @returns {CheckAnswersResult}
+ */
+/** @deprecated Use `checkReadingAnswers` from `examUtils.js` instead. */
+export { checkReadingAnswers } from './examUtils';
 
 // ---------------------------------------------------------------------------
 // Helpers

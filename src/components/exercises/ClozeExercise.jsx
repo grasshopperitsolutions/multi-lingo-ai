@@ -1,0 +1,17 @@
+/**
+ * Exercise Components barrel export.
+ *
+ * Import from here instead of deep-importing individual files:
+ *   import { MultipleChoiceExercise, TrueFalseExercise, ... } from './exercises';
+ */
+
+export { default as MultipleChoiceExercise } from './MultipleChoiceExercise';
+export { default as ImageMultipleChoiceExercise } from './ImageMultipleChoiceExercise';
+export { default as MatchingExercise } from './MatchingExercise';
+export { default as FillBlanksExercise } from './FillBlanksExercise';
+export { default as TrueFalseExercise } from './TrueFalseExercise';
+export { default as ClozeExercise } from './ClozeExercise';
+export { default as OrderingExercise } from './OrderingExercise';
+export { default as TranscriptionExercise } from './TranscriptionExercise';
+export { default as BestTitleExercise } from './BestTitleExercise';
+export { default as NoticeSignExercise } from './NoticeSignExercise';

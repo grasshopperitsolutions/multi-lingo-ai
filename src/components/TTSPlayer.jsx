@@ -14,7 +14,7 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { Play, Square } from 'lucide-react';
-import { stopSpeaking } from '../services/ttsService';
+import { stopSpeaking } from '../services/getTtsService';
 
 // ---------------------------------------------------------------------------
 // Constants

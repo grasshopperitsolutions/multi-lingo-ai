@@ -1,44 +1,15 @@
 import { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowLeftRight, Copy, Volume2, Trash2, Languages, Turtle, BookMarked } from 'lucide-react';
+import { ArrowLeftRight, Copy, Volume2, Trash2, Languages, Turtle, BookMarked } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { translateText } from '../services/translatorService';
-import { speak } from '../services/ttsService';
+import { speak } from '../services/getTtsService';
 import TooltipButton from './TooltipButton';
 import ReportButton from './ReportButton';
+import { Breadcrumb } from './ui';
 
 const MAX_CHARS = 1000;
-
-// ---------------------------------------------------------------------------
-// Breadcrumb
-// ---------------------------------------------------------------------------
-const Breadcrumb = ({ isDarkMode, onBack }) => {
-  const { t } = useTranslation();
-  return (
-    <div className="flex items-center gap-2 mb-4 flex-wrap">
-      <button
-        onClick={onBack}
-        className={`flex items-center gap-1 text-xs sm:text-sm font-black uppercase tracking-widest transition-colors ${
-          isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
-        }`}
-      >
-        <ArrowLeft size={14} />
-        <span className="hidden xs:inline">{t('dashboard.back')}</span>
-      </button>
-      <span className={isDarkMode ? 'text-slate-600' : 'text-slate-400'}>/</span>
-      <span className={`text-xs sm:text-sm font-black uppercase tracking-widest ${
-        isDarkMode ? 'text-sky-400' : 'text-sky-600'
-      }`}>
-        {t('dashboard.translator')}
-      </span>
-    </div>
-  );
-};
-Breadcrumb.propTypes = {
-  isDarkMode: PropTypes.bool.isRequired,
-  onBack:     PropTypes.func.isRequired,
-};
 
 // ---------------------------------------------------------------------------
 // IconButton — small utility button wrapped in styled TooltipButton
@@ -142,7 +113,11 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <Breadcrumb isDarkMode={isDarkMode} onBack={onBack} />
+      <Breadcrumb
+        isDarkMode={isDarkMode}
+        accentColor="sky"
+        items={[{ label: t('common.back', 'Back'), onClick: onBack }, { label: t('dashboard.translator', 'Translator') }]}
+      />
 
       {/* Page title + report flag */}
       <div className="flex items-center justify-between gap-2">

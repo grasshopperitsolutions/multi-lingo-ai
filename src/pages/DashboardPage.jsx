@@ -94,15 +94,15 @@ const DashboardPage = () => {
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-  if (!user) {
-    return (
-      <Loader
-        fullScreen
-        message={t("dashboard.loading")}
-        isDarkMode={isDarkMode}
-      />
-    );
-  }
+  // if (!user) {
+  //   return (
+  //     <Loader
+  //       fullScreen
+  //       message={t("dashboard.loading")}
+  //       isDarkMode={isDarkMode}
+  //     />
+  //   );
+  // }
 
   const languages = [
     { code: "en-US", label: t("nav.lang_en"), short: "EN" },
