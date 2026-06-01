@@ -7,6 +7,7 @@ import {
   recordPlay,
   resetAllSeenWords,
 } from "../services/userService";
+import { fetchWordLinkPuzzle } from "../services/wordLinkService";
 import ChallengeSidebar from "./ChallengeSidebar";
 import Loader from "./Loader";
 import { sanitizeAIError } from "../utils/errorUtils";
@@ -14,9 +15,7 @@ import { sanitizeAIError } from "../utils/errorUtils";
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const GAME_ID   = "word_link";
-const MAX_CLUES = 5;
-const PROXY_URL = import.meta.env.VITE_PROXY_URL || "https://multi-lingo-ai-api.vercel.app";
+const GAME_ID = "word_link";
 
 const isSessionExpiredError = (err) => {
   const msg = (err?.message ?? "").toLowerCase();
@@ -30,68 +29,6 @@ const matchesAnswer = (guess, keywords) => {
   const normalised = guess.trim().toLowerCase();
   if (!normalised) return false;
   return keywords.some((kw) => normalised.includes(kw.toLowerCase()));
-};
-
-// ---------------------------------------------------------------------------
-// Gemini fetch — generates a Word Link puzzle
-// ---------------------------------------------------------------------------
-const fetchWordLinkPuzzle = async ({ token, userDialect, learningDialect }) => {
-  const prompt = `You are generating a "Word Link" language-learning puzzle.
-
-The puzzle consists of:
-- A hidden THEME (2–5 words, e.g. "Names of insects")
-- Up to 5 CLUE WORDS in ${learningDialect} that all belong to that theme, ordered from hardest to easiest (the last clue should be the most obvious giveaway)
-- A list of ACCEPTED KEYWORDS — single words (in ${userDialect}) that a learner could type to correctly guess the theme (e.g. ["insects", "bugs", "bug"])
-
-Rules:
-- All clue words must be in ${learningDialect}
-- The theme and accepted keywords must be in ${userDialect}
-- Clues must be genuine members of the theme category
-- First clue = least obvious, last clue = most obvious
-- Return ONLY valid JSON, no markdown, no explanation
-
-Return exactly this JSON shape:
-{
-  "theme": "Names of insects",
-  "clues": ["Mosca", "Grilo", "Besouro de Junho", "Louva-a-deus", "Pirilampo"],
-  "keywords": ["insects", "bugs", "bug", "insect"]
-}`;
-
-  const res = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      prompt,
-      providerParams: {
-        provider: "gemini",
-        model: "gemini-2.0-flash",
-        temperature: 0.9,
-      },
-    }),
-  });
-
-  if (!res.ok) {
-    const j = await res.json().catch(() => ({}));
-    throw new Error(j?.error || j?.message || "Failed to generate Word Link puzzle");
-  }
-
-  const json = await res.json();
-  const raw  = json?.data?.text ?? json?.text ?? "";
-  const cleaned = raw.replace(/```json|```/g, "").trim();
-  const parsed  = JSON.parse(cleaned);
-
-  if (!parsed.theme || !Array.isArray(parsed.clues) || !Array.isArray(parsed.keywords)) {
-    throw new Error("Invalid puzzle format from AI");
-  }
-
-  return {
-    theme:    parsed.theme,
-    clues:    parsed.clues.slice(0, MAX_CLUES),
-    keywords: parsed.keywords,
-  };
 };
 
 // ---------------------------------------------------------------------------
@@ -120,9 +57,9 @@ const ClueStack = ({ clues, revealedCount, theme, gameOver, isDarkMode }) => {
       isDarkMode ? "border-slate-700" : "border-slate-900"
     }`}>
       {clues.map((clue, i) => {
-        const visible     = i < revealedCount;
-        const colorClass  = colors[i] ?? colors[colors.length - 1];
-        const lightText   = i >= 3;
+        const visible    = i < revealedCount;
+        const colorClass = colors[i] ?? colors[colors.length - 1];
+        const lightText  = i >= 3;
         return (
           <div
             key={i}
@@ -284,7 +221,7 @@ const WordLinkGame = ({ isDarkMode }) => {
             .catch((err) => console.warn("[WordLinkGame] recordPlay failed:", err));
         }
       } else {
-        const newWrong   = [...wrongGuesses, guess.trim()];
+        const newWrong     = [...wrongGuesses, guess.trim()];
         const nextRevealed = revealedCount + 1;
         setWrongGuesses(newWrong);
         setGuess("");
