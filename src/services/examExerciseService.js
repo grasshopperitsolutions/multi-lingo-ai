@@ -22,6 +22,7 @@
  *     type: "writing" | "reading" | "listening"
  *     level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"
  *     targetLang: "pt-PT" | "en-US"
+ *     questionType: string (for reading: "multiple-choice" | "true-false" | "best-title" | "ordering" | "cloze" | "fill-blanks" | "matching" | "notice-sign")
  *     status: "ready" | "draft" | "blocked"
  *     aiGenerated: boolean
  *     verified: boolean
@@ -34,8 +35,9 @@
  *     language: string
  *     region: string | null
  *     type: "writing" | "reading" | "listening"
+ *     questionType: string (for reading exercises)
  *     writing: { prompt, instructions[], minWords, maxWords, hints }
- *     reading: { text, questions[], vocabulary[], instructions, hints }
+ *     reading: { questionType, text, questions[], vocabulary[], instructions, hints }
  *     listening: { audioUrl, transcript, duration, questions[], instructions }
  *     source: "human" | "ai"
  *     verified: boolean
@@ -73,6 +75,7 @@ import { generateReadingExercise } from './examReadingExerciseService';
  * @property {string}    exerciseId       - examExercises document ID
  * @property {string}    type             - Exercise type
  * @property {string}    level            - CEFR level
+ * @property {string}    [questionType]   - Question type (for reading exercises)
  * @property {'db'|'ai'} source           - Where it came from
  * @property {Object}    content          - Exercise content (writing/reading/listening)
  */
@@ -128,6 +131,7 @@ export async function getExercise({
         exerciseId: exercise.id,
         type: exercise.type,
         level: exercise.level,
+        questionType: exercise.questionType,
         source: 'db',
         content,
       };
@@ -146,6 +150,7 @@ export async function getExercise({
     exerciseId,
     type: generated.type,
     level: generated.level,
+    questionType: generated.questionType,
     source: 'ai',
     content: generated.content,
   };
@@ -216,7 +221,13 @@ async function _fetchExerciseContent(exerciseId, locale, token) {
   // Extract the appropriate content based on type
   const type = data.type;
   if (type === 'writing') return data.writing;
-  if (type === 'reading') return data.reading;
+  if (type === 'reading') {
+    // Include questionType in the reading content
+    return {
+      ...data.reading,
+      questionType: data.questionType || data.reading.questionType,
+    };
+  }
   if (type === 'listening') return data.listening;
   return null;
 }
@@ -225,6 +236,23 @@ async function _writeNewExercise(generated, targetLang, token) {
   const now = new Date().toISOString();
 
   // Write root document
+  const exerciseData = {
+    type: generated.type,
+    level: generated.level,
+    targetLang: generated.targetLang,
+    status: 'ready',
+    aiGenerated: true,
+    verified: false,
+    qualityScore: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  // Add questionType for reading exercises
+  if (generated.type === 'reading' && generated.questionType) {
+    exerciseData.questionType = generated.questionType;
+  }
+
   const exerciseResponse = await fetch(`${PROXY_URL}/api/firestore`, {
     method: 'POST',
     headers: {
@@ -233,17 +261,7 @@ async function _writeNewExercise(generated, targetLang, token) {
     },
     body: JSON.stringify({
       collection: 'examExercises',
-      data: {
-        type: generated.type,
-        level: generated.level,
-        targetLang: generated.targetLang,
-        status: 'ready',
-        aiGenerated: true,
-        verified: false,
-        qualityScore: null,
-        createdAt: now,
-        updatedAt: now,
-      },
+      data: exerciseData,
     }),
   });
   const exerciseJson = await exerciseResponse.json();
@@ -283,6 +301,10 @@ async function _writeExerciseContent(exerciseId, locale, generated, token) {
     contentData.writing = generated.content;
   } else if (generated.type === 'reading') {
     contentData.reading = generated.content;
+    // Also store questionType at the content document level for easier querying
+    if (generated.questionType) {
+      contentData.questionType = generated.questionType;
+    }
   } else if (generated.type === 'listening') {
     contentData.listening = generated.content;
   }
@@ -327,6 +349,7 @@ async function _generateNewExercise({ type, level, targetLang }, token) {
       type: 'reading',
       level,
       targetLang,
+      questionType: content.questionType,
       content,
     };
   }

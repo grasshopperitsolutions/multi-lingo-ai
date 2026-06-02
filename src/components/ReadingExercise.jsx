@@ -11,6 +11,16 @@ import { Card, SectionHeading, ErrorBanner, PrimaryButton, GhostButton, ResultRo
 import { getExercise } from '../services/examExerciseService';
 import { checkReadingAnswers, getScoreColor } from '../services/examUtils';
 import { markExerciseSeen } from '../services/userService';
+import {
+  MultipleChoiceExercise,
+  TrueFalseExercise,
+  BestTitleExercise,
+  OrderingExercise,
+  ClozeExercise,
+  FillBlanksExercise,
+  MatchingExercise,
+  NoticeSignExercise,
+} from './exercises';
 
 const CEFR_LEVELS = [
   { value: 'A1', label: 'A1 - Iniciante' },
@@ -135,6 +145,109 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
     return null;
   }
 
+  // Render the appropriate exercise component based on questionType
+  const renderExerciseComponent = () => {
+    switch (exercise.questionType) {
+      case 'multiple-choice':
+        return (
+          <MultipleChoiceExercise
+            passage={exercise.text}
+            questions={exercise.questions}
+            answers={answers}
+            onAnswer={handleSelectAnswer}
+            isDarkMode={isDarkMode}
+            level={level}
+          />
+        );
+      
+      case 'true-false':
+        return (
+          <TrueFalseExercise
+            passage={exercise.text}
+            statements={exercise.questions}
+            answers={answers}
+            onAnswer={handleSelectAnswer}
+            isDarkMode={isDarkMode}
+            level={level}
+          />
+        );
+      
+      case 'best-title':
+        return (
+          <BestTitleExercise
+            passage={exercise.text}
+            titles={exercise.questions}
+            selectedId={answers.bestTitle}
+            onSelect={(titleId) => handleSelectAnswer('bestTitle', titleId)}
+            isDarkMode={isDarkMode}
+            level={level}
+          />
+        );
+      
+      case 'ordering':
+        return (
+          <OrderingExercise
+            items={exercise.questions}
+            userOrder={answers.ordering || []}
+            onReorder={(order) => setAnswers({ ordering: order })}
+            isDarkMode={isDarkMode}
+            level={level}
+          />
+        );
+      
+      case 'cloze':
+        return (
+          <ClozeExercise
+            passage={exercise.text}
+            blanks={exercise.questions}
+            answers={answers}
+            onAnswer={handleSelectAnswer}
+            isDarkMode={isDarkMode}
+            level={level}
+          />
+        );
+      
+      case 'fill-blanks':
+        return (
+          <FillBlanksExercise
+            passage={exercise.text}
+            wordBank={exercise.wordBank}
+            blanks={exercise.questions}
+            answers={answers}
+            onAnswer={handleSelectAnswer}
+            isDarkMode={isDarkMode}
+            level={level}
+          />
+        );
+      
+      case 'matching':
+        return (
+          <MatchingExercise
+            pairs={exercise.questions}
+            extraItems={exercise.extraItems}
+            matches={answers}
+            onMatch={handleSelectAnswer}
+            isDarkMode={isDarkMode}
+            level={level}
+          />
+        );
+      
+      case 'notice-sign':
+        return (
+          <NoticeSignExercise
+            notices={exercise.questions}
+            answers={answers}
+            onAnswer={handleSelectAnswer}
+            isDarkMode={isDarkMode}
+            level={level}
+          />
+        );
+      
+      default:
+        return <div className="text-rose-500">Unknown exercise type: {exercise.questionType}</div>;
+    }
+  };
+
   // Reading step
   if (step === 'reading') {
     return (
@@ -151,21 +264,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
 
         <ErrorBanner error={error} isDarkMode={isDarkMode} />
 
-        <Card isDarkMode={isDarkMode}>
-          <SectionHeading isDarkMode={isDarkMode}>{t('exam.reading_passage', 'Reading Passage')}</SectionHeading>
-          {exercise.instructions?.length > 0 && (
-            <ul className="flex flex-col gap-1.5 mb-3">
-              {exercise.instructions.map((instr, i) => (
-                <li key={i} className={`flex items-start gap-2 text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                  <span className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${isDarkMode ? 'border-emerald-600 text-emerald-400' : 'border-emerald-500 text-emerald-600'}`}>{i + 1}</span>
-                  {instr}
-                </li>
-              ))}
-            </ul>
-          )}
-          <p className={`text-sm sm:text-base leading-relaxed font-medium ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{exercise.text}</p>
-        </Card>
-
+        {/* Vocabulary section (for passage-based exercises) */}
         {exercise.vocabulary?.length > 0 && (
           <div>
             <SectionHeading isDarkMode={isDarkMode}>{t('exam.vocabulary', 'Vocabulary')}</SectionHeading>
@@ -185,28 +284,10 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
           <ExamTimer isDarkMode={isDarkMode} />
         </div>
 
+        {/* Render the exercise component based on questionType */}
         <div>
           <SectionHeading isDarkMode={isDarkMode}>{t('exam.comprehension_questions', 'Comprehension Questions')}</SectionHeading>
-          <div className="flex flex-col gap-3">
-            {exercise.questions.map((q, i) => (
-              <div key={q.id} className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]' : 'bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]'}`}>
-                <p className={`text-sm sm:text-base font-bold mb-3 ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>
-                  <span className={`inline-flex w-6 h-6 rounded-full border-2 items-center justify-center text-xs font-black mr-2 shrink-0 ${isDarkMode ? 'border-emerald-600 text-emerald-400' : 'border-emerald-500 text-emerald-600'}`}>{i + 1}</span>
-                  {q.text}
-                </p>
-                <div className="flex flex-col gap-2">
-                  {q.options.map((option) => {
-                    const isSelected = (answers[q.id] ?? null) === option;
-                    return (
-                      <button key={option} onClick={() => handleSelectAnswer(q.id, option)} className={`w-full text-left px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${isSelected ? (isDarkMode ? 'bg-emerald-900/40 border-emerald-500 text-emerald-300' : 'bg-emerald-50 border-emerald-500 text-emerald-800') : (isDarkMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700/50' : 'border-slate-200 text-slate-700 hover:bg-slate-50')}`}>
-                        {option}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
+          {renderExerciseComponent()}
         </div>
 
         <p className={`text-xs font-semibold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>

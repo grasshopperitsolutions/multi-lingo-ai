@@ -2,26 +2,28 @@
  * examReadingExerciseService.js
  *
  * Specialized service for reading exercises.
- * Handles AI-powered generation of reading exercises (passage + comprehension questions)
+ * Handles AI-powered generation of reading exercises with random type selection
  * and simple answer validation (no AI evaluation needed).
  *
- * Currently hardcoded to pt-PT as the target language.
+ * Exercise Types:
+ *   - multiple-choice: Traditional multiple choice questions
+ *   - true-false: True/false statements about a passage
+ *   - best-title: Choose the best title for a passage
+ *   - ordering: Put paragraphs/sentences in correct order
+ *   - cloze: Fill in blanks with multiple choice options
+ *   - fill-blanks: Fill in blanks from a word bank
+ *   - matching: Match items from two columns
+ *   - notice-sign: Read notices/signs and answer questions
  *
  * Usage:
  *   import { generateReadingExercise } from '../services/examReadingExerciseService';
  *   import { checkReadingAnswers } from '../services/examUtils';
  *
- *   // Generate a new reading exercise
+ *   // Generate a new reading exercise (random type)
  *   const exercise = await generateReadingExercise({ token, level: 'A1', targetLang: 'pt-PT' });
  *
  *   // Check student's answers
- *   const result = checkReadingAnswers(userAnswers, exercise.content.questions);
- *
- *   // Generate a new reading exercise
- *   const exercise = await generateReadingExercise({ token, level: 'A1', targetLang: 'pt-PT' });
- *
- *   // Check student's answers
- *   const result = checkReadingAnswers(userAnswers, exercise.content.questions);
+ *   const result = checkReadingAnswers(userAnswers, exercise.questions);
  */
 
 // ---------------------------------------------------------------------------
@@ -36,26 +38,13 @@
  */
 
 /**
- * @typedef {Object} ReadingQuestion
- * @property {string}   id             - Question ID (e.g., 'r1')
- * @property {string}   text           - Question text
- * @property {string[]} options        - Multiple choice options
- * @property {string}   correctAnswer  - Correct option value
- */
-
-/**
- * @typedef {Object} VocabularyItem
- * @property {string} word       - Word from the passage
- * @property {string} definition - Definition or explanation
- */
-
-/**
  * @typedef {Object} ReadingExerciseContent
- * @property {string}              text         - Main reading passage
- * @property {string[]}            instructions - Bullet-point instructions
- * @property {ReadingQuestion[]}   questions    - Comprehension questions
- * @property {VocabularyItem[]}    vocabulary   - Optional vocabulary list
- * @property {Object}              hints        - Empty hints map (populated on-demand)
+ * @property {string} questionType - Type of exercise (e.g., 'multiple-choice', 'true-false')
+ * @property {string} text         - Main reading passage (for passage-based exercises)
+ * @property {string[]} instructions - Bullet-point instructions
+ * @property {Array} questions      - Exercise questions/items (structure varies by type)
+ * @property {Array} vocabulary     - Optional vocabulary list
+ * @property {Object} hints         - Empty hints map (populated on-demand)
  */
 
 /**
@@ -87,18 +76,44 @@ const MAX_OUTPUT_TOKENS_BY_LEVEL = {
 };
 const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 
+/**
+ * Available reading exercise types.
+ * Each type has a corresponding component with a generatePrompt() method.
+ */
+const READING_EXERCISE_TYPES = [
+  'multiple-choice',
+  'true-false',
+  'best-title',
+  'ordering',
+  'cloze',
+  'fill-blanks',
+  'matching',
+  'notice-sign',
+];
+
 // ---------------------------------------------------------------------------
 // Imports
 // ---------------------------------------------------------------------------
 
-import { getReadingPrompt } from './examPromptTemplates';
+import {
+  MultipleChoiceExercise,
+  TrueFalseExercise,
+  BestTitleExercise,
+  OrderingExercise,
+  ClozeExercise,
+  FillBlanksExercise,
+  MatchingExercise,
+  NoticeSignExercise,
+} from '../components/exercises';
+
+import { checkReadingAnswers } from './examUtils';
 
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 /**
- * Generate a CEFR-appropriate reading exercise (passage + comprehension questions).
+ * Generate a CEFR-appropriate reading exercise with random type selection.
  *
  * @param {GenerateReadingExerciseParams} params
  * @returns {Promise<ReadingExerciseContent>}
@@ -108,76 +123,399 @@ export async function generateReadingExercise({ token, level, targetLang }) {
   if (!level) throw new Error('[examReadingExerciseService] level is required');
   if (!targetLang) throw new Error('[examReadingExerciseService] targetLang is required');
 
-  const exerciseTypes = ['multiple-choice', 'true-false', 'best-title'];
-  const type = exerciseTypes[Math.floor(Math.random() * exerciseTypes.length)];
-  const prompt = getReadingPrompt(level, targetLang, { type, questionCount: 4 });
+  // Step 1: JavaScript randomly picks exercise type
+  const questionType = READING_EXERCISE_TYPES[
+    Math.floor(Math.random() * READING_EXERCISE_TYPES.length)
+  ];
 
+  // Step 2: Get type-specific prompt from component
+  const prompt = getPromptForType(questionType, level, targetLang);
+
+  // Step 3: Get JSON Schema for this exercise type (improves Gemini output reliability)
+  const responseSchema = getResponseSchemaForType(questionType);
+
+  // Step 4: Single AI call with schema
   const maxTokens = MAX_OUTPUT_TOKENS_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS;
-  const raw = await _callAskAI(token, prompt, maxTokens);
+  const raw = await _callAskAI(token, prompt, maxTokens, responseSchema);
 
   if (!raw) {
     console.error('[examReadingExerciseService] Empty response from AI');
     throw new Error('Something went wrong. Please try again.');
   }
 
+  // Step 5: Parse response
   const data = _parseJSON(raw);
 
-  if (!data?.text || !Array.isArray(data?.questions)) {
-    console.error('[examReadingExerciseService] Unexpected response shape', data);
-    throw new Error('Something went wrong. Please try again.');
-  }
+  // Step 6: Normalise parsed data into a consistent ReadingExerciseContent shape
+  const exerciseData = _parseAIResponse(data, questionType);
 
   return {
-    text: data.text,
-    instructions: data.instructions ?? [],
-    questions: data.questions,
-    vocabulary: data.vocabulary ?? [],
-    hints: {},
+    questionType,
+    ...exerciseData,
   };
 }
 
 /**
  * Check reading exercise answers by comparing user selections to correct answers.
- * Simple validation — no AI involved.
- *
- * @param {Object[]} userAnswers - Array of { questionId, selectedAnswer }
- * @param {ReadingQuestion[]} questions - Exercise questions with correct answers
- * @returns {CheckAnswersResult}
- */
-/**
- * Check reading exercise answers by comparing user selections to correct answers.
  * Delegates to examUtils.checkAnswers for the actual logic.
  *
  * @param {Object[]} userAnswers - Array of { questionId, selectedAnswer }
- * @param {ReadingQuestion[]} questions - Exercise questions with correct answers
+ * @param {Array} questions - Exercise questions with correct answers
  * @returns {CheckAnswersResult}
  */
-/** @deprecated Use `checkReadingAnswers` from `examUtils.js` instead. */
-export { checkReadingAnswers } from './examUtils';
+export { checkReadingAnswers };
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 /**
- * POST to /api/ask-ai with JSON mode enabled.
+ * Get the appropriate prompt for a given exercise type.
+ * Each exercise component has a static generatePrompt() method.
+ *
+ * @param {string} type - Exercise type (e.g., 'multiple-choice')
+ * @param {string} level - CEFR level
+ * @param {string} targetLang - Target learning language
+ * @returns {string} AI prompt
  */
-async function _callAskAI(token, prompt, maxOutputTokens) {
+function getPromptForType(type, level, targetLang) {
+  switch (type) {
+    case 'multiple-choice':
+      return MultipleChoiceExercise.generatePrompt(level, targetLang);
+    case 'true-false':
+      return TrueFalseExercise.generatePrompt(level, targetLang);
+    case 'best-title':
+      return BestTitleExercise.generatePrompt(level, targetLang);
+    case 'ordering':
+      return OrderingExercise.generatePrompt(level, targetLang);
+    case 'cloze':
+      return ClozeExercise.generatePrompt(level, targetLang);
+    case 'fill-blanks':
+      return FillBlanksExercise.generatePrompt(level, targetLang);
+    case 'matching':
+      return MatchingExercise.generatePrompt(level, targetLang);
+    case 'notice-sign':
+      return NoticeSignExercise.generatePrompt(level, targetLang);
+    default:
+      throw new Error(`[examReadingExerciseService] Unknown exercise type: ${type}`);
+  }
+}
+
+/**
+ * Get the JSON Schema for a given exercise type.
+ * Passing a responseSchema to Gemini (via jsonMode) significantly improves
+ * output reliability by constraining the model to the exact expected structure.
+ *
+ * @param {string} type - Exercise type
+ * @returns {Object} JSON Schema object
+ */
+function getResponseSchemaForType(type) {
+  switch (type) {
+    case 'multiple-choice':
+      return {
+        type: 'object',
+        properties: {
+          passage: { type: 'string' },
+          questions: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                question: { type: 'string' },
+                options: { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 4 },
+                correctAnswer: { type: 'string' },
+              },
+              required: ['id', 'question', 'options', 'correctAnswer'],
+            },
+            minItems: 4,
+            maxItems: 6,
+          },
+          instructions: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['passage', 'questions'],
+      };
+
+    case 'true-false':
+      return {
+        type: 'object',
+        properties: {
+          passage: { type: 'string' },
+          statements: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                text: { type: 'string' },
+                isTrue: { type: 'boolean' },
+              },
+              required: ['id', 'text', 'isTrue'],
+            },
+            minItems: 5,
+            maxItems: 8,
+          },
+          instructions: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['passage', 'statements'],
+      };
+
+    case 'best-title':
+      return {
+        type: 'object',
+        properties: {
+          passage: { type: 'string' },
+          titles: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                text: { type: 'string' },
+                isCorrect: { type: 'boolean' },
+              },
+              required: ['id', 'text', 'isCorrect'],
+            },
+            minItems: 4,
+            maxItems: 5,
+          },
+          instructions: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['passage', 'titles'],
+      };
+
+    case 'ordering':
+      return {
+        type: 'object',
+        properties: {
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                text: { type: 'string' },
+                correctPosition: { type: 'number' },
+              },
+              required: ['id', 'text', 'correctPosition'],
+            },
+            minItems: 5,
+            maxItems: 7,
+          },
+          instructions: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['items'],
+      };
+
+    case 'cloze':
+      return {
+        type: 'object',
+        properties: {
+          passage: { type: 'string' },
+          blanks: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                position: { type: 'number' },
+                options: { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 4 },
+                correctAnswer: { type: 'string' },
+              },
+              required: ['id', 'position', 'options', 'correctAnswer'],
+            },
+            minItems: 5,
+            maxItems: 8,
+          },
+          instructions: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['passage', 'blanks'],
+      };
+
+    case 'fill-blanks':
+      return {
+        type: 'object',
+        properties: {
+          passage: { type: 'string' },
+          wordBank: { type: 'array', items: { type: 'string' }, minItems: 8, maxItems: 13 },
+          blanks: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                position: { type: 'number' },
+                correctAnswer: { type: 'string' },
+              },
+              required: ['id', 'position', 'correctAnswer'],
+            },
+            minItems: 5,
+            maxItems: 8,
+          },
+          instructions: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['passage', 'wordBank', 'blanks'],
+      };
+
+    case 'matching':
+      return {
+        type: 'object',
+        properties: {
+          pairs: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                itemA: { type: 'string' },
+                itemB: { type: 'string' },
+              },
+              required: ['id', 'itemA', 'itemB'],
+            },
+            minItems: 5,
+            maxItems: 7,
+          },
+          extraItems: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 3 },
+          showExample: { type: 'boolean' },
+          example: {
+            type: 'object',
+            properties: {
+              itemA: { type: 'string' },
+              itemB: { type: 'string' },
+            },
+            required: ['itemA', 'itemB'],
+          },
+          instructions: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['pairs', 'extraItems'],
+      };
+
+    case 'notice-sign':
+      return {
+        type: 'object',
+        properties: {
+          notices: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                text: { type: 'string' },
+                question: { type: 'string' },
+                options: { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 4 },
+                correctAnswer: { type: 'string' },
+              },
+              required: ['id', 'text', 'question', 'options', 'correctAnswer'],
+            },
+            minItems: 4,
+            maxItems: 6,
+          },
+          instructions: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['notices'],
+      };
+
+    default:
+      return null;
+  }
+}
+
+/**
+ * Normalise parsed AI data into a consistent ReadingExerciseContent shape.
+ * Maps the varying field names from different exercise types to the unified
+ * shape expected by ReadingExercise.jsx.
+ *
+ * @param {Object} data     - Parsed AI response
+ * @param {string} type     - Exercise type
+ * @returns {Object}        - Normalised ReadingExerciseContent
+ */
+function _parseAIResponse(data, type) {
+  const instructions = data?.instructions ?? [];
+  // 'text' field serves as the reading passage / source material
+  // 'questions' field holds the interactive items (may be renamed per type)
+  let text = '';
+  let questions = [];
+  let wordBank = [];
+  let extraItems = [];
+  let showExample = false;
+  let example = null;
+
+  switch (type) {
+    case 'multiple-choice':
+      text = data?.passage ?? '';
+      questions = data?.questions ?? [];
+      break;
+    case 'true-false':
+      text = data?.passage ?? '';
+      questions = data?.statements ?? [];
+      break;
+    case 'best-title':
+      text = data?.passage ?? '';
+      questions = data?.titles ?? [];
+      break;
+    case 'ordering':
+      questions = data?.items ?? [];
+      break;
+    case 'cloze':
+      text = data?.passage ?? '';
+      questions = data?.blanks ?? [];
+      break;
+    case 'fill-blanks':
+      text = data?.passage ?? '';
+      questions = data?.blanks ?? [];
+      wordBank = data?.wordBank ?? [];
+      break;
+    case 'matching':
+      questions = data?.pairs ?? [];
+      extraItems = data?.extraItems ?? [];
+      showExample = data?.showExample ?? false;
+      example = data?.example ?? null;
+      break;
+    case 'notice-sign':
+      questions = data?.notices ?? [];
+      break;
+  }
+
+  return {
+    text,
+    questions,
+    instructions,
+    wordBank,
+    extraItems,
+    showExample,
+    example,
+  };
+}
+
+/**
+ * POST to /api/ask-ai with JSON mode and response schema enabled.
+ * The responseSchema parameter constrains Gemini output to the exact structure,
+ * significantly improving parse reliability compared to jsonMode alone.
+ */
+async function _callAskAI(token, prompt, maxOutputTokens, responseSchema) {
+  const providerParams = {
+    provider: 'gemini',
+    model: GEMINI_MODEL,
+    temperature: 0.7,
+    jsonMode: true,
+    maxOutputTokens: maxOutputTokens,
+  };
+
+  // Pass responseSchema if provided — this is a Gemini capability that constrains
+  // the output to exactly match the schema, improving reliability
+  if (responseSchema) {
+    providerParams.responseSchema = responseSchema;
+  }
+
   const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method:  'POST',
+    method: 'POST',
     headers: {
-      Authorization:  `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       prompt,
-      providerParams: {
-        provider:        'gemini',
-        model:           GEMINI_MODEL,
-        temperature:     0.7,
-        jsonMode:        true,
-        maxOutputTokens: maxOutputTokens,
-      },
+      providerParams,
     }),
   });
 

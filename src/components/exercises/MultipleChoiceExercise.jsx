@@ -1,145 +1,59 @@
 /**
- * FillBlanksExercise.jsx
+ * MultipleChoiceExercise.jsx
  *
- * Fill blanks / complete dialogue with given phrases.
- * Used in A2-C1 exams.
- *
- * Official exam patterns:
- *   - "Preenche cada espaço com a informação correta" (A2)
- *   - "Completa o diálogo com as falas que estão no quadro" (A1)
- *   - "Complete as frases" (B1+)
+ * Multiple choice reading comprehension exercise.
+ * Presents a passage followed by questions with 3-4 options each.
  *
  * Props:
- *   blanks       {Array}  - Array of { id, context, blankLabel? }
- *   wordBank     {Array}  - Array of available words/phrases (with extras for distractors)
- *   answers      {object} - { [id]: selectedWord }
- *   onAnswer     {func}   - Called with (id, word)
- *   showContext  {bool}   - If true, show surrounding context for each blank
+ *   passage      {string} - Reading passage text
+ *   questions    {Array}  - Array of { id, question, options, correctAnswer }
+ *   answers      {object} - { [id]: selectedOption }
+ *   onAnswer     {func}   - Called with (id, option)
  *   isDarkMode   {bool}
- *   level        {string} - A1/A2 uses word bank; B1+ may use inline options
+ *   level        {string}
  */
 import PropTypes from 'prop-types';
 
-const FillBlanksExercise = ({
-  blanks,
-  wordBank,
-  answers,
-  onAnswer,
-  showContext = true,
-  isDarkMode,
-  level,
-}) => {
-  // Track which words have been used (excluding the currently selected one)
-  const usedWords = new Set(Object.values(answers).filter(Boolean));
-
+const MultipleChoiceExercise = ({ passage, questions, answers, onAnswer, isDarkMode }) => {
   return (
-    <div className="flex flex-col gap-3">
-      {/* Word bank */}
-      {wordBank.length > 0 && (
-        <div
-          className={`rounded-2xl border-4 p-4 sm:p-5 ${
-            isDarkMode
-              ? 'bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]'
-              : 'bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]'
-          }`}
-        >
-          <p className={`text-xs font-black uppercase tracking-widest mb-2 ${
-            isDarkMode ? 'text-slate-400' : 'text-slate-500'
-          }`}>
-            Quadro de palavras
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {wordBank.map((word, i) => {
-              const isUsed = usedWords.has(word);
-              return (
-                <span
-                  key={`${word}-${i}`}
-                  className={`px-3 py-1.5 rounded-lg border-2 text-sm font-semibold ${
-                    isUsed
-                      ? isDarkMode
-                        ? 'border-slate-700 text-slate-600 bg-slate-800/50 line-through'
-                        : 'border-slate-200 text-slate-400 bg-slate-50 line-through'
-                      : isDarkMode
-                      ? 'border-amber-600 text-amber-400 bg-amber-900/20'
-                      : 'border-amber-500 text-amber-700 bg-amber-50'
-                  }`}
-                >
-                  {word}
-                </span>
-              );
-            })}
-          </div>
-          {level !== 'A1' && (
-            <p className={`mt-2 text-xs ${
-              isDarkMode ? 'text-slate-500' : 'text-slate-400'
-            }`}>
-              * Há {wordBank.length - blanks.length} palavra(s) a mais
-            </p>
-          )}
+    <div className="flex flex-col gap-4">
+      {/* Passage */}
+      {passage && (
+        <div className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]' : 'bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]'}`}>
+          <p className={`text-xs font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Texto</p>
+          <p className={`text-sm sm:text-base leading-relaxed ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{passage}</p>
         </div>
       )}
 
-      {/* Blanks */}
+      {/* Questions */}
       <div className="flex flex-col gap-3">
-        {blanks.map((blank, i) => (
-          <div
-            key={blank.id}
-            className={`rounded-2xl border-4 p-4 sm:p-5 ${
-              isDarkMode
-                ? 'bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]'
-                : 'bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <span
-                className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-black mt-0.5 ${
-                  isDarkMode
-                    ? 'border-amber-600 text-amber-400'
-                    : 'border-amber-500 text-amber-600'
-                }`}
-              >
-                {i + 1}
-              </span>
-              <div className="flex-1 min-w-0">
-                {showContext && blank.context && (
-                  <p
-                    className={`text-sm mb-2 ${
-                      isDarkMode ? 'text-slate-300' : 'text-slate-600'
+        {questions.map((q, i) => (
+          <div key={q.id} className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]' : 'bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]'}`}>
+            <p className={`text-sm sm:text-base font-bold mb-3 ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+              <span className={`inline-flex w-6 h-6 rounded-full border-2 items-center justify-center text-xs font-black mr-2 shrink-0 ${isDarkMode ? 'border-sky-600 text-sky-400' : 'border-sky-500 text-sky-600'}`}>{i + 1}</span>
+              {q.question}
+            </p>
+            <div className="flex flex-col gap-2">
+              {q.options.map((option) => {
+                const isSelected = answers[q.id] === option;
+                return (
+                  <button
+                    key={option}
+                    onClick={() => onAnswer(q.id, option)}
+                    className={`w-full text-left px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${
+                      isSelected
+                        ? isDarkMode
+                          ? 'bg-sky-900/40 border-sky-500 text-sky-300'
+                          : 'bg-sky-50 border-sky-500 text-sky-800'
+                        : isDarkMode
+                        ? 'border-slate-600 text-slate-300 hover:bg-slate-700/50'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    {blank.context}
-                  </p>
-                )}
-
-                <select
-                  value={answers[blank.id] || ''}
-                  onChange={(e) => onAnswer(blank.id, e.target.value || null)}
-                  className={`w-full rounded-xl border-2 px-4 py-2.5 text-sm font-semibold
-                    focus:outline-none focus:ring-0 transition-colors
-                    ${answers[blank.id]
-                      ? isDarkMode
-                        ? 'bg-amber-900/30 border-amber-600 text-amber-300'
-                        : 'bg-amber-50 border-amber-500 text-amber-800'
-                      : isDarkMode
-                      ? 'bg-slate-700 border-slate-600 text-slate-300 focus:border-amber-500'
-                      : 'bg-white border-slate-300 text-slate-700 focus:border-amber-500'
-                    }`}
-                >
-                  <option value="">— {blank.blankLabel || 'Seleciona uma palavra'} —</option>
-                  {wordBank.map((word) => {
-                    const isUsedElsewhere = usedWords.has(word) && answers[blank.id] !== word;
-                    return (
-                      <option
-                        key={word}
-                        value={word}
-                        disabled={isUsedElsewhere}
-                      >
-                        {word}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
+                    {option}
+                  </button>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -148,25 +62,44 @@ const FillBlanksExercise = ({
   );
 };
 
-FillBlanksExercise.propTypes = {
-  blanks: PropTypes.arrayOf(
+MultipleChoiceExercise.propTypes = {
+  passage: PropTypes.string,
+  questions: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.string.isRequired,
-      context: PropTypes.string,
-      blankLabel: PropTypes.string,
+      question: PropTypes.string.isRequired,
+      options: PropTypes.arrayOf(PropTypes.string).isRequired,
+      correctAnswer: PropTypes.string.isRequired,
     })
   ).isRequired,
-  wordBank: PropTypes.arrayOf(PropTypes.string).isRequired,
   answers: PropTypes.object.isRequired,
   onAnswer: PropTypes.func.isRequired,
-  showContext: PropTypes.bool,
   isDarkMode: PropTypes.bool.isRequired,
   level: PropTypes.string,
 };
 
-FillBlanksExercise.defaultProps = {
-  showContext: true,
+MultipleChoiceExercise.defaultProps = {
+  passage: '',
   level: 'A1',
 };
 
-export default FillBlanksExercise;
+/**
+ * Generate AI prompt for multiple choice reading exercise
+ * @param {string} level - CEFR level (A1, A2, B1, B2, C1, C2)
+ * @param {string} targetLang - Target learning language (e.g., 'pt-PT', 'en-US')
+ * @returns {string} AI prompt
+ */
+MultipleChoiceExercise.generatePrompt = (level, targetLang) => {
+  return [
+    `Generate a multiple choice reading comprehension exercise in ${targetLang} for CEFR level ${level}.`,
+    `CRITICAL: All text content must be written entirely in ${targetLang}.`,
+    `Create a short passage (100-200 words for A1-A2, 200-300 for B1-B2, 300-400 for C1-C2) followed by 4-6 questions.`,
+    `Each question has 4 options with only one correct answer.`,
+    `Return a JSON object with:`,
+    `  - "passage": the reading passage text in ${targetLang}`,
+    `  - "questions": array of { id, question, options[], correctAnswer }`,
+    `Return ONLY valid JSON. No markdown, no explanation.`,
+  ].join('\n');
+};
+
+export default MultipleChoiceExercise;

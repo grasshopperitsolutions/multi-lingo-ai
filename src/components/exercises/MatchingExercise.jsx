@@ -64,4 +64,25 @@ MatchingExercise.propTypes = {
 };
 MatchingExercise.defaultProps = { extraItems: [], showExample: false, example: null, level: 'A1' };
 
+/**
+ * Generate AI prompt for matching reading exercise
+ * @param {string} level - CEFR level (A1, A2, B1, B2, C1, C2)
+ * @param {string} targetLang - Target learning language (e.g., 'pt-PT', 'en-US')
+ * @returns {string} AI prompt
+ */
+MatchingExercise.generatePrompt = (level, targetLang) => {
+  return [
+    `Generate a matching reading comprehension exercise in ${targetLang} for CEFR level ${level}.`,
+    `CRITICAL: All text content must be written entirely in ${targetLang}.`,
+    `Create two columns of related items (e.g. words and definitions, questions and answers).`,
+    `Include 5-7 matching pairs and 2-3 extra distractor items in Column B.`,
+    `Return a JSON object with:`,
+    `  - "pairs": array of { id, itemA, itemB } — items that correctly match`,
+    `  - "extraItems": array of strings for Column B distractors`,
+    `  - "showExample": true`,
+    `  - "example": { itemA, itemB } — a sample matched pair`,
+    `Return ONLY valid JSON. No markdown, no explanation.`,
+  ].join('\n');
+};
+
 export default MatchingExercise;
