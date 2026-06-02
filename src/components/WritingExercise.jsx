@@ -63,7 +63,7 @@ ParameterRow.propTypes = {
 
 const WritingExercise = ({ isDarkMode, onBack }) => {
   const { t } = useTranslation();
-  const { user, setUser } = useAppContext();
+  const { user, setUser, showAlert } = useAppContext();
 
   const [level, setLevel] = useState('A1');
   const [exercise, setExercise] = useState(null);
@@ -107,7 +107,12 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
       timerRef.current?.reset();
       setEval(null);
     } catch (err) {
-      setError(err.message ?? t('common.error', 'Something went wrong. Please try again.'));
+      const errorMessage = err.message ?? t('common.error', 'Something went wrong. Please try again.');
+      setError(errorMessage);
+      showAlert("error", errorMessage, {
+        label: t('common.try_again', 'Try Again'),
+        onClick: handleGetExercise
+      });
     } finally {
       setLoading(false);
     }
@@ -128,7 +133,12 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
       setEval(result);
       await markCurrentExerciseSeen();
     } catch (err) {
-      setError(err.message ?? t('common.error', 'Something went wrong. Please try again.'));
+      const errorMessage = err.message ?? t('common.error', 'Something went wrong. Please try again.');
+      setError(errorMessage);
+      showAlert("error", errorMessage, {
+        label: t('common.try_again', 'Try Again'),
+        onClick: handleEvaluate
+      });
     } finally {
       setLoading(false);
     }

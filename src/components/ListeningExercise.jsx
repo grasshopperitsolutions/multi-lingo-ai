@@ -14,7 +14,7 @@ import { markExerciseSeen } from '../services/userService';
 
 const ListeningExercise = ({ isDarkMode, onBack }) => {
   const { t } = useTranslation();
-  const { user, setUser } = useAppContext();
+  const { user, setUser, showAlert } = useAppContext();
 
   const targetLang = user?.learningDialect ?? 'pt-PT';
 
@@ -59,7 +59,12 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
       setShowTranscript(false);
       timerRef.current?.reset();
     } catch (err) {
-      setError(err.message ?? t('common.error'));
+      const errorMessage = err.message ?? t('common.error', 'Something went wrong. Please try again.');
+      setError(errorMessage);
+      showAlert("error", errorMessage, {
+        label: t('common.try_again', 'Try Again'),
+        onClick: handleGetExercise
+      });
     } finally {
       setLoading(false);
     }

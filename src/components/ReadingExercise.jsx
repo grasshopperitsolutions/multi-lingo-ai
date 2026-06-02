@@ -23,7 +23,7 @@ import {
 
 const ReadingExercise = ({ isDarkMode, onBack }) => {
   const { t } = useTranslation();
-  const { user, setUser } = useAppContext();
+  const { user, setUser, showAlert } = useAppContext();
 
   const [level, setLevel] = useState('A1');
   const [questionType, setQuestionType] = useState('random');
@@ -60,7 +60,12 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
       setAnswers({});
       timerRef.current?.reset();
     } catch (err) {
-      setError(err.message ?? t('common.error'));
+      const errorMessage = err.message ?? t('common.error', 'Something went wrong. Please try again.');
+      setError(errorMessage);
+      showAlert("error", errorMessage, {
+        label: t('common.try_again', 'Try Again'),
+        onClick: handleGetExercise
+      });
     } finally {
       setLoading(false);
     }

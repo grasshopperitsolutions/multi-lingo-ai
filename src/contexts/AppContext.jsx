@@ -44,17 +44,17 @@ const getSavedLanguage = () => {
 export const AppProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(getSavedTheme());
   const [interfaceLang, setInterfaceLang] = useState(getSavedLanguage());
-  const [alert, setAlert] = useState({ show: false, type: "", message: "" });
+  const [alert, setAlert] = useState({ show: false, type: "", message: "", action: null });
   const [user, setUser] = useState(null);
   const [tokenExpired, setTokenExpired] = useState(false);
   const tokenCheckRef = useRef(null);
 
-  const showAlert = (type, message) => {
-    setAlert({ show: true, type, message });
+  const showAlert = (type, message, action = null) => {
+    setAlert({ show: true, type, message, action });
   };
 
   const closeAlert = () => {
-    setAlert((prev) => ({ ...prev, show: false }));
+    setAlert((prev) => ({ ...prev, show: false, action: null }));
   };
 
   /**
@@ -92,7 +92,7 @@ export const AppProvider = ({ children }) => {
    */
   const dismissTokenExpired = useCallback(() => {
     setTokenExpired(false);
-    setAlert({ show: false, type: "", message: "" });
+    setAlert({ show: false, type: "", message: "", action: null });
   }, []);
 
   // ── Periodic token validation ──────────────────────────────────────────
@@ -124,7 +124,7 @@ export const AppProvider = ({ children }) => {
       if (firebaseUser && tokenExpired) {
         // User re-authenticated (e.g. signed in again from another tab)
         setTokenExpired(false);
-        setAlert({ show: false, type: "", message: "" });
+        setAlert({ show: false, type: "", message: "", action: null });
       }
     });
     return () => unsubscribe();

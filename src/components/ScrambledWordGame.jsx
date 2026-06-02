@@ -123,7 +123,7 @@ LetterTile.propTypes = {
 // ---------------------------------------------------------------------------
 const ScrambledWordGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
-  const { user } = useAppContext();
+  const { user, showAlert } = useAppContext();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
@@ -280,11 +280,22 @@ const ScrambledWordGame = ({ isDarkMode }) => {
         window.location.reload();
         return;
       }
-      setError(sanitizeAIError(err.message, t("challenges.word_fetch_error")));
+      const errorMessage = sanitizeAIError(err.message, t("challenges.word_fetch_error"));
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   }, [fetchWordData, applyWordData, t]);
+
+  // Show alert with retry action when error is set
+  useEffect(() => {
+    if (error) {
+      showAlert("error", error, {
+        label: t("common.try_again", "Try Again"),
+        onClick: fetchWord
+      });
+    }
+  }, [error, fetchWord, t, showAlert]);
 
   useEffect(() => {
     let cancelled = false;
@@ -297,7 +308,8 @@ const ScrambledWordGame = ({ isDarkMode }) => {
             window.location.reload();
             return;
           }
-          setError(sanitizeAIError(err.message, t("challenges.word_fetch_error")));
+          const errorMessage = sanitizeAIError(err.message, t("challenges.word_fetch_error"));
+          setError(errorMessage);
         }
       })
       .finally(() => { if (!cancelled) setLoading(false); });

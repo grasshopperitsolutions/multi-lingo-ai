@@ -134,7 +134,7 @@ WordListPanel.propTypes = {
 
 const WordSearchGame = ({ isDarkMode }) => {
   const { t }    = useTranslation();
-  const { user } = useAppContext();
+  const { user, showAlert } = useAppContext();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
@@ -285,11 +285,22 @@ const WordSearchGame = ({ isDarkMode }) => {
         window.location.reload();
         return;
       }
-      setError(err.message ?? t("challenges.word_fetch_error"));
+      const errorMessage = err.message ?? t("challenges.word_fetch_error");
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   }, [fetchAllWords, applyWords, t]);
+
+  // Show alert with retry action when error is set
+  useEffect(() => {
+    if (error) {
+      showAlert("error", error, {
+        label: t("common.try_again", "Try Again"),
+        onClick: fetchGame
+      });
+    }
+  }, [error, fetchGame, t, showAlert]);
 
   // Initial load — also initialises stats (single fetch, no duplicate)
   useEffect(() => {
@@ -315,7 +326,8 @@ const WordSearchGame = ({ isDarkMode }) => {
           window.location.reload();
           return;
         }
-        setError(err.message ?? t("challenges.word_fetch_error"));
+        const errorMessage = err.message ?? t("challenges.word_fetch_error");
+        setError(errorMessage);
         setIsLoadingStats(false);
       } finally {
         if (!cancelled) setLoading(false);

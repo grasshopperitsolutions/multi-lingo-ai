@@ -11,12 +11,13 @@ const AlertMessage = ({ alert, onClose }) => {
     ? t("session.expired_title")
     : alert.message;
 
+  // Auto-dismiss after 4s unless it has a persistent action or is session expired
   useEffect(() => {
-    if (alert.show && !isSessionExpired) {
+    if (alert.show && !isSessionExpired && !alert.action) {
       const timer = setTimeout(onClose, 4000);
       return () => clearTimeout(timer);
     }
-  }, [alert.show, onClose, isSessionExpired]);
+  }, [alert.show, onClose, isSessionExpired, alert.action]);
 
   if (!alert.show) return null;
 
@@ -32,6 +33,12 @@ const AlertMessage = ({ alert, onClose }) => {
 
   const currentStyle = styles[alert.type] || styles.info;
   const Icon = currentStyle.icon;
+
+  const handleActionClick = () => {
+    if (alert.action?.onClick) {
+      alert.action.onClick();
+    }
+  };
 
   return (
     <div className="fixed top-6 right-6 md:top-10 md:right-10 z-[200] animate-in slide-in-from-top-10 fade-in duration-300">
@@ -52,11 +59,18 @@ const AlertMessage = ({ alert, onClose }) => {
         {isSessionExpired ? (
           <button
             onClick={() => {
-              window.location.href = "/login";
+              window.location.reload();
             }}
             className="ml-4 px-4 py-2 rounded-xl bg-white text-rose-500 font-bold uppercase text-sm hover:scale-105 transition-all active:scale-95 whitespace-nowrap"
           >
             {t("session.refresh_button")}
+          </button>
+        ) : alert.action ? (
+          <button
+            onClick={handleActionClick}
+            className="ml-4 px-4 py-2 rounded-xl bg-white text-rose-500 font-bold uppercase text-sm hover:scale-105 transition-all active:scale-95 whitespace-nowrap"
+          >
+            {alert.action.label}
           </button>
         ) : (
           <button
@@ -76,6 +90,10 @@ AlertMessage.propTypes = {
     show: PropTypes.bool.isRequired,
     type: PropTypes.string,
     message: PropTypes.string,
+    action: PropTypes.shape({
+      label: PropTypes.string.isRequired,
+      onClick: PropTypes.func.isRequired,
+    }),
   }).isRequired,
   onClose: PropTypes.func.isRequired,
 };
