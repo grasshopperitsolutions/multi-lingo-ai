@@ -101,6 +101,7 @@ export async function getExercise({
   token,
   level,
   type,
+  questionType,
   targetLang,
   userDialect,
   seenExerciseIds,
@@ -140,7 +141,7 @@ export async function getExercise({
 
   // Pool exhausted — generate a new exercise
   const generated = await _generateNewExercise(
-    { type, level, targetLang, userDialect },
+    { type, level, questionType, targetLang, userDialect },
     token
   );
 
@@ -332,7 +333,7 @@ async function _writeExerciseContent(exerciseId, locale, generated, token) {
 /**
  * Route to the appropriate type-specific service for exercise generation.
  */
-async function _generateNewExercise({ type, level, targetLang }, token) {
+async function _generateNewExercise({ type, level, questionType, targetLang }, token) {
   if (type === 'writing') {
     const content = await generateWritingExercise({ token, level, targetLang });
     return {
@@ -344,7 +345,7 @@ async function _generateNewExercise({ type, level, targetLang }, token) {
   }
 
   if (type === 'reading') {
-    const content = await generateReadingExercise({ token, level, targetLang });
+    const content = await generateReadingExercise({ token, level, targetLang, questionType });
     return {
       type: 'reading',
       level,
@@ -355,7 +356,7 @@ async function _generateNewExercise({ type, level, targetLang }, token) {
   }
 
   if (type === 'listening') {
-    const content = await generateListeningExercise({ token, level, targetLang });
+    const content = await generateListeningExercise({ token, level, targetLang, questionType });
     return {
       type: 'listening',
       level,

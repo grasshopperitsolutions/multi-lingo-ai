@@ -21,7 +21,7 @@ const MAX_OUTPUT_TOKENS_BY_LEVEL = {
 };
 const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 
-export async function generateListeningExercise({ token, level, targetLang }) {
+export async function generateListeningExercise({ token, level, targetLang, questionType: forcedType }) {
   if (!token) throw new Error('[examListeningExerciseService] token is required');
   if (!level) throw new Error('[examListeningExerciseService] level is required');
   if (!targetLang) throw new Error('[examListeningExerciseService] targetLang is required');
@@ -29,7 +29,9 @@ export async function generateListeningExercise({ token, level, targetLang }) {
   const audioFormats = ['dialogue', 'monologue', 'phone-message', 'announcement', 'interview'];
   const exerciseTypes = ['multiple-choice', 'true-false', 'fill-blanks'];
   const audioFormat = audioFormats[Math.floor(Math.random() * audioFormats.length)];
-  const type = exerciseTypes[Math.floor(Math.random() * exerciseTypes.length)];
+  const type = forcedType && exerciseTypes.includes(forcedType)
+    ? forcedType
+    : exerciseTypes[Math.floor(Math.random() * exerciseTypes.length)];
 
   // Build prompt with targetLang
   const prompt = getListeningPrompt(level, targetLang, { type, audioFormat });

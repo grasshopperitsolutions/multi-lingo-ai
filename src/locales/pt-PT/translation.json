@@ -495,6 +495,13 @@
     "show_transcript": "Mostrar Transcrição",
     "transcript": "Transcrição",
     "instructions": "Instruções",
+    "sidebar": {
+      "settings": "Definições",
+      "level": "Nível",
+      "type": "Tipo",
+      "generate": "Gerar",
+      "generating": "A gerar..."
+    },
     "levels": {
       "a1": "A1 - Iniciante",
       "a2": "A2 - Elementar",

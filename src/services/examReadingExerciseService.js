@@ -118,15 +118,15 @@ import { checkReadingAnswers } from './examUtils';
  * @param {GenerateReadingExerciseParams} params
  * @returns {Promise<ReadingExerciseContent>}
  */
-export async function generateReadingExercise({ token, level, targetLang }) {
+export async function generateReadingExercise({ token, level, targetLang, questionType: forcedType }) {
   if (!token) throw new Error('[examReadingExerciseService] token is required');
   if (!level) throw new Error('[examReadingExerciseService] level is required');
   if (!targetLang) throw new Error('[examReadingExerciseService] targetLang is required');
 
-  // Step 1: JavaScript randomly picks exercise type
-  const questionType = READING_EXERCISE_TYPES[
-    Math.floor(Math.random() * READING_EXERCISE_TYPES.length)
-  ];
+  // Step 1: Use provided type or randomly pick one
+  const questionType = forcedType && READING_EXERCISE_TYPES.includes(forcedType)
+    ? forcedType
+    : READING_EXERCISE_TYPES[Math.floor(Math.random() * READING_EXERCISE_TYPES.length)];
 
   // Step 2: Get type-specific prompt from component
   const prompt = getPromptForType(questionType, level, targetLang);
