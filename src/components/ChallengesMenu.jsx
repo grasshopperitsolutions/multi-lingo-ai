@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { BrainCircuit, Swords, NotebookPen, Search, EggFried } from "lucide-react";
+import { BrainCircuit, Swords, NotebookPen, Search, EggFried, Link2 } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import ReportButton from "./ReportButton";
 import { Breadcrumb } from "./ui";
@@ -12,6 +12,7 @@ const CrosswordsGame    = lazy(() => import("./CrosswordsGame"));
 const WordQuizGame      = lazy(() => import("./WordQuizGame"));
 const WordSearchGame    = lazy(() => import("./WordSearchGame"));
 const ScrambledWordGame = lazy(() => import("./ScrambledWordGame"));
+const WordLinkGame      = lazy(() => import("./WordLinkGame"));
 
 // ── Game Registry ─────────────────────────────────────────────────────────────
 const GAMES = [
@@ -59,6 +60,15 @@ const GAMES = [
     descKey: "challenges.crosswords_desc",
     component: CrosswordsGame,
     comingSoon: true,
+  },
+  {
+    id: "word_link",
+    icon: Link2,
+    color: "bg-indigo-400",
+    titleKey: "challenges.word_link",
+    descKey: "challenges.word_link_desc",
+    component: WordLinkGame,
+    comingSoon: false,
   },
 ];
 
