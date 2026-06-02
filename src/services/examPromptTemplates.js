@@ -273,7 +273,6 @@ export function getReadingPrompt(level, targetLang, { type = 'multiple-choice', 
  */
 export function getListeningPrompt(level, targetLang, { type = 'multiple-choice', audioFormat = 'dialogue' } = {}) {
   const duration = getAudioDuration(level);
-  const grammar = getGrammarDescription(level);
   const isBeginner = level === 'A1' || level === 'A2';
   const questionCount = isBeginner ? 3 : 5;
 
@@ -285,35 +284,46 @@ export function getListeningPrompt(level, targetLang, { type = 'multiple-choice'
     'interview': 'an interview (questions and answers)',
   };
 
-  const typeLabel = type === 'multiple-choice' ? 'multiple choice' : type === 'true-false' ? 'true/false' : 'fill in the blanks';
+  const toneDescriptions = {
+    'dialogue': 'casual conversation between friends or family members',
+    'monologue': 'a person talking to themselves or to an audience',
+    'phone-message': 'a recorded phone message with clear articulation',
+    'announcement': 'a formal public announcement with clear enunciation',
+    'interview': 'a semi-formal interview with questions and answers',
+  };
+
+  const typeLabel = type === 'multiple-choice' ? 'multiple choice'
+    : type === 'true-false' ? 'true/false'
+    : 'fill in the blanks (select from a word bank)';
+
+  const commonFields = `Return a JSON object with:
+  - "transcript": the full audio script in ${targetLang}
+  - "tone": "${toneDescriptions[audioFormat] || 'natural conversation'}"
+  - "duration": ${duration}
+  - "instructions": array of strings`;
 
   const fieldList = type === 'multiple-choice'
-    ? `Return a JSON object with:
-  - "transcript": the full transcript in ${targetLang}
-  - "duration": ${duration}
-  - "instructions": array of strings
+    ? `${commonFields}
   - "questions": array of { id, text, options[], correctAnswer }`
     : type === 'true-false'
-      ? `Return a JSON object with:
-  - "transcript": the full transcript in ${targetLang}
-  - "duration": ${duration}
-  - "instructions": array of strings
+      ? `${commonFields}
   - "statements": array of { id, text, isTrue }
   - "questions": array of { id, text, options[], correctAnswer }`
-      : `Return a JSON object with:
-  - "transcript": the full transcript in ${targetLang}
-  - "duration": ${duration}
-  - "instructions": array of strings
-  - "blanks": array of { id, context, answer }`;
+      : `${commonFields}
+  - "passage": the same text as the transcript but with key words replaced by ___ (triple underscore)
+  - "wordBank": array of words in ${targetLang} (correct answers + plausible distractors)
+  - "blanks": array of { id, position, correctAnswer }`;
 
   return [
     `Generate a listening comprehension exercise in ${targetLang} for CEFR level ${level}.`,
     `CRITICAL: All text content must be written entirely in ${targetLang}.`,
     ``,
     `Audio format: ${formatLabels[audioFormat] || 'a dialogue'}.`,
-    `Exercise type: ${typeLabel} questions.`,
-    `Create ${questionCount} questions based on the transcript.`,
+    `Exercise type: ${typeLabel}.`,
+    `Create ${questionCount} items based on the transcript the student will hear.`,
     ``,
+    `The "transcript" is the full script the student will listen to via TTS.`,
+    `The "tone" describes how the TTS should deliver the audio.`,
     fieldList,
     ``,
     `Return ONLY valid JSON. No markdown, no explanation.`,

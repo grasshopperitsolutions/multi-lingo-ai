@@ -3,6 +3,12 @@
  *
  * Specialized service for listening exercises.
  * Uses getListeningPrompt from examPromptTemplates for level-appropriate prompts.
+ *
+ * Returns:
+ *   For multiple-choice / true-false:
+ *     { transcript, tone, duration, instructions, questions, exerciseType }
+ *   For fill-blanks:
+ *     { transcript, tone, duration, instructions, passage, wordBank, blanks, exerciseType }
  */
 
 import { getListeningPrompt } from './examPromptTemplates';
@@ -28,7 +34,7 @@ export async function generateListeningExercise({ token, level, targetLang }) {
   // Build prompt with targetLang
   const prompt = getListeningPrompt(level, targetLang, { type, audioFormat });
 
-  // Get JSON Schema for this exercise type (improves Gemini output reliability)
+  // Get JSON Schema for this exercise type
   const responseSchema = getResponseSchemaForType(type);
 
   const maxTokens = MAX_OUTPUT_TOKENS_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS;
@@ -41,16 +47,45 @@ export async function generateListeningExercise({ token, level, targetLang }) {
 
   const data = _parseJSON(raw);
 
-  if (!data?.transcript || !Array.isArray(data?.questions)) {
-    console.error('[examListeningExerciseService] Unexpected response shape', data);
+  if (!data?.transcript) {
+    console.error('[examListeningExerciseService] Missing transcript', data);
     throw new Error('Something went wrong. Please try again.');
   }
 
-  return {
+  // Validate based on exercise type
+  if (type === 'fill-blanks') {
+    if (!data?.passage || !Array.isArray(data?.wordBank) || !Array.isArray(data?.blanks)) {
+      console.error('[examListeningExerciseService] Unexpected fill-blanks response shape', data);
+      throw new Error('Something went wrong. Please try again.');
+    }
+  } else {
+    if (!Array.isArray(data?.questions)) {
+      console.error('[examListeningExerciseService] Unexpected response shape', data);
+      throw new Error('Something went wrong. Please try again.');
+    }
+  }
+
+  // Build return shape based on type
+  const base = {
     audioUrl: '',
     transcript: data.transcript,
+    tone: data.tone ?? '',
     duration: data.duration ?? 60,
     instructions: data.instructions ?? [],
+    exerciseType: type,
+  };
+
+  if (type === 'fill-blanks') {
+    return {
+      ...base,
+      passage: data.passage,
+      wordBank: data.wordBank,
+      blanks: data.blanks,
+    };
+  }
+
+  return {
+    ...base,
     questions: data.questions,
   };
 }
@@ -63,7 +98,6 @@ export { checkListeningAnswers } from './examUtils';
 
 /**
  * Get a JSON Schema for the given listening exercise type.
- * This constrains Gemini's output, improving reliability over jsonMode alone.
  *
  * @param {string} type - 'multiple-choice' | 'true-false' | 'fill-blanks'
  * @returns {Object|null} JSON Schema object
@@ -75,6 +109,7 @@ function getResponseSchemaForType(type) {
         type: 'object',
         properties: {
           transcript: { type: 'string' },
+          tone: { type: 'string' },
           duration: { type: 'number' },
           instructions: { type: 'array', items: { type: 'string' } },
           questions: {
@@ -101,6 +136,7 @@ function getResponseSchemaForType(type) {
         type: 'object',
         properties: {
           transcript: { type: 'string' },
+          tone: { type: 'string' },
           duration: { type: 'number' },
           instructions: { type: 'array', items: { type: 'string' } },
           statements: {
@@ -139,24 +175,27 @@ function getResponseSchemaForType(type) {
         type: 'object',
         properties: {
           transcript: { type: 'string' },
+          tone: { type: 'string' },
           duration: { type: 'number' },
           instructions: { type: 'array', items: { type: 'string' } },
+          passage: { type: 'string' },
+          wordBank: { type: 'array', items: { type: 'string' }, minItems: 8, maxItems: 13 },
           blanks: {
             type: 'array',
             items: {
               type: 'object',
               properties: {
                 id: { type: 'string' },
-                context: { type: 'string' },
-                answer: { type: 'string' },
+                position: { type: 'number' },
+                correctAnswer: { type: 'string' },
               },
-              required: ['id', 'context', 'answer'],
+              required: ['id', 'position', 'correctAnswer'],
             },
             minItems: 3,
             maxItems: 5,
           },
         },
-        required: ['transcript', 'blanks'],
+        required: ['transcript', 'passage', 'wordBank', 'blanks'],
       };
 
     default:

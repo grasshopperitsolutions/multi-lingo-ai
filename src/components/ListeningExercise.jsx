@@ -8,6 +8,7 @@ import Loader from './Loader';
 import ExamTimer from './ExamTimer';
 import ReportButton from './ReportButton';
 import TTSPlayer from './TTSPlayer';
+import FillBlanksExercise from './exercises/FillBlanksExercise';
 import { Card, SectionHeading, ErrorBanner, PrimaryButton, GhostButton, ResultRow, LevelBadge } from './ui';
 import { getExercise } from '../services/examExerciseService';
 import { checkListeningAnswers, getListeningScoreColor } from '../services/examUtils';
@@ -41,7 +42,13 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
   const [error, setError] = useState(null);
   const [showTranscript, setShowTranscript] = useState(false);
 
-  const allAnswered = exercise?.questions?.length > 0 && exercise.questions.every((q) => answers[q.id] != null);
+  const isFillBlanks = exercise?.exerciseType === 'fill-blanks';
+
+  // For multiple-choice/true-false: all questions must have an answer
+  // For fill-blanks: all blanks must have an answer
+  const allAnswered = isFillBlanks
+    ? exercise?.blanks?.length > 0 && exercise.blanks.every((b) => answers[b.id] != null)
+    : exercise?.questions?.length > 0 && exercise.questions.every((q) => answers[q.id] != null);
 
   const markCurrentExerciseSeen = async () => {
     if (!exerciseId || !user?.token || !user?.uid) return;
@@ -77,10 +84,27 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
   };
 
   const handleCheckAnswers = async () => {
-    if (!exercise?.questions) return;
-    const userAnswers = Object.entries(answers).map(([questionId, selectedAnswer]) => ({ questionId, selectedAnswer }));
-    const res = checkListeningAnswers(userAnswers, exercise.questions);
-    setResult(res);
+    if (isFillBlanks) {
+      // Fill-blanks: compare answers against blanks[].correctAnswer
+      if (!exercise?.blanks?.length) return;
+      // Convert blanks into checkAnswers-compatible questions shape
+      const blankQuestions = exercise.blanks.map((b) => ({
+        id: b.id,
+        text: b.correctAnswer,
+        correctAnswer: b.correctAnswer,
+      }));
+      const userAnswers = exercise.blanks.map((b) => ({
+        questionId: b.id,
+        selectedAnswer: answers[b.id] || '',
+      }));
+      const res = checkListeningAnswers(userAnswers, blankQuestions);
+      setResult(res);
+    } else {
+      if (!exercise?.questions) return;
+      const userAnswers = Object.entries(answers).map(([questionId, selectedAnswer]) => ({ questionId, selectedAnswer }));
+      const res = checkListeningAnswers(userAnswers, exercise.questions);
+      setResult(res);
+    }
     setStep('results');
     await markCurrentExerciseSeen();
   };
@@ -154,6 +178,12 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
         <div>
           <SectionHeading isDarkMode={isDarkMode}>{t('exam.audio', 'Audio')}</SectionHeading>
           <TTSPlayer text={exercise.transcript} lang={targetLang} isDarkMode={isDarkMode} />
+          {/* Show tone/context when available */}
+          {exercise.tone && (
+            <p className={`mt-2 text-xs font-semibold italic ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              {exercise.tone}
+            </p>
+          )}
         </div>
 
         <div>
@@ -188,32 +218,44 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
           <ExamTimer isDarkMode={isDarkMode} />
         </div>
 
+        {/* Comprehension Questions / Fill-Blanks */}
         <div>
           <SectionHeading isDarkMode={isDarkMode}>{t('exam.comprehension_questions', 'Comprehension Questions')}</SectionHeading>
-          <div className="flex flex-col gap-3">
-            {exercise.questions.map((q, i) => (
-              <div key={q.id} className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]' : 'bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]'}`}>
-                <p className={`text-sm sm:text-base font-bold mb-3 ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>
-                  <span className={`inline-flex w-6 h-6 rounded-full border-2 items-center justify-center text-xs font-black mr-2 shrink-0 ${isDarkMode ? 'border-sky-600 text-sky-400' : 'border-sky-500 text-sky-600'}`}>{i + 1}</span>
-                  {q.text}
-                </p>
-                <div className="flex flex-col gap-2">
-                  {q.options.map((option) => {
-                    const isSelected = (answers[q.id] ?? null) === option;
-                    return (
-                      <button key={option} onClick={() => handleSelectAnswer(q.id, option)} className={`w-full text-left px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${isSelected ? (isDarkMode ? 'bg-sky-900/40 border-sky-500 text-sky-300' : 'bg-sky-50 border-sky-500 text-sky-800') : (isDarkMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700/50' : 'border-slate-200 text-slate-700 hover:bg-slate-50')}`}>
-                        {option}
-                      </button>
-                    );
-                  })}
+          {isFillBlanks ? (
+            <FillBlanksExercise
+              passage={exercise.passage}
+              wordBank={exercise.wordBank}
+              blanks={exercise.blanks}
+              answers={answers}
+              onAnswer={handleSelectAnswer}
+              isDarkMode={isDarkMode}
+            />
+          ) : (
+            <div className="flex flex-col gap-3">
+              {exercise.questions.map((q, i) => (
+                <div key={q.id} className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]' : 'bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]'}`}>
+                  <p className={`text-sm sm:text-base font-bold mb-3 ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>
+                    <span className={`inline-flex w-6 h-6 rounded-full border-2 items-center justify-center text-xs font-black mr-2 shrink-0 ${isDarkMode ? 'border-sky-600 text-sky-400' : 'border-sky-500 text-sky-600'}`}>{i + 1}</span>
+                    {q.text}
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {q.options.map((option) => {
+                      const isSelected = (answers[q.id] ?? null) === option;
+                      return (
+                        <button key={option} onClick={() => handleSelectAnswer(q.id, option)} className={`w-full text-left px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${isSelected ? (isDarkMode ? 'bg-sky-900/40 border-sky-500 text-sky-300' : 'bg-sky-50 border-sky-500 text-sky-800') : (isDarkMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700/50' : 'border-slate-200 text-slate-700 hover:bg-slate-50')}`}>
+                          {option}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <p className={`text-xs font-semibold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-          {Object.keys(answers).length} / {exercise.questions.length} {t('exam.questions_answered', 'questions answered')}
+          {Object.keys(answers).length} / {isFillBlanks ? exercise.blanks.length : exercise.questions.length} {t('exam.questions_answered', 'questions answered')}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3">
