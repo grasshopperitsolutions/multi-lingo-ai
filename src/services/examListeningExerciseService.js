@@ -4,6 +4,7 @@
  * Specialized service for listening exercises.
  * Uses getListeningPrompt from examPromptTemplates for level-appropriate prompts.
  */
+
 import { getListeningPrompt } from './examPromptTemplates';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
@@ -23,10 +24,15 @@ export async function generateListeningExercise({ token, level, targetLang }) {
   const exerciseTypes = ['multiple-choice', 'true-false', 'fill-blanks'];
   const audioFormat = audioFormats[Math.floor(Math.random() * audioFormats.length)];
   const type = exerciseTypes[Math.floor(Math.random() * exerciseTypes.length)];
+
+  // Build prompt with targetLang
   const prompt = getListeningPrompt(level, targetLang, { type, audioFormat });
 
+  // Get JSON Schema for this exercise type (improves Gemini output reliability)
+  const responseSchema = getResponseSchemaForType(type);
+
   const maxTokens = MAX_OUTPUT_TOKENS_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS;
-  const raw = await _callAskAI(token, prompt, maxTokens);
+  const raw = await _callAskAI(token, prompt, maxTokens, responseSchema);
 
   if (!raw) {
     console.error('[examListeningExerciseService] Empty response from AI');
@@ -51,14 +57,130 @@ export async function generateListeningExercise({ token, level, targetLang }) {
 
 export { checkListeningAnswers } from './examUtils';
 
-async function _callAskAI(token, prompt, maxOutputTokens) {
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Get a JSON Schema for the given listening exercise type.
+ * This constrains Gemini's output, improving reliability over jsonMode alone.
+ *
+ * @param {string} type - 'multiple-choice' | 'true-false' | 'fill-blanks'
+ * @returns {Object|null} JSON Schema object
+ */
+function getResponseSchemaForType(type) {
+  switch (type) {
+    case 'multiple-choice':
+      return {
+        type: 'object',
+        properties: {
+          transcript: { type: 'string' },
+          duration: { type: 'number' },
+          instructions: { type: 'array', items: { type: 'string' } },
+          questions: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                text: { type: 'string' },
+                options: { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 4 },
+                correctAnswer: { type: 'string' },
+              },
+              required: ['id', 'text', 'options', 'correctAnswer'],
+            },
+            minItems: 3,
+            maxItems: 5,
+          },
+        },
+        required: ['transcript', 'questions'],
+      };
+
+    case 'true-false':
+      return {
+        type: 'object',
+        properties: {
+          transcript: { type: 'string' },
+          duration: { type: 'number' },
+          instructions: { type: 'array', items: { type: 'string' } },
+          statements: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                text: { type: 'string' },
+                isTrue: { type: 'boolean' },
+              },
+              required: ['id', 'text', 'isTrue'],
+            },
+            minItems: 3,
+            maxItems: 5,
+          },
+          questions: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                text: { type: 'string' },
+                options: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 2 },
+                correctAnswer: { type: 'string' },
+              },
+              required: ['id', 'text', 'options', 'correctAnswer'],
+            },
+          },
+        },
+        required: ['transcript', 'statements', 'questions'],
+      };
+
+    case 'fill-blanks':
+      return {
+        type: 'object',
+        properties: {
+          transcript: { type: 'string' },
+          duration: { type: 'number' },
+          instructions: { type: 'array', items: { type: 'string' } },
+          blanks: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                context: { type: 'string' },
+                answer: { type: 'string' },
+              },
+              required: ['id', 'context', 'answer'],
+            },
+            minItems: 3,
+            maxItems: 5,
+          },
+        },
+        required: ['transcript', 'blanks'],
+      };
+
+    default:
+      return null;
+  }
+}
+
+async function _callAskAI(token, prompt, maxOutputTokens, responseSchema) {
+  const providerParams = {
+    provider: 'gemini',
+    model: GEMINI_MODEL,
+    temperature: 0.7,
+    jsonMode: true,
+    maxOutputTokens,
+  };
+
+  if (responseSchema) {
+    providerParams.responseSchema = responseSchema;
+  }
+
   const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt,
-      providerParams: { provider: 'gemini', model: GEMINI_MODEL, temperature: 0.7, jsonMode: true, maxOutputTokens },
-    }),
+    body: JSON.stringify({ prompt, providerParams }),
   });
   const json = await response.json();
   if (!response.ok) throw new Error(json?.error || json?.message || 'Request failed');
