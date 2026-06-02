@@ -22,7 +22,8 @@
     "loading": "A carregar...",
     "cancel": "Cancelar",
     "close": "Fechar",
-    "error": "Algo correu mal. Por favor, tente novamente."
+    "error": "Algo correu mal. Por favor, tente novamente.",
+    "back": "Voltar"
   },
   "avatar": {
     "alt_fallback": "Avatar"
@@ -486,7 +487,48 @@
     "vocabulary": "Vocabulário",
     "comprehension_questions": "Perguntas de Compreensão",
     "questions_answered": "perguntas respondidas",
-    "check_answers": "Verificar as Minhas Respostas"
+    "check_answers": "Verificar as Minhas Respostas",
+    "training": "Preparação para Exames",
+    "listening_lang_unsupported": "Os exercícios de compreensão auditiva estão atualmente disponíveis apenas para pt-PT. O teu idioma de aprendizagem é {{lang}}.",
+    "audio": "Áudio",
+    "hide_transcript": "Ocultar Transcrição",
+    "show_transcript": "Mostrar Transcrição",
+    "transcript": "Transcrição",
+    "instructions": "Instruções",
+    "sidebar": {
+      "settings": "Definições",
+      "level": "Nível",
+      "type": "Tipo",
+      "generate": "Gerar",
+      "generating": "A gerar..."
+    },
+    "levels": {
+      "a1": "A1 - Iniciante",
+      "a2": "A2 - Elementar",
+      "b1": "B1 - Intermédio",
+      "b2": "B2 - Independente",
+      "c1": "C1 - Avançado",
+      "c2": "C2 - Proficiente"
+    }
+  },
+  "exam_exercises": {
+    "text": "Texto",
+    "best_title": "Melhor Título",
+    "example": "Exemplo",
+    "column_a": "Coluna A",
+    "column_b": "Coluna B",
+    "matches": "Associações",
+    "select": "Seleciona",
+    "extra": "extra",
+    "task": "Tarefa",
+    "transcription_placeholder": "Copia aqui a frase do texto...",
+    "true": "Verdadeiro",
+    "false": "Falso",
+    "correct": "Corrigir",
+    "correction_placeholder": "Versão corrigida...",
+    "word_bank": "Quadro de Palavras",
+    "extra_words": "* Há {{count}} palavra(s) a mais",
+    "select_word": "Seleciona uma palavra"
   },
   "dictionary": {
     "lang_tooltip": "A escrever em {{lang}}",

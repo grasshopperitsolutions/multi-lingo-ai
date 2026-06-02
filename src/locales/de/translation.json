@@ -22,7 +22,8 @@
     "loading": "Wird geladen...",
     "cancel": "Abbrechen",
     "close": "Schließen",
-    "error": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    "error": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+    "back": "Zurück"
   },
   "avatar": {
     "alt_fallback": "Avatar"
@@ -486,7 +487,48 @@
     "vocabulary": "Wortschatz",
     "comprehension_questions": "Verständnisfragen",
     "questions_answered": "Fragen beantwortet",
-    "check_answers": "Meine Antworten überprüfen"
+    "check_answers": "Meine Antworten überprüfen",
+    "training": "Prüfungsvorbereitung",
+    "listening_lang_unsupported": "Hörverständnisübungen sind derzeit nur für pt-PT verfügbar. Deine Lernsprache ist {{lang}}.",
+    "audio": "Audio",
+    "hide_transcript": "Transkript ausblenden",
+    "show_transcript": "Transkript anzeigen",
+    "transcript": "Transkript",
+    "instructions": "Anleitung",
+    "sidebar": {
+      "settings": "Einstellungen",
+      "level": "Niveau",
+      "type": "Typ",
+      "generate": "Generieren",
+      "generating": "Generiert..."
+    },
+    "levels": {
+      "a1": "A1 - Anfänger",
+      "a2": "A2 - Elementar",
+      "b1": "B1 - Mittelstufe",
+      "b2": "B2 - Obere Mittelstufe",
+      "c1": "C1 - Fortgeschritten",
+      "c2": "C2 - Kompetent"
+    }
+  },
+  "exam_exercises": {
+    "text": "Text",
+    "best_title": "Bester Titel",
+    "example": "Beispiel",
+    "column_a": "Spalte A",
+    "column_b": "Spalte B",
+    "matches": "Zuordnungen",
+    "select": "Auswählen",
+    "extra": "extra",
+    "task": "Aufgabe",
+    "transcription_placeholder": "Kopiere den Satz aus dem Text hierhin...",
+    "true": "Wahr",
+    "false": "Falsch",
+    "correct": "Korrigieren",
+    "correction_placeholder": "Korrigierte Version...",
+    "word_bank": "Wortbank",
+    "extra_words": "* Es gibt {{count}} zusätzliche(s) Wort/Wörter",
+    "select_word": "Wähle ein Wort"
   },
   "dictionary": {
     "lang_tooltip": "Eingabe in {{lang}}",

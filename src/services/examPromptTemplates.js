@@ -273,7 +273,6 @@ export function getReadingPrompt(level, targetLang, { type = 'multiple-choice', 
  */
 export function getListeningPrompt(level, targetLang, { type = 'multiple-choice', audioFormat = 'dialogue' } = {}) {
   const duration = getAudioDuration(level);
-  const grammar = getGrammarDescription(level);
   const isBeginner = level === 'A1' || level === 'A2';
   const questionCount = isBeginner ? 3 : 5;
 
@@ -285,55 +284,50 @@ export function getListeningPrompt(level, targetLang, { type = 'multiple-choice'
     'interview': 'an interview (questions and answers)',
   };
 
-  const prompt = [
-    `You are a Portuguese language examiner creating a LISTENING exercise for CEFR level ${level} in ${targetLang}.`,
-    ``,
-    `LEVEL ${level} CONSTRAINTS:`,
-    grammar,
-    `The audio should be approximately ${duration} seconds when spoken naturally.`,
-    ``,
-    `Audio format: Create ${formatLabels[audioFormat] || 'a dialogue'}.`,
-    ``,
-    `Create the transcript and ${questionCount} comprehension questions.`,
-    ``,
-    `Exercise type: ${type === 'multiple-choice' ? 'Multiple choice' : type === 'true-false' ? 'True/False' : type === 'fill-blanks' ? 'Fill in the blanks' : 'Matching'} questions.`,
-    ``,
-    `Return ONLY a valid JSON object:`,
-    `{`,
-    `  "audioFormat": "${audioFormat}",`,
-    `  "transcript": "<the full transcript in ${targetLang}>",`,
-    `  "duration": ${duration},`,
-    `  "instructions": ["<instruction>"],`,
-  ];
+  const toneDescriptions = {
+    'dialogue': 'casual conversation between friends or family members',
+    'monologue': 'a person talking to themselves or to an audience',
+    'phone-message': 'a recorded phone message with clear articulation',
+    'announcement': 'a formal public announcement with clear enunciation',
+    'interview': 'a semi-formal interview with questions and answers',
+  };
 
-  if (type === 'multiple-choice') {
-    prompt.push(`  "exerciseType": "multiple-choice",`);
-    prompt.push(`  "questions": [`);
-    prompt.push(`    { "id": "l1", "text": "<question in ${targetLang}>", "options": ["<option A>", "<option B>", "<option C>"], "correctAnswer": "<correct option>" }`);
-    prompt.push(`  ]`);
-  } else if (type === 'true-false') {
-    prompt.push(`  "exerciseType": "true-false",`);
-    prompt.push(`  "statements": [`);
-    prompt.push(`    { "id": "tf1", "text": "<statement in ${targetLang}>", "isTrue": true }`);
-    prompt.push(`  ],`);
-    prompt.push(`  "questions": [`);
-    prompt.push(`    { "id": "l1", "text": "<statement>", "options": ["Verdadeiro", "Falso"], "correctAnswer": "Verdadeiro" }`);
-    prompt.push(`  ]`);
-  } else if (type === 'fill-blanks') {
-    prompt.push(`  "exerciseType": "fill-blanks",`);
-    prompt.push(`  "blanks": [`);
-    prompt.push(`    { "id": "fb1", "context": "<sentence with missing info>", "answer": "<correct answer>" }`);
-    prompt.push(`  ]`);
-  }
+  const typeLabel = type === 'multiple-choice' ? 'multiple choice'
+    : type === 'true-false' ? 'true/false'
+    : 'fill in the blanks (select from a word bank)';
 
-  prompt.push(`}`);
-  prompt.push(``);
-  prompt.push(`Rules:`);
-  prompt.push(`- All text must be in ${targetLang}.`);
-  prompt.push(`- Make the transcript natural and level-appropriate.`);
-  prompt.push(`- Do NOT include any text outside the JSON object.`);
+  const commonFields = `Return a JSON object with:
+  - "transcript": the full audio script in ${targetLang}
+  - "tone": "${toneDescriptions[audioFormat] || 'natural conversation'}"
+  - "duration": ${duration}
+  - "instructions": array of strings`;
 
-  return prompt.join('\n');
+  const fieldList = type === 'multiple-choice'
+    ? `${commonFields}
+  - "questions": array of { id, text, options[], correctAnswer }`
+    : type === 'true-false'
+      ? `${commonFields}
+  - "statements": array of { id, text, isTrue }
+  - "questions": array of { id, text, options[], correctAnswer }`
+      : `${commonFields}
+  - "passage": the same text as the transcript but with key words replaced by ___ (triple underscore)
+  - "wordBank": array of words in ${targetLang} (correct answers + plausible distractors)
+  - "blanks": array of { id, position, correctAnswer }`;
+
+  return [
+    `Generate a listening comprehension exercise in ${targetLang} for CEFR level ${level}.`,
+    `CRITICAL: All text content must be written entirely in ${targetLang}.`,
+    ``,
+    `Audio format: ${formatLabels[audioFormat] || 'a dialogue'}.`,
+    `Exercise type: ${typeLabel}.`,
+    `Create ${questionCount} items based on the transcript the student will hear.`,
+    ``,
+    `The "transcript" is the full script the student will listen to via TTS.`,
+    `The "tone" describes how the TTS should deliver the audio.`,
+    fieldList,
+    ``,
+    `Return ONLY valid JSON. No markdown, no explanation.`,
+  ].join('\n');
 }
 
 // ---------------------------------------------------------------------------

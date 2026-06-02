@@ -22,7 +22,8 @@
     "loading": "Chargement...",
     "cancel": "Annuler",
     "close": "Fermer",
-    "error": "Une erreur s'est produite. Veuillez réessayer."
+    "error": "Une erreur s'est produite. Veuillez réessayer.",
+    "back": "Retour"
   },
   "avatar": {
     "alt_fallback": "Avatar"
@@ -486,7 +487,48 @@
     "vocabulary": "Vocabulaire",
     "comprehension_questions": "Questions de Compréhension",
     "questions_answered": "questions répondues",
-    "check_answers": "Vérifier Mes Réponses"
+    "check_answers": "Vérifier Mes Réponses",
+    "training": "Préparation aux Examens",
+    "listening_lang_unsupported": "Les exercices de compréhension orale ne sont actuellement disponibles que pour pt-PT. Ta langue d'apprentissage est {{lang}}.",
+    "audio": "Audio",
+    "hide_transcript": "Masquer la Transcription",
+    "show_transcript": "Afficher la Transcription",
+    "transcript": "Transcription",
+    "instructions": "Instructions",
+    "sidebar": {
+      "settings": "Paramètres",
+      "level": "Niveau",
+      "type": "Type",
+      "generate": "Générer",
+      "generating": "Génération..."
+    },
+    "levels": {
+      "a1": "A1 - Débutant",
+      "a2": "A2 - Élémentaire",
+      "b1": "B1 - Intermédiaire",
+      "b2": "B2 - Intermédiaire Supérieur",
+      "c1": "C1 - Avancé",
+      "c2": "C2 - Compétent"
+    }
+  },
+  "exam_exercises": {
+    "text": "Texte",
+    "best_title": "Meilleur Titre",
+    "example": "Exemple",
+    "column_a": "Colonne A",
+    "column_b": "Colonne B",
+    "matches": "Associations",
+    "select": "Sélectionne",
+    "extra": "extra",
+    "task": "Tâche",
+    "transcription_placeholder": "Copie ici la phrase du texte...",
+    "true": "Vrai",
+    "false": "Faux",
+    "correct": "Corriger",
+    "correction_placeholder": "Version corrigée...",
+    "word_bank": "Banque de Mots",
+    "extra_words": "* Il y a {{count}} mot(s) en plus",
+    "select_word": "Sélectionne un mot"
   },
   "dictionary": {
     "lang_tooltip": "Saisie en {{lang}}",

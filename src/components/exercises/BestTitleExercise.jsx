@@ -27,4 +27,23 @@ BestTitleExercise.propTypes = {
 };
 BestTitleExercise.defaultProps = { passage: '', selectedId: null, level: 'A1' };
 
+/**
+ * Generate AI prompt for best title reading exercise
+ * @param {string} level - CEFR level (A1, A2, B1, B2, C1, C2)
+ * @param {string} targetLang - Target learning language (e.g., 'pt-PT', 'en-US')
+ * @returns {string} AI prompt
+ */
+BestTitleExercise.generatePrompt = (level, targetLang) => {
+  return [
+    `Generate a "choose the best title" reading comprehension exercise in ${targetLang} for CEFR level ${level}.`,
+    `CRITICAL: All text content must be written entirely in ${targetLang}.`,
+    `Create a short passage (100-200 words for A1-A2, 200-300 for B1-B2, 300-400 for C1-C2).`,
+    `Provide 4-5 possible titles — only one should perfectly capture the main idea.`,
+    `Return a JSON object with:`,
+    `  - "passage": the reading passage text in ${targetLang}`,
+    `  - "titles": array of { id, text, isCorrect } — only one title should have isCorrect: true`,
+    `Return ONLY valid JSON. No markdown, no explanation.`,
+  ].join('\n');
+};
+
 export default BestTitleExercise;

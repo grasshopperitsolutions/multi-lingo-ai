@@ -22,7 +22,8 @@
     "loading": "Loading...",
     "cancel": "Cancel",
     "close": "Close",
-    "error": "Something went wrong. Please try again."
+    "error": "Something went wrong. Please try again.",
+    "back": "Back"
   },
   "avatar": {
     "alt_fallback": "Avatar"
@@ -486,7 +487,48 @@
     "vocabulary": "Vocabulary",
     "comprehension_questions": "Comprehension Questions",
     "questions_answered": "questions answered",
-    "check_answers": "Check My Answers"
+    "check_answers": "Check My Answers",
+    "training": "Exam Training",
+    "listening_lang_unsupported": "Listening exercises are currently only available for pt-PT. Your learning language is {{lang}}.",
+    "audio": "Audio",
+    "hide_transcript": "Hide Transcript",
+    "show_transcript": "Show Transcript",
+    "transcript": "Transcript",
+    "instructions": "Instructions",
+    "sidebar": {
+      "settings": "Settings",
+      "level": "Level",
+      "type": "Type",
+      "generate": "Generate",
+      "generating": "Generating..."
+    },
+    "levels": {
+      "a1": "A1 - Beginner",
+      "a2": "A2 - Elementary",
+      "b1": "B1 - Intermediate",
+      "b2": "B2 - Upper Intermediate",
+      "c1": "C1 - Advanced",
+      "c2": "C2 - Proficient"
+    }
+  },
+  "exam_exercises": {
+    "text": "Text",
+    "best_title": "Best Title",
+    "example": "Example",
+    "column_a": "Column A",
+    "column_b": "Column B",
+    "matches": "Matches",
+    "select": "Select",
+    "extra": "extra",
+    "task": "Task",
+    "transcription_placeholder": "Copy the sentence from the text here...",
+    "true": "True",
+    "false": "False",
+    "correct": "Correct",
+    "correction_placeholder": "Corrected version...",
+    "word_bank": "Word Bank",
+    "extra_words": "* There are {{count}} extra word(s)",
+    "select_word": "Select a word"
   },
   "dictionary": {
     "lang_tooltip": "Typing in {{lang}}",
