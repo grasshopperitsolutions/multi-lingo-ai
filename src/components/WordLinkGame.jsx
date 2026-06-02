@@ -203,8 +203,7 @@ const WordLinkGame = ({ isDarkMode }) => {
 
   useEffect(() => {
     loadPuzzle();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadPuzzle]);
 
   // ── Submit guess ─────────────────────────────────────────────────────────
   const handleSubmit = useCallback(
