@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, RotateCcw, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { BookOpen, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import ExerciseSidebar from './ExerciseSidebar';
 import Loader from './Loader';
@@ -78,15 +78,6 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
     await markCurrentExerciseSeen();
   };
 
-  const handleTryAgain = async () => {
-    setExercise(null);
-    setExerciseId(null);
-    setAnswers({});
-    setResult(null);
-    setError(null);
-    await handleGetExercise();
-  };
-
   const headerIcon = (
     <div className="w-10 h-10 rounded-xl border-4 border-slate-900 bg-emerald-400 flex items-center justify-center shrink-0">
       <BookOpen size={18} className="text-slate-900" />
@@ -112,7 +103,6 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
         <ExerciseSidebar exerciseType="reading" level={level} onLevelChange={setLevel} questionType={questionType} onQuestionTypeChange={setQuestionType} onGenerate={handleGetExercise} loading={loading} isDarkMode={isDarkMode} timerRef={timerRef} />
         <div className="flex-1 min-w-0 flex flex-col gap-5">
           <ErrorBanner error={error} isDarkMode={isDarkMode} />
-          <PrimaryButton onClick={handleTryAgain} isDarkMode={isDarkMode}><RotateCcw size={14} /> {t('exam.try_again', 'Try Again')}</PrimaryButton>
         </div>
       </div>
     );
@@ -190,9 +180,6 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
             <PrimaryButton onClick={handleCheckAnswers} isDarkMode={isDarkMode} disabled={!allAnswered} className="flex-1">
               <CheckCircle2 size={16} /> {t('exam.check_answers', 'Check My Answers')}
             </PrimaryButton>
-            <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
-              <RotateCcw size={14} /> {t('exam.try_again', 'Try Again')}
-            </GhostButton>
           </div>
         </div>
       </div>
@@ -242,7 +229,6 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
 
           <div className="flex flex-col sm:flex-row gap-3">
             <GhostButton onClick={onBack} isDarkMode={isDarkMode} className="flex-1"><ArrowLeft size={14} /> {t('common.back', 'Back')}</GhostButton>
-            <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode} className="flex-1"><RotateCcw size={14} /> {t('exam.try_again', 'Try Again')}</GhostButton>
           </div>
         </div>
       </div>

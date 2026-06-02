@@ -5,6 +5,10 @@
  * Contains: level selector, exercise type selector (when applicable),
  * generate button, timer, and optionally the TTS player (listening).
  *
+ * Responsive behavior:
+ *   - Mobile: starts collapsed (icon strip), toggle to expand full panel
+ *   - Desktop (lg+): always expanded, can still be collapsed by user
+ *
  * Props:
  *   exerciseType     "reading" | "listening" | "writing"
  *   level            string        — current CEFR level value
@@ -20,14 +24,13 @@
  *   lang             string
  *   showTranscript   boolean
  *   onToggleTranscript () => void
- *   onResetTimer     () => void    — called when timer should reset
  *   timerRef         ref
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, PanelLeftClose, PanelLeft, Loader2 } from 'lucide-react';
+import { ChevronRight, PanelLeftClose, PanelLeft } from 'lucide-react';
 import NeoDropdown from './NeoDropdown';
 import ExamTimer from './ExamTimer';
 import TTSPlayer from './TTSPlayer';
@@ -85,7 +88,22 @@ const ExerciseSidebar = ({
   timerRef,
 }) => {
   const { t } = useTranslation();
-  const [collapsed, setCollapsed] = useState(false);
+  // Default-collapsed on mobile, expanded on desktop
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 1024; // Tailwind lg breakpoint
+  });
+
+  // Keep collapsed state sensible on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setCollapsed(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const typeOptions =
     exerciseType === 'listening'
@@ -102,13 +120,14 @@ const ExerciseSidebar = ({
 
   const labelClass = isDarkMode ? 'text-slate-400' : 'text-slate-500';
 
-  // ── Collapsed sidebar ──────────────────────────────────────────────────────
+  // ── Collapsed sidebar (icon strip) ───────────────────────────────────────
   if (collapsed) {
     return (
-      <aside className="hidden lg:flex flex-col items-center gap-2 w-12 shrink-0">
+      <aside className="flex flex-col items-center gap-2 w-12 shrink-0">
         <button
           onClick={() => setCollapsed(false)}
           className={`w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all ${isDarkMode ? 'border-slate-600 text-slate-400 hover:bg-slate-700' : 'border-slate-300 text-slate-500 hover:bg-slate-100'}`}
+          aria-label="Expand sidebar"
         >
           <PanelLeft size={16} />
         </button>
@@ -120,9 +139,9 @@ const ExerciseSidebar = ({
     );
   }
 
-  // ── Expanded sidebar ───────────────────────────────────────────────────────
+  // ── Expanded sidebar ─────────────────────────────────────────────────────
   return (
-    <aside className="hidden lg:flex flex-col gap-4 w-64 shrink-0">
+    <aside className="flex flex-col gap-4 w-64 shrink-0">
       {/* Header */}
       <div className={`${panelBase} p-4 flex items-center justify-between`}>
         <span className={`font-black uppercase text-xs tracking-widest ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
@@ -131,6 +150,7 @@ const ExerciseSidebar = ({
         <button
           onClick={() => setCollapsed(true)}
           className={`p-1 rounded-lg transition-all ${isDarkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800'}`}
+          aria-label="Collapse sidebar"
         >
           <PanelLeftClose size={16} />
         </button>
@@ -154,7 +174,7 @@ const ExerciseSidebar = ({
             value={questionType}
             onChange={onQuestionTypeChange}
             isDarkMode={isDarkMode}
-          label={t('exam.sidebar.type', 'Type')}
+            label={t('exam.sidebar.type', 'Type')}
           />
         )}
 
@@ -171,11 +191,7 @@ const ExerciseSidebar = ({
             : 'bg-emerald-400 border-slate-900 text-slate-900 hover:bg-emerald-300 shadow-[4px_4px_0px_0px_#0f172a]'
           }`}
         >
-          {loading ? (
-            <><Loader2 size={16} className="animate-spin" /> {t('exam.sidebar.generating', 'Generating...')}</>
-          ) : (
-            <>{t('exam.sidebar.generate', 'Generate')} <ChevronRight size={16} /></>
-          )}
+          {t('exam.sidebar.generate', 'Generate')} <ChevronRight size={16} />
         </button>
       </div>
 

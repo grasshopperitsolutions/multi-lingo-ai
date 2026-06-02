@@ -130,8 +130,8 @@ const ExamTimer = forwardRef(function ExamTimer({ isDarkMode, onTick }, ref) {
         aria-label={isRunning ? t('exam.timer_pause', 'Pause') : t('exam.timer_start', 'Start')}
       >
         {isRunning
-          ? <><Pause size={13} /><span>{t('exam.timer_pause', 'Pause')}</span></>
-          : <><Play  size={13} /><span>{t('exam.timer_start', 'Start')}</span></>}
+          ? <Pause size={13} /> 
+          : <Play  size={13} />}
       </button>
 
       {/* Reset */}
@@ -142,7 +142,6 @@ const ExamTimer = forwardRef(function ExamTimer({ isDarkMode, onTick }, ref) {
         disabled={elapsed === 0 && !isRunning}
       >
         <RotateCcw size={13} />
-        <span className="hidden sm:inline">{t('exam.timer_reset', 'Reset')}</span>
       </button>
     </div>
   );

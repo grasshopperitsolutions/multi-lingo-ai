@@ -114,7 +114,8 @@ export async function getExercise({
   const seenSet = new Set(seenExerciseIds ?? []);
 
   // Fetch ready exercises matching type, level, target language
-  const allExercises = await _fetchReadyExercises(token, { type, level, targetLang });
+  // (and questionType, when provided, to honor the user's selection)
+  const allExercises = await _fetchReadyExercises(token, { type, level, targetLang, questionType });
 
   // Walk unseen exercises in order
   for (const exercise of allExercises) {
@@ -176,15 +177,20 @@ export async function getExercisePoolCount(token, type, level, targetLang) {
 // Firestore helpers
 // ---------------------------------------------------------------------------
 
-async function _fetchReadyExercises(token, { type, level, targetLang }) {
+async function _fetchReadyExercises(token, { type, level, targetLang, questionType }) {
+  const filters = [
+    { field: 'status', op: '==', value: 'ready' },
+    { field: 'type', op: '==', value: type },
+    { field: 'level', op: '==', value: level },
+    { field: 'targetLang', op: '==', value: targetLang },
+  ];
+  // When the user picked a specific questionType, also filter the pool
+  // by it so we don't hand back an unrelated exercise of the same type.
+  if (questionType) filters.push({ field: 'questionType', op: '==', value: questionType });
+
   const params = new URLSearchParams({
     collection: 'examExercises',
-    filters: JSON.stringify([
-      { field: 'status', op: '==', value: 'ready' },
-      { field: 'type', op: '==', value: type },
-      { field: 'level', op: '==', value: level },
-      { field: 'targetLang', op: '==', value: targetLang },
-    ]),
+    filters: JSON.stringify(filters),
     limit: String(POOL_LIMIT),
   });
   const response = await fetch(
