@@ -49,7 +49,7 @@ const CLUE_COLORS_DARK = [
   "bg-blue-600",
 ];
 
-const ClueStack = ({ clues, revealedCount, theme, gameOver, isDarkMode }) => {
+const ClueStack = ({ clues, revealedCount, theme, themeTranslation, gameOver, isDarkMode }) => {
   const colors = isDarkMode ? CLUE_COLORS_DARK : CLUE_COLORS_LIGHT;
 
   return (
@@ -73,25 +73,36 @@ const ClueStack = ({ clues, revealedCount, theme, gameOver, isDarkMode }) => {
         );
       })}
 
-      {/* Theme row */}
-      <div className={`flex items-center justify-center gap-2 py-4 px-4 text-center font-bold text-sm sm:text-base transition-all duration-500 ${
+      {/* Theme row — shows both languages when game is over */}
+      <div className={`flex flex-col items-center justify-center gap-0.5 py-4 px-4 text-center transition-all duration-500 ${
         isDarkMode ? "bg-blue-950 text-blue-200" : "bg-blue-100 text-blue-700"
       }`}>
-        <span className="text-lg">✅</span>
-        <span className={gameOver ? "" : "blur-sm select-none"}>
-          {theme}
-        </span>
+        <div className="flex items-center gap-2 font-bold text-sm sm:text-base">
+          <span className="text-lg">✅</span>
+          <span className={gameOver ? "" : "blur-sm select-none"}>
+            {theme}
+          </span>
+        </div>
+        {/* Secondary line: theme in learning language */}
+        {themeTranslation && themeTranslation !== theme && (
+          <span className={`text-xs font-medium opacity-70 ${
+            gameOver ? "" : "blur-sm select-none"
+          }`}>
+            {themeTranslation}
+          </span>
+        )}
       </div>
     </div>
   );
 };
 
 ClueStack.propTypes = {
-  clues:         PropTypes.arrayOf(PropTypes.string).isRequired,
-  revealedCount: PropTypes.number.isRequired,
-  theme:         PropTypes.string.isRequired,
-  gameOver:      PropTypes.bool.isRequired,
-  isDarkMode:    PropTypes.bool.isRequired,
+  clues:            PropTypes.arrayOf(PropTypes.string).isRequired,
+  revealedCount:    PropTypes.number.isRequired,
+  theme:            PropTypes.string.isRequired,
+  themeTranslation: PropTypes.string.isRequired,
+  gameOver:         PropTypes.bool.isRequired,
+  isDarkMode:       PropTypes.bool.isRequired,
 };
 
 // ---------------------------------------------------------------------------
@@ -133,15 +144,16 @@ const WordLinkGame = ({ isDarkMode }) => {
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
 
   // ── Puzzle state ─────────────────────────────────────────────────────────
-  const [theme,    setTheme]    = useState("");
-  const [clues,    setClues]    = useState([]);
-  const [keywords, setKeywords] = useState([]);
+  const [theme,            setTheme]            = useState("");
+  const [themeTranslation, setThemeTranslation] = useState("");
+  const [clues,            setClues]            = useState([]);
+  const [keywords,         setKeywords]         = useState([]);
 
   // ── Game state ───────────────────────────────────────────────────────────
   const [revealedCount, setRevealedCount] = useState(1);
   const [guess,         setGuess]         = useState("");
   const [wrongGuesses,  setWrongGuesses]  = useState([]);
-  const [gameStatus,    setGameStatus]    = useState("playing"); // "playing" | "won" | "lost"
+  const [gameStatus,    setGameStatus]    = useState("playing");
 
   // ── Loading / error ──────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
@@ -181,6 +193,7 @@ const WordLinkGame = ({ isDarkMode }) => {
         getUserGameProgress(user.token, user.uid, GAME_ID, learningDialect),
       ]);
       setTheme(puzzle.theme);
+      setThemeTranslation(puzzle.themeTranslation ?? "");
       setClues(puzzle.clues);
       setKeywords(puzzle.keywords);
       setRevealedCount(1);
@@ -300,6 +313,7 @@ const WordLinkGame = ({ isDarkMode }) => {
           clues={clues}
           revealedCount={revealedCount}
           theme={theme}
+          themeTranslation={themeTranslation}
           gameOver={isOver}
           isDarkMode={isDarkMode}
         />
@@ -376,6 +390,13 @@ const WordLinkGame = ({ isDarkMode }) => {
               }`}>
                 {t("challenges.word_link_answer", "The theme was:")}{" "}
                 <span className="font-black text-blue-500">{theme}</span>
+                {themeTranslation && themeTranslation !== theme && (
+                  <span className={`ml-1 font-normal text-sm ${
+                    isDarkMode ? "text-slate-400" : "text-slate-500"
+                  }`}>
+                    ({themeTranslation})
+                  </span>
+                )}
               </p>
             )}
 
