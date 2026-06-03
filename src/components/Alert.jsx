@@ -38,6 +38,8 @@ const AlertMessage = ({ alert, onClose }) => {
     if (alert.action?.onClick) {
       alert.action.onClick();
     }
+    // Dismiss the alert after action is executed
+    onClose();
   };
 
   return (
