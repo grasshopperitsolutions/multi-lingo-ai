@@ -14,9 +14,9 @@ const GlobalCompassCursor = ({ x, y, isDarkMode }) => {
       }}
     >
       <div
-        className={`p-2 rounded-full border-4 border-slate-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${isDarkMode ? "bg-yellow-400" : "bg-white"}`}
+        className={`p-1 rounded-full border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${isDarkMode ? "bg-yellow-400" : "bg-white"}`}
       >
-        <Compass size={24} className="text-slate-900" strokeWidth={3} />
+        <Compass size={12} className="text-slate-900" strokeWidth={3} />
       </div>
     </div>
   );
