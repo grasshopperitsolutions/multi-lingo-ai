@@ -603,7 +603,16 @@
     "clear_selection": "Effacer la sélection",
     "victory_title": "Tous trouvés!",
     "words_found": "{{found}} / {{total}} trouvés",
-    "words_count": "{{count}} mots trouvés"
+    "words_count": "{{count}} mots trouvés",
+    "word_link": "Lien de Mots",
+    "word_link_desc": "Connecte les mots par un thème commun.",
+    "word_link_placeholder": "Quel est le thème ?",
+    "word_link_guess": "Deviner",
+    "word_link_clues_left": "{{count}} indice(s) restant(s)",
+    "word_link_won": "Lié!",
+    "word_link_lost": "Pas de Lien!",
+    "word_link_score": "Deviné en {{count}} indice(s)!",
+    "word_link_answer": "Le thème était :"
   },
   "report": {
     "buttonLabel": "Signaler",

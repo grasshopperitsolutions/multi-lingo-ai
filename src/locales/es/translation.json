@@ -607,7 +607,16 @@
     "clear_selection": "Limpiar selección",
     "victory_title": "¡Todas encontradas!",
     "words_found": "{{found}} / {{total}} encontradas",
-    "words_count": "{{count}} palabras encontradas"
+    "words_count": "{{count}} palabras encontradas",
+    "word_link": "Enlace de Palabras",
+    "word_link_desc": "Conecta palabras a través de un tema común.",
+    "word_link_placeholder": "¿Cuál es el tema?",
+    "word_link_guess": "Adivinar",
+    "word_link_clues_left": "{{count}} pista(s) restante(s)",
+    "word_link_won": "¡Enlazado!",
+    "word_link_lost": "¡Sin Enlace!",
+    "word_link_score": "¡Adivinaste en {{count}} pista(s)!",
+    "word_link_answer": "El tema era:"
   },
   "report": {
     "buttonLabel": "Reportar",

@@ -603,7 +603,16 @@
     "clear_selection": "Clear selection",
     "victory_title": "All found!",
     "words_found": "{{found}} / {{total}} found",
-    "words_count": "{{count}} words found"
+    "words_count": "{{count}} words found",
+    "word_link": "Word Link",
+    "word_link_desc": "Connect words through a common theme.",
+    "word_link_placeholder": "What's the theme?",
+    "word_link_guess": "Guess",
+    "word_link_clues_left": "{{count}} clue(s) remaining",
+    "word_link_won": "Linked!",
+    "word_link_lost": "No Link!",
+    "word_link_score": "Guessed in {{count}} clue(s)!",
+    "word_link_answer": "The theme was:"
   },
   "report": {
     "buttonLabel": "Report",

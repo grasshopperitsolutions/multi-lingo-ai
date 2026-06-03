@@ -603,7 +603,16 @@
     "clear_selection": "Auswahl löschen",
     "victory_title": "Alle gefunden!",
     "words_found": "{{found}} / {{total}} gefunden",
-    "words_count": "{{count}} Wörter gefunden"
+    "words_count": "{{count}} Wörter gefunden",
+    "word_link": "Wort Verbindung",
+    "word_link_desc": "Verbinde Wörter durch ein gemeinsames Thema.",
+    "word_link_placeholder": "Was ist das Thema?",
+    "word_link_guess": "Raten",
+    "word_link_clues_left": "{{count}} Hinweis(e) verbleibend",
+    "word_link_won": "Verbunden!",
+    "word_link_lost": "Keine Verbindung!",
+    "word_link_score": "Erraten in {{count}} Hinweis(en)!",
+    "word_link_answer": "Das Thema war:"
   },
   "report": {
     "buttonLabel": "Melden",
