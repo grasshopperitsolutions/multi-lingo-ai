@@ -11,13 +11,13 @@ const AlertMessage = ({ alert, onClose }) => {
     ? t("session.expired_title")
     : alert.message;
 
-  // Auto-dismiss after 4s unless it has a persistent action or is session expired
+  // Auto-dismiss after 10s in all cases
   useEffect(() => {
-    if (alert.show && !isSessionExpired && !alert.action) {
-      const timer = setTimeout(onClose, 4000);
+    if (alert.show) {
+      const timer = setTimeout(onClose, 10000);
       return () => clearTimeout(timer);
     }
-  }, [alert.show, onClose, isSessionExpired, alert.action]);
+  }, [alert.show, onClose]);
 
   if (!alert.show) return null;
 
