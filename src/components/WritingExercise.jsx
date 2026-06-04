@@ -74,6 +74,10 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
   const [level, setLevel] = useState('A1');
   const [exercise, setExercise] = useState(null);
   const [exerciseId, setExerciseId] = useState(null);
+  // Bug #5 fix: store minWords/maxWords from exercise explicitly so they remain
+  // stable in the results view even if exercise state were ever cleared.
+  const [minWords, setMinWords] = useState(60);
+  const [maxWords, setMaxWords] = useState(100);
   const [userText, setUserText] = useState('');
   const [evaluation, setEval] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -81,8 +85,6 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
   const timerRef = useRef(null);
 
   const wordCount = userText.trim() ? userText.trim().split(/\s+/).filter(Boolean).length : 0;
-  const minWords = exercise?.minWords ?? 60;
-  const maxWords = exercise?.maxWords ?? 100;
 
   const wordCountColor = () => {
     if (wordCount === 0) return isDarkMode ? 'text-slate-500' : 'text-slate-400';
@@ -109,9 +111,14 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
       });
       setExercise(result.content);
       setExerciseId(result.exerciseId);
+      // Bug #5 fix: capture word limits into explicit state
+      setMinWords(result.content?.minWords ?? 60);
+      setMaxWords(result.content?.maxWords ?? 100);
       setUserText('');
-      timerRef.current?.reset();
       setEval(null);
+      // Bug #1 fix: reset then auto-start the timer when exercise loads
+      timerRef.current?.reset();
+      timerRef.current?.start();
     } catch (err) {
       const errorMessage = err.message ?? t('common.error', 'Something went wrong. Please try again.');
       setError(errorMessage);
@@ -125,7 +132,7 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
   };
 
   const handleEvaluate = async () => {
-    if (!userText.trim()) return;
+    if (!userText.trim() || loading) return;
     setError(null);
     setLoading(true);
     timerRef.current?.stop();
@@ -150,10 +157,20 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
     }
   };
 
-  const handleTryAgain = async () => {
-    setExercise(null); setExerciseId(null); setUserText(''); setEval(null); setError(null);
+  const handleTryAgain = () => {
+    setExercise(null);
+    setExerciseId(null);
+    setUserText('');
+    setEval(null);
+    setError(null);
     timerRef.current?.reset();
-    await handleGetExercise();
+    handleGetExercise();
+  };
+
+  // Bug #6 fix: stop the timer before going back
+  const handleBack = () => {
+    timerRef.current?.stop();
+    onBack();
   };
 
   // Loading guard
@@ -223,7 +240,8 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
             <div className={`mt-3 pt-3 border-t-2 ${isDarkMode ? 'border-slate-700' : 'border-slate-200'}`}>
               <p className={`text-xs font-semibold ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                 {t('exam.word_count', 'Word count')}: <span className="font-black">{evaluation.wordCount}</span>
-                {' '}({t('exam.word_count_target', 'Target: {{min}}&ndash;{{max}} words', { min: minWords, max: maxWords })})
+                {/* Bug #2 fix: use Unicode en-dash \u2013 instead of &ndash; HTML entity */}
+                {' '}({t('exam.word_count_target', 'Target: {{min}}\u2013{{max}} words', { min: minWords, max: maxWords })})
               </p>
             </div>
           </Card>
@@ -243,7 +261,8 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
           </Card>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <GhostButton onClick={onBack} isDarkMode={isDarkMode} className="flex-1"><ArrowLeft size={14} />{t('common.back', 'Back')}</GhostButton>
+            {/* Bug #6 fix: use handleBack to stop timer before navigating away */}
+            <GhostButton onClick={handleBack} isDarkMode={isDarkMode} className="flex-1"><ArrowLeft size={14} />{t('common.back', 'Back')}</GhostButton>
             <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode} className="flex-1"><RotateCcw size={14} />{t('exam.try_again', 'Try Again')}</GhostButton>
             <div className="relative flex-1">
               <GhostButton onClick={() => {}} isDarkMode={isDarkMode} disabled className="w-full">
@@ -269,8 +288,9 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
               {t('exam.writing', 'Writing')}
             </h2>
           </div>
+          {/* Bug #5 fix: derive language note from user.learningDialect instead of hardcoding pt-PT */}
           <p className={`text-sm font-semibold text-center ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-            {t('exam.language_note', 'Exercise is in European Portuguese (pt-PT).')}
+            {t('exam.language_note_dynamic', 'Exercise is in {{lang}}.', { lang: user?.learningDialect || 'pt-PT' })}
           </p>
         </div>
       </div>
@@ -308,8 +328,9 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
               ))}
             </ul>
           )}
+          {/* Bug #2 fix: use Unicode en-dash \u2013 instead of &ndash; HTML entity */}
           <p className={`mt-3 text-xs font-semibold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-            {t('exam.word_count_target', 'Target: {{min}}&ndash;{{max}} words', { min: minWords, max: maxWords })}
+            {t('exam.word_count_target', 'Target: {{min}}\u2013{{max}} words', { min: minWords, max: maxWords })}
           </p>
         </Card>
 
@@ -325,17 +346,22 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
               )}
             </span>
           </div>
+          {/* Bug #4 fix: disable textarea while evaluation is loading */}
           <textarea value={userText} onChange={(e) => setUserText(e.target.value)}
             placeholder={t('exam.textarea_placeholder', 'Escreve o teu texto aqui...')} rows={10}
-            className={`w-full rounded-xl border-4 p-4 font-medium text-sm leading-relaxed resize-y focus:outline-none focus:ring-0 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-600 text-slate-100 placeholder-slate-500 focus:border-teal-500' : 'bg-white border-slate-900 text-slate-900 placeholder-slate-400 focus:border-teal-600'}`}
+            disabled={loading}
+            className={`w-full rounded-xl border-4 p-4 font-medium text-sm leading-relaxed resize-y focus:outline-none focus:ring-0 transition-colors ${
+              loading ? 'opacity-50 cursor-not-allowed' : ''
+            } ${isDarkMode ? 'bg-slate-800 border-slate-600 text-slate-100 placeholder-slate-500 focus:border-teal-500' : 'bg-white border-slate-900 text-slate-900 placeholder-slate-400 focus:border-teal-600'}`}
             aria-label={t('exam.your_text', 'Your Text')} />
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <PrimaryButton onClick={handleEvaluate} isDarkMode={isDarkMode} disabled={!userText.trim()} className="flex-1" color="teal">
-            {t('exam.evaluate', 'Evaluate My Writing')}
+          {/* Bug #4 fix: also disable the evaluate button while loading to prevent double-submit */}
+          <PrimaryButton onClick={handleEvaluate} isDarkMode={isDarkMode} disabled={!userText.trim() || loading} className="flex-1" color="teal">
+            {loading ? t('exam.evaluating', 'Evaluating...') : t('exam.evaluate', 'Evaluate My Writing')}
           </PrimaryButton>
-          <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
+          <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode} disabled={loading}>
             <RotateCcw size={14} /> {t('exam.try_again', 'Try Again')}
           </GhostButton>
         </div>
