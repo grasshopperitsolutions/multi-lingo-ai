@@ -66,7 +66,7 @@ const headerIcon = (
   </div>
 );
 
-const WritingExercise = ({ isDarkMode, onBack }) => {
+const WritingExercise = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const { user, setUser, showAlert } = useAppContext();
 
@@ -164,12 +164,6 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
     setError(null);
     timerRef.current?.reset();
     timerRef.current?.start();
-  };
-
-  // Bug #6 fix: stop the timer before going back
-  const handleBack = () => {
-    timerRef.current?.stop();
-    onBack();
   };
 
   // Loading guard (initial exercise fetch)
@@ -400,6 +394,6 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
   );
 };
 
-WritingExercise.propTypes = { isDarkMode: PropTypes.bool.isRequired, onBack: PropTypes.func.isRequired };
+WritingExercise.propTypes = { isDarkMode: PropTypes.bool.isRequired};
 
 export default WritingExercise;
