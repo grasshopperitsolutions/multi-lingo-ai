@@ -99,7 +99,7 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
   // Loading guards
   if (!exercise && loading) {
     return (
-      <div className="flex gap-5">
+      <div className="flex flex-col lg:flex-row gap-5">
         <ExerciseSidebar exerciseType="listening" level={level} onLevelChange={setLevel} questionType={questionType} onQuestionTypeChange={setQuestionType} onGenerate={handleGetExercise} loading={loading} isDarkMode={isDarkMode} timerRef={timerRef} />
         <div className="flex-1 min-w-0 flex flex-col gap-5">
           <Loader isDarkMode={isDarkMode} message={t('exam.generating', 'Generating exercise...')} />
@@ -111,7 +111,7 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
 
   if (!exercise && error) {
     return (
-      <div className="flex gap-5">
+      <div className="flex flex-col lg:flex-row gap-5">
         <ExerciseSidebar exerciseType="listening" level={level} onLevelChange={setLevel} questionType={questionType} onQuestionTypeChange={setQuestionType} onGenerate={handleGetExercise} loading={loading} isDarkMode={isDarkMode} timerRef={timerRef} />
         <div className="flex-1 min-w-0 flex flex-col gap-5">
           <ErrorBanner error={error} isDarkMode={isDarkMode} />
@@ -123,7 +123,7 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
   // Main listening view
   if (exercise && !result) {
     return (
-      <div className="flex gap-5">
+      <div className="flex flex-col lg:flex-row gap-5">
         <ExerciseSidebar exerciseType="listening" level={level} onLevelChange={setLevel} questionType={questionType} onQuestionTypeChange={setQuestionType} onGenerate={handleGetExercise} loading={loading} isDarkMode={isDarkMode} timerRef={timerRef} transcript={exercise.transcript} tone={exercise.tone} lang={targetLang} showTranscript={showTranscript} onToggleTranscript={() => setShowTranscript((p) => !p)} />
 
         <div className="flex-1 min-w-0 flex flex-col gap-5">
@@ -201,7 +201,7 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
     const scoreColor = getListeningScoreColor(result.score, result.maxScore, isDarkMode);
 
     return (
-      <div className="flex gap-5">
+      <div className="flex flex-col lg:flex-row gap-5">
         <ExerciseSidebar exerciseType="listening" level={level} onLevelChange={setLevel} questionType={questionType} onQuestionTypeChange={setQuestionType} onGenerate={handleGetExercise} loading={loading} isDarkMode={isDarkMode} timerRef={timerRef} transcript={exercise?.transcript} tone={exercise?.tone} lang={targetLang} showTranscript={showTranscript} onToggleTranscript={() => setShowTranscript((p) => !p)} />
 
         <div className="flex-1 min-w-0 flex flex-col gap-5">
@@ -247,7 +247,7 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
 
   // Initial state
   return (
-    <div className="flex gap-5">
+    <div className="flex flex-col lg:flex-row gap-5">
       <ExerciseSidebar exerciseType="listening" level={level} onLevelChange={setLevel} questionType={questionType} onQuestionTypeChange={setQuestionType} onGenerate={handleGetExercise} loading={loading} isDarkMode={isDarkMode} timerRef={timerRef} />
       <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
         <div className="flex items-center gap-3 mb-4">

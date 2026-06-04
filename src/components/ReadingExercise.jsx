@@ -92,7 +92,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
   // Loading/error guards
   if (!exercise && loading) {
     return (
-      <div className="flex gap-5">
+      <div className="flex flex-col lg:flex-row gap-5">
         <ExerciseSidebar exerciseType="reading" level={level} onLevelChange={setLevel} questionType={questionType} onQuestionTypeChange={setQuestionType} onGenerate={handleGetExercise} loading={loading} isDarkMode={isDarkMode} timerRef={timerRef} />
         <div className="flex-1 min-w-0 flex flex-col gap-5">
           <Loader isDarkMode={isDarkMode} message={t('exam.generating', 'Generating exercise...')} />
@@ -104,7 +104,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
 
   if (!exercise && error) {
     return (
-      <div className="flex gap-5">
+      <div className="flex flex-col lg:flex-row gap-5">
         <ExerciseSidebar exerciseType="reading" level={level} onLevelChange={setLevel} questionType={questionType} onQuestionTypeChange={setQuestionType} onGenerate={handleGetExercise} loading={loading} isDarkMode={isDarkMode} timerRef={timerRef} />
         <div className="flex-1 min-w-0 flex flex-col gap-5">
           <ErrorBanner error={error} isDarkMode={isDarkMode} />
@@ -140,7 +140,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
   // Main exercise view
   if (exercise && !result) {
     return (
-      <div className="flex gap-5">
+      <div className="flex flex-col lg:flex-row gap-5">
         <ExerciseSidebar exerciseType="reading" level={level} onLevelChange={setLevel} questionType={questionType} onQuestionTypeChange={setQuestionType} onGenerate={handleGetExercise} loading={loading} isDarkMode={isDarkMode} timerRef={timerRef} />
 
         <div className="flex-1 min-w-0 flex flex-col gap-5">
@@ -196,7 +196,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
     const scoreColor = getScoreColor(result.score, result.maxScore, isDarkMode);
 
     return (
-      <div className="flex gap-5">
+      <div className="flex flex-col lg:flex-row gap-5">
         <ExerciseSidebar exerciseType="reading" level={level} onLevelChange={setLevel} questionType={questionType} onQuestionTypeChange={setQuestionType} onGenerate={handleGetExercise} loading={loading} isDarkMode={isDarkMode} timerRef={timerRef} />
 
         <div className="flex-1 min-w-0 flex flex-col gap-5">
@@ -242,7 +242,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
 
   // Initial state: show sidebar with no exercise
   return (
-    <div className="flex gap-5">
+    <div className="flex flex-col lg:flex-row gap-5">
       <ExerciseSidebar exerciseType="reading" level={level} onLevelChange={setLevel} questionType={questionType} onQuestionTypeChange={setQuestionType} onGenerate={handleGetExercise} loading={loading} isDarkMode={isDarkMode} timerRef={timerRef} />
       <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
         <div className="flex items-center gap-3 mb-4">
