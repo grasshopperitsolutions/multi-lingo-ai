@@ -61,6 +61,12 @@ ParameterRow.propTypes = {
   paramLabel: PropTypes.string.isRequired,
 };
 
+const headerIcon = (
+  <div className="w-10 h-10 rounded-xl border-4 border-slate-900 bg-amber-400 flex items-center justify-center shrink-0">
+    <PenLine size={18} className="text-slate-900" />
+  </div>
+);
+
 const WritingExercise = ({ isDarkMode, onBack }) => {
   const { t } = useTranslation();
   const { user, setUser, showAlert } = useAppContext();
@@ -251,7 +257,27 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
     );
   }
 
-  // Main writing view
+  // Initial state: no exercise loaded
+  if (!exercise) {
+    return (
+      <div className="flex gap-5">
+        <ExerciseSidebar exerciseType="writing" level={level} onLevelChange={setLevel} onGenerate={handleGetExercise} loading={loading} isDarkMode={isDarkMode} timerRef={timerRef} />
+        <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
+          <div className="flex items-center gap-3 mb-4">
+            {headerIcon}
+            <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+              {t('exam.writing', 'Writing')}
+            </h2>
+          </div>
+          <p className={`text-sm font-semibold text-center ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            {t('exam.language_note', 'Exercise is in European Portuguese (pt-PT).')}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Exercise view (loaded, not yet evaluated)
   return (
     <div className="flex gap-5">
       <ExerciseSidebar exerciseType="writing" level={level} onLevelChange={setLevel} onGenerate={handleGetExercise} loading={loading} isDarkMode={isDarkMode} timerRef={timerRef} />
@@ -259,79 +285,60 @@ const WritingExercise = ({ isDarkMode, onBack }) => {
       <div className="flex-1 min-w-0 flex flex-col gap-5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <LevelBadge level={level} isDarkMode={isDarkMode} color="teal" />
+            <LevelBadge level={level} isDarkMode={isDarkMode} color="amber" />
             <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
               {t('exam.writing', 'Writing')}
             </h2>
           </div>
           <ReportButton isDarkMode={isDarkMode} context="WritingExercise" />
         </div>
+
         <ErrorBanner error={error} isDarkMode={isDarkMode} />
 
-        {exercise && (
-          <>
-            <Card isDarkMode={isDarkMode}>
-              <SectionHeading isDarkMode={isDarkMode}>{t('exam.task', 'Your Task')}</SectionHeading>
-              <p className={`text-sm sm:text-base font-semibold leading-relaxed mb-3 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{exercise.prompt}</p>
-              {exercise.instructions?.length > 0 && (
-                <ul className="flex flex-col gap-1.5 mt-3">
-                  {exercise.instructions.map((instr, i) => (
-                    <li key={i} className={`flex items-start gap-2 text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                      <span className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${isDarkMode ? 'border-teal-600 text-teal-400' : 'border-teal-500 text-teal-600'}`}>{i + 1}</span>
-                      {instr}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className={`mt-3 text-xs font-semibold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                {t('exam.word_count_target', 'Target: {{min}}&ndash;{{max}} words', { min: minWords, max: maxWords })}
-              </p>
-            </Card>
+        <Card isDarkMode={isDarkMode}>
+          <SectionHeading isDarkMode={isDarkMode}>{t('exam.task', 'Your Task')}</SectionHeading>
+          <p className={`text-sm sm:text-base font-semibold leading-relaxed mb-3 ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{exercise.prompt}</p>
+          {exercise.instructions?.length > 0 && (
+            <ul className="flex flex-col gap-1.5 mt-3">
+              {exercise.instructions.map((instr, i) => (
+                <li key={i} className={`flex items-start gap-2 text-sm ${isDarkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                  <span className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${isDarkMode ? 'border-teal-600 text-teal-400' : 'border-teal-500 text-teal-600'}`}>{i + 1}</span>
+                  {instr}
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className={`mt-3 text-xs font-semibold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+            {t('exam.word_count_target', 'Target: {{min}}&ndash;{{max}} words', { min: minWords, max: maxWords })}
+          </p>
+        </Card>
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <SectionHeading isDarkMode={isDarkMode}>{t('exam.your_text', 'Your Text')}</SectionHeading>
-                <span className={`text-xs font-black tabular-nums ${wordCountColor()}`}>
-                  {wordCount} {t('exam.words', 'words')}
-                  {wordCount > 0 && (wordCount < minWords || wordCount > maxWords) && (
-                    <span className="ml-1 opacity-75">
-                      ({wordCount < minWords ? t('exam.too_short', 'too short') : t('exam.too_long', 'too long')})
-                    </span>
-                  )}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <SectionHeading isDarkMode={isDarkMode}>{t('exam.your_text', 'Your Text')}</SectionHeading>
+            <span className={`text-xs font-black tabular-nums ${wordCountColor()}`}>
+              {wordCount} {t('exam.words', 'words')}
+              {wordCount > 0 && (wordCount < minWords || wordCount > maxWords) && (
+                <span className="ml-1 opacity-75">
+                  ({wordCount < minWords ? t('exam.too_short', 'too short') : t('exam.too_long', 'too long')})
                 </span>
-              </div>
-              <textarea value={userText} onChange={(e) => setUserText(e.target.value)}
-                placeholder={t('exam.textarea_placeholder', 'Escreve o teu texto aqui...')} rows={10}
-                className={`w-full rounded-xl border-4 p-4 font-medium text-sm leading-relaxed resize-y focus:outline-none focus:ring-0 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-600 text-slate-100 placeholder-slate-500 focus:border-teal-500' : 'bg-white border-slate-900 text-slate-900 placeholder-slate-400 focus:border-teal-600'}`}
-                aria-label={t('exam.your_text', 'Your Text')} />
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-3">
-              <PrimaryButton onClick={handleEvaluate} isDarkMode={isDarkMode} disabled={!userText.trim()} className="flex-1" color="teal">
-                {t('exam.evaluate', 'Evaluate My Writing')}
-              </PrimaryButton>
-              <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
-                <RotateCcw size={14} /> {t('exam.try_again', 'Try Again')}
-              </GhostButton>
-            </div>
-          </>
-        )}
-
-        {!exercise && !loading && (
-          <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl border-4 border-slate-900 bg-amber-400 flex items-center justify-center shrink-0">
-                <PenLine size={18} className="text-slate-900" />
-              </div>
-              <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                {t('exam.writing', 'Writing')}
-              </h2>
-            </div>
-            <p className={`text-sm font-semibold text-center ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              {t('exam.language_note', 'Exercise is in European Portuguese (pt-PT).')}
-            </p>
+              )}
+            </span>
           </div>
-        )}
+          <textarea value={userText} onChange={(e) => setUserText(e.target.value)}
+            placeholder={t('exam.textarea_placeholder', 'Escreve o teu texto aqui...')} rows={10}
+            className={`w-full rounded-xl border-4 p-4 font-medium text-sm leading-relaxed resize-y focus:outline-none focus:ring-0 transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-600 text-slate-100 placeholder-slate-500 focus:border-teal-500' : 'bg-white border-slate-900 text-slate-900 placeholder-slate-400 focus:border-teal-600'}`}
+            aria-label={t('exam.your_text', 'Your Text')} />
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <PrimaryButton onClick={handleEvaluate} isDarkMode={isDarkMode} disabled={!userText.trim()} className="flex-1" color="teal">
+            {t('exam.evaluate', 'Evaluate My Writing')}
+          </PrimaryButton>
+          <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
+            <RotateCcw size={14} /> {t('exam.try_again', 'Try Again')}
+          </GhostButton>
+        </div>
       </div>
     </div>
   );
