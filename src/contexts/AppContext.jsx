@@ -188,8 +188,8 @@ export const AppProvider = ({ children }) => {
       // Words found — derived from the length of seenConceptIds (no extra read needed)
       const wordsFound = profile?.seenConceptIds?.length ?? 0;
 
-      // Seen exercise IDs — tracked globally for exam training features
-      const seenExerciseIds = profile?.seenExerciseIds ?? [];
+      // Seen exercise IDs — tracked per type for exam training features
+      const seenExerciseIds = profile?.seenExerciseIds ?? { reading: [], listening: [], writing: [] };
 
       setUser((prev) => ({
         ...prev,

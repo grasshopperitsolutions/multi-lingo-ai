@@ -129,11 +129,14 @@ const WritingExercise = ({ isDarkMode }) => {
 
   const markCurrentExerciseSeen = async () => {
     if (!exerciseId || !user?.token || !user?.uid) return;
-    const currentSeen = user.seenExerciseIds ?? [];
-    await markExerciseSeen(user.token, user.uid, exerciseId, currentSeen);
+    const currentSeen = user.seenExerciseIds?.writing ?? [];
+    await markExerciseSeen(user.token, user.uid, "writing", exerciseId, currentSeen);
     setUser((prev) => ({
       ...prev,
-      seenExerciseIds: [...new Set([...currentSeen, exerciseId])],
+      seenExerciseIds: {
+        ...prev.seenExerciseIds,
+        writing: [...new Set([...currentSeen, exerciseId])],
+      },
     }));
   };
 
@@ -147,7 +150,7 @@ const WritingExercise = ({ isDarkMode }) => {
         type: "writing",
         targetLang: user.learningDialect || "pt-PT",
         userDialect: user.interfaceLang || "en-US",
-        seenExerciseIds: user.seenExerciseIds ?? [],
+        seenExerciseIds: user.seenExerciseIds?.writing ?? [],
       });
       setExercise(result.content);
       setExerciseId(result.exerciseId);
@@ -203,13 +206,16 @@ const WritingExercise = ({ isDarkMode }) => {
     }
   };
 
-  const seenExerciseCount = (user.seenExerciseIds ?? []).length;
+  const seenExerciseCount = (user.seenExerciseIds?.writing ?? []).length;
 
   const handleReset = async () => {
     setIsResetting(true);
     try {
-      await resetSeenExercises(user.token, user.uid);
-      setUser((prev) => ({ ...prev, seenExerciseIds: [] }));
+      await resetSeenExercises(user.token, user.uid, "writing");
+      setUser((prev) => ({
+        ...prev,
+        seenExerciseIds: { ...prev.seenExerciseIds, writing: [] },
+      }));
       setExercise(null);
       setExerciseId(null);
       setUserText("");
@@ -619,6 +625,7 @@ const WritingExercise = ({ isDarkMode }) => {
           <Loader
             isDarkMode={isDarkMode}
             message={t("exam.evaluating", "Evaluating...")}
+            fullScreen={true}
           />
         ) : (
           <div className="flex flex-col sm:flex-row gap-3">

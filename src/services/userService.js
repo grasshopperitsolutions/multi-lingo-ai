@@ -153,48 +153,70 @@ export const resetAllSeenWords = async (token, uid) => {
 
 // ---------------------------------------------------------------------------
 // Seen exercise IDs — stored on users/{uid}.seenExerciseIds
-// Tracks which exam exercises the user has already been shown.
+// Tracks which exam exercises the user has already been shown, split by type.
+// Structure: { reading: string[], listening: string[], writing: string[] }
 // ---------------------------------------------------------------------------
 
 /**
- * Get the list of seen exercise IDs for a user.
+ * Get the empty template for seenExerciseIds.
+ * @returns {{ reading: string[], listening: string[], writing: string[] }}
+ */
+const emptySeenExerciseIds = () => ({
+  reading: [],
+  listening: [],
+  writing: [],
+});
+
+/**
+ * Get the list of seen exercise IDs for a user by type.
  * Reads users/{uid}.seenExerciseIds — returns [] if not yet set.
  *
  * @param {string} token
  * @param {string} uid
+ * @param {'reading'|'listening'|'writing'} type
  * @returns {Promise<string[]>}
  */
-export const getSeenExerciseIds = async (token, uid) => {
+export const getSeenExerciseIds = async (token, uid, type) => {
   const profile = await getUserProfile(token, uid);
-  return profile?.seenExerciseIds ?? [];
+  const seen = profile?.seenExerciseIds ?? {};
+  return seen?.[type] ?? [];
 };
 
 /**
- * Append an exerciseId to the seen list on users/{uid}.
+ * Append an exerciseId to the seen list on users/{uid}, split by type.
  * Safe to call concurrently — uses a Set to deduplicate.
  * Should be called after an exercise has been completed/evaluated.
  *
  * @param {string}   token
  * @param {string}   uid
+ * @param {'reading'|'listening'|'writing'} type
  * @param {string}   exerciseId
- * @param {string[]} currentSeenIds  - current value to avoid extra read
+ * @param {string[]} currentSeenIds  - current value for this type to avoid extra read
  */
-export const markExerciseSeen = async (token, uid, exerciseId, currentSeenIds = []) => {
+export const markExerciseSeen = async (token, uid, type, exerciseId, currentSeenIds = []) => {
   const updated = [...new Set([...currentSeenIds, exerciseId])];
-  await updateUserProfile(token, uid, { seenExerciseIds: updated });
+  // Read the full object to preserve other types
+  const profile = await getUserProfile(token, uid);
+  const seen = { ...emptySeenExerciseIds(), ...(profile?.seenExerciseIds ?? {}) };
+  seen[type] = updated;
+  await updateUserProfile(token, uid, { seenExerciseIds: seen });
 };
 
 /**
- * Clear all seen exercise IDs.
+ * Clear all seen exercise IDs for a specific type.
  * Resets users/{uid}.seenExerciseIds to [].
- * Allows the user to see previously completed exercises again.
+ * Allows the user to see previously completed exercises of that type again.
  *
  * @param {string} token
  * @param {string} uid
+ * @param {'reading'|'listening'|'writing'} type
  */
-export const resetSeenExercises = async (token, uid) => {
+export const resetSeenExercises = async (token, uid, type) => {
+  const profile = await getUserProfile(token, uid);
+  const seen = { ...emptySeenExerciseIds(), ...(profile?.seenExerciseIds ?? {}) };
+  seen[type] = [];
   await updateUserProfile(token, uid, {
-    seenExerciseIds: [],
+    seenExerciseIds: seen,
     seenExercisesResetAt: new Date().toISOString(),
   });
 };

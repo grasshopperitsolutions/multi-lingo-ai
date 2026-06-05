@@ -51,11 +51,14 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
 
   const markCurrentExerciseSeen = async () => {
     if (!exerciseId || !user?.token || !user?.uid) return;
-    const currentSeen = user.seenExerciseIds ?? [];
-    await markExerciseSeen(user.token, user.uid, exerciseId, currentSeen);
+    const currentSeen = user.seenExerciseIds?.listening ?? [];
+    await markExerciseSeen(user.token, user.uid, "listening", exerciseId, currentSeen);
     setUser((prev) => ({
       ...prev,
-      seenExerciseIds: [...new Set([...currentSeen, exerciseId])],
+      seenExerciseIds: {
+        ...prev.seenExerciseIds,
+        listening: [...new Set([...currentSeen, exerciseId])],
+      },
     }));
   };
 
@@ -70,7 +73,7 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
         questionType: questionType === "random" ? undefined : questionType,
         targetLang: user.learningDialect || "pt-PT",
         userDialect: user.interfaceLang || "en-US",
-        seenExerciseIds: user.seenExerciseIds ?? [],
+        seenExerciseIds: user.seenExerciseIds?.listening ?? [],
       });
       setExercise(res.content);
       setExerciseId(res.exerciseId);
@@ -120,13 +123,16 @@ const ListeningExercise = ({ isDarkMode, onBack }) => {
     await markCurrentExerciseSeen();
   };
 
-  const seenExerciseCount = (user.seenExerciseIds ?? []).length;
+  const seenExerciseCount = (user.seenExerciseIds?.listening ?? []).length;
 
   const handleReset = async () => {
     setIsResetting(true);
     try {
-      await resetSeenExercises(user.token, user.uid);
-      setUser((prev) => ({ ...prev, seenExerciseIds: [] }));
+      await resetSeenExercises(user.token, user.uid, "listening");
+      setUser((prev) => ({
+        ...prev,
+        seenExerciseIds: { ...prev.seenExerciseIds, listening: [] },
+      }));
       setExercise(null);
       setExerciseId(null);
       setAnswers({});
