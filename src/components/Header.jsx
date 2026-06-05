@@ -111,30 +111,61 @@ const Header = () => {
 
           {user ? (
             <>
-              <Link
-                to="/settings"
-                className={`flex items-center gap-2 px-5 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95 hover:-translate-y-0.5
-                ${
-                  isDarkMode
-                    ? "bg-slate-700 border-slate-600 text-white shadow-[3px_3px_0px_0px_#1e293b]"
-                    : "bg-white border-slate-900 text-slate-900 shadow-[3px_3px_0px_0px_#0f172a]"
-                }`}
-              >
-                <Settings size={16} />
-                {t('nav.settings')}
-              </Link>
-              <button
-                onClick={handleLogout}
-                className={`flex items-center gap-2 px-5 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95 hover:-translate-y-0.5
-                ${
-                  isDarkMode
-                    ? "bg-slate-700 border-slate-600 text-white hover:border-rose-500 shadow-[3px_3px_0px_0px_#1e293b]"
-                    : "bg-white border-slate-900 text-slate-900 hover:border-rose-500 shadow-[3px_3px_0px_0px_#0f172a]"
-                }`}
-              >
-                <LogOut size={16} />
-                {t('nav.logout')}
-              </button>
+              {/* Settings — violet circle with tooltip */}
+              <div className="relative group">
+                <Link
+                  to="/settings"
+                  aria-label={t("nav.settings")}
+                  className={`p-3 rounded-full border-2 transition-transform hover:scale-110 active:scale-95 flex items-center justify-center
+                    ${
+                      isDarkMode
+                        ? "bg-slate-700 border-violet-400 text-violet-400 shadow-[2px_2px_0px_0px_#1e293b]"
+                        : "bg-violet-100 border-slate-900 text-violet-600 shadow-[2px_2px_0px_0px_#0f172a]"
+                    }`}
+                >
+                  <Settings size={20} />
+                </Link>
+                <span
+                  className={`pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    text-xs font-bold uppercase px-2 py-1 rounded-lg border-2 opacity-0 group-hover:opacity-100
+                    transition-opacity duration-150 z-50
+                    ${
+                      isDarkMode
+                        ? "bg-slate-700 border-slate-600 text-white"
+                        : "bg-white border-slate-900 text-slate-900"
+                    }`}
+                >
+                  {t("nav.settings")}
+                </span>
+              </div>
+
+              {/* Logout — rose circle with tooltip */}
+              <div className="relative group">
+                <button
+                  onClick={handleLogout}
+                  aria-label={t("nav.logout")}
+                  className={`p-3 rounded-full border-2 transition-transform hover:scale-110 active:scale-95 flex items-center justify-center
+                    ${
+                      isDarkMode
+                        ? "bg-slate-700 border-rose-400 text-rose-400 shadow-[2px_2px_0px_0px_#1e293b] hover:border-rose-300"
+                        : "bg-rose-100 border-slate-900 text-rose-500 shadow-[2px_2px_0px_0px_#0f172a] hover:border-rose-500"
+                    }`}
+                >
+                  <LogOut size={20} />
+                </button>
+                <span
+                  className={`pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    text-xs font-bold uppercase px-2 py-1 rounded-lg border-2 opacity-0 group-hover:opacity-100
+                    transition-opacity duration-150 z-50
+                    ${
+                      isDarkMode
+                        ? "bg-slate-700 border-slate-600 text-white"
+                        : "bg-white border-slate-900 text-slate-900"
+                    }`}
+                >
+                  {t("nav.logout")}
+                </span>
+              </div>
             </>
           ) : (
             <Link
