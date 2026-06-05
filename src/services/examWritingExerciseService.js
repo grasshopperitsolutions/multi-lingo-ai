@@ -185,9 +185,35 @@ async function _callAskAI(token, prompt, maxOutputTokens) {
 }
 
 function _parseJSON(raw) {
+  // If raw is not a string (e.g., already a parsed object), return it directly
+  if (typeof raw !== 'string') {
+    if (raw && typeof raw === 'object') return raw;
+    throw new Error('Failed to parse AI response');
+  }
+
+  // Remove markdown code fences and trim
   const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+
   if (!cleaned) throw new Error('Empty response');
-  try { return JSON.parse(cleaned); } catch {
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // Recovery: extract content between outermost braces and progressively
+    // truncate from the end to handle trailing garbage (e.g., stray quotes,
+    // extra text that Gemini sometimes appends after the closing brace).
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace <= firstBrace) throw new Error('Failed to parse AI response');
+
+    let end = lastBrace;
+    while (end > firstBrace) {
+      try {
+        return JSON.parse(cleaned.substring(firstBrace, end + 1));
+      } catch {
+        end--;
+      }
+    }
     throw new Error('Failed to parse AI response');
   }
 }
