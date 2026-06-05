@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { BookOpen, CheckCircle2, ArrowLeft } from "lucide-react";
+import { BookOpen, CheckCircle2, RotateCcw } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import ExerciseSidebar from "./ExerciseSidebar";
 import Loader from "./Loader";
@@ -14,6 +14,7 @@ import {
   GhostButton,
   ResultRow,
   LevelBadge,
+  CollapsibleCard,
 } from "./ui";
 import { getExercise } from "../services/examExerciseService";
 import { checkReadingAnswers, getScoreColor } from "../services/examUtils";
@@ -29,7 +30,7 @@ import {
   NoticeSignExercise,
 } from "./exercises";
 
-const ReadingExercise = ({ isDarkMode, onBack }) => {
+const ReadingExercise = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const { user, setUser, showAlert } = useAppContext();
 
@@ -50,14 +51,11 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
 
   const markCurrentExerciseSeen = async () => {
     if (!exerciseId || !user?.token || !user?.uid) return;
-    const currentSeen = user.seenExerciseIds?.reading ?? [];
-    await markExerciseSeen(user.token, user.uid, "reading", exerciseId, currentSeen);
+    const currentSeen = user.seenExerciseIds ?? [];
+    await markExerciseSeen(user.token, user.uid, exerciseId, currentSeen);
     setUser((prev) => ({
       ...prev,
-      seenExerciseIds: {
-        ...prev.seenExerciseIds,
-        reading: [...new Set([...currentSeen, exerciseId])],
-      },
+      seenExerciseIds: [...new Set([...currentSeen, exerciseId])],
     }));
   };
 
@@ -72,12 +70,15 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
         questionType: questionType === "random" ? undefined : questionType,
         targetLang: user.learningDialect || "pt-PT",
         userDialect: user.interfaceLang || "en-US",
-        seenExerciseIds: user.seenExerciseIds?.reading ?? [],
+        seenExerciseIds: user.seenExerciseIds ?? [],
       });
       setExercise(res.content);
       setExerciseId(res.exerciseId);
       setAnswers({});
+      setResult(null);
+      setError(null);
       timerRef.current?.reset();
+      timerRef.current?.start();
     } catch (err) {
       const errorMessage =
         err.message ??
@@ -106,16 +107,23 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
     await markCurrentExerciseSeen();
   };
 
-  const seenExerciseCount = (user.seenExerciseIds?.reading ?? []).length;
+  // Resets answer state so the user can attempt the same exercise again.
+  // Does NOT fetch a new exercise — exercise + exerciseId are intentionally kept.
+  const handleTryAgain = () => {
+    setAnswers({});
+    setResult(null);
+    setError(null);
+    timerRef.current?.reset();
+    timerRef.current?.start();
+  };
+
+  const seenExerciseCount = (user.seenExerciseIds ?? []).length;
 
   const handleReset = async () => {
     setIsResetting(true);
     try {
-      await resetSeenExercises(user.token, user.uid, "reading");
-      setUser((prev) => ({
-        ...prev,
-        seenExerciseIds: { ...prev.seenExerciseIds, reading: [] },
-      }));
+      await resetSeenExercises(user.token, user.uid);
+      setUser((prev) => ({ ...prev, seenExerciseIds: [] }));
       setExercise(null);
       setExerciseId(null);
       setAnswers({});
@@ -133,7 +141,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
     </div>
   );
 
-  // Loading/error guards
+  // Loading guard
   if (!exercise && loading) {
     return (
       <div className="flex flex-col lg:flex-row gap-5">
@@ -155,6 +163,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
           <Loader
             isDarkMode={isDarkMode}
             message={t("exam.generating", "Generating exercise...")}
+            fullScreen={true}
           />
           {error && <ErrorBanner error={error} isDarkMode={isDarkMode} />}
         </div>
@@ -162,6 +171,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
     );
   }
 
+  // Error guard — exercise failed to load; Try Again fetches a new exercise
   if (!exercise && error) {
     return (
       <div className="flex flex-col lg:flex-row gap-5">
@@ -181,6 +191,9 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
         />
         <div className="flex-1 min-w-0 flex flex-col gap-5">
           <ErrorBanner error={error} isDarkMode={isDarkMode} />
+          <PrimaryButton onClick={handleGetExercise} isDarkMode={isDarkMode}>
+            <RotateCcw size={14} /> {t("common.try_again", "Try Again")}
+          </PrimaryButton>
         </div>
       </div>
     );
@@ -299,7 +312,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
         <div className="flex-1 min-w-0 flex flex-col gap-5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <LevelBadge level={level} isDarkMode={isDarkMode} />
+              <LevelBadge level={level} isDarkMode={isDarkMode} color="emerald" />
               <h2
                 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
               >
@@ -360,6 +373,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
               isDarkMode={isDarkMode}
               disabled={!allAnswered}
               className="flex-1"
+              color="emerald"
             >
               <CheckCircle2 size={16} />{" "}
               {t("exam.check_answers", "Check My Answers")}
@@ -370,7 +384,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
     );
   }
 
-  // Results step
+  // Results view
   if (result) {
     const scoreColor = getScoreColor(result.score, result.maxScore, isDarkMode);
 
@@ -394,7 +408,7 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
         <div className="flex-1 min-w-0 flex flex-col gap-5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <LevelBadge level={level} isDarkMode={isDarkMode} />
+              <LevelBadge level={level} isDarkMode={isDarkMode} color="emerald" />
               <h2
                 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
               >
@@ -404,6 +418,56 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
             <ReportButton isDarkMode={isDarkMode} context="ReadingExercise" />
           </div>
 
+          {/* Collapsible: original passage */}
+          {exercise.text && (
+            <CollapsibleCard
+              title={t("exam.task", "Your Task")}
+              isDarkMode={isDarkMode}
+              defaultOpen={false}
+            >
+              <p
+                className={`mt-3 text-sm leading-relaxed whitespace-pre-wrap ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}
+              >
+                {exercise.text}
+              </p>
+            </CollapsibleCard>
+          )}
+
+          {/* Collapsible: user's answers summary */}
+          <CollapsibleCard
+            title={t("exam.your_answers", "Your Answers")}
+            isDarkMode={isDarkMode}
+            defaultOpen={false}
+          >
+            <div className="flex flex-col gap-2 mt-3">
+              {result.breakdown.map((item, i) => (
+                <div
+                  key={item.questionId}
+                  className={`rounded-xl border-2 px-4 py-3 ${isDarkMode ? "border-slate-700 bg-slate-800/50" : "border-slate-200 bg-slate-50"}`}
+                >
+                  <p
+                    className={`text-xs font-semibold mb-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+                  >
+                    {i + 1}. {item.question}
+                  </p>
+                  <p
+                    className={`text-sm font-bold ${item.isCorrect ? (isDarkMode ? "text-emerald-400" : "text-emerald-700") : (isDarkMode ? "text-rose-400" : "text-rose-600")}`}
+                  >
+                    {item.userAnswer ?? t("exam.no_answer", "No answer")}
+                  </p>
+                  {!item.isCorrect && (
+                    <p
+                      className={`text-xs mt-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+                    >
+                      {t("exam.correct_answer", "Correct")}: {item.correctAnswer}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CollapsibleCard>
+
+          {/* Score card */}
           <Card isDarkMode={isDarkMode}>
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -448,15 +512,10 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <GhostButton
-              onClick={onBack}
-              isDarkMode={isDarkMode}
-              className="flex-1"
-            >
-              <ArrowLeft size={14} /> {t("common.back", "Back")}
-            </GhostButton>
-          </div>
+          {/* Try Again — resets state, same exercise */}
+          <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
+            <RotateCcw size={14} /> {t("exam.try_again", "Try Again")}
+          </GhostButton>
         </div>
       </div>
     );
@@ -491,10 +550,9 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
         <p
           className={`text-sm font-semibold text-center ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
         >
-          {t(
-            "exam.language_note",
-            "Exercise is in European Portuguese (pt-PT).",
-          )}
+          {t("exam.language_note_dynamic", "Exercise is in {{lang}}.", {
+            lang: user?.learningDialect || "pt-PT",
+          })}
         </p>
       </div>
     </div>
@@ -503,7 +561,6 @@ const ReadingExercise = ({ isDarkMode, onBack }) => {
 
 ReadingExercise.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
-  onBack: PropTypes.func.isRequired,
 };
 
 export default ReadingExercise;
