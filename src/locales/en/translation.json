@@ -509,7 +509,11 @@
       "reset_title": "Reset Exercises",
       "reset_message": "This will clear all completed exercises, allowing you to see previously attempted exercises again.",
       "reset_warning": "⚠ This cannot be undone.",
-      "reset_confirm": "Yes, reset exercises"
+      "reset_confirm": "Yes, reset exercises",
+      "new_exercise_title": "New Exercise",
+      "new_exercise_message": "You have an exercise in progress. Generating a new one will discard your current work.",
+      "new_exercise_warning": "⚠ This cannot be undone.",
+      "new_exercise_confirm": "Yes, generate new exercise"
     },
     "levels": {
       "a1": "A1 - Beginner",

@@ -6,6 +6,7 @@ import { useAppContext } from "../contexts/AppContext";
 import ExerciseSidebar from "./ExerciseSidebar";
 import Loader from "./Loader";
 import ReportButton from "./ReportButton";
+import ConfirmModal from "./ConfirmModal";
 import {
   Card,
   SectionHeading,
@@ -29,6 +30,7 @@ import {
   MatchingExercise,
   NoticeSignExercise,
 } from "./exercises";
+import useGenerateConfirm from "../hooks/useGenerateConfirm";
 
 const ReadingExercise = ({ isDarkMode }) => {
   const { t } = useTranslation();
@@ -44,6 +46,14 @@ const ReadingExercise = ({ isDarkMode }) => {
   const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState(null);
   const timerRef = useRef(null);
+
+  // Hook to confirm generating a new exercise when one is in progress
+  const {
+    showConfirm: showNewExerciseConfirm,
+    onGenerateClick,
+    handleConfirm: handleConfirmNewExercise,
+    handleCancel: handleCancelNewExercise,
+  } = useGenerateConfirm(exercise !== null);
 
   const allAnswered =
     exercise?.questions?.length > 0 &&
@@ -135,67 +145,104 @@ const ReadingExercise = ({ isDarkMode }) => {
     }
   };
 
+  // Confirm dialog: clean up state then generate a new exercise
+  const handleNewExercise = () => {
+    setExercise(null);
+    setExerciseId(null);
+    setAnswers({});
+    setResult(null);
+    setError(null);
+    timerRef.current?.reset();
+    handleGetExercise();
+  };
+
+  // Wraps the sidebar generate button — shows confirm if exercise is ongoing
+  const handleGenerateWrapper = () => {
+    onGenerateClick(handleGetExercise);
+  };
+
   const headerIcon = (
     <div className="w-10 h-10 rounded-xl border-4 border-slate-900 bg-emerald-400 flex items-center justify-center shrink-0">
       <BookOpen size={18} className="text-slate-900" />
     </div>
   );
 
-  // Loading guard
+  const newExerciseModal = showNewExerciseConfirm ? (
+    <ConfirmModal
+      isDarkMode={isDarkMode}
+      title={t("exam.sidebar.new_exercise_title", "New Exercise")}
+      message={t(
+        "exam.sidebar.new_exercise_message",
+        "You have an exercise in progress. Generating a new one will discard your current work.",
+      )}
+      warning={t("exam.sidebar.new_exercise_warning", "⚠ This cannot be undone.")}
+      confirmLabel={t("exam.sidebar.new_exercise_confirm", "Yes, generate new exercise")}
+      confirmColor="yellow"
+      isLoading={loading}
+      onConfirm={() => handleConfirmNewExercise(handleNewExercise)}
+      onCancel={handleCancelNewExercise}
+    />
+  ) : null;
+
+  // Loading/error guards
   if (!exercise && loading) {
     return (
-      <div className="flex flex-col lg:flex-row gap-5">
-        <ExerciseSidebar
-          exerciseType="reading"
-          level={level}
-          onLevelChange={setLevel}
-          questionType={questionType}
-          onQuestionTypeChange={setQuestionType}
-          onGenerate={handleGetExercise}
-          loading={loading}
-          isDarkMode={isDarkMode}
-          timerRef={timerRef}
-          seenExerciseCount={seenExerciseCount}
-          onReset={handleReset}
-          isResetting={isResetting}
-        />
-        <div className="flex-1 min-w-0 flex flex-col gap-5">
-          <Loader
+      <>
+        {newExerciseModal}
+        <div className="flex flex-col lg:flex-row gap-5">
+          <ExerciseSidebar
+            exerciseType="reading"
+            level={level}
+            onLevelChange={setLevel}
+            questionType={questionType}
+            onQuestionTypeChange={setQuestionType}
+            onGenerate={handleGenerateWrapper}
+            loading={loading}
             isDarkMode={isDarkMode}
             message={t("exam.generating", "Generating exercise...")}
             fullScreen={true}
+            timerRef={timerRef}
+            seenExerciseCount={seenExerciseCount}
+            onReset={handleReset}
+            isResetting={isResetting}
           />
-          {error && <ErrorBanner error={error} isDarkMode={isDarkMode} />}
+          <div className="flex-1 min-w-0 flex flex-col gap-5">
+            <Loader
+              isDarkMode={isDarkMode}
+              message={t("exam.generating", "Generating exercise...")}
+            />
+            {error && <ErrorBanner error={error} isDarkMode={isDarkMode} />}
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Error guard — exercise failed to load; Try Again fetches a new exercise
   if (!exercise && error) {
     return (
-      <div className="flex flex-col lg:flex-row gap-5">
-        <ExerciseSidebar
-          exerciseType="reading"
-          level={level}
-          onLevelChange={setLevel}
-          questionType={questionType}
-          onQuestionTypeChange={setQuestionType}
-          onGenerate={handleGetExercise}
-          loading={loading}
-          isDarkMode={isDarkMode}
-          timerRef={timerRef}
-          seenExerciseCount={seenExerciseCount}
-          onReset={handleReset}
-          isResetting={isResetting}
-        />
-        <div className="flex-1 min-w-0 flex flex-col gap-5">
-          <ErrorBanner error={error} isDarkMode={isDarkMode} />
-          <PrimaryButton onClick={handleGetExercise} isDarkMode={isDarkMode}>
-            <RotateCcw size={14} /> {t("common.try_again", "Try Again")}
-          </PrimaryButton>
+      <>
+        {newExerciseModal}
+        <div className="flex flex-col lg:flex-row gap-5">
+          <ExerciseSidebar
+            exerciseType="reading"
+            level={level}
+            onLevelChange={setLevel}
+            questionType={questionType}
+            onQuestionTypeChange={setQuestionType}
+            onGenerate={handleGenerateWrapper}
+            loading={loading}
+            isDarkMode={isDarkMode}
+            timerRef={timerRef}
+            seenExerciseCount={seenExerciseCount}
+            onReset={handleReset}
+            isResetting={isResetting}
+          />
+          <div className="flex-1 min-w-0 flex flex-col gap-5">
+            <ErrorBanner error={error} isDarkMode={isDarkMode} />
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -293,64 +340,74 @@ const ReadingExercise = ({ isDarkMode }) => {
   // Main exercise view
   if (exercise && !result) {
     return (
-      <div className="flex flex-col lg:flex-row gap-5">
-        <ExerciseSidebar
-          exerciseType="reading"
-          level={level}
-          onLevelChange={setLevel}
-          questionType={questionType}
-          onQuestionTypeChange={setQuestionType}
-          onGenerate={handleGetExercise}
-          loading={loading}
-          isDarkMode={isDarkMode}
-          timerRef={timerRef}
-          seenExerciseCount={seenExerciseCount}
-          onReset={handleReset}
-          isResetting={isResetting}
-        />
+      <>
+        {newExerciseModal}
+        <div className="flex flex-col lg:flex-row gap-5">
+          <ExerciseSidebar
+            exerciseType="reading"
+            level={level}
+            onLevelChange={setLevel}
+            questionType={questionType}
+            onQuestionTypeChange={setQuestionType}
+            onGenerate={handleGenerateWrapper}
+            loading={loading}
+            isDarkMode={isDarkMode}
+            timerRef={timerRef}
+            seenExerciseCount={seenExerciseCount}
+            onReset={handleReset}
+            isResetting={isResetting}
+          />
 
-        <div className="flex-1 min-w-0 flex flex-col gap-5">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <LevelBadge level={level} isDarkMode={isDarkMode} color="emerald" />
-              <h2
-                className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
-              >
-                {t("exam.reading", "Reading Comprehension")}
-              </h2>
+          <div className="flex-1 min-w-0 flex flex-col gap-5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <LevelBadge level={level} isDarkMode={isDarkMode} />
+                <h2
+                  className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
+                >
+                  {t("exam.reading", "Reading Comprehension")}
+                </h2>
+              </div>
+              <ReportButton isDarkMode={isDarkMode} context="ReadingExercise" />
             </div>
-            <ReportButton isDarkMode={isDarkMode} context="ReadingExercise" />
-          </div>
 
-          <ErrorBanner error={error} isDarkMode={isDarkMode} />
+            <ErrorBanner error={error} isDarkMode={isDarkMode} />
 
-          {/* Vocabulary section */}
-          {exercise.vocabulary?.length > 0 && (
+            {/* Vocabulary section */}
+            {exercise.vocabulary?.length > 0 && (
+              <div>
+                <SectionHeading isDarkMode={isDarkMode}>
+                  {t("exam.vocabulary", "Vocabulary")}
+                </SectionHeading>
+                <div className="flex flex-col gap-1.5">
+                  {exercise.vocabulary.map((item) => (
+                    <div
+                      key={item.word}
+                      className={`flex items-start gap-2 px-3 py-2 rounded-lg ${isDarkMode ? "bg-slate-800" : "bg-slate-50"}`}
+                    >
+                      <span
+                        className={`font-black text-sm shrink-0 ${isDarkMode ? "text-emerald-400" : "text-emerald-700"}`}
+                      >
+                        {item.word}
+                      </span>
+                      <span
+                        className={`text-sm ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}
+                      >
+                        — {item.definition}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Exercise content */}
             <div>
               <SectionHeading isDarkMode={isDarkMode}>
-                {t("exam.vocabulary", "Vocabulary")}
+                {t("exam.comprehension_questions", "Comprehension Questions")}
               </SectionHeading>
-              <div className="flex flex-col gap-1.5">
-                {exercise.vocabulary.map((item) => (
-                  <div
-                    key={item.word}
-                    className={`flex items-start gap-2 px-3 py-2 rounded-lg ${isDarkMode ? "bg-slate-800" : "bg-slate-50"}`}
-                  >
-                    <span
-                      className={`font-black text-sm shrink-0 ${isDarkMode ? "text-emerald-400" : "text-emerald-700"}`}
-                    >
-                      {item.word}
-                    </span>
-                    <span
-                      className={`text-sm ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}
-                    >
-                      — {item.definition}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              {renderExerciseComponent()}
             </div>
-          )}
 
           {/* Exercise content */}
           <div>
@@ -366,21 +423,20 @@ const ReadingExercise = ({ isDarkMode }) => {
             {Object.keys(answers).length} / {exercise.questions.length}{" "}
             {t("exam.questions_answered", "questions answered")}
           </p>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <PrimaryButton
-              onClick={handleCheckAnswers}
-              isDarkMode={isDarkMode}
-              disabled={!allAnswered}
-              className="flex-1"
-              color="emerald"
-            >
-              <CheckCircle2 size={16} />{" "}
-              {t("exam.check_answers", "Check My Answers")}
-            </PrimaryButton>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <PrimaryButton
+                onClick={handleCheckAnswers}
+                isDarkMode={isDarkMode}
+                disabled={!allAnswered}
+                className="flex-1"
+              >
+                <CheckCircle2 size={16} />{" "}
+                {t("exam.check_answers", "Check My Answers")}
+              </PrimaryButton>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -389,6 +445,100 @@ const ReadingExercise = ({ isDarkMode }) => {
     const scoreColor = getScoreColor(result.score, result.maxScore, isDarkMode);
 
     return (
+      <>
+        {newExerciseModal}
+        <div className="flex flex-col lg:flex-row gap-5">
+          <ExerciseSidebar
+            exerciseType="reading"
+            level={level}
+            onLevelChange={setLevel}
+            questionType={questionType}
+            onQuestionTypeChange={setQuestionType}
+            onGenerate={handleGenerateWrapper}
+            loading={loading}
+            isDarkMode={isDarkMode}
+            timerRef={timerRef}
+            seenExerciseCount={seenExerciseCount}
+            onReset={handleReset}
+            isResetting={isResetting}
+          />
+
+          <div className="flex-1 min-w-0 flex flex-col gap-5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <LevelBadge level={level} isDarkMode={isDarkMode} />
+                <h2
+                  className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
+                >
+                  {t("exam.results", "Results")}
+                </h2>
+              </div>
+              <ReportButton isDarkMode={isDarkMode} context="ReadingExercise" />
+            </div>
+
+            <Card isDarkMode={isDarkMode}>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p
+                    className={`text-xs font-black uppercase tracking-widest mb-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+                  >
+                    {t("exam.score", "Score")}
+                  </p>
+                  <p
+                    className={`text-5xl font-black tabular-nums leading-none ${scoreColor}`}
+                  >
+                    {result.score}
+                    <span
+                      className={`text-2xl ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
+                    >
+                      /{result.maxScore}
+                    </span>
+                  </p>
+                  <p
+                    className={`text-xs font-semibold mt-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+                  >
+                    {result.percentage}%
+                  </p>
+                </div>
+                <CheckCircle2 size={48} className={scoreColor} />
+              </div>
+            </Card>
+
+            <div>
+              <SectionHeading isDarkMode={isDarkMode}>
+                {t("exam.breakdown", "Score Breakdown")}
+              </SectionHeading>
+              <div className="flex flex-col gap-2">
+                {result.breakdown.map((item, i) => (
+                  <ResultRow
+                    key={item.questionId}
+                    item={item}
+                    index={i}
+                    isDarkMode={isDarkMode}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <GhostButton
+                onClick={onBack}
+                isDarkMode={isDarkMode}
+                className="flex-1"
+              >
+                <ArrowLeft size={14} /> {t("common.back", "Back")}
+              </GhostButton>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Initial state: show sidebar with no exercise
+  return (
+    <>
+      {newExerciseModal}
       <div className="flex flex-col lg:flex-row gap-5">
         <ExerciseSidebar
           exerciseType="reading"
@@ -396,7 +546,7 @@ const ReadingExercise = ({ isDarkMode }) => {
           onLevelChange={setLevel}
           questionType={questionType}
           onQuestionTypeChange={setQuestionType}
-          onGenerate={handleGetExercise}
+          onGenerate={handleGenerateWrapper}
           loading={loading}
           isDarkMode={isDarkMode}
           timerRef={timerRef}
@@ -518,11 +668,13 @@ const ReadingExercise = ({ isDarkMode }) => {
           </GhostButton>
         </div>
       </div>
+    </>
     );
-  }
 
   // Initial state: show sidebar with no exercise
   return (
+    <>
+      {newExerciseModal}
     <div className="flex flex-col lg:flex-row gap-5">
       <ExerciseSidebar
         exerciseType="reading"
@@ -555,7 +707,8 @@ const ReadingExercise = ({ isDarkMode }) => {
           })}
         </p>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

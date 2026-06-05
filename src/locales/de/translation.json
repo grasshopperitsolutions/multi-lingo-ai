@@ -509,7 +509,11 @@
       "reset_title": "\u00dcbungen zur\u00fccksetzen",
       "reset_message": "Dadurch werden alle abgeschlossenen \u00dcbungen gel\u00f6scht, sodass Sie bereits versuchte \u00dcbungen erneut sehen k\u00f6nnen.",
       "reset_warning": "\u26a0 Dies kann nicht r\u00fcckg\u00e4ngig gemacht werden.",
-      "reset_confirm": "Ja, \u00dcbungen zur\u00fccksetzen"
+      "reset_confirm": "Ja, \u00dcbungen zur\u00fccksetzen",
+      "new_exercise_title": "Neue \u00dcbung",
+      "new_exercise_message": "Du hast eine laufende \u00dcbung. Wenn du eine neue generierst, wird deine aktuelle Arbeit verworfen.",
+      "new_exercise_warning": "\u26a0 Dies kann nicht r\u00fcckg\u00e4ngig gemacht werden.",
+      "new_exercise_confirm": "Ja, neue \u00dcbung generieren"
     },
     "levels": {
       "a1": "A1 - Anfänger",

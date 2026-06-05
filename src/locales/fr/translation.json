@@ -509,7 +509,11 @@
       "reset_title": "Réinitialiser les Exercices",
       "reset_message": "Cela effacera tous les exercices terminés, vous permettant de revoir les exercices déjà tentés.",
       "reset_warning": "⚠ Cela ne peut pas être annulé.",
-      "reset_confirm": "Oui, réinitialiser les exercices"
+      "reset_confirm": "Oui, réinitialiser les exercices",
+      "new_exercise_title": "Nouvel Exercice",
+      "new_exercise_message": "Vous avez un exercice en cours. En générer un nouveau supprimera votre travail actuel.",
+      "new_exercise_warning": "⚠ Cela ne peut pas être annulé.",
+      "new_exercise_confirm": "Oui, générer un nouvel exercice"
     },
     "levels": {
       "a1": "A1 - Débutant",

@@ -513,7 +513,11 @@
       "reset_title": "Restablecer Ejercicios",
       "reset_message": "Esto borrar\u00e1 todos los ejercicios completados, permiti\u00e9ndole ver nuevamente ejercicios ya intentados.",
       "reset_warning": "\u26a0 Esto no se puede deshacer.",
-      "reset_confirm": "S\u00ed, restablecer ejercicios"
+      "reset_confirm": "S\u00ed, restablecer ejercicios",
+      "new_exercise_title": "Nuevo Ejercicio",
+      "new_exercise_message": "Tienes un ejercicio en curso. Generar uno nuevo descartar\u00e1 tu trabajo actual.",
+      "new_exercise_warning": "\u26a0 Esto no se puede deshacer.",
+      "new_exercise_confirm": "S\u00ed, generar nuevo ejercicio"
     },
     "levels": {
       "a1": "A1 - Principiante",

@@ -509,7 +509,11 @@
       "reset_title": "Repor Exercícios",
       "reset_message": "Isto irá limpar todos os exercícios concluídos, permitindo que veja novamente exercícios já tentados.",
       "reset_warning": "⚠ Isto não pode ser desfeito.",
-      "reset_confirm": "Sim, repor exercícios"
+      "reset_confirm": "Sim, repor exercícios",
+      "new_exercise_title": "Novo Exercício",
+      "new_exercise_message": "Tens um exercício em curso. Gerar um novo irá descartar o teu trabalho atual.",
+      "new_exercise_warning": "⚠ Isto não pode ser desfeito.",
+      "new_exercise_confirm": "Sim, gerar novo exercício"
     },
     "levels": {
       "a1": "A1 - Iniciante",

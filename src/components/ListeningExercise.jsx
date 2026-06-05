@@ -6,6 +6,7 @@ import { useAppContext } from "../contexts/AppContext";
 import ExerciseSidebar from "./ExerciseSidebar";
 import Loader from "./Loader";
 import ReportButton from "./ReportButton";
+import ConfirmModal from "./ConfirmModal";
 import FillBlanksExercise from "./exercises/FillBlanksExercise";
 import {
   Card,
@@ -23,6 +24,7 @@ import {
   getListeningScoreColor,
 } from "../services/examUtils";
 import { markExerciseSeen, resetSeenExercises } from "../services/userService";
+import useGenerateConfirm from "../hooks/useGenerateConfirm";
 
 const ListeningExercise = ({ isDarkMode }) => {
   const { t } = useTranslation();
@@ -41,6 +43,14 @@ const ListeningExercise = ({ isDarkMode }) => {
   const [error, setError] = useState(null);
   const [showTranscript, setShowTranscript] = useState(false);
   const timerRef = useRef(null);
+
+  // Hook to confirm generating a new exercise when one is in progress
+  const {
+    showConfirm: showNewExerciseConfirm,
+    onGenerateClick,
+    handleConfirm: handleConfirmNewExercise,
+    handleCancel: handleCancelNewExercise,
+  } = useGenerateConfirm(exercise !== null);
 
   const isFillBlanks = exercise?.exerciseType === "fill-blanks";
 
@@ -159,205 +169,246 @@ const ListeningExercise = ({ isDarkMode }) => {
     }
   };
 
+  // Confirm dialog: clean up state then generate a new exercise
+  const handleNewExercise = () => {
+    setExercise(null);
+    setExerciseId(null);
+    setAnswers({});
+    setResult(null);
+    setShowTranscript(false);
+    setError(null);
+    timerRef.current?.reset();
+    handleGetExercise();
+  };
+
+  // Wraps the sidebar generate button — shows confirm if exercise is ongoing
+  const handleGenerateWrapper = () => {
+    onGenerateClick(handleGetExercise);
+  };
+
   const headerIcon = (
     <div className="w-10 h-10 rounded-xl border-4 border-slate-900 bg-sky-400 flex items-center justify-center shrink-0">
       <Headphones size={18} className="text-slate-900" />
     </div>
   );
 
-  // Loading guard
+  const newExerciseModal = showNewExerciseConfirm ? (
+    <ConfirmModal
+      isDarkMode={isDarkMode}
+      title={t("exam.sidebar.new_exercise_title", "New Exercise")}
+      message={t(
+        "exam.sidebar.new_exercise_message",
+        "You have an exercise in progress. Generating a new one will discard your current work.",
+      )}
+      warning={t("exam.sidebar.new_exercise_warning", "⚠ This cannot be undone.")}
+      confirmLabel={t("exam.sidebar.new_exercise_confirm", "Yes, generate new exercise")}
+      confirmColor="yellow"
+      isLoading={loading}
+      onConfirm={() => handleConfirmNewExercise(handleNewExercise)}
+      onCancel={handleCancelNewExercise}
+    />
+  ) : null;
+
+  // Loading guards
   if (!exercise && loading) {
     return (
-      <div className="flex flex-col lg:flex-row gap-5">
-        <ExerciseSidebar
-          exerciseType="listening"
-          level={level}
-          onLevelChange={setLevel}
-          questionType={questionType}
-          onQuestionTypeChange={setQuestionType}
-          onGenerate={handleGetExercise}
-          loading={loading}
-          isDarkMode={isDarkMode}
-          timerRef={timerRef}
-          seenExerciseCount={seenExerciseCount}
-          onReset={handleReset}
-          isResetting={isResetting}
-        />
-        <div className="flex-1 min-w-0 flex flex-col gap-5">
-          <Loader
+      <>
+        {newExerciseModal}
+        <div className="flex flex-col lg:flex-row gap-5">
+          <ExerciseSidebar
+            exerciseType="listening"
+            level={level}
+            onLevelChange={setLevel}
+            questionType={questionType}
+            onQuestionTypeChange={setQuestionType}
+            onGenerate={handleGenerateWrapper}
+            loading={loading}
             isDarkMode={isDarkMode}
             message={t("exam.generating", "Generating exercise...")}
             fullScreen={true}
+            timerRef={timerRef}
+            seenExerciseCount={seenExerciseCount}
+            onReset={handleReset}
+            isResetting={isResetting}
           />
-          {error && <ErrorBanner error={error} isDarkMode={isDarkMode} />}
+          <div className="flex-1 min-w-0 flex flex-col gap-5">
+            <Loader
+              isDarkMode={isDarkMode}
+              message={t("exam.generating", "Generating exercise...")}
+            />
+            {error && <ErrorBanner error={error} isDarkMode={isDarkMode} />}
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Error guard — exercise failed to load; Try Again fetches a new exercise
   if (!exercise && error) {
     return (
-      <div className="flex flex-col lg:flex-row gap-5">
-        <ExerciseSidebar
-          exerciseType="listening"
-          level={level}
-          onLevelChange={setLevel}
-          questionType={questionType}
-          onQuestionTypeChange={setQuestionType}
-          onGenerate={handleGetExercise}
-          loading={loading}
-          isDarkMode={isDarkMode}
-          timerRef={timerRef}
-          seenExerciseCount={seenExerciseCount}
-          onReset={handleReset}
-          isResetting={isResetting}
-        />
-        <div className="flex-1 min-w-0 flex flex-col gap-5">
-          <ErrorBanner error={error} isDarkMode={isDarkMode} />
-          <PrimaryButton onClick={handleGetExercise} isDarkMode={isDarkMode}>
-            <RotateCcw size={14} /> {t("common.try_again", "Try Again")}
-          </PrimaryButton>
+      <>
+        {newExerciseModal}
+        <div className="flex flex-col lg:flex-row gap-5">
+          <ExerciseSidebar
+            exerciseType="listening"
+            level={level}
+            onLevelChange={setLevel}
+            questionType={questionType}
+            onQuestionTypeChange={setQuestionType}
+            onGenerate={handleGenerateWrapper}
+            loading={loading}
+            isDarkMode={isDarkMode}
+            timerRef={timerRef}
+            seenExerciseCount={seenExerciseCount}
+            onReset={handleReset}
+            isResetting={isResetting}
+          />
+          <div className="flex-1 min-w-0 flex flex-col gap-5">
+            <ErrorBanner error={error} isDarkMode={isDarkMode} />
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Main listening view
   if (exercise && !result) {
     return (
-      <div className="flex flex-col lg:flex-row gap-5">
-        <ExerciseSidebar
-          exerciseType="listening"
-          level={level}
-          onLevelChange={setLevel}
-          questionType={questionType}
-          onQuestionTypeChange={setQuestionType}
-          onGenerate={handleGetExercise}
-          loading={loading}
-          isDarkMode={isDarkMode}
-          timerRef={timerRef}
-          seenExerciseCount={seenExerciseCount}
-          onReset={handleReset}
-          isResetting={isResetting}
-          transcript={exercise.transcript}
-          tone={exercise.tone}
-          lang={targetLang}
-          showTranscript={showTranscript}
-          onToggleTranscript={() => setShowTranscript((p) => !p)}
-        />
+      <>
+        {newExerciseModal}
+        <div className="flex flex-col lg:flex-row gap-5">
+          <ExerciseSidebar
+            exerciseType="listening"
+            level={level}
+            onLevelChange={setLevel}
+            questionType={questionType}
+            onQuestionTypeChange={setQuestionType}
+            onGenerate={handleGenerateWrapper}
+            loading={loading}
+            isDarkMode={isDarkMode}
+            timerRef={timerRef}
+            seenExerciseCount={seenExerciseCount}
+            onReset={handleReset}
+            isResetting={isResetting}
+            transcript={exercise.transcript}
+            tone={exercise.tone}
+            lang={targetLang}
+            showTranscript={showTranscript}
+            onToggleTranscript={() => setShowTranscript((p) => !p)}
+          />
 
-        <div className="flex-1 min-w-0 flex flex-col gap-5">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <LevelBadge level={level} isDarkMode={isDarkMode} color="sky" />
-              <h2
-                className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
-              >
-                {t("exam.listening", "Listening Comprehension")}
-              </h2>
+          <div className="flex-1 min-w-0 flex flex-col gap-5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <LevelBadge level={level} isDarkMode={isDarkMode} color="sky" />
+                <h2
+                  className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
+                >
+                  {t("exam.listening", "Listening Comprehension")}
+                </h2>
+              </div>
+              <ReportButton isDarkMode={isDarkMode} context="ListeningExercise" />
             </div>
-            <ReportButton isDarkMode={isDarkMode} context="ListeningExercise" />
-          </div>
-          <ErrorBanner error={error} isDarkMode={isDarkMode} />
+            <ErrorBanner error={error} isDarkMode={isDarkMode} />
 
-          {/* Instructions */}
-          {exercise.instructions?.length > 0 && (
-            <Card isDarkMode={isDarkMode}>
-              <SectionHeading isDarkMode={isDarkMode}>
-                {t("exam.instructions", "Instructions")}
-              </SectionHeading>
-              <ul className="flex flex-col gap-1.5">
-                {exercise.instructions.map((instr, i) => (
-                  <li
-                    key={i}
-                    className={`flex items-start gap-2 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-                  >
-                    <span
-                      className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${isDarkMode ? "border-sky-600 text-sky-400" : "border-sky-500 text-sky-600"}`}
-                    >
-                      {i + 1}
-                    </span>
-                    {instr}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-
-          {/* Comprehension Questions */}
-          <div>
-            <SectionHeading isDarkMode={isDarkMode}>
-              {t("exam.comprehension_questions", "Comprehension Questions")}
-            </SectionHeading>
-            {isFillBlanks ? (
-              <FillBlanksExercise
-                passage={exercise.passage}
-                wordBank={exercise.wordBank}
-                blanks={exercise.blanks}
-                answers={answers}
-                onAnswer={handleSelectAnswer}
-                isDarkMode={isDarkMode}
-              />
-            ) : (
-              <div className="flex flex-col gap-3">
-                {exercise.questions.map((q, i) => (
-                  <div
-                    key={q.id}
-                    className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? "bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]" : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"}`}
-                  >
-                    <p
-                      className={`text-sm sm:text-base font-bold mb-3 ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}
+            {/* Instructions */}
+            {exercise.instructions?.length > 0 && (
+              <Card isDarkMode={isDarkMode}>
+                <SectionHeading isDarkMode={isDarkMode}>
+                  {t("exam.instructions", "Instructions")}
+                </SectionHeading>
+                <ul className="flex flex-col gap-1.5">
+                  {exercise.instructions.map((instr, i) => (
+                    <li
+                      key={i}
+                      className={`flex items-start gap-2 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
                     >
                       <span
-                        className={`inline-flex w-6 h-6 rounded-full border-2 items-center justify-center text-xs font-black mr-2 shrink-0 ${isDarkMode ? "border-sky-600 text-sky-400" : "border-sky-500 text-sky-600"}`}
+                        className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${isDarkMode ? "border-sky-600 text-sky-400" : "border-sky-500 text-sky-600"}`}
                       >
                         {i + 1}
                       </span>
-                      {q.text}
-                    </p>
-                    <div className="flex flex-col gap-2">
-                      {q.options.map((option) => {
-                        const isSelected = (answers[q.id] ?? null) === option;
-                        return (
-                          <button
-                            key={option}
-                            onClick={() => handleSelectAnswer(q.id, option)}
-                            className={`w-full text-left px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${isSelected ? (isDarkMode ? "bg-sky-900/40 border-sky-500 text-sky-300" : "bg-sky-50 border-sky-500 text-sky-800") : isDarkMode ? "border-slate-600 text-slate-300 hover:bg-slate-700/50" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
-                          >
-                            {option}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      {instr}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
             )}
-          </div>
 
-          <p
-            className={`text-xs font-semibold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
-          >
-            {Object.keys(answers).length} /{" "}
-            {isFillBlanks ? exercise.blanks.length : exercise.questions.length}{" "}
-            {t("exam.questions_answered", "questions answered")}
-          </p>
+            {/* Comprehension Questions */}
+            <div>
+              <SectionHeading isDarkMode={isDarkMode}>
+                {t("exam.comprehension_questions", "Comprehension Questions")}
+              </SectionHeading>
+              {isFillBlanks ? (
+                <FillBlanksExercise
+                  passage={exercise.passage}
+                  wordBank={exercise.wordBank}
+                  blanks={exercise.blanks}
+                  answers={answers}
+                  onAnswer={handleSelectAnswer}
+                  isDarkMode={isDarkMode}
+                />
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {exercise.questions.map((q, i) => (
+                    <div
+                      key={q.id}
+                      className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? "bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]" : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"}`}
+                    >
+                      <p
+                        className={`text-sm sm:text-base font-bold mb-3 ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}
+                      >
+                        <span
+                          className={`inline-flex w-6 h-6 rounded-full border-2 items-center justify-center text-xs font-black mr-2 shrink-0 ${isDarkMode ? "border-sky-600 text-sky-400" : "border-sky-500 text-sky-600"}`}
+                        >
+                          {i + 1}
+                        </span>
+                        {q.text}
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        {q.options.map((option) => {
+                          const isSelected = (answers[q.id] ?? null) === option;
+                          return (
+                            <button
+                              key={option}
+                              onClick={() => handleSelectAnswer(q.id, option)}
+                              className={`w-full text-left px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${isSelected ? (isDarkMode ? "bg-sky-900/40 border-sky-500 text-sky-300" : "bg-sky-50 border-sky-500 text-sky-800") : isDarkMode ? "border-slate-600 text-slate-300 hover:bg-slate-700/50" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                            >
+                              {option}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <PrimaryButton
-              onClick={handleCheckAnswers}
-              isDarkMode={isDarkMode}
-              disabled={!allAnswered}
-              className="flex-1"
-              color="sky"
+            <p
+              className={`text-xs font-semibold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
             >
-              <CheckCircle2 size={16} />{" "}
-              {t("exam.check_answers", "Check My Answers")}
-            </PrimaryButton>
+              {Object.keys(answers).length} /{" "}
+              {isFillBlanks ? exercise.blanks.length : exercise.questions.length}{" "}
+              {t("exam.questions_answered", "questions answered")}
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <PrimaryButton
+                onClick={handleCheckAnswers}
+                isDarkMode={isDarkMode}
+                disabled={!allAnswered}
+                className="flex-1"
+                color="sky"
+              >
+                <CheckCircle2 size={16} />{" "}
+                {t("exam.check_answers", "Check My Answers")}
+              </PrimaryButton>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -370,6 +421,106 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
 
     return (
+      <>
+        {newExerciseModal}
+        <div className="flex flex-col lg:flex-row gap-5">
+          <ExerciseSidebar
+            exerciseType="listening"
+            level={level}
+            onLevelChange={setLevel}
+            questionType={questionType}
+            onQuestionTypeChange={setQuestionType}
+            onGenerate={handleGenerateWrapper}
+            loading={loading}
+            isDarkMode={isDarkMode}
+            timerRef={timerRef}
+            seenExerciseCount={seenExerciseCount}
+            onReset={handleReset}
+            isResetting={isResetting}
+            transcript={exercise?.transcript}
+            tone={exercise?.tone}
+            lang={targetLang}
+            showTranscript={showTranscript}
+            onToggleTranscript={() => setShowTranscript((p) => !p)}
+          />
+
+          <div className="flex-1 min-w-0 flex flex-col gap-5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <LevelBadge level={level} isDarkMode={isDarkMode} color="sky" />
+                <h2
+                  className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
+                >
+                  {t("exam.results", "Results")}
+                </h2>
+              </div>
+              <ReportButton isDarkMode={isDarkMode} context="ListeningExercise" />
+            </div>
+
+            <Card isDarkMode={isDarkMode}>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p
+                    className={`text-xs font-black uppercase tracking-widest mb-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+                  >
+                    {t("exam.score", "Score")}
+                  </p>
+                  <p
+                    className={`text-5xl font-black tabular-nums leading-none ${scoreColor}`}
+                  >
+                    {result.score}
+                    <span
+                      className={`text-2xl ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
+                    >
+                      /{result.maxScore}
+                    </span>
+                  </p>
+                  <p
+                    className={`text-xs font-semibold mt-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+                  >
+                    {result.percentage}%
+                  </p>
+                </div>
+                <CheckCircle2 size={48} className={scoreColor} />
+              </div>
+            </Card>
+
+            <div>
+              <SectionHeading isDarkMode={isDarkMode}>
+                {t("exam.breakdown", "Score Breakdown")}
+              </SectionHeading>
+              <div className="flex flex-col gap-2">
+                {result.breakdown.map((item, i) => (
+                  <ResultRow
+                    key={item.questionId}
+                    item={item}
+                    index={i}
+                    isDarkMode={isDarkMode}
+                    colorScheme="sky"
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <GhostButton
+                onClick={onBack}
+                isDarkMode={isDarkMode}
+                className="flex-1"
+              >
+                <ArrowLeft size={14} /> {t("common.back", "Back")}
+              </GhostButton>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Initial state
+  return (
+    <>
+      {newExerciseModal}
       <div className="flex flex-col lg:flex-row gap-5">
         <ExerciseSidebar
           exerciseType="listening"
@@ -377,18 +528,13 @@ const ListeningExercise = ({ isDarkMode }) => {
           onLevelChange={setLevel}
           questionType={questionType}
           onQuestionTypeChange={setQuestionType}
-          onGenerate={handleGetExercise}
+          onGenerate={handleGenerateWrapper}
           loading={loading}
           isDarkMode={isDarkMode}
           timerRef={timerRef}
           seenExerciseCount={seenExerciseCount}
           onReset={handleReset}
           isResetting={isResetting}
-          transcript={exercise?.transcript}
-          tone={exercise?.tone}
-          lang={targetLang}
-          showTranscript={showTranscript}
-          onToggleTranscript={() => setShowTranscript((p) => !p)}
         />
 
         <div className="flex-1 min-w-0 flex flex-col gap-5">
@@ -505,8 +651,8 @@ const ListeningExercise = ({ isDarkMode }) => {
           </GhostButton>
         </div>
       </div>
+    </>
     );
-  }
 
   // Initial state
   return (
