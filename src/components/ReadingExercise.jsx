@@ -83,7 +83,7 @@ const ReadingExercise = ({ isDarkMode }) => {
         questionType: questionType === "random" ? undefined : questionType,
         targetLang: user.learningDialect || "pt-PT",
         userDialect: user.interfaceLang || "en-US",
-        seenExerciseIds: user.seenExerciseIds ?? [],
+        seenExerciseIds: user.seenExerciseIds?.reading ?? [],
       });
       setExercise(res.content);
       setExerciseId(res.exerciseId);
@@ -136,7 +136,7 @@ const ReadingExercise = ({ isDarkMode }) => {
     setIsResetting(true);
     try {
       await resetSeenExercises(user.token, user.uid);
-      setUser((prev) => ({ ...prev, seenExerciseIds: [] }));
+      setUser((prev) => ({ ...prev, seenExerciseIds: { ...prev.seenExerciseIds, reading: [] } }));
       setExercise(null);
       setExerciseId(null);
       setAnswers({});
