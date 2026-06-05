@@ -501,7 +501,12 @@
       "level": "Niveau",
       "type": "Typ",
       "generate": "Generieren",
-      "generating": "Generiert..."
+      "generating": "Generiert...",
+      "reset_btn": "\u00dcbungen zur\u00fccksetzen",
+      "reset_title": "\u00dcbungen zur\u00fccksetzen",
+      "reset_message": "Dadurch werden alle abgeschlossenen \u00dcbungen gel\u00f6scht, sodass Sie bereits versuchte \u00dcbungen erneut sehen k\u00f6nnen.",
+      "reset_warning": "\u26a0 Dies kann nicht r\u00fcckg\u00e4ngig gemacht werden.",
+      "reset_confirm": "Ja, \u00dcbungen zur\u00fccksetzen"
     },
     "levels": {
       "a1": "A1 - Anfänger",

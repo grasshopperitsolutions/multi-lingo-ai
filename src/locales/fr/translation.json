@@ -501,7 +501,12 @@
       "level": "Niveau",
       "type": "Type",
       "generate": "Générer",
-      "generating": "Génération..."
+      "generating": "Génération...",
+      "reset_btn": "Réinitialiser les Exercices",
+      "reset_title": "Réinitialiser les Exercices",
+      "reset_message": "Cela effacera tous les exercices terminés, vous permettant de revoir les exercices déjà tentés.",
+      "reset_warning": "⚠ Cela ne peut pas être annulé.",
+      "reset_confirm": "Oui, réinitialiser les exercices"
     },
     "levels": {
       "a1": "A1 - Débutant",

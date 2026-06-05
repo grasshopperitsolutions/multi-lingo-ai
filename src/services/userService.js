@@ -184,6 +184,21 @@ export const markExerciseSeen = async (token, uid, exerciseId, currentSeenIds = 
   await updateUserProfile(token, uid, { seenExerciseIds: updated });
 };
 
+/**
+ * Clear all seen exercise IDs.
+ * Resets users/{uid}.seenExerciseIds to [].
+ * Allows the user to see previously completed exercises again.
+ *
+ * @param {string} token
+ * @param {string} uid
+ */
+export const resetSeenExercises = async (token, uid) => {
+  await updateUserProfile(token, uid, {
+    seenExerciseIds: [],
+    seenExercisesResetAt: new Date().toISOString(),
+  });
+};
+
 // ---------------------------------------------------------------------------
 // Day streak — stored on users/{uid}.dayStreak + users/{uid}.lastStreakDate
 // lastStreakDate is stored as a YYYY-MM-DD string (UTC).

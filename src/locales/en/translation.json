@@ -501,7 +501,12 @@
       "level": "Level",
       "type": "Type",
       "generate": "Generate",
-      "generating": "Generating..."
+      "generating": "Generating...",
+      "reset_btn": "Reset Exercises",
+      "reset_title": "Reset Exercises",
+      "reset_message": "This will clear all completed exercises, allowing you to see previously attempted exercises again.",
+      "reset_warning": "⚠ This cannot be undone.",
+      "reset_confirm": "Yes, reset exercises"
     },
     "levels": {
       "a1": "A1 - Beginner",

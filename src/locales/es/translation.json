@@ -505,7 +505,12 @@
       "level": "Nivel",
       "type": "Tipo",
       "generate": "Generar",
-      "generating": "Generando..."
+      "generating": "Generando...",
+      "reset_btn": "Restablecer Ejercicios",
+      "reset_title": "Restablecer Ejercicios",
+      "reset_message": "Esto borrar\u00e1 todos los ejercicios completados, permiti\u00e9ndole ver nuevamente ejercicios ya intentados.",
+      "reset_warning": "\u26a0 Esto no se puede deshacer.",
+      "reset_confirm": "S\u00ed, restablecer ejercicios"
     },
     "levels": {
       "a1": "A1 - Principiante",
