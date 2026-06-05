@@ -63,6 +63,9 @@ const ExamTimer = forwardRef(function ExamTimer({ isDarkMode, onTick }, ref) {
 
   // ── Imperative handle — lets parent call timer.current.reset() / .stop() ──
   useImperativeHandle(ref, () => ({
+    start() {
+      setIsRunning(true);
+    },
     reset() {
       setIsRunning(false);
       setElapsed(0);
