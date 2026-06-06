@@ -489,40 +489,6 @@ const ReadingExercise = ({ isDarkMode }) => {
               </CollapsibleCard>
             )}
 
-            {/* Collapsible: user's answers summary */}
-            <CollapsibleCard
-              title={t("exam.your_answers", "Your Answers")}
-              isDarkMode={isDarkMode}
-              defaultOpen={false}
-            >
-              <div className="flex flex-col gap-2 mt-3">
-                {result.breakdown.map((item, i) => (
-                  <div
-                    key={item.questionId}
-                    className={`rounded-xl border-2 px-4 py-3 ${isDarkMode ? "border-slate-700 bg-slate-800/50" : "border-slate-200 bg-slate-50"}`}
-                  >
-                    <p
-                      className={`text-xs font-semibold mb-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-                    >
-                      {i + 1}. {item.question}
-                    </p>
-                    <p
-                      className={`text-sm font-bold ${item.isCorrect ? (isDarkMode ? "text-emerald-400" : "text-emerald-700") : (isDarkMode ? "text-rose-400" : "text-rose-600")}`}
-                    >
-                      {item.userAnswer ?? t("exam.no_answer", "No answer")}
-                    </p>
-                    {!item.isCorrect && (
-                      <p
-                        className={`text-xs mt-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-                      >
-                        {t("exam.correct_answer", "Correct")}: {item.correctAnswer}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CollapsibleCard>
-
             {/* Score card */}
             <Card isDarkMode={isDarkMode}>
               <div className="flex items-center justify-between gap-4">

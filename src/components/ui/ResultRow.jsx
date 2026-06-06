@@ -16,6 +16,17 @@ const ResultRow = ({ item, index, isDarkMode, colorScheme = 'emerald' }) => {
         </div>
         {item.isCorrect ? <CheckCircle2 size={18} className={`shrink-0 ${c}`} /> : <XCircle size={18} className={`shrink-0 ${w}`} />}
       </div>
+      {/* Show user answer preview on the same line, hidden when expanded */}
+      {!expanded && item.userAnswer && (
+        <div className={`mt-1.5 flex items-center gap-1.5 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+          <span className={`text-xs font-semibold ${item.isCorrect ? c : w}`}>
+            {item.isCorrect ? '\u2713' : '\u2717'}
+          </span>
+          <span className={`text-xs font-semibold truncate ${item.isCorrect ? cb : wb}`}>
+            {item.userAnswer}
+          </span>
+        </div>
+      )}
       {expanded && (
         <div className="mt-3 flex flex-col gap-1.5">
           {item.userAnswer && <p className={`text-xs font-semibold ${item.isCorrect ? cb : wb}`}>{item.isCorrect ? '\u2713' : '\u2717'} {item.userAnswer}</p>}
