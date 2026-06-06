@@ -86,6 +86,23 @@ export async function generateListeningExercise({ token, level, targetLang, ques
     };
   }
 
+  // Normalize true-false: convert statements with isTrue boolean to questions with correctAnswer
+  if (type === 'true-false') {
+    // Use statements if available, otherwise fall back to questions
+    const statements = data?.statements ?? [];
+    if (statements.length > 0) {
+      return {
+        ...base,
+        questions: statements.map((s) => ({
+          id: s.id,
+          text: s.text,
+          options: ['Verdadeiro', 'Falso'],
+          correctAnswer: s.isTrue ? 'Verdadeiro' : 'Falso',
+        })),
+      };
+    }
+  }
+
   return {
     ...base,
     questions: data.questions,
