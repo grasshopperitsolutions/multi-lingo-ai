@@ -15,7 +15,6 @@ import {
   GhostButton,
   LevelBadge,
   CollapsibleCard,
-  ExamScoreCard,
 } from "./ui";
 import { getExercise } from "../services/examExerciseService";
 import { evaluateWriting } from "../services/examWritingExerciseService";
@@ -47,34 +46,25 @@ const ParameterRow = ({ param, isDarkMode, paramLabel }) => {
           >
             {param.id}
           </span>
-          <span
-            className={`font-bold text-sm truncate ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}
-          >
+          <span className={`font-bold text-sm truncate ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}>
             {paramLabel}
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className={`font-black text-sm tabular-nums ${scoreColor}`}>
             {param.score}
-            <span className={isDarkMode ? "text-slate-500" : "text-slate-400"}>
-              /{param.maxScore}
-            </span>
+            <span className={isDarkMode ? "text-slate-500" : "text-slate-400"}>/{param.maxScore}</span>
           </span>
           <svg
             className={`w-4 h-4 transition-transform ${expanded ? "rotate-90" : ""} ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
           >
             <path d="m9 18 6-6-6-6" />
           </svg>
         </div>
       </div>
       {expanded && (
-        <p
-          className={`mt-2 text-sm leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}
-        >
+        <p className={`mt-2 text-sm leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
           {param.feedback}
         </p>
       )}
@@ -130,8 +120,7 @@ const WritingExercise = ({ isDarkMode }) => {
     : 0;
 
   const wordCountColor = () => {
-    if (wordCount === 0)
-      return isDarkMode ? "text-slate-500" : "text-slate-400";
+    if (wordCount === 0) return isDarkMode ? "text-slate-500" : "text-slate-400";
     if (wordCount < minWords || wordCount > maxWords)
       return isDarkMode ? "text-rose-400" : "text-rose-600";
     return isDarkMode ? "text-emerald-400" : "text-emerald-600";
@@ -294,11 +283,7 @@ const WritingExercise = ({ isDarkMode }) => {
             isResetting={isResetting}
           />
           <div className="flex-1 min-w-0 flex flex-col gap-5">
-            <Loader
-              isDarkMode={isDarkMode}
-              message={t("exam.generating", "Generating exercise...")}
-              fullScreen={true}
-            />
+            <Loader isDarkMode={isDarkMode} message={t("exam.generating", "Generating exercise...")} fullScreen={true} />
             {error && <ErrorBanner error={error} isDarkMode={isDarkMode} />}
           </div>
         </div>
@@ -334,15 +319,9 @@ const WritingExercise = ({ isDarkMode }) => {
     );
   }
 
+  // ── Results / Evaluation view ────────────────────────────────────────────
   if (evaluation) {
-    const scoreColor = getScoreColor(
-      evaluation.totalScore,
-      evaluation.maxScore,
-      isDarkMode,
-    );
-    const scorePct = Math.round(
-      (evaluation.totalScore / evaluation.maxScore) * 100,
-    );
+    const scoreColor = getScoreColor(evaluation.totalScore, evaluation.maxScore, isDarkMode);
 
     return (
       <>
@@ -359,41 +338,35 @@ const WritingExercise = ({ isDarkMode }) => {
             seenExerciseCount={seenExerciseCount}
             onReset={handleReset}
             isResetting={isResetting}
+            score={evaluation.totalScore}
+            maxScore={evaluation.maxScore}
+            scoreColor={scoreColor}
+            wordCount={evaluation.wordCount}
+            minWords={minWords}
+            maxWords={maxWords}
+            wordCountPenalty={evaluation.wordCountPenalty}
           />
 
           <div className="flex-1 min-w-0 flex flex-col gap-5">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <LevelBadge level={level} isDarkMode={isDarkMode} color="teal" />
-                <h2
-                  className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
-                >
+                <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}>
                   {t("exam.results", "Results")}
                 </h2>
               </div>
               <ReportButton isDarkMode={isDarkMode} context="WritingExercise" />
             </div>
 
-            <CollapsibleCard
-              title={t("exam.task", "Your Task")}
-              isDarkMode={isDarkMode}
-              defaultOpen={false}
-            >
-              <p
-                className={`text-sm sm:text-base font-semibold leading-relaxed mb-3 mt-3 ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}
-              >
+            <CollapsibleCard title={t("exam.task", "Your Task")} isDarkMode={isDarkMode} defaultOpen={false}>
+              <p className={`text-sm sm:text-base font-semibold leading-relaxed mb-3 mt-3 ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}>
                 {exercise.prompt}
               </p>
               {exercise.instructions?.length > 0 && (
                 <ul className="flex flex-col gap-1.5">
                   {exercise.instructions.map((instr, i) => (
-                    <li
-                      key={i}
-                      className={`flex items-start gap-2 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}
-                    >
-                      <span
-                        className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${isDarkMode ? "border-teal-600 text-teal-400" : "border-teal-500 text-teal-600"}`}
-                      >
+                    <li key={i} className={`flex items-start gap-2 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                      <span className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${isDarkMode ? "border-teal-600 text-teal-400" : "border-teal-500 text-teal-600"}`}>
                         {i + 1}
                       </span>
                       {instr}
@@ -401,40 +374,16 @@ const WritingExercise = ({ isDarkMode }) => {
                   ))}
                 </ul>
               )}
-              <p
-                className={`mt-3 text-xs font-semibold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
-              >
-                {t(
-                  "exam.word_count_target",
-                  "Target: {{min}}\u2013{{max}} words",
-                  { min: minWords, max: maxWords },
-                )}
+              <p className={`mt-3 text-xs font-semibold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
+                {t("exam.word_count_target", "Target: {{min}}\u2013{{max}} words", { min: minWords, max: maxWords })}
               </p>
             </CollapsibleCard>
 
-            <CollapsibleCard
-              title={t("exam.your_text", "Your Text")}
-              isDarkMode={isDarkMode}
-              defaultOpen={false}
-            >
-              <p
-                className={`mt-3 text-sm leading-relaxed whitespace-pre-wrap ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}
-              >
+            <CollapsibleCard title={t("exam.your_text", "Your Text")} isDarkMode={isDarkMode} defaultOpen={false}>
+              <p className={`mt-3 text-sm leading-relaxed whitespace-pre-wrap ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
                 {userText}
               </p>
             </CollapsibleCard>
-
-            <ExamScoreCard
-              score={evaluation.totalScore}
-              maxScore={evaluation.maxScore}
-              percentage={scorePct}
-              scoreColor={scoreColor}
-              isDarkMode={isDarkMode}
-              wordCount={evaluation.wordCount}
-              minWords={minWords}
-              maxWords={maxWords}
-              wordCountPenalty={evaluation.wordCountPenalty}
-            />
 
             <div>
               <SectionHeading isDarkMode={isDarkMode}>
@@ -456,9 +405,7 @@ const WritingExercise = ({ isDarkMode }) => {
               <SectionHeading isDarkMode={isDarkMode}>
                 {t("exam.general_feedback", "General Feedback")}
               </SectionHeading>
-              <p
-                className={`text-sm leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}
-              >
+              <p className={`text-sm leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
                 {evaluation.generalFeedback}
               </p>
             </Card>
@@ -472,6 +419,7 @@ const WritingExercise = ({ isDarkMode }) => {
     );
   }
 
+  // ── Empty state ────────────────────────────────────────────────────────────
   if (!exercise) {
     return (
       <>
@@ -492,18 +440,12 @@ const WritingExercise = ({ isDarkMode }) => {
           <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
             <div className="flex items-center gap-3 mb-4">
               {headerIcon}
-              <h2
-                className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
-              >
+              <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}>
                 {t("exam.writing", "Writing")}
               </h2>
             </div>
-            <p
-              className={`text-sm font-semibold text-center ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-            >
-              {t("exam.language_note_dynamic", "Exercise is in {{lang}}.", {
-                lang: user?.learningDialect || "pt-PT",
-              })}
+            <p className={`text-sm font-semibold text-center ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              {t("exam.language_note_dynamic", "Exercise is in {{lang}}.", { lang: user?.learningDialect || "pt-PT" })}
             </p>
           </div>
         </div>
@@ -511,6 +453,7 @@ const WritingExercise = ({ isDarkMode }) => {
     );
   }
 
+  // ── Writing in progress ──────────────────────────────────────────────────────
   return (
     <>
       {newExerciseModal}
@@ -532,9 +475,7 @@ const WritingExercise = ({ isDarkMode }) => {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <LevelBadge level={level} isDarkMode={isDarkMode} color="amber" />
-              <h2
-                className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
-              >
+              <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}>
                 {t("exam.writing", "Writing")}
               </h2>
             </div>
@@ -547,21 +488,14 @@ const WritingExercise = ({ isDarkMode }) => {
             <SectionHeading isDarkMode={isDarkMode}>
               {t("exam.task", "Your Task")}
             </SectionHeading>
-            <p
-              className={`text-sm sm:text-base font-semibold leading-relaxed mb-3 ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}
-            >
+            <p className={`text-sm sm:text-base font-semibold leading-relaxed mb-3 ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}>
               {exercise.prompt}
             </p>
             {exercise.instructions?.length > 0 && (
               <ul className="flex flex-col gap-1.5 mt-3">
                 {exercise.instructions.map((instr, i) => (
-                  <li
-                    key={i}
-                    className={`flex items-start gap-2 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}
-                  >
-                    <span
-                      className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${isDarkMode ? "border-teal-600 text-teal-400" : "border-teal-500 text-teal-600"}`}
-                    >
+                  <li key={i} className={`flex items-start gap-2 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                    <span className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${isDarkMode ? "border-teal-600 text-teal-400" : "border-teal-500 text-teal-600"}`}>
                       {i + 1}
                     </span>
                     {instr}
@@ -569,13 +503,8 @@ const WritingExercise = ({ isDarkMode }) => {
                 ))}
               </ul>
             )}
-            <p
-              className={`mt-3 text-xs font-semibold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
-            >
-              {t("exam.word_count_target", "Target: {{min}}\u2013{{max}} words", {
-                min: minWords,
-                max: maxWords,
-              })}
+            <p className={`mt-3 text-xs font-semibold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
+              {t("exam.word_count_target", "Target: {{min}}\u2013{{max}} words", { min: minWords, max: maxWords })}
             </p>
           </Card>
 
@@ -584,29 +513,19 @@ const WritingExercise = ({ isDarkMode }) => {
               <SectionHeading isDarkMode={isDarkMode}>
                 {t("exam.your_text", "Your Text")}
               </SectionHeading>
-              <span
-                className={`text-xs font-black tabular-nums ${wordCountColor()}`}
-              >
+              <span className={`text-xs font-black tabular-nums ${wordCountColor()}`}>
                 {wordCount} {t("exam.words", "words")}
-                {wordCount > 0 &&
-                  (wordCount < minWords || wordCount > maxWords) && (
-                    <span className="ml-1 opacity-75">
-                      (
-                      {wordCount < minWords
-                        ? t("exam.too_short", "too short")
-                        : t("exam.too_long", "too long")}
-                      )
-                    </span>
-                  )}
+                {wordCount > 0 && (wordCount < minWords || wordCount > maxWords) && (
+                  <span className="ml-1 opacity-75">
+                    ({wordCount < minWords ? t("exam.too_short", "too short") : t("exam.too_long", "too long")})
+                  </span>
+                )}
               </span>
             </div>
             <textarea
               value={userText}
               onChange={(e) => setUserText(e.target.value)}
-              placeholder={t(
-                "exam.textarea_placeholder",
-                "Escreve o teu texto aqui...",
-              )}
+              placeholder={t("exam.textarea_placeholder", "Escreve o teu texto aqui...")}
               rows={10}
               disabled={loading}
               className={`w-full rounded-xl border-4 p-4 font-medium text-sm leading-relaxed resize-y focus:outline-none focus:ring-0 transition-colors ${
@@ -617,11 +536,7 @@ const WritingExercise = ({ isDarkMode }) => {
           </div>
 
           {loading ? (
-            <Loader
-              isDarkMode={isDarkMode}
-              message={t("exam.evaluating", "Evaluating...")}
-              fullScreen={true}
-            />
+            <Loader isDarkMode={isDarkMode} message={t("exam.evaluating", "Evaluating...")} fullScreen={true} />
           ) : (
             <div className="flex flex-col sm:flex-row gap-3">
               <PrimaryButton
