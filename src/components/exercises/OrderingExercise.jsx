@@ -12,17 +12,21 @@
  *   isDarkMode   {bool}
  *   level        {string}
  */
-import { useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { ArrowUp, ArrowDown } from 'lucide-react';
 
 const OrderingExercise = ({ items, userOrder, onReorder, isDarkMode }) => {
-  // Determine display order: use userOrder if provided, otherwise sort by correctPosition
-  const displayOrder = userOrder?.length > 0
-    ? userOrder
-    : [...items]
-        .sort((a, b) => a.correctPosition - b.correctPosition)
-        .map((item) => item.id);
+  // Determine display order: use userOrder if provided, otherwise use randomly shuffled
+  const [shuffled] = useState(() => {
+    const arr = [...items];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.map((item) => item.id);
+  });
+  const displayOrder = userOrder?.length > 0 ? userOrder : shuffled;
 
   const handleMoveUp = useCallback((index) => {
     if (index <= 0) return;

@@ -54,9 +54,13 @@ const ReadingExercise = ({ isDarkMode }) => {
     handleCancel: handleCancelNewExercise,
   } = useGenerateConfirm(exercise !== null);
 
-  const allAnswered =
-    exercise?.questions?.length > 0 &&
-    exercise.questions.every((q) => answers[q.id] != null);
+  const allAnswered = (() => {
+    if (!exercise?.questions?.length) return false;
+    if (exercise.questionType === "best-title") return !!answers.bestTitle;
+    if (exercise.questionType === "ordering")
+      return answers.ordering?.length > 0;
+    return exercise.questions.every((q) => answers[q.id] != null);
+  })();
 
   const markCurrentExerciseSeen = async () => {
     if (!exerciseId || !user?.token || !user?.uid) return;
@@ -111,9 +115,26 @@ const ReadingExercise = ({ isDarkMode }) => {
 
   const handleCheckAnswers = async () => {
     if (!exercise?.questions) return;
-    const userAnswers = Object.entries(answers).map(
-      ([questionId, selectedAnswer]) => ({ questionId, selectedAnswer }),
-    );
+    let userAnswers;
+    if (exercise.questionType === "best-title") {
+      const correctTitle = exercise.questions.find((t) => t.isCorrect);
+      if (!correctTitle) return;
+      userAnswers = [
+        {
+          questionId: correctTitle.id,
+          selectedAnswer: answers.bestTitle,
+        },
+      ];
+    } else if (exercise.questionType === "ordering") {
+      userAnswers = (answers.ordering || []).map((itemId, index) => ({
+        questionId: itemId,
+        selectedAnswer: index + 1,
+      }));
+    } else {
+      userAnswers = Object.entries(answers).map(
+        ([questionId, selectedAnswer]) => ({ questionId, selectedAnswer }),
+      );
+    }
     const res = checkReadingAnswers(userAnswers, exercise.questions);
     setResult(res);
     await markCurrentExerciseSeen();
@@ -417,7 +438,13 @@ const ReadingExercise = ({ isDarkMode }) => {
             <p
               className={`text-xs font-semibold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
             >
-              {Object.keys(answers).length} / {exercise.questions.length}{" "}
+              {exercise.questionType === "best-title"
+                ? answers.bestTitle
+                  ? `1 / 1`
+                  : `0 / 1`
+                : exercise.questionType === "ordering"
+                  ? `${answers.ordering?.length || 0} / ${exercise.questions.length}`
+                  : `${Object.keys(answers).length} / ${exercise.questions.length}`}{" "}
               {t("exam.questions_answered", "questions answered")}
             </p>
             <div className="flex flex-col sm:flex-row gap-3">

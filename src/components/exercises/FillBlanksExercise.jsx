@@ -41,11 +41,16 @@ const FillBlanksExercise = ({ passage, wordBank, blanks, answers, onAnswer, isDa
               }`}
             >
               <option value="">___</option>
-              {wordBank.map((word) => (
-                <option key={word} value={word}>
-                  {word}
-                </option>
-              ))}
+              {wordBank.map((word) => {
+                const isUsedByOther = Object.entries(answers).some(
+                  ([key, val]) => key !== blank.id && val === word,
+                );
+                return (
+                  <option key={word} value={word} disabled={isUsedByOther}>
+                    {word}
+                  </option>
+                );
+              })}
             </select>
           </span>
         );

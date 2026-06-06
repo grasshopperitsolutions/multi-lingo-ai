@@ -447,7 +447,10 @@ function _parseAIResponse(data, type) {
       break;
     case 'true-false':
       text = data?.passage ?? '';
-      questions = data?.statements ?? [];
+      questions = (data?.statements ?? []).map((s) => ({
+        ...s,
+        correctAnswer: s.isTrue ? 'true' : 'false',
+      }));
       break;
     case 'best-title':
       text = data?.passage ?? '';
@@ -466,7 +469,10 @@ function _parseAIResponse(data, type) {
       wordBank = data?.wordBank ?? [];
       break;
     case 'matching':
-      questions = data?.pairs ?? [];
+      questions = (data?.pairs ?? []).map((p) => ({
+        ...p,
+        correctAnswer: p.itemB,
+      }));
       extraItems = data?.extraItems ?? [];
       showExample = data?.showExample ?? false;
       example = data?.example ?? null;
