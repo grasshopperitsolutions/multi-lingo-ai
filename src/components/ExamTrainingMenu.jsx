@@ -20,7 +20,7 @@ const EXERCISES = [
     titleKey: 'exam.listening',
     descKey: 'exam.listening_desc',
     component: ListeningExercise,
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: 'reading',
