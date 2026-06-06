@@ -14,8 +14,19 @@
  *   level        {string}
  */
 import PropTypes from 'prop-types';
+import { useState } from 'react';
 
 const FillBlanksExercise = ({ passage, wordBank, blanks, answers, onAnswer, isDarkMode }) => {
+  // Fisher-Yates shuffle to randomize word bank order (runs once on mount)
+  const [shuffledWordBank] = useState(() => {
+    const arr = [...wordBank];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  });
+
   // Replace blanks in passage with interactive elements
   const renderPassageWithBlanks = () => {
     let passageText = passage;
@@ -41,7 +52,7 @@ const FillBlanksExercise = ({ passage, wordBank, blanks, answers, onAnswer, isDa
               }`}
             >
               <option value="">___</option>
-              {wordBank.map((word) => {
+              {shuffledWordBank.map((word) => {
                 const isUsedByOther = Object.entries(answers).some(
                   ([key, val]) => key !== blank.id && val === word,
                 );
@@ -71,7 +82,7 @@ const FillBlanksExercise = ({ passage, wordBank, blanks, answers, onAnswer, isDa
       <div className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]' : 'bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]'}`}>
         <p className={`text-xs font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Banco de Palavras</p>
         <div className="flex flex-wrap gap-2">
-          {wordBank.map((word) => {
+          {shuffledWordBank.map((word) => {
             const isUsed = Object.values(answers).includes(word);
             return (
               <span
