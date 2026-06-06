@@ -15,7 +15,6 @@ import {
   GhostButton,
   LevelBadge,
   CollapsibleCard,
-  ExamScoreCard,
 } from "./ui";
 import { getExercise } from "../services/examExerciseService";
 import { checkReadingAnswers, getScoreColor } from "../services/examUtils";
@@ -266,6 +265,9 @@ const ReadingExercise = ({ isDarkMode }) => {
             seenExerciseCount={seenExerciseCount}
             onReset={handleReset}
             isResetting={isResetting}
+            score={result.score}
+            maxScore={result.maxScore}
+            scoreColor={scoreColor}
           />
 
           <div className="flex-1 min-w-0 flex flex-col gap-5">
@@ -325,14 +327,6 @@ const ReadingExercise = ({ isDarkMode }) => {
                 ))}
               </div>
             </CollapsibleCard>
-
-            <ExamScoreCard
-              score={result.score}
-              maxScore={result.maxScore}
-              percentage={result.percentage}
-              scoreColor={scoreColor}
-              isDarkMode={isDarkMode}
-            />
 
             <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
               <RotateCcw size={14} /> {t("exam.try_again", "Try Again")}

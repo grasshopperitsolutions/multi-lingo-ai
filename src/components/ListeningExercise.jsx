@@ -7,6 +7,7 @@ import ExerciseSidebar from "./ExerciseSidebar";
 import Loader from "./Loader";
 import ReportButton from "./ReportButton";
 import ConfirmModal from "./ConfirmModal";
+import TTSPlayer from "./TTSPlayer";
 import FillBlanksExercise from "./exercises/FillBlanksExercise";
 import {
   Card,
@@ -16,7 +17,6 @@ import {
   GhostButton,
   LevelBadge,
   CollapsibleCard,
-  ExamScoreCard,
 } from "./ui";
 import { getExercise } from "../services/examExerciseService";
 import {
@@ -205,6 +205,44 @@ const ListeningExercise = ({ isDarkMode }) => {
     />
   ) : null;
 
+  // ── Audio + transcript block (reused in exercise and results views) ───────
+  const audioBlock = exercise?.transcript && (
+    <Card isDarkMode={isDarkMode}>
+      <SectionHeading isDarkMode={isDarkMode}>
+        {t("exam.audio", "Audio")}
+      </SectionHeading>
+      <TTSPlayer text={exercise.transcript} lang={targetLang} isDarkMode={isDarkMode} />
+      {exercise.tone && (
+        <p className={`mt-2 text-xs font-semibold italic ${
+          isDarkMode ? "text-slate-400" : "text-slate-500"
+        }`}>
+          {exercise.tone}
+        </p>
+      )}
+      <button
+        onClick={() => setShowTranscript((p) => !p)}
+        className={`mt-3 text-xs font-black uppercase tracking-widest transition-all hover:underline ${
+          isDarkMode ? "text-slate-400" : "text-slate-500"
+        }`}
+      >
+        {showTranscript
+          ? t("exam.hide_transcript", "Hide Transcript")
+          : t("exam.show_transcript", "Show Transcript")}
+      </button>
+      {showTranscript && (
+        <div
+          className={`mt-3 p-3 rounded-xl border-2 text-sm leading-relaxed font-medium ${
+            isDarkMode
+              ? "bg-slate-700 border-slate-600 text-slate-200"
+              : "bg-slate-50 border-slate-300 text-slate-800"
+          }`}
+        >
+          {exercise.transcript}
+        </div>
+      )}
+    </Card>
+  );
+
   if (!exercise && loading) {
     return (
       <>
@@ -266,7 +304,7 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
   }
 
-  // Main listening view — audio player + transcript toggle now live here (Phase 2)
+  // ── Exercise in progress ──────────────────────────────────────────────────
   if (exercise && !result) {
     return (
       <>
@@ -285,11 +323,6 @@ const ListeningExercise = ({ isDarkMode }) => {
             seenExerciseCount={seenExerciseCount}
             onReset={handleReset}
             isResetting={isResetting}
-            transcript={exercise.transcript}
-            tone={exercise.tone}
-            lang={targetLang}
-            showTranscript={showTranscript}
-            onToggleTranscript={() => setShowTranscript((p) => !p)}
           />
 
           <div className="flex-1 min-w-0 flex flex-col gap-5">
@@ -305,6 +338,9 @@ const ListeningExercise = ({ isDarkMode }) => {
               <ReportButton isDarkMode={isDarkMode} context="ListeningExercise" />
             </div>
             <ErrorBanner error={error} isDarkMode={isDarkMode} />
+
+            {/* Audio player lives here in the main content area */}
+            {audioBlock}
 
             {exercise.instructions?.length > 0 && (
               <Card isDarkMode={isDarkMode}>
@@ -405,7 +441,7 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
   }
 
-  // Results view
+  // ── Results view ──────────────────────────────────────────────────────────
   if (result) {
     const scoreColor = getListeningScoreColor(
       result.score,
@@ -430,11 +466,9 @@ const ListeningExercise = ({ isDarkMode }) => {
             seenExerciseCount={seenExerciseCount}
             onReset={handleReset}
             isResetting={isResetting}
-            transcript={exercise?.transcript}
-            tone={exercise?.tone}
-            lang={targetLang}
-            showTranscript={showTranscript}
-            onToggleTranscript={() => setShowTranscript((p) => !p)}
+            score={result.score}
+            maxScore={result.maxScore}
+            scoreColor={scoreColor}
           />
 
           <div className="flex-1 min-w-0 flex flex-col gap-5">
@@ -449,6 +483,9 @@ const ListeningExercise = ({ isDarkMode }) => {
               </div>
               <ReportButton isDarkMode={isDarkMode} context="ListeningExercise" />
             </div>
+
+            {/* Audio player stays visible in results too */}
+            {audioBlock}
 
             {exercise?.transcript && (
               <CollapsibleCard
@@ -497,14 +534,6 @@ const ListeningExercise = ({ isDarkMode }) => {
               </div>
             </CollapsibleCard>
 
-            <ExamScoreCard
-              score={result.score}
-              maxScore={result.maxScore}
-              percentage={result.percentage}
-              scoreColor={scoreColor}
-              isDarkMode={isDarkMode}
-            />
-
             <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
               <RotateCcw size={14} /> {t("exam.try_again", "Try Again")}
             </GhostButton>
@@ -514,6 +543,7 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
   }
 
+  // ── Empty state (no exercise yet) ─────────────────────────────────────────
   return (
     <>
       {newExerciseModal}

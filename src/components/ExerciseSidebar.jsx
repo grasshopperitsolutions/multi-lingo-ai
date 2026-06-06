@@ -3,7 +3,7 @@
  *
  * Collapsible sidebar for exam exercise pages (Reading, Listening, Writing).
  * Contains: level selector, exercise type selector (when applicable),
- * generate button, timer, reset button, and optionally the TTS player (listening).
+ * generate button, timer, reset button, and (after submit) score card.
  *
  * Responsive behavior:
  *   - Mobile: full-width bottom strip below content
@@ -22,12 +22,10 @@
  *   seenExerciseCount  number      — number of seen exercises (disables button when 0)
  *   onReset            () => Promise<void>  — called when user confirms reset
  *   isResetting        boolean     — loading state during reset
- *   // Listening-only props (optional)
- *   transcript       string
- *   tone             string
- *   lang             string
- *   showTranscript   boolean
- *   onToggleTranscript () => void
+ *   // Score props (optional — shown after submit)
+ *   score            number        — number of correct answers
+ *   maxScore         number        — total possible score
+ *   scoreColor       string        — Tailwind colour class for the score value
  *   timerRef         ref
  */
 
@@ -37,7 +35,6 @@ import { useTranslation } from "react-i18next";
 import { ChevronRight, RotateCcw } from "lucide-react";
 import NeoDropdown from "./NeoDropdown";
 import ExamTimer from "./ExamTimer";
-import TTSPlayer from "./TTSPlayer";
 import ConfirmModal from "./ConfirmModal";
 
 // ---------------------------------------------------------------------------
@@ -88,11 +85,9 @@ const ExerciseSidebar = ({
   seenExerciseCount,
   onReset,
   isResetting,
-  transcript,
-  tone,
-  lang,
-  showTranscript,
-  onToggleTranscript,
+  score,
+  maxScore,
+  scoreColor,
   timerRef,
 }) => {
   const { t } = useTranslation();
@@ -190,32 +185,19 @@ const ExerciseSidebar = ({
     </div>
   );
 
-  // ── TTS + Transcript (listening only) ────────────────────────────────────
-  const ttsSection = exerciseType === "listening" && transcript && (
-    <div className={`${panelBase} p-4 flex flex-col gap-3`}>
-      <p
-        className={`text-xs font-black uppercase tracking-widest ${labelClass}`}
-      >
-        {t("exam.audio", "Audio")}
+  // ── Score panel (shown after submit) ────────────────────────────────────
+  const scoreSection = score != null && maxScore != null && (
+    <div className={`${panelBase} p-4 flex flex-col gap-2`}>
+      <p className={`text-xs font-black uppercase tracking-widest ${labelClass}`}>
+        {t("exam.sidebar.score", "Score")}
       </p>
-      <TTSPlayer text={transcript} lang={lang} isDarkMode={isDarkMode} />
-      {tone && (
-        <p className={`text-xs font-semibold italic ${labelClass}`}>{tone}</p>
-      )}
-      <button
-        onClick={onToggleTranscript}
-        className={`text-xs font-black uppercase tracking-widest transition-all hover:underline ${labelClass}`}
-      >
-        {showTranscript
-          ? t("exam.hide_transcript", "Hide Transcript")
-          : t("exam.show_transcript", "Show Transcript")}
-      </button>
-      {showTranscript && (
-        <div
-          className={`p-3 rounded-xl border-2 text-sm leading-relaxed font-medium ${isDarkMode ? "bg-slate-700 border-slate-600 text-slate-200" : "bg-slate-50 border-slate-300 text-slate-800"}`}
-        >
-          {transcript}
-        </div>
+      <p className={`text-4xl font-black tabular-nums ${scoreColor ?? (isDarkMode ? "text-white" : "text-slate-900")}`}>
+        {score}<span className={`text-lg font-bold ${labelClass}`}>/{maxScore}</span>
+      </p>
+      {maxScore > 0 && (
+        <p className={`text-xs font-bold ${labelClass}`}>
+          {Math.round((score / maxScore) * 100)}%
+        </p>
       )}
     </div>
   );
@@ -257,8 +239,8 @@ const ExerciseSidebar = ({
         {/* Timer */}
         {timerSection}
 
-        {/* TTS + Transcript (listening only) */}
-        {ttsSection}
+        {/* Score (after submit) */}
+        {scoreSection}
       </aside>
 
       {/* Mobile bottom strip */}
@@ -267,7 +249,7 @@ const ExerciseSidebar = ({
       >
         {controls}
         {timerSection}
-        {ttsSection}
+        {scoreSection}
       </div>
     </>
   );
@@ -285,11 +267,9 @@ ExerciseSidebar.propTypes = {
   seenExerciseCount: PropTypes.number,
   onReset: PropTypes.func,
   isResetting: PropTypes.bool,
-  transcript: PropTypes.string,
-  tone: PropTypes.string,
-  lang: PropTypes.string,
-  showTranscript: PropTypes.bool,
-  onToggleTranscript: PropTypes.func,
+  score: PropTypes.number,
+  maxScore: PropTypes.number,
+  scoreColor: PropTypes.string,
   timerRef: PropTypes.shape({ current: PropTypes.object }),
 };
 
@@ -299,11 +279,9 @@ ExerciseSidebar.defaultProps = {
   seenExerciseCount: 0,
   onReset: () => Promise.resolve(),
   isResetting: false,
-  transcript: "",
-  tone: "",
-  lang: "pt-PT",
-  showTranscript: false,
-  onToggleTranscript: () => {},
+  score: null,
+  maxScore: null,
+  scoreColor: null,
   timerRef: { current: null },
 };
 
