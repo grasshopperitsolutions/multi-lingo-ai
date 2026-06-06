@@ -16,6 +16,7 @@ import {
   GhostButton,
   LevelBadge,
   CollapsibleCard,
+  ExamScoreCard,
 } from "./ui";
 import { getExercise } from "../services/examExerciseService";
 import {
@@ -43,7 +44,6 @@ const ListeningExercise = ({ isDarkMode }) => {
   const [showTranscript, setShowTranscript] = useState(false);
   const timerRef = useRef(null);
 
-  // Hook to confirm generating a new exercise when one is in progress
   const {
     showConfirm: showNewExerciseConfirm,
     onGenerateClick,
@@ -133,11 +133,10 @@ const ListeningExercise = ({ isDarkMode }) => {
       const res = checkListeningAnswers(userAnswers, exercise.questions);
       setResult(res);
     }
+    timerRef.current?.stop();
     await markCurrentExerciseSeen();
   };
 
-  // Resets answer state so the user can attempt the same exercise again.
-  // Does NOT fetch a new exercise — exercise + exerciseId are intentionally kept.
   const handleTryAgain = () => {
     setAnswers({});
     setResult(null);
@@ -168,7 +167,6 @@ const ListeningExercise = ({ isDarkMode }) => {
     }
   };
 
-  // Confirm dialog: clean up state then generate a new exercise
   const handleNewExercise = () => {
     setExercise(null);
     setExerciseId(null);
@@ -180,7 +178,6 @@ const ListeningExercise = ({ isDarkMode }) => {
     handleGetExercise();
   };
 
-  // Wraps the sidebar generate button — shows confirm if exercise is ongoing
   const handleGenerateWrapper = () => {
     onGenerateClick(handleGetExercise);
   };
@@ -208,7 +205,6 @@ const ListeningExercise = ({ isDarkMode }) => {
     />
   ) : null;
 
-  // Loading guards
   if (!exercise && loading) {
     return (
       <>
@@ -223,8 +219,6 @@ const ListeningExercise = ({ isDarkMode }) => {
             onGenerate={handleGenerateWrapper}
             loading={loading}
             isDarkMode={isDarkMode}
-            message={t("exam.generating", "Generating exercise...")}
-            fullScreen={true}
             timerRef={timerRef}
             seenExerciseCount={seenExerciseCount}
             onReset={handleReset}
@@ -242,7 +236,6 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
   }
 
-  // Error guard — exercise failed to load; Try Again fetches a new exercise
   if (!exercise && error) {
     return (
       <>
@@ -273,7 +266,7 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
   }
 
-  // Main listening view
+  // Main listening view — audio player + transcript toggle now live here (Phase 2)
   if (exercise && !result) {
     return (
       <>
@@ -313,7 +306,6 @@ const ListeningExercise = ({ isDarkMode }) => {
             </div>
             <ErrorBanner error={error} isDarkMode={isDarkMode} />
 
-            {/* Instructions */}
             {exercise.instructions?.length > 0 && (
               <Card isDarkMode={isDarkMode}>
                 <SectionHeading isDarkMode={isDarkMode}>
@@ -337,7 +329,6 @@ const ListeningExercise = ({ isDarkMode }) => {
               </Card>
             )}
 
-            {/* Comprehension Questions */}
             <div>
               <SectionHeading isDarkMode={isDarkMode}>
                 {t("exam.comprehension_questions", "Comprehension Questions")}
@@ -459,7 +450,6 @@ const ListeningExercise = ({ isDarkMode }) => {
               <ReportButton isDarkMode={isDarkMode} context="ListeningExercise" />
             </div>
 
-            {/* Collapsible: transcript */}
             {exercise?.transcript && (
               <CollapsibleCard
                 title={t("exam.transcript", "Transcript")}
@@ -474,7 +464,6 @@ const ListeningExercise = ({ isDarkMode }) => {
               </CollapsibleCard>
             )}
 
-            {/* Collapsible: user's answers summary */}
             <CollapsibleCard
               title={t("exam.your_answers", "Your Answers")}
               isDarkMode={isDarkMode}
@@ -508,36 +497,14 @@ const ListeningExercise = ({ isDarkMode }) => {
               </div>
             </CollapsibleCard>
 
-            {/* Score card */}
-            <Card isDarkMode={isDarkMode}>
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p
-                    className={`text-xs font-black uppercase tracking-widest mb-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-                  >
-                    {t("exam.score", "Score")}
-                  </p>
-                  <p
-                    className={`text-5xl font-black tabular-nums leading-none ${scoreColor}`}
-                  >
-                    {result.score}
-                    <span
-                      className={`text-2xl ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
-                    >
-                      /{result.maxScore}
-                    </span>
-                  </p>
-                  <p
-                    className={`text-xs font-semibold mt-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-                  >
-                    {result.percentage}%
-                  </p>
-                </div>
-                <CheckCircle2 size={48} className={scoreColor} />
-              </div>
-            </Card>
+            <ExamScoreCard
+              score={result.score}
+              maxScore={result.maxScore}
+              percentage={result.percentage}
+              scoreColor={scoreColor}
+              isDarkMode={isDarkMode}
+            />
 
-            {/* Try Again — resets state, same exercise */}
             <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
               <RotateCcw size={14} /> {t("exam.try_again", "Try Again")}
             </GhostButton>
@@ -547,7 +514,6 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
   }
 
-  // Initial state: show sidebar with no exercise
   return (
     <>
       {newExerciseModal}

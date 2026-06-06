@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { PenLine, RotateCcw, CheckCircle2 } from "lucide-react";
+import { PenLine, RotateCcw } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import ExerciseSidebar from "./ExerciseSidebar";
 import Loader from "./Loader";
@@ -15,6 +15,7 @@ import {
   GhostButton,
   LevelBadge,
   CollapsibleCard,
+  ExamScoreCard,
 } from "./ui";
 import { getExercise } from "../services/examExerciseService";
 import { evaluateWriting } from "../services/examWritingExerciseService";
@@ -106,8 +107,6 @@ const WritingExercise = ({ isDarkMode }) => {
   const [level, setLevel] = useState("A1");
   const [exercise, setExercise] = useState(null);
   const [exerciseId, setExerciseId] = useState(null);
-  // Bug #5 fix: store minWords/maxWords from exercise explicitly so they remain
-  // stable in the results view even if exercise state were ever cleared.
   const [minWords, setMinWords] = useState(60);
   const [maxWords, setMaxWords] = useState(100);
   const [userText, setUserText] = useState("");
@@ -117,7 +116,6 @@ const WritingExercise = ({ isDarkMode }) => {
   const [error, setError] = useState(null);
   const timerRef = useRef(null);
 
-  // Hook to confirm generating a new exercise when one is in progress
   const {
     showConfirm: showNewExerciseConfirm,
     onGenerateClick,
@@ -166,12 +164,10 @@ const WritingExercise = ({ isDarkMode }) => {
       });
       setExercise(result.content);
       setExerciseId(result.exerciseId);
-      // Bug #5 fix: capture word limits into explicit state
       setMinWords(result.content?.minWords ?? 60);
       setMaxWords(result.content?.maxWords ?? 100);
       setUserText("");
       setEval(null);
-      // Bug #1 fix: reset then auto-start the timer when exercise loads
       timerRef.current?.reset();
       timerRef.current?.start();
     } catch (err) {
@@ -239,7 +235,6 @@ const WritingExercise = ({ isDarkMode }) => {
     }
   };
 
-  // Confirm dialog: clean up state then generate a new exercise
   const handleNewExercise = () => {
     setExercise(null);
     setExerciseId(null);
@@ -252,13 +247,10 @@ const WritingExercise = ({ isDarkMode }) => {
     handleGetExercise();
   };
 
-  // Wraps the sidebar generate button — shows confirm if exercise is ongoing
   const handleGenerateWrapper = () => {
     onGenerateClick(handleGetExercise);
   };
 
-  // Resets writing state so the user can attempt the same exercise again.
-  // Does NOT fetch a new exercise — exercise + exerciseId are intentionally kept.
   const handleTryAgain = () => {
     setUserText("");
     setEval(null);
@@ -284,7 +276,6 @@ const WritingExercise = ({ isDarkMode }) => {
     />
   ) : null;
 
-  // Loading guard (initial exercise fetch)
   if (!exercise && loading) {
     return (
       <>
@@ -315,7 +306,6 @@ const WritingExercise = ({ isDarkMode }) => {
     );
   }
 
-  // Error guard — exercise failed to load; Try Again fetches a new exercise
   if (!exercise && error) {
     return (
       <>
@@ -344,7 +334,6 @@ const WritingExercise = ({ isDarkMode }) => {
     );
   }
 
-  // Results view
   if (evaluation) {
     const scoreColor = getScoreColor(
       evaluation.totalScore,
@@ -385,7 +374,6 @@ const WritingExercise = ({ isDarkMode }) => {
               <ReportButton isDarkMode={isDarkMode} context="WritingExercise" />
             </div>
 
-            {/* Collapsible: original task instructions */}
             <CollapsibleCard
               title={t("exam.task", "Your Task")}
               isDarkMode={isDarkMode}
@@ -424,7 +412,6 @@ const WritingExercise = ({ isDarkMode }) => {
               </p>
             </CollapsibleCard>
 
-            {/* Collapsible: what the user wrote */}
             <CollapsibleCard
               title={t("exam.your_text", "Your Text")}
               isDarkMode={isDarkMode}
@@ -437,62 +424,17 @@ const WritingExercise = ({ isDarkMode }) => {
               </p>
             </CollapsibleCard>
 
-            {/* Score card */}
-            <Card isDarkMode={isDarkMode}>
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p
-                    className={`text-xs font-black uppercase tracking-widest mb-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-                  >
-                    {t("exam.score", "Score")}
-                  </p>
-                  <p
-                    className={`text-5xl font-black tabular-nums leading-none ${scoreColor}`}
-                  >
-                    {evaluation.totalScore}
-                    <span
-                      className={`text-2xl ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
-                    >
-                      /{evaluation.maxScore}
-                    </span>
-                  </p>
-                  <p
-                    className={`text-xs font-semibold mt-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-                  >
-                    {scorePct}%
-                    {evaluation.wordCountPenalty > 0 && (
-                      <span
-                        className={`ml-2 ${isDarkMode ? "text-rose-400" : "text-rose-600"}`}
-                      >
-                        (
-                        {t("exam.penalty", "-{{n}} word count penalty", {
-                          n: evaluation.wordCountPenalty,
-                        })}
-                        )
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <CheckCircle2 size={48} className={scoreColor} />
-              </div>
-              <div
-                className={`mt-3 pt-3 border-t-2 ${isDarkMode ? "border-slate-700" : "border-slate-200"}`}
-              >
-                <p
-                  className={`text-xs font-semibold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-                >
-                  {t("exam.word_count", "Word count")}:{" "}
-                  <span className="font-black">{evaluation.wordCount}</span>
-                  {" "}(
-                  {t(
-                    "exam.word_count_target",
-                    "Target: {{min}}\u2013{{max}} words",
-                    { min: minWords, max: maxWords },
-                  )}
-                  )
-                </p>
-              </div>
-            </Card>
+            <ExamScoreCard
+              score={evaluation.totalScore}
+              maxScore={evaluation.maxScore}
+              percentage={scorePct}
+              scoreColor={scoreColor}
+              isDarkMode={isDarkMode}
+              wordCount={evaluation.wordCount}
+              minWords={minWords}
+              maxWords={maxWords}
+              wordCountPenalty={evaluation.wordCountPenalty}
+            />
 
             <div>
               <SectionHeading isDarkMode={isDarkMode}>
@@ -521,7 +463,6 @@ const WritingExercise = ({ isDarkMode }) => {
               </p>
             </Card>
 
-            {/* Try Again — resets state, same exercise */}
             <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
               <RotateCcw size={14} /> {t("exam.try_again", "Try Again")}
             </GhostButton>
@@ -531,7 +472,6 @@ const WritingExercise = ({ isDarkMode }) => {
     );
   }
 
-  // Initial state: no exercise loaded
   if (!exercise) {
     return (
       <>
@@ -558,7 +498,6 @@ const WritingExercise = ({ isDarkMode }) => {
                 {t("exam.writing", "Writing")}
               </h2>
             </div>
-            {/* Bug #5 fix: derive language note from user.learningDialect instead of hardcoding pt-PT */}
             <p
               className={`text-sm font-semibold text-center ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
             >
@@ -572,7 +511,6 @@ const WritingExercise = ({ isDarkMode }) => {
     );
   }
 
-  // Exercise view (loaded, not yet evaluated)
   return (
     <>
       {newExerciseModal}
@@ -662,7 +600,6 @@ const WritingExercise = ({ isDarkMode }) => {
                   )}
               </span>
             </div>
-            {/* Bug #4 fix: disable textarea while evaluation is loading */}
             <textarea
               value={userText}
               onChange={(e) => setUserText(e.target.value)}
@@ -679,7 +616,6 @@ const WritingExercise = ({ isDarkMode }) => {
             />
           </div>
 
-          {/* Show inline loader while evaluation is in progress, otherwise show the evaluate button */}
           {loading ? (
             <Loader
               isDarkMode={isDarkMode}
@@ -688,7 +624,6 @@ const WritingExercise = ({ isDarkMode }) => {
             />
           ) : (
             <div className="flex flex-col sm:flex-row gap-3">
-              {/* Bug #4 fix: also disable the evaluate button while loading to prevent double-submit */}
               <PrimaryButton
                 onClick={handleEvaluate}
                 isDarkMode={isDarkMode}
