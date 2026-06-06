@@ -117,23 +117,21 @@ const ReadingExercise = ({ isDarkMode }) => {
     if (!exercise?.questions) return;
     let userAnswers;
     if (exercise.questionType === "best-title") {
-      const correctTitle = exercise.questions.find((t) => t.isCorrect);
-      if (!correctTitle) return;
-      userAnswers = [
-        {
-          questionId: correctTitle.id,
-          selectedAnswer: answers.bestTitle,
-        },
-      ];
+      // Map the selected title ID to the actual title text for comparison
+      const selectedTitle = exercise.titles?.find((t) => t.id === answers.bestTitle);
+      userAnswers = [{
+        questionId: "bestTitle",
+        selectedAnswer: selectedTitle?.text ?? null,
+      }];
     } else if (exercise.questionType === "ordering") {
       userAnswers = (answers.ordering || []).map((itemId, index) => ({
         questionId: itemId,
         selectedAnswer: index + 1,
       }));
     } else {
-      userAnswers = Object.entries(answers).map(
-        ([questionId, selectedAnswer]) => ({ questionId, selectedAnswer }),
-      );
+      userAnswers = Object.entries(answers)
+        .filter(([, selectedAnswer]) => selectedAnswer != null)
+        .map(([questionId, selectedAnswer]) => ({ questionId, selectedAnswer }));
     }
     const res = checkReadingAnswers(userAnswers, exercise.questions);
     setResult(res);
@@ -299,7 +297,7 @@ const ReadingExercise = ({ isDarkMode }) => {
         return (
           <BestTitleExercise
             passage={exercise.text}
-            titles={exercise.questions}
+            titles={exercise.titles}
             selectedId={answers.bestTitle}
             onSelect={(titleId) => handleSelectAnswer("bestTitle", titleId)}
             isDarkMode={isDarkMode}

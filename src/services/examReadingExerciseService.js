@@ -439,6 +439,7 @@ function _parseAIResponse(data, type) {
   let extraItems = [];
   let showExample = false;
   let example = null;
+  let titles = [];
 
   switch (type) {
     case 'multiple-choice':
@@ -452,12 +453,20 @@ function _parseAIResponse(data, type) {
         correctAnswer: s.isTrue ? 'true' : 'false',
       }));
       break;
-    case 'best-title':
+    case 'best-title': {
       text = data?.passage ?? '';
-      questions = data?.titles ?? [];
+      // Store full titles separately for rendering, and create a single question for answer checking
+      const correctTitle = (data?.titles ?? []).find((t) => t.isCorrect);
+      questions = [{ id: 'bestTitle', text: 'Escolhe o melhor título', correctAnswer: correctTitle?.text ?? '' }];
+      titles = data?.titles ?? [];
       break;
+    }
     case 'ordering':
-      questions = data?.items ?? [];
+      // correctPosition is a number — map it to correctAnswer so checkAnswers can compare
+      questions = (data?.items ?? []).map((item) => ({
+        ...item,
+        correctAnswer: item.correctPosition,
+      }));
       break;
     case 'cloze':
       text = data?.passage ?? '';
@@ -471,6 +480,7 @@ function _parseAIResponse(data, type) {
     case 'matching':
       questions = (data?.pairs ?? []).map((p) => ({
         ...p,
+        text: p.itemA,
         correctAnswer: p.itemB,
       }));
       extraItems = data?.extraItems ?? [];
@@ -490,6 +500,7 @@ function _parseAIResponse(data, type) {
     extraItems,
     showExample,
     example,
+    titles,
   };
 }
 
