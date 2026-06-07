@@ -41,7 +41,6 @@ const ListeningExercise = ({ isDarkMode }) => {
   const [loading, setLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState(null);
-  const [showTranscript, setShowTranscript] = useState(false);
   const timerRef = useRef(null);
 
   const {
@@ -90,7 +89,6 @@ const ListeningExercise = ({ isDarkMode }) => {
       setAnswers({});
       setResult(null);
       setError(null);
-      setShowTranscript(false);
       timerRef.current?.reset();
       timerRef.current?.start();
     } catch (err) {
@@ -159,7 +157,6 @@ const ListeningExercise = ({ isDarkMode }) => {
       setExerciseId(null);
       setAnswers({});
       setResult(null);
-      setShowTranscript(false);
       setError(null);
       timerRef.current?.reset();
     } finally {
@@ -172,7 +169,6 @@ const ListeningExercise = ({ isDarkMode }) => {
     setExerciseId(null);
     setAnswers({});
     setResult(null);
-    setShowTranscript(false);
     setError(null);
     timerRef.current?.reset();
     handleGetExercise();
@@ -205,13 +201,17 @@ const ListeningExercise = ({ isDarkMode }) => {
     />
   ) : null;
 
-  // ── Audio + transcript block (reused in exercise and results views) ───────
-  const audioBlock = exercise?.transcript && (
+  // ── Card 1: Audio player only ──────────────────────────────────────────────
+  const audioCard = exercise?.transcript && (
     <Card isDarkMode={isDarkMode}>
       <SectionHeading isDarkMode={isDarkMode}>
         {t("exam.audio", "Audio")}
       </SectionHeading>
-      <TTSPlayer text={exercise.transcript} lang={targetLang} isDarkMode={isDarkMode} />
+      <TTSPlayer
+        text={exercise.transcript}
+        lang={targetLang}
+        isDarkMode={isDarkMode}
+      />
       {exercise.tone && (
         <p className={`mt-2 text-xs font-semibold italic ${
           isDarkMode ? "text-slate-400" : "text-slate-500"
@@ -219,28 +219,22 @@ const ListeningExercise = ({ isDarkMode }) => {
           {exercise.tone}
         </p>
       )}
-      <button
-        onClick={() => setShowTranscript((p) => !p)}
-        className={`mt-3 text-xs font-black uppercase tracking-widest transition-all hover:underline ${
-          isDarkMode ? "text-slate-400" : "text-slate-500"
-        }`}
-      >
-        {showTranscript
-          ? t("exam.hide_transcript", "Hide Transcript")
-          : t("exam.show_transcript", "Show Transcript")}
-      </button>
-      {showTranscript && (
-        <div
-          className={`mt-3 p-3 rounded-xl border-2 text-sm leading-relaxed font-medium ${
-            isDarkMode
-              ? "bg-slate-700 border-slate-600 text-slate-200"
-              : "bg-slate-50 border-slate-300 text-slate-800"
-          }`}
-        >
-          {exercise.transcript}
-        </div>
-      )}
     </Card>
+  );
+
+  // ── Card 2: Transcript (collapsible) ──────────────────────────────────────
+  const transcriptCard = exercise?.transcript && (
+    <CollapsibleCard
+      title={t("exam.transcript", "Transcript")}
+      isDarkMode={isDarkMode}
+      defaultOpen={false}
+    >
+      <p className={`mt-3 text-sm leading-relaxed whitespace-pre-wrap ${
+        isDarkMode ? "text-slate-300" : "text-slate-700"
+      }`}>
+        {exercise.transcript}
+      </p>
+    </CollapsibleCard>
   );
 
   if (!exercise && loading) {
@@ -304,7 +298,7 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
   }
 
-  // ── Exercise in progress ──────────────────────────────────────────────────
+  // ── Exercise in progress ─────────────────────────────────────────────────
   if (exercise && !result) {
     return (
       <>
@@ -329,9 +323,9 @@ const ListeningExercise = ({ isDarkMode }) => {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <LevelBadge level={level} isDarkMode={isDarkMode} color="sky" />
-                <h2
-                  className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
-                >
+                <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
+                  isDarkMode ? "text-white" : "text-slate-900"
+                }`}>
                   {t("exam.listening", "Listening Comprehension")}
                 </h2>
               </div>
@@ -339,8 +333,8 @@ const ListeningExercise = ({ isDarkMode }) => {
             </div>
             <ErrorBanner error={error} isDarkMode={isDarkMode} />
 
-            {/* Audio player lives here in the main content area */}
-            {audioBlock}
+            {audioCard}
+            {transcriptCard}
 
             {exercise.instructions?.length > 0 && (
               <Card isDarkMode={isDarkMode}>
@@ -351,11 +345,13 @@ const ListeningExercise = ({ isDarkMode }) => {
                   {exercise.instructions.map((instr, i) => (
                     <li
                       key={i}
-                      className={`flex items-start gap-2 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+                      className={`flex items-start gap-2 text-xs ${
+                        isDarkMode ? "text-slate-400" : "text-slate-500"
+                      }`}
                     >
-                      <span
-                        className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${isDarkMode ? "border-sky-600 text-sky-400" : "border-sky-500 text-sky-600"}`}
-                      >
+                      <span className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${
+                        isDarkMode ? "border-sky-600 text-sky-400" : "border-sky-500 text-sky-600"
+                      }`}>
                         {i + 1}
                       </span>
                       {instr}
@@ -383,14 +379,18 @@ const ListeningExercise = ({ isDarkMode }) => {
                   {exercise.questions.map((q, i) => (
                     <div
                       key={q.id}
-                      className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? "bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]" : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"}`}
+                      className={`rounded-2xl border-4 p-4 sm:p-5 ${
+                        isDarkMode
+                          ? "bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]"
+                          : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
+                      }`}
                     >
-                      <p
-                        className={`text-sm sm:text-base font-bold mb-3 ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}
-                      >
-                        <span
-                          className={`inline-flex w-6 h-6 rounded-full border-2 items-center justify-center text-xs font-black mr-2 shrink-0 ${isDarkMode ? "border-sky-600 text-sky-400" : "border-sky-500 text-sky-600"}`}
-                        >
+                      <p className={`text-sm sm:text-base font-bold mb-3 ${
+                        isDarkMode ? "text-slate-100" : "text-slate-900"
+                      }`}>
+                        <span className={`inline-flex w-6 h-6 rounded-full border-2 items-center justify-center text-xs font-black mr-2 shrink-0 ${
+                          isDarkMode ? "border-sky-600 text-sky-400" : "border-sky-500 text-sky-600"
+                        }`}>
                           {i + 1}
                         </span>
                         {q.text}
@@ -402,7 +402,15 @@ const ListeningExercise = ({ isDarkMode }) => {
                             <button
                               key={option}
                               onClick={() => handleSelectAnswer(q.id, option)}
-                              className={`w-full text-left px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${isSelected ? (isDarkMode ? "bg-sky-900/40 border-sky-500 text-sky-300" : "bg-sky-50 border-sky-500 text-sky-800") : isDarkMode ? "border-slate-600 text-slate-300 hover:bg-slate-700/50" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                              className={`w-full text-left px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${
+                                isSelected
+                                  ? isDarkMode
+                                    ? "bg-sky-900/40 border-sky-500 text-sky-300"
+                                    : "bg-sky-50 border-sky-500 text-sky-800"
+                                  : isDarkMode
+                                    ? "border-slate-600 text-slate-300 hover:bg-slate-700/50"
+                                    : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                              }`}
                             >
                               {option}
                             </button>
@@ -415,9 +423,9 @@ const ListeningExercise = ({ isDarkMode }) => {
               )}
             </div>
 
-            <p
-              className={`text-xs font-semibold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
-            >
+            <p className={`text-xs font-semibold ${
+              isDarkMode ? "text-slate-500" : "text-slate-400"
+            }`}>
               {Object.keys(answers).length} /{" "}
               {isFillBlanks ? exercise.blanks.length : exercise.questions.length}{" "}
               {t("exam.questions_answered", "questions answered")}
@@ -441,7 +449,7 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
   }
 
-  // ── Results view ──────────────────────────────────────────────────────────
+  // ── Results view ────────────────────────────────────────────────────────────
   if (result) {
     const scoreColor = getListeningScoreColor(
       result.score,
@@ -475,31 +483,17 @@ const ListeningExercise = ({ isDarkMode }) => {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <LevelBadge level={level} isDarkMode={isDarkMode} color="sky" />
-                <h2
-                  className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
-                >
+                <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
+                  isDarkMode ? "text-white" : "text-slate-900"
+                }`}>
                   {t("exam.results", "Results")}
                 </h2>
               </div>
               <ReportButton isDarkMode={isDarkMode} context="ListeningExercise" />
             </div>
 
-            {/* Audio player stays visible in results too */}
-            {audioBlock}
-
-            {exercise?.transcript && (
-              <CollapsibleCard
-                title={t("exam.transcript", "Transcript")}
-                isDarkMode={isDarkMode}
-                defaultOpen={false}
-              >
-                <p
-                  className={`mt-3 text-sm leading-relaxed whitespace-pre-wrap ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}
-                >
-                  {exercise.transcript}
-                </p>
-              </CollapsibleCard>
-            )}
+            {audioCard}
+            {transcriptCard}
 
             <CollapsibleCard
               title={t("exam.your_answers", "Your Answers")}
@@ -510,22 +504,28 @@ const ListeningExercise = ({ isDarkMode }) => {
                 {result.breakdown.map((item, i) => (
                   <div
                     key={item.questionId}
-                    className={`rounded-xl border-2 px-4 py-3 ${isDarkMode ? "border-slate-700 bg-slate-800/50" : "border-slate-200 bg-slate-50"}`}
+                    className={`rounded-xl border-2 px-4 py-3 ${
+                      isDarkMode
+                        ? "border-slate-700 bg-slate-800/50"
+                        : "border-slate-200 bg-slate-50"
+                    }`}
                   >
-                    <p
-                      className={`text-xs font-semibold mb-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-                    >
+                    <p className={`text-xs font-semibold mb-1 ${
+                      isDarkMode ? "text-slate-400" : "text-slate-500"
+                    }`}>
                       {i + 1}. {item.question}
                     </p>
-                    <p
-                      className={`text-sm font-bold ${item.isCorrect ? (isDarkMode ? "text-sky-400" : "text-sky-700") : (isDarkMode ? "text-rose-400" : "text-rose-600")}`}
-                    >
+                    <p className={`text-sm font-bold ${
+                      item.isCorrect
+                        ? isDarkMode ? "text-sky-400" : "text-sky-700"
+                        : isDarkMode ? "text-rose-400" : "text-rose-600"
+                    }`}>
                       {item.userAnswer ?? t("exam.no_answer", "No answer")}
                     </p>
                     {!item.isCorrect && (
-                      <p
-                        className={`text-xs mt-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-                      >
+                      <p className={`text-xs mt-1 ${
+                        isDarkMode ? "text-slate-400" : "text-slate-500"
+                      }`}>
                         {t("exam.correct_answer", "Correct")}: {item.correctAnswer}
                       </p>
                     )}
@@ -543,7 +543,7 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
   }
 
-  // ── Empty state (no exercise yet) ─────────────────────────────────────────
+  // ── Empty state ──────────────────────────────────────────────────────────────
   return (
     <>
       {newExerciseModal}
@@ -565,15 +565,15 @@ const ListeningExercise = ({ isDarkMode }) => {
         <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
           <div className="flex items-center gap-3 mb-4">
             {headerIcon}
-            <h2
-              className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${isDarkMode ? "text-white" : "text-slate-900"}`}
-            >
+            <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
+              isDarkMode ? "text-white" : "text-slate-900"
+            }`}>
               {t("exam.listening", "Listening Comprehension")}
             </h2>
           </div>
-          <p
-            className={`text-sm font-semibold text-center ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-          >
+          <p className={`text-sm font-semibold text-center ${
+            isDarkMode ? "text-slate-400" : "text-slate-500"
+          }`}>
             {t("exam.language_note_dynamic", "Exercise is in {{lang}}.", {
               lang: user?.learningDialect || "pt-PT",
             })}
