@@ -180,7 +180,6 @@ const ExerciseSidebar = ({
   // ── Score panel ──────────────────────────────────────────────────────────
   const hasScore = score != null && maxScore != null;
 
-  // Word count status for writing
   const wordCountOk =
     wordCount != null &&
     minWords != null &&
@@ -254,6 +253,7 @@ const ExerciseSidebar = ({
   );
 
   // ── Layout ────────────────────────────────────────────────────────────────
+  // Order: Settings header → Score (when available) → Controls → Timer
   return (
     <>
       {showResetConfirm && (
@@ -282,16 +282,16 @@ const ExerciseSidebar = ({
             {t("exam.sidebar.settings", "Settings")}
           </span>
         </div>
+        {scoreSection}
         <div className={`${panelBase} p-4 flex flex-col gap-4`}>{controls}</div>
         {timerSection}
-        {scoreSection}
       </aside>
 
       {/* Mobile bottom strip */}
       <div className={`lg:hidden order-last w-full ${panelBase} p-4 flex flex-col gap-4`}>
+        {scoreSection}
         {controls}
         {timerSection}
-        {scoreSection}
       </div>
     </>
   );
