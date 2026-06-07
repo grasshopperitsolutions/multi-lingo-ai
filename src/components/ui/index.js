@@ -6,3 +6,4 @@ export { default as GhostButton } from './GhostButton';
 export { default as LevelBadge } from './LevelBadge';
 export { default as Breadcrumb } from './Breadcrumb';
 export { default as CollapsibleCard } from './CollapsibleCard';
+export { default as ExamScoreCard } from './ExamScoreCard';

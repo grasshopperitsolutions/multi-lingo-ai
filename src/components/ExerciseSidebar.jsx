@@ -3,7 +3,7 @@
  *
  * Collapsible sidebar for exam exercise pages (Reading, Listening, Writing).
  * Contains: level selector, exercise type selector (when applicable),
- * generate button, timer, reset button, and optionally the TTS player (listening).
+ * generate button, timer, reset button, and (after submit) score card.
  *
  * Responsive behavior:
  *   - Mobile: full-width bottom strip below content
@@ -19,15 +19,18 @@
  *   loading          boolean       — disable generate button
  *   isDarkMode       boolean
  *   // Reset props
- *   seenExerciseCount  number      — number of seen exercises (disables button when 0)
- *   onReset            () => Promise<void>  — called when user confirms reset
- *   isResetting        boolean     — loading state during reset
- *   // Listening-only props (optional)
- *   transcript       string
- *   tone             string
- *   lang             string
- *   showTranscript   boolean
- *   onToggleTranscript () => void
+ *   seenExerciseCount  number
+ *   onReset            () => Promise<void>
+ *   isResetting        boolean
+ *   // Score props (optional — shown after submit)
+ *   score            number        — correct answers / total score
+ *   maxScore         number
+ *   scoreColor       string        — Tailwind colour class
+ *   // Writing-only score extras (optional)
+ *   wordCount        number
+ *   minWords         number
+ *   maxWords         number
+ *   wordCountPenalty number
  *   timerRef         ref
  */
 
@@ -37,12 +40,7 @@ import { useTranslation } from "react-i18next";
 import { ChevronRight, RotateCcw } from "lucide-react";
 import NeoDropdown from "./NeoDropdown";
 import ExamTimer from "./ExamTimer";
-import TTSPlayer from "./TTSPlayer";
 import ConfirmModal from "./ConfirmModal";
-
-// ---------------------------------------------------------------------------
-// Exercise type options
-// ---------------------------------------------------------------------------
 
 const READING_TYPES = [
   { value: "random", label: "Random" },
@@ -72,10 +70,6 @@ const CEFR_LEVELS = [
   { value: "C2", label: "C2 - Proficiente" },
 ];
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 const ExerciseSidebar = ({
   exerciseType,
   level,
@@ -88,15 +82,16 @@ const ExerciseSidebar = ({
   seenExerciseCount,
   onReset,
   isResetting,
-  transcript,
-  tone,
-  lang,
-  showTranscript,
-  onToggleTranscript,
+  score,
+  maxScore,
+  scoreColor,
+  wordCount,
+  minWords,
+  maxWords,
+  wordCountPenalty,
   timerRef,
 }) => {
   const { t } = useTranslation();
-
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const typeOptions =
@@ -120,10 +115,9 @@ const ExerciseSidebar = ({
     setShowResetConfirm(false);
   };
 
-  // ── Shared controls ──────────────────────────────────────────────────────
+  // ── Controls ───────────────────────────────────────────────────────────────
   const controls = (
     <>
-      {/* Level */}
       <NeoDropdown
         options={CEFR_LEVELS}
         value={level}
@@ -132,7 +126,6 @@ const ExerciseSidebar = ({
         label={t("exam.sidebar.level", "Level")}
       />
 
-      {/* Exercise type (only for reading/listening) */}
       {exerciseType !== "writing" && typeOptions.length > 0 && (
         <NeoDropdown
           options={typeOptions}
@@ -143,7 +136,6 @@ const ExerciseSidebar = ({
         />
       )}
 
-      {/* Generate button */}
       <button
         onClick={onGenerate}
         disabled={loading}
@@ -158,14 +150,11 @@ const ExerciseSidebar = ({
         {t("exam.sidebar.generate", "Generate")} <ChevronRight size={16} />
       </button>
 
-      {/* Reset exercises button */}
       <button
         onClick={() => setShowResetConfirm(true)}
         disabled={seenExerciseCount === 0 || isResetting}
         className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-4 font-black text-sm uppercase tracking-wide transition-all active:scale-[0.98] ${
-          seenExerciseCount === 0 || isResetting
-            ? "opacity-50 cursor-not-allowed"
-            : ""
+          seenExerciseCount === 0 || isResetting ? "opacity-50 cursor-not-allowed" : ""
         } ${
           isDarkMode
             ? "bg-slate-700 border-slate-600 text-white hover:bg-slate-600 shadow-[4px_4px_0px_0px_#1e293b]"
@@ -181,49 +170,92 @@ const ExerciseSidebar = ({
   // ── Timer ────────────────────────────────────────────────────────────────
   const timerSection = (
     <div className={`${panelBase} p-4`}>
-      <p
-        className={`text-xs font-black uppercase tracking-widest mb-3 ${labelClass}`}
-      >
+      <p className={`text-xs font-black uppercase tracking-widest mb-3 ${labelClass}`}>
         {t("exam.timer", "Timer")}
       </p>
       <ExamTimer ref={timerRef} isDarkMode={isDarkMode} />
     </div>
   );
 
-  // ── TTS + Transcript (listening only) ────────────────────────────────────
-  const ttsSection = exerciseType === "listening" && transcript && (
+  // ── Score panel ──────────────────────────────────────────────────────────
+  const hasScore = score != null && maxScore != null;
+
+  // Word count status for writing
+  const wordCountOk =
+    wordCount != null &&
+    minWords != null &&
+    maxWords != null &&
+    wordCount >= minWords &&
+    wordCount <= maxWords;
+
+  const wordCountColor =
+    wordCount == null
+      ? labelClass
+      : wordCountOk
+        ? isDarkMode
+          ? "text-emerald-400"
+          : "text-emerald-600"
+        : isDarkMode
+          ? "text-rose-400"
+          : "text-rose-600";
+
+  const scoreSection = hasScore && (
     <div className={`${panelBase} p-4 flex flex-col gap-3`}>
-      <p
-        className={`text-xs font-black uppercase tracking-widest ${labelClass}`}
-      >
-        {t("exam.audio", "Audio")}
+      <p className={`text-xs font-black uppercase tracking-widest ${labelClass}`}>
+        {t("exam.sidebar.score", "Score")}
       </p>
-      <TTSPlayer text={transcript} lang={lang} isDarkMode={isDarkMode} />
-      {tone && (
-        <p className={`text-xs font-semibold italic ${labelClass}`}>{tone}</p>
-      )}
-      <button
-        onClick={onToggleTranscript}
-        className={`text-xs font-black uppercase tracking-widest transition-all hover:underline ${labelClass}`}
-      >
-        {showTranscript
-          ? t("exam.hide_transcript", "Hide Transcript")
-          : t("exam.show_transcript", "Show Transcript")}
-      </button>
-      {showTranscript && (
-        <div
-          className={`p-3 rounded-xl border-2 text-sm leading-relaxed font-medium ${isDarkMode ? "bg-slate-700 border-slate-600 text-slate-200" : "bg-slate-50 border-slate-300 text-slate-800"}`}
-        >
-          {transcript}
+
+      {/* Big score number */}
+      <p className={`text-4xl font-black tabular-nums leading-none ${
+        scoreColor ?? (isDarkMode ? "text-white" : "text-slate-900")
+      }`}>
+        {score}
+        <span className={`text-lg font-bold ${labelClass}`}>/{maxScore}</span>
+      </p>
+
+      {/* Percentage */}
+      <p className={`text-xs font-bold ${labelClass}`}>
+        {Math.round((score / maxScore) * 100)}%
+      </p>
+
+      {/* Writing extras */}
+      {wordCount != null && (
+        <div className={`pt-2 border-t-2 ${
+          isDarkMode ? "border-slate-700" : "border-slate-200"
+        } flex flex-col gap-1.5`}>
+          <p className={`text-xs font-black uppercase tracking-widest ${labelClass}`}>
+            {t("exam.sidebar.word_count", "Words")}
+          </p>
+          <p className={`text-sm font-black tabular-nums ${wordCountColor}`}>
+            {wordCount}
+            <span className={`text-xs font-bold ${labelClass}`}>
+              {" "}/{minWords}–{maxWords}
+            </span>
+          </p>
+          {!wordCountOk && (
+            <p className={`text-xs font-semibold ${
+              isDarkMode ? "text-rose-400" : "text-rose-600"
+            }`}>
+              {wordCount < minWords
+                ? t("exam.too_short", "too short")
+                : t("exam.too_long", "too long")}
+            </p>
+          )}
+          {wordCountPenalty != null && wordCountPenalty > 0 && (
+            <p className={`text-xs font-semibold ${
+              isDarkMode ? "text-rose-400" : "text-rose-600"
+            }`}>
+              -{wordCountPenalty} {t("exam.sidebar.penalty", "penalty")}
+            </p>
+          )}
         </div>
       )}
     </div>
   );
 
-  // ── Desktop sidebar ──────────────────────────────────────────────────────
+  // ── Layout ────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Reset confirm modal */}
       {showResetConfirm && (
         <ConfirmModal
           isDarkMode={isDarkMode}
@@ -241,33 +273,25 @@ const ExerciseSidebar = ({
         />
       )}
 
+      {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col gap-4 w-64 shrink-0">
-        {/* Header */}
         <div className={`${panelBase} p-4 flex items-center justify-between`}>
-          <span
-            className={`font-black uppercase text-xs tracking-widest ${isDarkMode ? "text-white" : "text-slate-900"}`}
-          >
+          <span className={`font-black uppercase text-xs tracking-widest ${
+            isDarkMode ? "text-white" : "text-slate-900"
+          }`}>
             {t("exam.sidebar.settings", "Settings")}
           </span>
         </div>
-
-        {/* Controls */}
         <div className={`${panelBase} p-4 flex flex-col gap-4`}>{controls}</div>
-
-        {/* Timer */}
         {timerSection}
-
-        {/* TTS + Transcript (listening only) */}
-        {ttsSection}
+        {scoreSection}
       </aside>
 
       {/* Mobile bottom strip */}
-      <div
-        className={`lg:hidden order-last w-full ${panelBase} p-4 flex flex-col gap-4`}
-      >
+      <div className={`lg:hidden order-last w-full ${panelBase} p-4 flex flex-col gap-4`}>
         {controls}
         {timerSection}
-        {ttsSection}
+        {scoreSection}
       </div>
     </>
   );
@@ -285,11 +309,13 @@ ExerciseSidebar.propTypes = {
   seenExerciseCount: PropTypes.number,
   onReset: PropTypes.func,
   isResetting: PropTypes.bool,
-  transcript: PropTypes.string,
-  tone: PropTypes.string,
-  lang: PropTypes.string,
-  showTranscript: PropTypes.bool,
-  onToggleTranscript: PropTypes.func,
+  score: PropTypes.number,
+  maxScore: PropTypes.number,
+  scoreColor: PropTypes.string,
+  wordCount: PropTypes.number,
+  minWords: PropTypes.number,
+  maxWords: PropTypes.number,
+  wordCountPenalty: PropTypes.number,
   timerRef: PropTypes.shape({ current: PropTypes.object }),
 };
 
@@ -299,11 +325,13 @@ ExerciseSidebar.defaultProps = {
   seenExerciseCount: 0,
   onReset: () => Promise.resolve(),
   isResetting: false,
-  transcript: "",
-  tone: "",
-  lang: "pt-PT",
-  showTranscript: false,
-  onToggleTranscript: () => {},
+  score: null,
+  maxScore: null,
+  scoreColor: null,
+  wordCount: null,
+  minWords: null,
+  maxWords: null,
+  wordCountPenalty: null,
   timerRef: { current: null },
 };
 
