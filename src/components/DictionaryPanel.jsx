@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { Copy, Trash2, Search, Play, Pause, Square } from 'lucide-react';
+import { Copy, Trash2, Search, Volume2, Turtle, Pause, Square } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { lookupWord } from '../services/dictionaryService';
 import { useTts } from '../hooks/useTts';
@@ -65,6 +65,7 @@ const TtsControls = ({ ttsKey, text, lang, token, rate = 1, ttsState, playTts, p
   const isPlaying = isActive && !ttsState.isPaused;
   const isPaused  = isActive && ttsState.isPaused;
   const hasText   = !!text?.trim();
+  const isSlowKey = ttsState.activeKey === `${ttsKey}-slow`;
 
   const handlePlayPause = () => {
     if (isPlaying) {
@@ -78,50 +79,46 @@ const TtsControls = ({ ttsKey, text, lang, token, rate = 1, ttsState, playTts, p
     ? 'text-violet-400 hover:text-violet-300'
     : 'text-violet-600 hover:text-violet-800';
 
+  const idleColor = isDarkMode
+    ? 'text-slate-400 hover:text-white'
+    : 'text-slate-500 hover:text-slate-900';
+
   return (
     <div className="flex items-center gap-1">
-      {/* Play / Pause */}
+      {/* Play (Volume2) / Pause toggle */}
       <button
         onClick={handlePlayPause}
         disabled={!hasText}
         aria-label={isPlaying ? t('translator.pause', 'Pause') : isPaused ? t('translator.resume', 'Resume') : t('translator.listen')}
         title={isPlaying ? t('translator.pause', 'Pause') : isPaused ? t('translator.resume', 'Resume') : t('translator.listen')}
         className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-          isActive ? activeColor : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+          isActive ? activeColor : idleColor
         }`}
       >
-        {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+        {isPlaying ? <Pause size={16} fill="currentColor" /> : <Volume2 size={16} />}
       </button>
 
-      {/* Slow play */}
+      {/* Slow play (Turtle) */}
       <button
         onClick={() => playTts({ key: `${ttsKey}-slow`, text, lang, token, rate: 0.5 })}
         disabled={!hasText}
         aria-label={t('translator.listen_slow')}
         title={t('translator.listen_slow')}
         className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-          ttsState.activeKey === `${ttsKey}-slow` ? activeColor : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+          isSlowKey ? activeColor : idleColor
         }`}
       >
-        {/* Turtle icon */}
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 10c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4Z"/>
-          <path d="M12 2a5 5 0 0 1 5 5"/>
-          <path d="M17 7h2a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-1"/>
-          <path d="M7 7H5a2 2 0 0 0-2 2v1a2 2 0 0 0 2 2h1"/>
-          <path d="m9 19-2 2"/>
-          <path d="m15 19 2 2"/>
-        </svg>
+        <Turtle size={16} />
       </button>
 
-      {/* Stop — only enabled while this key (or its slow variant) is active */}
+      {/* Stop — only enabled while this key or its slow variant is active */}
       <button
         onClick={stopTts}
-        disabled={!(isActive || ttsState.activeKey === `${ttsKey}-slow`)}
+        disabled={!isActive && !isSlowKey}
         aria-label={t('translator.stop', 'Stop')}
         title={t('translator.stop', 'Stop')}
         className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-          (isActive || ttsState.activeKey === `${ttsKey}-slow`) ? 'text-rose-500 hover:text-rose-400' : isDarkMode ? 'text-slate-400' : 'text-slate-400'
+          (isActive || isSlowKey) ? 'text-rose-500 hover:text-rose-400' : idleColor
         }`}
       >
         <Square size={16} fill="currentColor" />
@@ -208,7 +205,6 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputText, user, resolvedInterfaceLang, learningLang, t]);
 
-  // Auto-trigger lookup when the panel is opened with a pre-filled query
   useEffect(() => {
     const performInitialLookup = async () => {
       if (initialQuery?.trim()) {
@@ -236,7 +232,6 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
         }
       }
     };
-
     performInitialLookup();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuery, learningLang, resolvedInterfaceLang, t, user?.token]);
@@ -269,7 +264,6 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
         items={[{ label: t('common.back', 'Back'), onClick: onBack }, { label: t('dashboard.dictionary', 'Dictionary') }]}
       />
 
-      {/* Page title + report flag */}
       <div className="flex items-center justify-between gap-2">
         <h1 className={`text-3xl sm:text-5xl font-black uppercase tracking-tighter leading-none ${
           isDarkMode ? 'text-white' : 'text-slate-900'

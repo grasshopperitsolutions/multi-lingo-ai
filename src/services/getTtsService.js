@@ -113,12 +113,9 @@ export async function speak(
  * Works for both Web Speech API and Gemini TTS (audio elements).
  */
 export function pauseSpeaking() {
-  // Pause Web Speech API
   if (window.speechSynthesis?.speaking && !window.speechSynthesis.paused) {
     window.speechSynthesis.pause();
   }
-
-  // Pause any Gemini TTS audio elements
   document.querySelectorAll('audio[data-tts-audio]').forEach((el) => {
     if (!el.paused) el.pause();
   });
@@ -129,12 +126,9 @@ export function pauseSpeaking() {
  * Works for both Web Speech API and Gemini TTS (audio elements).
  */
 export function resumeSpeaking() {
-  // Resume Web Speech API
   if (window.speechSynthesis?.paused) {
     window.speechSynthesis.resume();
   }
-
-  // Resume any paused Gemini TTS audio elements
   document.querySelectorAll('audio[data-tts-audio]').forEach((el) => {
     if (el.paused && el.currentTime > 0 && !el.ended) el.play();
   });
@@ -145,22 +139,17 @@ export function resumeSpeaking() {
  * Fires the registered onEnd callback of the interrupted session.
  */
 export function stopSpeaking() {
-  // Grab and clear the current callbacks before stopping,
-  // so that onend events fired by cancel() don't double-fire.
   const onEnd = _currentOnEnd;
   _currentOnEnd   = null;
   _currentOnError = null;
 
-  // Stop Web Speech API
   window.speechSynthesis?.cancel();
 
-  // Stop any audio elements that may have been created by Gemini TTS
   document.querySelectorAll('audio[data-tts-audio]').forEach((el) => {
     el.pause();
     el.remove();
   });
 
-  // Notify the previous caller that playback was interrupted
   if (onEnd) onEnd();
 }
 
@@ -168,10 +157,6 @@ export function stopSpeaking() {
 // Gemini TTS (primary)
 // ---------------------------------------------------------------------------
 
-/**
- * Speak text using Gemini's TTS model via the proxy API.
- * The API returns audio data as base64, which we play via an Audio element.
- */
 async function _speakWithGemini(token, text, lang, onEnd, onError) {
   const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
     method: 'POST',
@@ -197,28 +182,18 @@ async function _speakWithGemini(token, text, lang, onEnd, onError) {
 
   const result = json?.data ?? json;
 
-  if (result?.audioUrl) {
-    return _playAudioUrl(result.audioUrl, onEnd, onError);
-  }
-
-  if (result?.audioData) {
-    return _playAudioBase64(result.audioData, result.mimeType || 'audio/wav', onEnd, onError);
-  }
+  if (result?.audioUrl)  return _playAudioUrl(result.audioUrl, onEnd, onError);
+  if (result?.audioData) return _playAudioBase64(result.audioData, result.mimeType || 'audio/wav', onEnd, onError);
 
   if (json?.audioData || json?.audioUrl) {
-    const altResult = json;
-    if (altResult.audioUrl)  return _playAudioUrl(altResult.audioUrl, onEnd, onError);
-    if (altResult.audioData) return _playAudioBase64(altResult.audioData, altResult.mimeType || 'audio/wav', onEnd, onError);
+    if (json.audioUrl)  return _playAudioUrl(json.audioUrl, onEnd, onError);
+    if (json.audioData) return _playAudioBase64(json.audioData, json.mimeType || 'audio/wav', onEnd, onError);
   }
 
   console.warn('[getTtsService] Unexpected Gemini TTS response shape', result);
   return false;
 }
 
-/**
- * Play audio from a URL by creating an Audio element.
- * Returns a promise that resolves when playback completes.
- */
 function _playAudioUrl(url, onEnd, onError) {
   return new Promise((resolve, reject) => {
     const audio = new Audio(url);
@@ -237,9 +212,6 @@ function _playAudioUrl(url, onEnd, onError) {
   });
 }
 
-/**
- * Play audio from a base64-encoded data string.
- */
 function _playAudioBase64(base64Data, mimeType, onEnd, onError) {
   const dataUrl = `data:${mimeType};base64,${base64Data}`;
   return _playAudioUrl(dataUrl, onEnd, onError);
@@ -249,9 +221,6 @@ function _playAudioBase64(base64Data, mimeType, onEnd, onError) {
 // Web Speech API (fallback)
 // ---------------------------------------------------------------------------
 
-/**
- * Speak text using the browser's built-in Speech Synthesis API.
- */
 function _speakWithWebSpeech(text, lang, rate, onEnd, onError) {
   if (!window.speechSynthesis) {
     console.warn('[getTtsService] Web Speech API not available in this browser');
@@ -264,8 +233,6 @@ function _speakWithWebSpeech(text, lang, rate, onEnd, onError) {
   utterance.rate  = rate;
   utterance.onend   = () => onEnd?.();
   utterance.onerror = (e) => {
-    // 'interrupted' is fired when cancel() is called — stopSpeaking() already
-    // handles the onEnd notification in that case, so we skip it here.
     if (e?.error === 'interrupted' || e?.error === 'canceled') return;
     onError?.(e);
   };
