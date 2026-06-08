@@ -8,7 +8,11 @@ import Loader from "./Loader";
 import ReportButton from "./ReportButton";
 import ConfirmModal from "./ConfirmModal";
 import TTSPlayer from "./TTSPlayer";
-import FillBlanksExercise from "./exercises/FillBlanksExercise";
+import {
+  MultipleChoiceExercise,
+  TrueFalseExercise,
+  FillBlanksExercise,
+} from "./exercises";
 import {
   Card,
   SectionHeading,
@@ -50,18 +54,32 @@ const ListeningExercise = ({ isDarkMode }) => {
     handleCancel: handleCancelNewExercise,
   } = useGenerateConfirm(exercise !== null);
 
-  const isFillBlanks = exercise?.exerciseType === "fill-blanks";
+  const exerciseType = exercise?.exerciseType;
 
-  const allAnswered = isFillBlanks
-    ? exercise?.blanks?.length > 0 &&
-      exercise.blanks.every((b) => answers[b.id] != null)
-    : exercise?.questions?.length > 0 &&
-      exercise.questions.every((q) => answers[q.id] != null);
+  const allAnswered = (() => {
+    if (!exercise) return false;
+    if (exerciseType === "fill-blanks")
+      return (
+        exercise.blanks?.length > 0 &&
+        exercise.blanks.every((b) => answers[b.id] != null)
+      );
+    // multiple-choice and true-false both use exercise.questions
+    return (
+      exercise.questions?.length > 0 &&
+      exercise.questions.every((q) => answers[q.id] != null)
+    );
+  })();
 
   const markCurrentExerciseSeen = async () => {
     if (!exerciseId || !user?.token || !user?.uid) return;
     const currentSeen = user.seenExerciseIds?.listening ?? [];
-    await markExerciseSeen(user.token, user.uid, "listening", exerciseId, currentSeen);
+    await markExerciseSeen(
+      user.token,
+      user.uid,
+      "listening",
+      exerciseId,
+      currentSeen,
+    );
     setUser((prev) => ({
       ...prev,
       seenExerciseIds: {
@@ -110,8 +128,10 @@ const ListeningExercise = ({ isDarkMode }) => {
   };
 
   const handleCheckAnswers = async () => {
-    if (isFillBlanks) {
-      if (!exercise?.blanks?.length) return;
+    if (!exercise) return;
+
+    if (exerciseType === "fill-blanks") {
+      if (!exercise.blanks?.length) return;
       const blankQuestions = exercise.blanks.map((b) => ({
         id: b.id,
         text: b.correctAnswer,
@@ -124,13 +144,15 @@ const ListeningExercise = ({ isDarkMode }) => {
       const res = checkListeningAnswers(userAnswers, blankQuestions);
       setResult(res);
     } else {
-      if (!exercise?.questions) return;
+      // multiple-choice and true-false
+      if (!exercise.questions?.length) return;
       const userAnswers = Object.entries(answers).map(
         ([questionId, selectedAnswer]) => ({ questionId, selectedAnswer }),
       );
       const res = checkListeningAnswers(userAnswers, exercise.questions);
       setResult(res);
     }
+
     timerRef.current?.stop();
     await markCurrentExerciseSeen();
   };
@@ -192,8 +214,14 @@ const ListeningExercise = ({ isDarkMode }) => {
         "exam.sidebar.new_exercise_message",
         "You have an exercise in progress. Generating a new one will discard your current work.",
       )}
-      warning={t("exam.sidebar.new_exercise_warning", "⚠ This cannot be undone.")}
-      confirmLabel={t("exam.sidebar.new_exercise_confirm", "Yes, generate new exercise")}
+      warning={t(
+        "exam.sidebar.new_exercise_warning",
+        "⚠ This cannot be undone.",
+      )}
+      confirmLabel={t(
+        "exam.sidebar.new_exercise_confirm",
+        "Yes, generate new exercise",
+      )}
       confirmColor="yellow"
       isLoading={loading}
       onConfirm={() => handleConfirmNewExercise(handleNewExercise)}
@@ -201,7 +229,7 @@ const ListeningExercise = ({ isDarkMode }) => {
     />
   ) : null;
 
-  // ── Card 1: Audio player only ──────────────────────────────────────────────
+  // ── Shared: Audio player card ──────────────────────────────────────────────
   const audioCard = exercise?.transcript && (
     <Card isDarkMode={isDarkMode}>
       <SectionHeading isDarkMode={isDarkMode}>
@@ -213,30 +241,35 @@ const ListeningExercise = ({ isDarkMode }) => {
         isDarkMode={isDarkMode}
       />
       {exercise.tone && (
-        <p className={`mt-2 text-xs font-semibold italic ${
-          isDarkMode ? "text-slate-400" : "text-slate-500"
-        }`}>
+        <p
+          className={`mt-2 text-xs font-semibold italic ${
+            isDarkMode ? "text-slate-400" : "text-slate-500"
+          }`}
+        >
           {exercise.tone}
         </p>
       )}
     </Card>
   );
 
-  // ── Card 2: Transcript (collapsible) ──────────────────────────────────────
+  // ── Shared: Transcript card ────────────────────────────────────────────────
   const transcriptCard = exercise?.transcript && (
     <CollapsibleCard
       title={t("exam.transcript", "Transcript")}
       isDarkMode={isDarkMode}
       defaultOpen={false}
     >
-      <p className={`mt-3 text-sm leading-relaxed whitespace-pre-wrap ${
-        isDarkMode ? "text-slate-300" : "text-slate-700"
-      }`}>
+      <p
+        className={`mt-3 text-sm leading-relaxed whitespace-pre-wrap ${
+          isDarkMode ? "text-slate-300" : "text-slate-700"
+        }`}
+      >
         {exercise.transcript}
       </p>
     </CollapsibleCard>
   );
 
+  // ── Loading state ──────────────────────────────────────────────────────────
   if (!exercise && loading) {
     return (
       <>
@@ -268,6 +301,7 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
   }
 
+  // ── Error state ────────────────────────────────────────────────────────────
   if (!exercise && error) {
     return (
       <>
@@ -298,8 +332,13 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
   }
 
-  // ── Exercise in progress ─────────────────────────────────────────────────
+  // ── Exercise in progress ───────────────────────────────────────────────────
   if (exercise && !result) {
+    const questionCount =
+      exerciseType === "fill-blanks"
+        ? exercise.blanks?.length ?? 0
+        : exercise.questions?.length ?? 0;
+
     return (
       <>
         {newExerciseModal}
@@ -323,14 +362,20 @@ const ListeningExercise = ({ isDarkMode }) => {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <LevelBadge level={level} isDarkMode={isDarkMode} color="sky" />
-                <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
-                  isDarkMode ? "text-white" : "text-slate-900"
-                }`}>
+                <h2
+                  className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
+                    isDarkMode ? "text-white" : "text-slate-900"
+                  }`}
+                >
                   {t("exam.listening", "Listening Comprehension")}
                 </h2>
               </div>
-              <ReportButton isDarkMode={isDarkMode} context="ListeningExercise" />
+              <ReportButton
+                isDarkMode={isDarkMode}
+                context="ListeningExercise"
+              />
             </div>
+
             <ErrorBanner error={error} isDarkMode={isDarkMode} />
 
             {audioCard}
@@ -349,9 +394,13 @@ const ListeningExercise = ({ isDarkMode }) => {
                         isDarkMode ? "text-slate-400" : "text-slate-500"
                       }`}
                     >
-                      <span className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${
-                        isDarkMode ? "border-sky-600 text-sky-400" : "border-sky-500 text-sky-600"
-                      }`}>
+                      <span
+                        className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${
+                          isDarkMode
+                            ? "border-sky-600 text-sky-400"
+                            : "border-sky-500 text-sky-600"
+                        }`}
+                      >
                         {i + 1}
                       </span>
                       {instr}
@@ -365,69 +414,42 @@ const ListeningExercise = ({ isDarkMode }) => {
               <SectionHeading isDarkMode={isDarkMode}>
                 {t("exam.comprehension_questions", "Comprehension Questions")}
               </SectionHeading>
-              {isFillBlanks ? (
-                <FillBlanksExercise
-                  passage={exercise.passage}
-                  wordBank={exercise.wordBank}
-                  blanks={exercise.blanks}
-                  answers={answers}
-                  onAnswer={handleSelectAnswer}
-                  isDarkMode={isDarkMode}
-                />
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {exercise.questions.map((q, i) => (
-                    <div
-                      key={q.id}
-                      className={`rounded-2xl border-4 p-4 sm:p-5 ${
-                        isDarkMode
-                          ? "bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]"
-                          : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
-                      }`}
-                    >
-                      <p className={`text-sm sm:text-base font-bold mb-3 ${
-                        isDarkMode ? "text-slate-100" : "text-slate-900"
-                      }`}>
-                        <span className={`inline-flex w-6 h-6 rounded-full border-2 items-center justify-center text-xs font-black mr-2 shrink-0 ${
-                          isDarkMode ? "border-sky-600 text-sky-400" : "border-sky-500 text-sky-600"
-                        }`}>
-                          {i + 1}
-                        </span>
-                        {q.text}
-                      </p>
-                      <div className="flex flex-col gap-2">
-                        {q.options.map((option) => {
-                          const isSelected = (answers[q.id] ?? null) === option;
-                          return (
-                            <button
-                              key={option}
-                              onClick={() => handleSelectAnswer(q.id, option)}
-                              className={`w-full text-left px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${
-                                isSelected
-                                  ? isDarkMode
-                                    ? "bg-sky-900/40 border-sky-500 text-sky-300"
-                                    : "bg-sky-50 border-sky-500 text-sky-800"
-                                  : isDarkMode
-                                    ? "border-slate-600 text-slate-300 hover:bg-slate-700/50"
-                                    : "border-slate-200 text-slate-700 hover:bg-slate-50"
-                              }`}
-                            >
-                              {option}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="flex flex-col gap-3">
+                {exerciseType === "multiple-choice" && (
+                  <MultipleChoiceExercise
+                    questions={exercise.questions}
+                    answers={answers}
+                    onAnswer={handleSelectAnswer}
+                    isDarkMode={isDarkMode}
+                  />
+                )}
+                {exerciseType === "true-false" && (
+                  <TrueFalseExercise
+                    statements={exercise.questions}
+                    answers={answers}
+                    onAnswer={handleSelectAnswer}
+                    isDarkMode={isDarkMode}
+                  />
+                )}
+                {exerciseType === "fill-blanks" && (
+                  <FillBlanksExercise
+                    passage={exercise.passage}
+                    wordBank={exercise.wordBank ?? []}
+                    blanks={exercise.blanks ?? []}
+                    answers={answers}
+                    onAnswer={handleSelectAnswer}
+                    isDarkMode={isDarkMode}
+                  />
+                )}
+              </div>
             </div>
 
-            <p className={`text-xs font-semibold ${
-              isDarkMode ? "text-slate-500" : "text-slate-400"
-            }`}>
-              {Object.keys(answers).length} /{" "}
-              {isFillBlanks ? exercise.blanks.length : exercise.questions.length}{" "}
+            <p
+              className={`text-xs font-semibold ${
+                isDarkMode ? "text-slate-500" : "text-slate-400"
+              }`}
+            >
+              {Object.keys(answers).length} / {questionCount}{" "}
               {t("exam.questions_answered", "questions answered")}
             </p>
 
@@ -449,7 +471,7 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
   }
 
-  // ── Results view ────────────────────────────────────────────────────────────
+  // ── Results view ───────────────────────────────────────────────────────────
   if (result) {
     const scoreColor = getListeningScoreColor(
       result.score,
@@ -483,13 +505,18 @@ const ListeningExercise = ({ isDarkMode }) => {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <LevelBadge level={level} isDarkMode={isDarkMode} color="sky" />
-                <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
-                  isDarkMode ? "text-white" : "text-slate-900"
-                }`}>
+                <h2
+                  className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
+                    isDarkMode ? "text-white" : "text-slate-900"
+                  }`}
+                >
                   {t("exam.results", "Results")}
                 </h2>
               </div>
-              <ReportButton isDarkMode={isDarkMode} context="ListeningExercise" />
+              <ReportButton
+                isDarkMode={isDarkMode}
+                context="ListeningExercise"
+              />
             </div>
 
             {audioCard}
@@ -510,22 +537,32 @@ const ListeningExercise = ({ isDarkMode }) => {
                         : "border-slate-200 bg-slate-50"
                     }`}
                   >
-                    <p className={`text-xs font-semibold mb-1 ${
-                      isDarkMode ? "text-slate-400" : "text-slate-500"
-                    }`}>
+                    <p
+                      className={`text-xs font-semibold mb-1 ${
+                        isDarkMode ? "text-slate-400" : "text-slate-500"
+                      }`}
+                    >
                       {i + 1}. {item.question}
                     </p>
-                    <p className={`text-sm font-bold ${
-                      item.isCorrect
-                        ? isDarkMode ? "text-sky-400" : "text-sky-700"
-                        : isDarkMode ? "text-rose-400" : "text-rose-600"
-                    }`}>
+                    <p
+                      className={`text-sm font-bold ${
+                        item.isCorrect
+                          ? isDarkMode
+                            ? "text-sky-400"
+                            : "text-sky-700"
+                          : isDarkMode
+                            ? "text-rose-400"
+                            : "text-rose-600"
+                      }`}
+                    >
                       {item.userAnswer ?? t("exam.no_answer", "No answer")}
                     </p>
                     {!item.isCorrect && (
-                      <p className={`text-xs mt-1 ${
-                        isDarkMode ? "text-slate-400" : "text-slate-500"
-                      }`}>
+                      <p
+                        className={`text-xs mt-1 ${
+                          isDarkMode ? "text-slate-400" : "text-slate-500"
+                        }`}
+                      >
                         {t("exam.correct_answer", "Correct")}: {item.correctAnswer}
                       </p>
                     )}
@@ -543,7 +580,7 @@ const ListeningExercise = ({ isDarkMode }) => {
     );
   }
 
-  // ── Empty state ──────────────────────────────────────────────────────────────
+  // ── Empty state ────────────────────────────────────────────────────────────
   return (
     <>
       {newExerciseModal}
@@ -565,15 +602,19 @@ const ListeningExercise = ({ isDarkMode }) => {
         <div className="flex-1 min-w-0 flex flex-col items-center justify-center">
           <div className="flex items-center gap-3 mb-4">
             {headerIcon}
-            <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
-              isDarkMode ? "text-white" : "text-slate-900"
-            }`}>
+            <h2
+              className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${
+                isDarkMode ? "text-white" : "text-slate-900"
+              }`}
+            >
               {t("exam.listening", "Listening Comprehension")}
             </h2>
           </div>
-          <p className={`text-sm font-semibold text-center ${
-            isDarkMode ? "text-slate-400" : "text-slate-500"
-          }`}>
+          <p
+            className={`text-sm font-semibold text-center ${
+              isDarkMode ? "text-slate-400" : "text-slate-500"
+            }`}
+          >
             {t("exam.language_note_dynamic", "Exercise is in {{lang}}.", {
               lang: user?.learningDialect || "pt-PT",
             })}
