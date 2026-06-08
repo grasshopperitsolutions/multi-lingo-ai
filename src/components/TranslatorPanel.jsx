@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeftRight, Copy, Volume2, Trash2, Languages, Turtle, BookMarked } from 'lucide-react';
+import { ArrowLeftRight, Copy, Trash2, Languages, BookMarked, Play, Pause, Square } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { translateText } from '../services/translatorService';
-import { speak } from '../services/getTtsService';
+import { useTts } from '../hooks/useTts';
 import TooltipButton from './TooltipButton';
 import ReportButton from './ReportButton';
 import { Breadcrumb } from './ui';
@@ -20,7 +20,7 @@ const IconButton = ({ onClick, label, disabled, isDarkMode, children }) => (
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 ${
+      className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
         isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
       }`}
     >
@@ -37,11 +37,101 @@ IconButton.propTypes = {
 };
 
 // ---------------------------------------------------------------------------
+// TtsControls — Play / Pause / Stop row for a single text source
+// ---------------------------------------------------------------------------
+const TtsControls = ({ ttsKey, text, lang, token, rate = 1, ttsState, playTts, pauseTts, stopTts, isDarkMode }) => {
+  const { t } = useTranslation();
+  const isActive  = ttsState.activeKey === ttsKey;
+  const isPlaying = isActive && !ttsState.isPaused;
+  const isPaused  = isActive && ttsState.isPaused;
+  const hasText   = !!text?.trim();
+
+  const handlePlayPause = () => {
+    if (isPlaying) {
+      pauseTts();
+    } else {
+      playTts({ key: ttsKey, text, lang, token, rate });
+    }
+  };
+
+  const activeColor = isDarkMode
+    ? 'text-sky-400 hover:text-sky-300'
+    : 'text-sky-600 hover:text-sky-800';
+
+  return (
+    <div className="flex items-center gap-1">
+      {/* Play / Pause */}
+      <TooltipButton tooltip={isPlaying ? t('translator.pause', 'Pause') : isPaused ? t('translator.resume', 'Resume') : t('translator.listen')} isDarkMode={isDarkMode}>
+        <button
+          onClick={handlePlayPause}
+          disabled={!hasText}
+          aria-label={isPlaying ? t('translator.pause', 'Pause') : t('translator.listen')}
+          className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+            isActive ? activeColor : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+        </button>
+      </TooltipButton>
+
+      {/* Slow play */}
+      <TooltipButton tooltip={t('translator.listen_slow')} isDarkMode={isDarkMode}>
+        <button
+          onClick={() => playTts({ key: `${ttsKey}-slow`, text, lang, token, rate: 0.5 })}
+          disabled={!hasText}
+          aria-label={t('translator.listen_slow')}
+          className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+            ttsState.activeKey === `${ttsKey}-slow` ? activeColor : isDarkMode ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          {/* Turtle icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 10c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4Z"/>
+            <path d="M12 2a5 5 0 0 1 5 5"/>
+            <path d="M17 7h2a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2h-1"/>
+            <path d="M7 7H5a2 2 0 0 0-2 2v1a2 2 0 0 0 2 2h1"/>
+            <path d="m9 19-2 2"/>
+            <path d="m15 19 2 2"/>
+          </svg>
+        </button>
+      </TooltipButton>
+
+      {/* Stop — only enabled while this key (or its slow variant) is active */}
+      <TooltipButton tooltip={t('translator.stop', 'Stop')} isDarkMode={isDarkMode}>
+        <button
+          onClick={stopTts}
+          disabled={!(isActive || ttsState.activeKey === `${ttsKey}-slow`)}
+          aria-label={t('translator.stop', 'Stop')}
+          className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+            (isActive || ttsState.activeKey === `${ttsKey}-slow`) ? 'text-rose-500 hover:text-rose-400' : isDarkMode ? 'text-slate-400' : 'text-slate-400'
+          }`}
+        >
+          <Square size={16} fill="currentColor" />
+        </button>
+      </TooltipButton>
+    </div>
+  );
+};
+TtsControls.propTypes = {
+  ttsKey:     PropTypes.string.isRequired,
+  text:       PropTypes.string,
+  lang:       PropTypes.string.isRequired,
+  token:      PropTypes.string,
+  rate:       PropTypes.number,
+  ttsState:   PropTypes.object.isRequired,
+  playTts:    PropTypes.func.isRequired,
+  pauseTts:   PropTypes.func.isRequired,
+  stopTts:    PropTypes.func.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+};
+
+// ---------------------------------------------------------------------------
 // TranslatorPanel
 // ---------------------------------------------------------------------------
 const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
   const { t } = useTranslation();
   const { user, interfaceLang } = useAppContext();
+  const { ttsState, playTts, pauseTts, stopTts } = useTts();
 
   const defaultSource = interfaceLang ?? 'en-US';
   const defaultTarget = user?.learningDialect ?? 'pt-PT';
@@ -55,6 +145,7 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
   const [copyFeedback, setCopyFeedback] = useState(false);
 
   const handleSwap = () => {
+    stopTts();
     setSourceLang(targetLang);
     setTargetLang(sourceLang);
     setInputText(outputText);
@@ -63,6 +154,7 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
   };
 
   const handleClear = () => {
+    stopTts();
     setInputText('');
     setOutputText('');
     setError(null);
@@ -79,6 +171,7 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
 
   const handleTranslate = async () => {
     if (!inputText.trim()) return;
+    stopTts();
     setIsLoading(true);
     setError(null);
     setOutputText('');
@@ -96,6 +189,8 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
       setIsLoading(false);
     }
   };
+
+  const ttsProps = { ttsState, playTts, pauseTts, stopTts, isDarkMode, token: user?.token };
 
   const panelBase = `rounded-2xl border-4 p-1 flex flex-col ${
     isDarkMode
@@ -157,8 +252,7 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
         <div className={`flex items-center gap-2 px-3 py-2 border-t-2 ${
           isDarkMode ? 'border-slate-700' : 'border-slate-100'
         }`}>
-          <IconButton onClick={() => speak(inputText, sourceLang)} label={t('translator.listen')} disabled={!inputText} isDarkMode={isDarkMode}><Volume2 size={16} /></IconButton>
-          <IconButton onClick={() => speak(inputText, sourceLang, { rate: 0.5 })} label={t('translator.listen_slow')} disabled={!inputText} isDarkMode={isDarkMode}><Turtle size={16} /></IconButton>
+          <TtsControls {...ttsProps} ttsKey="translator-input" text={inputText} lang={sourceLang} />
           <IconButton onClick={handleClear} label={t('translator.clear')} disabled={!inputText} isDarkMode={isDarkMode}><Trash2 size={16} /></IconButton>
         </div>
       </div>
@@ -198,8 +292,7 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
         <div className={`flex items-center gap-2 px-3 py-2 border-t-2 ${
           isDarkMode ? 'border-slate-700' : 'border-slate-100'
         }`}>
-          <IconButton onClick={() => speak(outputText, targetLang)} label={t('translator.listen')} disabled={!outputText} isDarkMode={isDarkMode}><Volume2 size={16} /></IconButton>
-          <IconButton onClick={() => speak(outputText, targetLang, { rate: 0.5 })} label={t('translator.listen_slow')} disabled={!outputText} isDarkMode={isDarkMode}><Turtle size={16} /></IconButton>
+          <TtsControls {...ttsProps} ttsKey="translator-output" text={outputText} lang={targetLang} />
           <IconButton onClick={handleCopy} label={copyFeedback ? t('translator.copied') : t('translator.copy')} disabled={!outputText} isDarkMode={isDarkMode}><Copy size={16} /></IconButton>
           {copyFeedback && (
             <span className={`text-xs font-black uppercase tracking-widest ${
