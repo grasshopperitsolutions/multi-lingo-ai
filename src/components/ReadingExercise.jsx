@@ -380,7 +380,7 @@ const ReadingExercise = ({ isDarkMode }) => {
                 <CollapsibleCard
                   title={t("exam.your_answers", "Your Answers")}
                   isDarkMode={isDarkMode}
-                  defaultOpen={false}
+                  defaultOpen={true}
                 >
                   <div className="flex flex-col gap-2 mt-3">
                     {result.breakdown.map((item, i) => (
