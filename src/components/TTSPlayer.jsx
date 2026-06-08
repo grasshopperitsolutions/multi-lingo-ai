@@ -75,13 +75,7 @@ const TTSPlayer = ({ text, lang, isDarkMode }) => {
   };
 
   return (
-    <div
-      className={`rounded-2xl border-4 p-4 sm:p-5 flex flex-col gap-4 ${
-        isDarkMode
-          ? 'bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]'
-          : 'bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]'
-      }`}
-    >
+    <div className="flex flex-col gap-4">
       {/* Play / Stop row */}
       <div className="flex items-center gap-4">
         <button
