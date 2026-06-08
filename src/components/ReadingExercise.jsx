@@ -8,6 +8,7 @@ import Loader from "./Loader";
 import ReportButton from "./ReportButton";
 import ConfirmModal from "./ConfirmModal";
 import {
+  Card,
   SectionHeading,
   ErrorBanner,
   PrimaryButton,
@@ -170,6 +171,32 @@ const ReadingExercise = ({ isDarkMode }) => {
       const maxScore = breakdown.length;
       const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
       setResult({ score, maxScore, percentage, breakdown });
+      timerRef.current?.stop();
+      await markCurrentExerciseSeen();
+      return;
+    }
+
+    // Special-case cloze and fill-blanks: build the per-blank questions
+    // directly from exercise.blanks (the source of truth) so that
+    // correctAnswer always comes from the raw blank rather than the
+    // normalised exercise.questions array. This mirrors the working
+    // ListeningExercise.fill-blanks branch.
+    if (
+      exercise.questionType === "cloze" ||
+      exercise.questionType === "fill-blanks"
+    ) {
+      if (!exercise.blanks?.length) return;
+      const blankQuestions = exercise.blanks.map((b, i) => ({
+        id: b.id,
+        text: `Blank ${b.position ?? i + 1}`,
+        correctAnswer: b.correctAnswer,
+      }));
+      const userAnswers = exercise.blanks.map((b) => ({
+        questionId: b.id,
+        selectedAnswer: answers[b.id] || "",
+      }));
+      const res = checkReadingAnswers(userAnswers, blankQuestions);
+      setResult(res);
       timerRef.current?.stop();
       await markCurrentExerciseSeen();
       return;
@@ -497,6 +524,35 @@ const ReadingExercise = ({ isDarkMode }) => {
           </div>
 
           <ErrorBanner error={error} isDarkMode={isDarkMode} />
+
+          {exercise.instructions?.length > 0 && (
+            <Card isDarkMode={isDarkMode}>
+              <SectionHeading isDarkMode={isDarkMode}>
+                {t("exam.instructions", "Instructions")}
+              </SectionHeading>
+              <ul className="flex flex-col gap-1.5">
+                {exercise.instructions.map((instr, i) => (
+                  <li
+                    key={i}
+                    className={`flex items-start gap-2 text-xs ${
+                      isDarkMode ? "text-slate-400" : "text-slate-500"
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 text-xs font-black ${
+                        isDarkMode
+                          ? "border-teal-600 text-teal-400"
+                          : "border-teal-500 text-teal-600"
+                      }`}
+                    >
+                      {i + 1}
+                    </span>
+                    {instr}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
 
           {/*
             NOTE: We intentionally do NOT render the passage here as a
