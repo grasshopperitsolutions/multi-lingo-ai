@@ -436,6 +436,7 @@ const ReadingExercise = ({ isDarkMode }) => {
             <div className="flex flex-col gap-3">
               {exercise.questionType === "multiple-choice" && (
                 <MultipleChoiceExercise
+                  passage={exercise.passage}
                   questions={exercise.questions}
                   answers={answers}
                   onAnswer={handleSelectAnswer}
@@ -444,7 +445,8 @@ const ReadingExercise = ({ isDarkMode }) => {
               )}
               {exercise.questionType === "true-false" && (
                 <TrueFalseExercise
-                  questions={exercise.questions}
+                  passage={exercise.passage}
+                  statements={exercise.questions}
                   answers={answers}
                   onAnswer={handleSelectAnswer}
                   isDarkMode={isDarkMode}
@@ -463,8 +465,8 @@ const ReadingExercise = ({ isDarkMode }) => {
               )}
               {exercise.questionType === "ordering" && (
                 <OrderingExercise
-                  sentences={exercise.questions.map((q) => q.text)}
-                  ordering={answers.ordering ?? []}
+                  items={exercise.questions}
+                  userOrder={answers.ordering ?? []}
                   onReorder={(newOrder) =>
                     setAnswers((prev) => ({ ...prev, ordering: newOrder }))
                   }
@@ -493,14 +495,14 @@ const ReadingExercise = ({ isDarkMode }) => {
               {exercise.questionType === "matching" && (
                 <MatchingExercise
                   pairs={exercise.questions}
-                  answers={answers}
-                  onAnswer={handleSelectAnswer}
+                  matches={answers}
+                  onMatch={handleSelectAnswer}
                   isDarkMode={isDarkMode}
                 />
               )}
               {exercise.questionType === "notice-sign" && (
                 <NoticeSignExercise
-                  signs={exercise.questions}
+                  notices={exercise.questions}
                   answers={answers}
                   onAnswer={handleSelectAnswer}
                   isDarkMode={isDarkMode}
