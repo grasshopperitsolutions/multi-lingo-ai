@@ -72,22 +72,4 @@ NoticeSignExercise.defaultProps = {
   level: 'A1',
 };
 
-/**
- * Generate AI prompt for notice/sign reading exercise
- * @param {string} level - CEFR level (A1, A2, B1, B2, C1, C2)
- * @param {string} targetLang - Target learning language (e.g., 'pt-PT', 'en-US')
- * @returns {string} AI prompt
- */
-NoticeSignExercise.generatePrompt = (level, targetLang) => {
-  return [
-    `Generate a notice/sign reading comprehension exercise in ${targetLang} for CEFR level ${level}.`,
-    `CRITICAL: All text content must be written entirely in ${targetLang}.`,
-    `Create 4-6 realistic notices or signs that might appear in public places (schools, offices, streets, shops).`,
-    `For each notice, write a comprehension question with 3-4 multiple choice options.`,
-    `Return a JSON object with:`,
-    `  - "notices": array of { id, text, question, options[], correctAnswer }`,
-    `Return ONLY valid JSON. No markdown, no explanation.`,
-  ].join('\n');
-};
-
 export default NoticeSignExercise;

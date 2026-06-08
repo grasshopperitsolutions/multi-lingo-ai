@@ -76,23 +76,4 @@ ClozeExercise.defaultProps = {
   level: 'A1',
 };
 
-/**
- * Generate AI prompt for cloze reading exercise
- * @param {string} level - CEFR level (A1, A2, B1, B2, C1, C2)
- * @param {string} targetLang - Target learning language (e.g., 'pt-PT', 'en-US')
- * @returns {string} AI prompt
- */
-ClozeExercise.generatePrompt = (level, targetLang) => {
-  return [
-    `Generate a cloze reading comprehension exercise in ${targetLang} for CEFR level ${level}.`,
-    `CRITICAL: All text content must be written entirely in ${targetLang}.`,
-    `Create a short passage (100-200 words for A1-A2, 200-300 for B1-B2, 300-400 for C1-C2).`,
-    `Mark 5-8 key words with ___ (triple underscore) and provide 3-4 multiple choice options per blank.`,
-    `Return a JSON object with:`,
-    `  - "passage": the passage in ${targetLang} with ___ blanks`,
-    `  - "blanks": array of { id, position, options[], correctAnswer }`,
-    `Return ONLY valid JSON. No markdown, no explanation.`,
-  ].join('\n');
-};
-
 export default ClozeExercise;

@@ -78,7 +78,6 @@ const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 
 /**
  * Available reading exercise types.
- * Each type has a corresponding component with a generatePrompt() method.
  */
 const READING_EXERCISE_TYPES = [
   'multiple-choice',
@@ -91,22 +90,27 @@ const READING_EXERCISE_TYPES = [
   'notice-sign',
 ];
 
+/**
+ * Maps internal exercise type names to the type names used by getReadingPrompt.
+ * All 8 reading types are now supported by getReadingPrompt.
+ */
+const TYPE_TO_PROMPT_MAP = {
+  'multiple-choice': 'multiple-choice',
+  'true-false': 'true-false',
+  'best-title': 'best-title',
+  'ordering': 'ordering',
+  'cloze': 'cloze-options',
+  'fill-blanks': 'fill-blanks',
+  'matching': 'matching',
+  'notice-sign': 'notice-sign',
+};
+
 // ---------------------------------------------------------------------------
 // Imports
 // ---------------------------------------------------------------------------
 
-import {
-  MultipleChoiceExercise,
-  TrueFalseExercise,
-  BestTitleExercise,
-  OrderingExercise,
-  ClozeExercise,
-  FillBlanksExercise,
-  MatchingExercise,
-  NoticeSignExercise,
-} from '../components/exercises';
-
 import { checkReadingAnswers } from './examUtils';
+import { getReadingPrompt } from './examPromptTemplates';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -128,7 +132,7 @@ export async function generateReadingExercise({ token, level, targetLang, questi
     ? forcedType
     : READING_EXERCISE_TYPES[Math.floor(Math.random() * READING_EXERCISE_TYPES.length)];
 
-  // Step 2: Get type-specific prompt from component
+  // Step 2: Get type-specific prompt from getReadingPrompt
   const prompt = getPromptForType(questionType, level, targetLang);
 
   // Step 3: Get JSON Schema for this exercise type (improves Gemini output reliability)
@@ -171,7 +175,7 @@ export { checkReadingAnswers };
 
 /**
  * Get the appropriate prompt for a given exercise type.
- * Each exercise component has a static generatePrompt() method.
+ * All types are routed through the centralized getReadingPrompt from examPromptTemplates.
  *
  * @param {string} type - Exercise type (e.g., 'multiple-choice')
  * @param {string} level - CEFR level
@@ -179,26 +183,11 @@ export { checkReadingAnswers };
  * @returns {string} AI prompt
  */
 function getPromptForType(type, level, targetLang) {
-  switch (type) {
-    case 'multiple-choice':
-      return MultipleChoiceExercise.generatePrompt(level, targetLang);
-    case 'true-false':
-      return TrueFalseExercise.generatePrompt(level, targetLang);
-    case 'best-title':
-      return BestTitleExercise.generatePrompt(level, targetLang);
-    case 'ordering':
-      return OrderingExercise.generatePrompt(level, targetLang);
-    case 'cloze':
-      return ClozeExercise.generatePrompt(level, targetLang);
-    case 'fill-blanks':
-      return FillBlanksExercise.generatePrompt(level, targetLang);
-    case 'matching':
-      return MatchingExercise.generatePrompt(level, targetLang);
-    case 'notice-sign':
-      return NoticeSignExercise.generatePrompt(level, targetLang);
-    default:
-      throw new Error(`[examReadingExerciseService] Unknown exercise type: ${type}`);
+  const mappedType = TYPE_TO_PROMPT_MAP[type];
+  if (!mappedType) {
+    throw new Error(`[examReadingExerciseService] Unknown exercise type: ${type}`);
   }
+  return getReadingPrompt(level, targetLang, { type: mappedType });
 }
 
 /**

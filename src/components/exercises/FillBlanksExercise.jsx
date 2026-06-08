@@ -135,25 +135,4 @@ FillBlanksExercise.defaultProps = {
   level: 'A1',
 };
 
-/**
- * Generate AI prompt for fill-in-the-blanks reading exercise
- * @param {string} level - CEFR level (A1, A2, B1, B2, C1, C2)
- * @param {string} targetLang - Target learning language (e.g., 'pt-PT', 'en-US')
- * @returns {string} AI prompt
- */
-FillBlanksExercise.generatePrompt = (level, targetLang) => {
-  return [
-    `Generate a fill-in-the-blanks reading comprehension exercise in ${targetLang} for CEFR level ${level}.`,
-    `CRITICAL: All text content must be written entirely in ${targetLang}.`,
-    `Create a short passage (100-200 words for A1-A2, 200-300 for B1-B2, 300-400 for C1-C2).`,
-    `Mark 5-8 key words in the passage with ___ (triple underscore).`,
-    `Provide a word bank with the correct answers plus 3-5 distractor words.`,
-    `Return a JSON object with:`,
-    `  - "passage": the passage in ${targetLang} with ___ blanks`,
-    `  - "wordBank": array of all words (correct answers + distractors) in ${targetLang}`,
-    `  - "blanks": array of { id, position, correctAnswer }`,
-    `Return ONLY valid JSON. No markdown, no explanation.`,
-  ].join('\n');
-};
-
 export default FillBlanksExercise;

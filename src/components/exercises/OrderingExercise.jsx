@@ -127,22 +127,4 @@ OrderingExercise.defaultProps = {
   level: 'A1',
 };
 
-/**
- * Generate AI prompt for ordering reading exercise
- * @param {string} level - CEFR level (A1, A2, B1, B2, C1, C2)
- * @param {string} targetLang - Target learning language (e.g., 'pt-PT', 'en-US')
- * @returns {string} AI prompt
- */
-OrderingExercise.generatePrompt = (level, targetLang) => {
-  return [
-    `Generate an ordering reading comprehension exercise in ${targetLang} for CEFR level ${level}.`,
-    `CRITICAL: All text content must be written entirely in ${targetLang}.`,
-    `Create 5-7 items (sentences or short paragraphs) that form a logical sequence — a narrative, process, or timeline.`,
-    `Each item should be a complete sentence (10-40 words). Do NOT include ordinal markers (first, second...) that give away the answer.`,
-    `Return a JSON object with:`,
-    `  - "items": array of { id, text, correctPosition } — correctPosition is 1-based index in the proper sequence`,
-    `Return ONLY valid JSON. No markdown, no explanation.`,
-  ].join('\n');
-};
-
 export default OrderingExercise;

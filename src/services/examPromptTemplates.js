@@ -104,7 +104,7 @@ function getExamPhrasing(type, level) {
  * @param {string} level     - CEFR level
  * @param {string} targetLang - Target language
  * @param {object} options
- * @param {string} options.type - Exercise type: 'multiple-choice' | 'true-false' | 'matching' | 'best-title' | 'ordering' | 'transcription' | 'cloze-options' | 'vocabulary'
+ * @param {string} options.type - Exercise type: 'multiple-choice' | 'true-false' | 'matching' | 'best-title' | 'ordering' | 'cloze-options' | 'fill-blanks' | 'notice-sign'
  * @param {number} [options.questionCount=4]
  * @param {string} [options.topic] - Optional specific topic
  * @returns {string} The AI prompt
@@ -196,6 +196,8 @@ export function getReadingPrompt(level, targetLang, { type = 'multiple-choice', 
     case 'ordering':
       instructions.push(`Exercise type: Paragraph/sentence ordering.`);
       instructions.push(`Create ${questionCount} paragraphs or sentences that form a coherent text when ordered correctly.`);
+      instructions.push(`Each item should be a complete sentence (10-40 words).`);
+      instructions.push(`CRITICAL: Do NOT include ordinal markers (first, second, then, finally...) inside the item text that would give away the correct position.`);
       instructions.push(`Official phrasing: "${phrasing}"`);
       instructions.push(``);
       instructions.push(`Return ONLY a valid JSON object:`);
@@ -210,7 +212,8 @@ export function getReadingPrompt(level, targetLang, { type = 'multiple-choice', 
 
     case 'cloze-options':
       instructions.push(`Exercise type: Cloze with A/B/C/D options for each gap.`);
-      instructions.push(`Create a short text with ${questionCount} gaps.`);
+      instructions.push(`Create a short passage in ${targetLang} with ${questionCount} gaps.`);
+      instructions.push(`In the passage, mark each gap with ___ (triple underscore).`);
       instructions.push(`Each gap must have 3-4 options (A/B/C/D).`);
       instructions.push(`Official phrasing: "${phrasing}"`);
       instructions.push(``);
@@ -218,8 +221,9 @@ export function getReadingPrompt(level, targetLang, { type = 'multiple-choice', 
       instructions.push(`{`);
       instructions.push(`  "type": "cloze-options",`);
       instructions.push(`  "instructions": ["${phrasing}"],`);
-      instructions.push(`  "gaps": [`);
-      instructions.push(`    { "id": "c1", "prefix": "Texto antes...", "suffix": "...texto depois.", "options": ["opção A", "opção B", "opção C", "opção D"], "correctAnswer": "opção A" }`);
+      instructions.push(`  "passage": "<the passage in ${targetLang} with ___ marking each gap>",`);
+      instructions.push(`  "blanks": [`);
+      instructions.push(`    { "id": "c1", "position": 1, "options": ["opção A", "opção B", "opção C", "opção D"], "correctAnswer": "opção A" }`);
       instructions.push(`  ]`);
       instructions.push(`}`);
       break;
@@ -237,7 +241,44 @@ export function getReadingPrompt(level, targetLang, { type = 'multiple-choice', 
       instructions.push(`  "pairs": [`);
       instructions.push(`    { "id": "m1", "itemA": "<column A text>", "itemB": "<column B correct match>" }`);
       instructions.push(`  ],`);
-      instructions.push(`  "extraItems": ["<distractor 1>", "<distractor 2>"]`);
+      instructions.push(`  "extraItems": ["<distractor 1>", "<distractor 2>"],`);
+      instructions.push(`  "showExample": true,`);
+      instructions.push(`  "example": { "itemA": "<sample column A>", "itemB": "<sample column B match>" }`);
+      instructions.push(`}`);
+      break;
+
+    case 'fill-blanks':
+      instructions.push(`Exercise type: Fill in the blanks from a word bank.`);
+      instructions.push(`Create a short passage in ${targetLang} with ${questionCount} gaps.`);
+      instructions.push(`In the passage, mark each gap with ___ (triple underscore).`);
+      instructions.push(`Provide a word bank with the correct answers plus 3-5 extra distractor words.`);
+      instructions.push(`Official phrasing: "${phrasing}"`);
+      instructions.push(``);
+      instructions.push(`Return ONLY a valid JSON object:`);
+      instructions.push(`{`);
+      instructions.push(`  "type": "fill-blanks",`);
+      instructions.push(`  "instructions": ["${phrasing}"],`);
+      instructions.push(`  "passage": "<the passage in ${targetLang} with ___ marking each gap>",`);
+      instructions.push(`  "wordBank": ["<correct word 1>", "<correct word 2>", "<distractor 1>", "<distractor 2>", ...],`);
+      instructions.push(`  "blanks": [`);
+      instructions.push(`    { "id": "fb1", "position": 1, "correctAnswer": "<correct word>" }`);
+      instructions.push(`  ]`);
+      instructions.push(`}`);
+      break;
+
+    case 'notice-sign':
+      instructions.push(`Exercise type: Reading public notices and signs.`);
+      instructions.push(`Create ${questionCount} realistic notices or signs that might appear in public places (schools, offices, streets, shops).`);
+      instructions.push(`For each notice, write a comprehension question with 3-4 multiple choice options.`);
+      instructions.push(`Official phrasing: "${phrasing}"`);
+      instructions.push(``);
+      instructions.push(`Return ONLY a valid JSON object:`);
+      instructions.push(`{`);
+      instructions.push(`  "type": "notice-sign",`);
+      instructions.push(`  "instructions": ["${phrasing}"],`);
+      instructions.push(`  "notices": [`);
+      instructions.push(`    { "id": "n1", "text": "<notice/sign text>", "question": "<comprehension question>", "options": ["A. ...", "B. ...", "C. ...", "D. ..."], "correctAnswer": "A. ..." }`);
+      instructions.push(`  ]`);
       instructions.push(`}`);
       break;
 
