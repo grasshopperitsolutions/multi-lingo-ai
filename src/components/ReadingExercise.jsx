@@ -460,7 +460,7 @@ const ReadingExercise = ({ isDarkMode }) => {
               {exercise.questionType === "best-title" && (
                 <BestTitleExercise
                   passage={exercise.passage}
-                  titles={exercise.questions}
+                  titles={exercise.titles}
                   selectedId={answers.bestTitle ?? null}
                   onSelect={(id) =>
                     setAnswers((prev) => ({ ...prev, bestTitle: id }))

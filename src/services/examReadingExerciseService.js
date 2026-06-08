@@ -482,8 +482,9 @@ function _parseAIResponse(data, type) {
   }
 
   return {
-    text,
+    passage: text || '',
     questions,
+    blanks: type === 'cloze' || type === 'fill-blanks' ? data?.blanks ?? [] : [],
     instructions,
     wordBank,
     extraItems,
