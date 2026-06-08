@@ -458,7 +458,7 @@ function _parseAIResponse(data, type) {
       text = data?.passage ?? '';
       // Store full titles separately for rendering, and create a single question for answer checking
       const correctTitle = (data?.titles ?? []).find((t) => t.isCorrect);
-      questions = [{ id: 'bestTitle', text: 'Escolhe o melhor título', correctAnswer: correctTitle?.text ?? '' }];
+questions = [{ id: 'bestTitle', text: 'Escolhe o melhor título', correctAnswer: correctTitle?.id ?? '' }];
       titles = data?.titles ?? [];
       break;
     }

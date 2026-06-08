@@ -118,6 +118,34 @@ const ReadingExercise = ({ isDarkMode }) => {
   const handleCheckAnswers = async () => {
     if (!exercise) return;
 
+    // Special-case best-title: the student picks a title by its id, and the
+    // service stores the correct answer as the id of the title whose
+    // `isCorrect` flag is true. Build a breakdown that maps those ids back
+    // to the readable title text so the results view shows "O Cão Bobi"
+    // rather than "title-1".
+    if (exercise.questionType === "best-title") {
+      const titles = exercise.titles ?? [];
+      const correctTitle = titles.find((t) => t.isCorrect);
+      const userTitle = titles.find((t) => t.id === answers.bestTitle);
+      const isCorrect = !!correctTitle && userTitle?.id === correctTitle.id;
+      const breakdown = [
+        {
+          questionId: "bestTitle",
+          question: exercise.questions?.[0]?.text ?? "Escolhe o melhor título",
+          userAnswer: userTitle?.text ?? null,
+          correctAnswer: correctTitle?.text ?? "",
+          isCorrect,
+        },
+      ];
+      const score = isCorrect ? 1 : 0;
+      const maxScore = 1;
+      const percentage = isCorrect ? 100 : 0;
+      setResult({ score, maxScore, percentage, breakdown });
+      timerRef.current?.stop();
+      await markCurrentExerciseSeen();
+      return;
+    }
+
     // Special-case ordering: the user order is stored as an array of item
     // ids under `answers.ordering`, but the generic checkAnswers iterates
     // per-item ids and would always score 0. Build the breakdown manually
