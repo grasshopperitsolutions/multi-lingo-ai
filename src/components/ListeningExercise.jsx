@@ -132,9 +132,12 @@ const ListeningExercise = ({ isDarkMode }) => {
 
     if (exerciseType === "fill-blanks") {
       if (!exercise.blanks?.length) return;
-      const blankQuestions = exercise.blanks.map((b) => ({
+      // Build per-blank questions for checkAnswers. Use a neutral "text"
+      // (blank position) instead of the correctAnswer, otherwise the
+      // results breakdown would leak the answer as the "question" text.
+      const blankQuestions = exercise.blanks.map((b, i) => ({
         id: b.id,
-        text: b.correctAnswer,
+        text: `Blank ${b.position ?? i + 1}`,
         correctAnswer: b.correctAnswer,
       }));
       const userAnswers = exercise.blanks.map((b) => ({
@@ -522,54 +525,69 @@ const ListeningExercise = ({ isDarkMode }) => {
             {audioCard}
             {transcriptCard}
 
-            <CollapsibleCard
-              title={t("exam.your_answers", "Your Answers")}
-              isDarkMode={isDarkMode}
-              defaultOpen={false}
-            >
-              <div className="flex flex-col gap-2 mt-3">
-                {result.breakdown.map((item, i) => (
-                  <div
-                    key={item.questionId}
-                    className={`rounded-xl border-2 px-4 py-3 ${
-                      isDarkMode
-                        ? "border-slate-700 bg-slate-800/50"
-                        : "border-slate-200 bg-slate-50"
-                    }`}
-                  >
-                    <p
-                      className={`text-xs font-semibold mb-1 ${
-                        isDarkMode ? "text-slate-400" : "text-slate-500"
-                      }`}
-                    >
-                      {i + 1}. {item.question}
-                    </p>
-                    <p
-                      className={`text-sm font-bold ${
-                        item.isCorrect
-                          ? isDarkMode
-                            ? "text-sky-400"
-                            : "text-sky-700"
-                          : isDarkMode
-                            ? "text-rose-400"
-                            : "text-rose-600"
-                      }`}
-                    >
-                      {item.userAnswer ?? t("exam.no_answer", "No answer")}
-                    </p>
-                    {!item.isCorrect && (
-                      <p
-                        className={`text-xs mt-1 ${
-                          isDarkMode ? "text-slate-400" : "text-slate-500"
+            {/*
+              Render user/correct answers in the localised label for true/false
+              (and pass through any other value untouched). The listening service
+              stores correctAnswer as a boolean for true-false; without this
+              formatter the results would print "true" / "false" literally.
+            */}
+            {(() => {
+              const formatTf = (val) => {
+                if (val === true) return t("exam.true", "Verdadeiro");
+                if (val === false) return t("exam.false", "Falso");
+                return val;
+              };
+              return (
+                <CollapsibleCard
+                  title={t("exam.your_answers", "Your Answers")}
+                  isDarkMode={isDarkMode}
+                  defaultOpen={false}
+                >
+                  <div className="flex flex-col gap-2 mt-3">
+                    {result.breakdown.map((item, i) => (
+                      <div
+                        key={item.questionId}
+                        className={`rounded-xl border-2 px-4 py-3 ${
+                          isDarkMode
+                            ? "border-slate-700 bg-slate-800/50"
+                            : "border-slate-200 bg-slate-50"
                         }`}
                       >
-                        {t("exam.correct_answer", "Correct")}: {item.correctAnswer}
-                      </p>
-                    )}
+                        <p
+                          className={`text-xs font-semibold mb-1 ${
+                            isDarkMode ? "text-slate-400" : "text-slate-500"
+                          }`}
+                        >
+                          {i + 1}. {item.question}
+                        </p>
+                        <p
+                          className={`text-sm font-bold ${
+                            item.isCorrect
+                              ? isDarkMode
+                                ? "text-sky-400"
+                                : "text-sky-700"
+                              : isDarkMode
+                                ? "text-rose-400"
+                                : "text-rose-600"
+                          }`}
+                        >
+                          {formatTf(item.userAnswer) ?? t("exam.no_answer", "No answer")}
+                        </p>
+                        {!item.isCorrect && (
+                          <p
+                            className={`text-xs mt-1 ${
+                              isDarkMode ? "text-slate-400" : "text-slate-500"
+                            }`}
+                          >
+                            {t("exam.correct_answer", "Correct")}: {formatTf(item.correctAnswer)}
+                          </p>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CollapsibleCard>
+                </CollapsibleCard>
+              );
+            })()}
 
             <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
               <RotateCcw size={14} /> {t("exam.try_again", "Try Again")}

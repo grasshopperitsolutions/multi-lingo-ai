@@ -8,7 +8,6 @@ import Loader from "./Loader";
 import ReportButton from "./ReportButton";
 import ConfirmModal from "./ConfirmModal";
 import {
-  Card,
   SectionHeading,
   ErrorBanner,
   PrimaryButton,
@@ -118,6 +117,36 @@ const ReadingExercise = ({ isDarkMode }) => {
 
   const handleCheckAnswers = async () => {
     if (!exercise) return;
+
+    // Special-case ordering: the user order is stored as an array of item
+    // ids under `answers.ordering`, but the generic checkAnswers iterates
+    // per-item ids and would always score 0. Build the breakdown manually
+    // by comparing each item's `correctPosition` (1-based) with the
+    // student's index in the ordering array.
+    if (exercise.questionType === "ordering") {
+      const order = answers.ordering ?? [];
+      const items = exercise.questions ?? [];
+      const breakdown = items.map((item) => {
+        const userPos = order.indexOf(item.id);
+        const correctPos = item.correctPosition;
+        const isCorrect = userPos >= 0 && userPos + 1 === correctPos;
+        return {
+          questionId: item.id,
+          question: item.text,
+          userAnswer: userPos >= 0 ? `Position ${userPos + 1}` : "—",
+          correctAnswer: `Position ${correctPos}`,
+          isCorrect,
+        };
+      });
+      const score = breakdown.filter((b) => b.isCorrect).length;
+      const maxScore = breakdown.length;
+      const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+      setResult({ score, maxScore, percentage, breakdown });
+      timerRef.current?.stop();
+      await markCurrentExerciseSeen();
+      return;
+    }
+
     const questions = exercise.questions ?? exercise.blanks ?? [];
     const userAnswers = Object.entries(answers).map(
       ([questionId, selectedAnswer]) => ({ questionId, selectedAnswer }),
@@ -288,50 +317,72 @@ const ReadingExercise = ({ isDarkMode }) => {
               <ReportButton isDarkMode={isDarkMode} context="ReadingExercise" />
             </div>
 
-            <CollapsibleCard
-              title={t("exam.passage", "Passage")}
-              isDarkMode={isDarkMode}
-              defaultOpen={false}
-            >
-              <p
-                className={`mt-3 text-sm leading-relaxed whitespace-pre-wrap ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}
+            {/*
+              Show the passage card in the results view only when the
+              exercise actually has a passage. Types like ordering,
+              matching, and notice-sign do not.
+            */}
+            {exercise?.passage && (
+              <CollapsibleCard
+                title={t("exam.passage", "Passage")}
+                isDarkMode={isDarkMode}
+                defaultOpen={false}
               >
-                {exercise?.passage ?? exercise?.text}
-              </p>
-            </CollapsibleCard>
+                <p
+                  className={`mt-3 text-sm leading-relaxed whitespace-pre-wrap ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}
+                >
+                  {exercise.passage}
+                </p>
+              </CollapsibleCard>
+            )}
 
-            <CollapsibleCard
-              title={t("exam.your_answers", "Your Answers")}
-              isDarkMode={isDarkMode}
-              defaultOpen={false}
-            >
-              <div className="flex flex-col gap-2 mt-3">
-                {result.breakdown.map((item, i) => (
-                  <div
-                    key={item.questionId}
-                    className={`rounded-xl border-2 px-4 py-3 ${isDarkMode ? "border-slate-700 bg-slate-800/50" : "border-slate-200 bg-slate-50"}`}
-                  >
-                    <p
-                      className={`text-xs font-semibold mb-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
-                    >
-                      {i + 1}. {item.question}
-                    </p>
-                    <p
-                      className={`text-sm font-bold ${item.isCorrect ? (isDarkMode ? "text-teal-400" : "text-teal-700") : (isDarkMode ? "text-rose-400" : "text-rose-600")}`}
-                    >
-                      {item.userAnswer ?? t("exam.no_answer", "No answer")}
-                    </p>
-                    {!item.isCorrect && (
-                      <p
-                        className={`text-xs mt-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+            {/*
+              Render user/correct answers in the localised label for true/false
+              (and pass through any other value untouched). The reading service
+              stores correctAnswer as a boolean for true-false; without this
+              formatter the results would print "true" / "false" literally.
+            */}
+            {(() => {
+              const formatTf = (val) => {
+                if (val === true) return t("exam.true", "Verdadeiro");
+                if (val === false) return t("exam.false", "Falso");
+                return val;
+              };
+              return (
+                <CollapsibleCard
+                  title={t("exam.your_answers", "Your Answers")}
+                  isDarkMode={isDarkMode}
+                  defaultOpen={false}
+                >
+                  <div className="flex flex-col gap-2 mt-3">
+                    {result.breakdown.map((item, i) => (
+                      <div
+                        key={item.questionId}
+                        className={`rounded-xl border-2 px-4 py-3 ${isDarkMode ? "border-slate-700 bg-slate-800/50" : "border-slate-200 bg-slate-50"}`}
                       >
-                        {t("exam.correct_answer", "Correct")}: {item.correctAnswer}
-                      </p>
-                    )}
+                        <p
+                          className={`text-xs font-semibold mb-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+                        >
+                          {i + 1}. {item.question}
+                        </p>
+                        <p
+                          className={`text-sm font-bold ${item.isCorrect ? (isDarkMode ? "text-teal-400" : "text-teal-700") : (isDarkMode ? "text-rose-400" : "text-rose-600")}`}
+                        >
+                          {formatTf(item.userAnswer) ?? t("exam.no_answer", "No answer")}
+                        </p>
+                        {!item.isCorrect && (
+                          <p
+                            className={`text-xs mt-1 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}
+                          >
+                            {t("exam.correct_answer", "Correct")}: {formatTf(item.correctAnswer)}
+                          </p>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CollapsibleCard>
+                </CollapsibleCard>
+              );
+            })()}
 
             <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
               <RotateCcw size={14} /> {t("exam.try_again", "Try Again")}
@@ -419,20 +470,14 @@ const ReadingExercise = ({ isDarkMode }) => {
 
           <ErrorBanner error={error} isDarkMode={isDarkMode} />
 
-          {exercise.passage && (
-            <Card isDarkMode={isDarkMode}>
-              <SectionHeading isDarkMode={isDarkMode}>
-                {t("exam.passage", "Passage")}
-              </SectionHeading>
-              <p
-                className={`text-sm sm:text-base leading-relaxed ${
-                  isDarkMode ? "text-slate-200" : "text-slate-800"
-                }`}
-              >
-                {exercise.passage}
-              </p>
-            </Card>
-          )}
+          {/*
+            NOTE: We intentionally do NOT render the passage here as a
+            standalone Card. Each sub-exercise component (MultipleChoice,
+            TrueFalse, BestTitle, Cloze, FillBlanks) renders the passage
+            itself — some inline with interactive elements (cloze, fill-blanks)
+            — so showing it here would duplicate it. Types without a passage
+            (ordering, matching, notice-sign) never have a passage to show.
+          */}
 
           <div>
             <SectionHeading isDarkMode={isDarkMode}>

@@ -433,13 +433,25 @@ function _parseAIResponse(data, type) {
   switch (type) {
     case 'multiple-choice':
       text = data?.passage ?? '';
-      questions = data?.questions ?? [];
+      // Normalise every question so it always has a `text` field — the
+      // shared checkAnswers helper builds the results breakdown from
+      // `q.text` (see src/services/examUtils.js). Without this alias,
+      // multiple-choice questions would show "undefined" in the results
+      // view because the AI prompt returns them with `question` instead.
+      questions = (data?.questions ?? []).map((q) => ({
+        ...q,
+        text: q.text ?? q.question ?? '',
+      }));
       break;
     case 'true-false':
       text = data?.passage ?? '';
+      // Preserve `isTrue` as a real JS boolean. The True/False sub-component
+      // sends booleans via its onClick, and the buttons are localised via
+      // t('exam.true') / t('exam.false') from the i18n locale files. Storing
+      // a boolean keeps the schema language-agnostic.
       questions = (data?.statements ?? []).map((s) => ({
         ...s,
-        correctAnswer: s.isTrue ? 'true' : 'false',
+        correctAnswer: s.isTrue,
       }));
       break;
     case 'best-title': {
@@ -459,11 +471,20 @@ function _parseAIResponse(data, type) {
       break;
     case 'cloze':
       text = data?.passage ?? '';
-      questions = data?.blanks ?? [];
+      // Blanks don't carry a question text. Add a neutral "Blank N" so the
+      // results breakdown (which reads `q.text`) doesn't render "undefined".
+      questions = (data?.blanks ?? []).map((b, i) => ({
+        ...b,
+        text: b.text ?? `Blank ${b.position ?? i + 1}`,
+      }));
       break;
     case 'fill-blanks':
       text = data?.passage ?? '';
-      questions = data?.blanks ?? [];
+      // Same normalisation as cloze: blanks have no text, supply a label.
+      questions = (data?.blanks ?? []).map((b, i) => ({
+        ...b,
+        text: b.text ?? `Blank ${b.position ?? i + 1}`,
+      }));
       wordBank = data?.wordBank ?? [];
       break;
     case 'matching':

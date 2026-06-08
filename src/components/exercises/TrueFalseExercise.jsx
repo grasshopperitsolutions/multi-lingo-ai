@@ -17,6 +17,7 @@
  */
 import { useState } from 'react';
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, XCircle } from 'lucide-react';
 
 const TrueFalseExercise = ({
@@ -29,6 +30,7 @@ const TrueFalseExercise = ({
   isDarkMode,
   requireCorrection,
 }) => {
+  const { t } = useTranslation();
   const [expandedCorrection, setExpandedCorrection] = useState(null);
   return (
     <div className="flex flex-col gap-4">
@@ -57,9 +59,9 @@ const TrueFalseExercise = ({
               </p>
               <div className="flex gap-3">
                 <button
-                  onClick={() => onAnswer(stmt.id, "true")}
+                  onClick={() => onAnswer(stmt.id, true)}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 text-sm font-bold transition-all active:scale-[0.98] ${
-                    answer === "true"
+                    answer === true
                       ? isDarkMode
                         ? 'bg-emerald-900/40 border-emerald-500 text-emerald-300'
                         : 'bg-emerald-50 border-emerald-500 text-emerald-800'
@@ -68,12 +70,12 @@ const TrueFalseExercise = ({
                       : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <CheckCircle2 size={16} /> Verdadeiro
+                  <CheckCircle2 size={16} /> {t('exam.true', 'Verdadeiro')}
                 </button>
                 <button
-                  onClick={() => onAnswer(stmt.id, "false")}
+                  onClick={() => onAnswer(stmt.id, false)}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 text-sm font-bold transition-all active:scale-[0.98] ${
-                    answer === "false"
+                    answer === false
                       ? isDarkMode
                         ? 'bg-rose-900/40 border-rose-500 text-rose-300'
                         : 'bg-rose-50 border-rose-500 text-rose-800'
@@ -82,7 +84,7 @@ const TrueFalseExercise = ({
                       : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <XCircle size={16} /> Falso
+                  <XCircle size={16} /> {t('exam.false', 'Falso')}
                 </button>
               </div>
               {requireCorrection && answer === false && (

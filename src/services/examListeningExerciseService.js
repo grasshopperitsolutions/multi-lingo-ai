@@ -93,11 +93,15 @@ export async function generateListeningExercise({ token, level, targetLang, ques
     if (statements.length > 0) {
       return {
         ...base,
+        // Preserve the AI's `isTrue` boolean directly. The True/False
+        // sub-component sends the same boolean back via its onClick
+        // handlers, and the button labels come from the i18n locale
+        // files (t('exam.true') / t('exam.false')) — so the schema
+        // is language-agnostic and works for any target language.
         questions: statements.map((s) => ({
           id: s.id,
           text: s.text,
-          options: ['Verdadeiro', 'Falso'],
-          correctAnswer: s.isTrue ? 'Verdadeiro' : 'Falso',
+          correctAnswer: s.isTrue,
         })),
       };
     }
