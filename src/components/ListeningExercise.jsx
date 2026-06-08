@@ -452,7 +452,7 @@ const ListeningExercise = ({ isDarkMode }) => {
                 isDarkMode ? "text-slate-500" : "text-slate-400"
               }`}
             >
-              {Object.keys(answers).length} / {questionCount}{" "}
+              {Object.keys(answers).length} / {questionCount}
               {t("exam.questions_answered", "questions answered")}
             </p>
 
@@ -464,7 +464,7 @@ const ListeningExercise = ({ isDarkMode }) => {
                 className="flex-1"
                 color="sky"
               >
-                <CheckCircle2 size={16} />{" "}
+                <CheckCircle2 size={16} />
                 {t("exam.check_answers", "Check My Answers")}
               </PrimaryButton>
             </div>

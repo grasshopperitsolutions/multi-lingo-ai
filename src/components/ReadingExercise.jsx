@@ -592,8 +592,11 @@ const ReadingExercise = ({ isDarkMode }) => {
           <p
             className={`text-xs font-semibold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
           >
-            {Object.keys(answers).length} /{" "}
-            {(exercise.questions ?? exercise.blanks ?? []).length}{" "}
+            {Object.keys(answers).length} /
+            {(exercise.questionType === "cloze" ||
+            exercise.questionType === "fill-blanks"
+              ? exercise.blanks?.length
+              : exercise.questions?.length) ?? 0}
             {t("exam.questions_answered", "questions answered")}
           </p>
 

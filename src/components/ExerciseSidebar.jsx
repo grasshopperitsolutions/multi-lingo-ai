@@ -224,7 +224,7 @@ const ExerciseSidebar = ({
           <p className={`text-sm font-black tabular-nums ${wordCountColor}`}>
             {wordCount}
             <span className={`text-xs font-bold ${labelClass}`}>
-              {" "}/{minWords}–{maxWords}
+              /{minWords}–{maxWords}
             </span>
           </p>
           {!wordCountOk && (

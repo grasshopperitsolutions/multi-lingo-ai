@@ -388,7 +388,7 @@ const WordLinkGame = ({ isDarkMode }) => {
               <p className={`text-base font-semibold ${
                 isDarkMode ? "text-slate-300" : "text-slate-700"
               }`}>
-                {t("challenges.word_link_answer", "The theme was:")}{" "}
+                {t("challenges.word_link_answer", "The theme was:")}
                 <span className="font-black text-blue-500">{theme}</span>
                 {themeTranslation && themeTranslation !== theme && (
                   <span className={`ml-1 font-normal text-sm ${

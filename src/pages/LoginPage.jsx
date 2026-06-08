@@ -158,9 +158,9 @@ const LoginPage = () => {
 
           {/* Footer note */}
           <p className="mt-10 text-center text-sm font-bold opacity-50">
-            {t('login.terms_note')}{" "}
+            {t('login.terms_note')}
             <Link to="/terms" className="underline hover:opacity-100">{t('login.terms')}</Link>
-            {" "}&{" "}
+            &
             <Link to="/privacy" className="underline hover:opacity-100">{t('login.privacy')}</Link>.
           </p>
         </div>

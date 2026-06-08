@@ -617,7 +617,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
               <p className={`text-base font-semibold ${
                 isDarkMode ? "text-slate-300" : "text-slate-700"
               }`}>
-                {t("challenges.scrambled_word_answer")}{" "}
+                {t("challenges.scrambled_word_answer")}
                 <span className="font-black text-yellow-500">{word}</span>
               </p>
             )}

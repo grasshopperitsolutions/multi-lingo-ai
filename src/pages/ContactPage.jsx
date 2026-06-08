@@ -258,7 +258,7 @@ const ContactPage = () => {
                 t('contact.form.sending')
               ) : (
                 <>
-                  {t('contact.form.submit')}{" "}
+                  {t('contact.form.submit')}
                   <Send
                     size={20}
                     className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"
