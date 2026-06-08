@@ -167,14 +167,10 @@ const ExerciseSidebar = ({
     </>
   );
 
-  // ── Timer ────────────────────────────────────────────────────────────────
+  // ── Timer — rendered directly, no outer card wrapper.
+  // ExamTimer already renders its own rounded-2xl border-4 shadow card.
   const timerSection = (
-    <div className={`${panelBase} p-4`}>
-      <p className={`text-xs font-black uppercase tracking-widest mb-3 ${labelClass}`}>
-        {t("exam.timer", "Timer")}
-      </p>
-      <ExamTimer ref={timerRef} isDarkMode={isDarkMode} />
-    </div>
+    <ExamTimer ref={timerRef} isDarkMode={isDarkMode} />
   );
 
   // ── Score panel ──────────────────────────────────────────────────────────
