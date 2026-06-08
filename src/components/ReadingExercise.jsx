@@ -54,11 +54,15 @@ const ReadingExercise = ({ isDarkMode }) => {
   } = useGenerateConfirm(exercise !== null);
 
   const allAnswered = (() => {
-    if (!exercise?.questions?.length) return false;
+    if (!exercise?.questions?.length && !exercise?.blanks?.length) return false;
     if (exercise.questionType === "best-title") return !!answers.bestTitle;
     if (exercise.questionType === "ordering")
       return answers.ordering?.length > 0;
-    return exercise.questions.every((q) => answers[q.id] != null);
+    if (exercise.questionType === "cloze")
+      return exercise.blanks?.every((b) => answers[b.id] != null);
+    if (exercise.questionType === "fill-blanks")
+      return exercise.blanks?.every((b) => answers[b.id] != null);
+    return exercise.questions?.every((q) => answers[q.id] != null);
   })();
 
   const markCurrentExerciseSeen = async () => {
@@ -113,11 +117,12 @@ const ReadingExercise = ({ isDarkMode }) => {
   };
 
   const handleCheckAnswers = async () => {
-    if (!exercise?.questions) return;
+    if (!exercise) return;
+    const questions = exercise.questions ?? exercise.blanks ?? [];
     const userAnswers = Object.entries(answers).map(
       ([questionId, selectedAnswer]) => ({ questionId, selectedAnswer }),
     );
-    const res = checkReadingAnswers(userAnswers, exercise.questions);
+    const res = checkReadingAnswers(userAnswers, questions);
     setResult(res);
     timerRef.current?.stop();
     await markCurrentExerciseSeen();
@@ -455,10 +460,10 @@ const ReadingExercise = ({ isDarkMode }) => {
               {exercise.questionType === "best-title" && (
                 <BestTitleExercise
                   passage={exercise.passage}
-                  options={exercise.questions.map((q) => q.text)}
-                  selected={answers.bestTitle ?? null}
-                  onSelect={(opt) =>
-                    setAnswers((prev) => ({ ...prev, bestTitle: opt }))
+                  titles={exercise.questions}
+                  selectedId={answers.bestTitle ?? null}
+                  onSelect={(id) =>
+                    setAnswers((prev) => ({ ...prev, bestTitle: id }))
                   }
                   isDarkMode={isDarkMode}
                 />
@@ -476,7 +481,7 @@ const ReadingExercise = ({ isDarkMode }) => {
               {exercise.questionType === "cloze" && (
                 <ClozeExercise
                   passage={exercise.passage}
-                  blanks={exercise.questions}
+                  blanks={exercise.blanks ?? []}
                   answers={answers}
                   onAnswer={handleSelectAnswer}
                   isDarkMode={isDarkMode}
@@ -485,8 +490,8 @@ const ReadingExercise = ({ isDarkMode }) => {
               {exercise.questionType === "fill-blanks" && (
                 <FillBlanksExercise
                   passage={exercise.passage}
-                  wordBank={exercise.wordBank}
-                  blanks={exercise.blanks}
+                  wordBank={exercise.wordBank ?? []}
+                  blanks={exercise.blanks ?? []}
                   answers={answers}
                   onAnswer={handleSelectAnswer}
                   isDarkMode={isDarkMode}
@@ -514,7 +519,8 @@ const ReadingExercise = ({ isDarkMode }) => {
           <p
             className={`text-xs font-semibold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
           >
-            {Object.keys(answers).length} / {exercise.questions?.length ?? 0}{" "}
+            {Object.keys(answers).length} /{" "}
+            {(exercise.questions ?? exercise.blanks ?? []).length}{" "}
             {t("exam.questions_answered", "questions answered")}
           </p>
 
