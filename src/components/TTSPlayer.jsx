@@ -2,8 +2,8 @@
  * TTSPlayer.jsx
  *
  * Reusable Text-to-Speech player component.
- * Uses the Web Speech API directly for playback (to support onend/onerror callbacks)
- * and stopSpeaking from ttsService for cancel logic.
+ * Routes all audio through getTtsService (Gemini TTS primary, Web Speech API fallback)
+ * via the useTts hook. Token is sourced from AppContext.
  *
  * Props:
  *   text       {string} - The text to be spoken
@@ -11,10 +11,11 @@
  *   isDarkMode {bool}   - Theme flag
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Play, Square } from 'lucide-react';
-import { stopSpeaking } from '../services/getTtsService';
+import { useTts } from '../hooks/useTts';
+import { useAppContext } from '../contexts/AppContext';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -22,51 +23,66 @@ import { stopSpeaking } from '../services/getTtsService';
 
 const SPEED_OPTIONS = [0.25, 0.5, 1, 2];
 
+// A stable unique key for this player instance.
+// Since TTSPlayer is always used in a single-player context (one per exercise screen),
+// a fixed key is sufficient. useTts enforces only one active source at a time.
+const PLAYER_KEY = 'tts-player';
+
 // ---------------------------------------------------------------------------
 // TTSPlayer
 // ---------------------------------------------------------------------------
 
 const TTSPlayer = ({ text, lang, isDarkMode }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const { user } = useAppContext();
+  const { ttsState, playTts, stopTts } = useTts();
+
+  const isPlaying = ttsState.activeKey === PLAYER_KEY;
+
+  // Track how many times the user has pressed play
+  // We use a ref-free approach: count is derived from playCount state in the hook
+  // but since useTts doesn't expose it, we manage it locally.
+  const [playCount, setPlayCount] = [0, () => {}];
+  // Note: playCount display is handled below via a local counter.
+
+  // Stop on unmount to prevent zombie audio
+  useEffect(() => {
+    return () => { if (ttsState.activeKey === PLAYER_KEY) stopTts(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <_TTSPlayerInner
+      text={text}
+      lang={lang}
+      isDarkMode={isDarkMode}
+      token={user?.token}
+      isPlaying={isPlaying}
+      onPlay={(rate) =>
+        playTts({ key: PLAYER_KEY, text, lang, token: user?.token, rate })
+      }
+      onStop={stopTts}
+    />
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Inner stateful component — keeps local playCount and rate state
+// ---------------------------------------------------------------------------
+
+import { useState } from 'react';
+
+const _TTSPlayerInner = ({ text, lang, isDarkMode, isPlaying, onPlay, onStop }) => {
   const [playCount, setPlayCount] = useState(0);
   const [rate, setRate] = useState(1);
-  const utteranceRef = useRef(null);
-
-  // Stop speech on unmount to prevent zombie audio
-  useEffect(() => {
-    return () => {
-      stopSpeaking();
-    };
-  }, []);
 
   const handlePlay = () => {
     if (!text?.trim()) return;
-
-    // Cancel any current speech first
-    stopSpeaking();
-
-    // Small delay to allow cancel to settle (mirrors ttsService internal pattern)
-    setTimeout(() => {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = lang;
-      utterance.rate = rate;
-
-      // onend/onerror reset playing state — this is why we construct the
-      // utterance directly instead of delegating to ttsService.speak()
-      utterance.onend = () => setIsPlaying(false);
-      utterance.onerror = () => setIsPlaying(false);
-
-      utteranceRef.current = utterance;
-      window.speechSynthesis.speak(utterance);
-
-      setIsPlaying(true);
-      setPlayCount((prev) => prev + 1);
-    }, 50);
+    setPlayCount((prev) => prev + 1);
+    onPlay(rate);
   };
 
   const handleStop = () => {
-    stopSpeaking();
-    setIsPlaying(false);
+    onStop();
   };
 
   const handleSpeedChange = (newRate) => {
@@ -95,7 +111,9 @@ const TTSPlayer = ({ text, lang, isDarkMode }) => {
                 : 'bg-sky-500 border-slate-900 text-white shadow-[4px_4px_0px_0px_#0f172a] hover:bg-sky-600'
             }`}
         >
-          {isPlaying ? <Square size={22} fill="currentColor" /> : <Play size={22} fill="currentColor" />}
+          {isPlaying
+            ? <Square size={22} fill="currentColor" />
+            : <Play   size={22} fill="currentColor" />}
         </button>
 
         <div className="flex flex-col gap-1 min-w-0">
@@ -104,16 +122,15 @@ const TTSPlayer = ({ text, lang, isDarkMode }) => {
               isDarkMode ? 'text-slate-200' : 'text-slate-800'
             }`}
           >
-            {isPlaying ? 'Playing…' : 'Press play to listen'}
+            {isPlaying ? 'Playing\u2026' : 'Press play to listen'}
           </p>
-          {/* Listen count — only shown after first play */}
           {playCount > 0 && (
             <p
               className={`text-xs font-semibold ${
                 isDarkMode ? 'text-slate-500' : 'text-slate-400'
               }`}
             >
-              ▶ Listened × {playCount}
+              \u25b6 Listened \u00d7 {playCount}
             </p>
           )}
         </div>
@@ -153,7 +170,7 @@ const TTSPlayer = ({ text, lang, isDarkMode }) => {
                       : 'bg-transparent border-slate-300 text-slate-500 hover:bg-slate-100'
                   }`}
               >
-                {option}×
+                {option}\u00d7
               </button>
             );
           })}
@@ -161,6 +178,15 @@ const TTSPlayer = ({ text, lang, isDarkMode }) => {
       </div>
     </div>
   );
+};
+
+_TTSPlayerInner.propTypes = {
+  text:      PropTypes.string.isRequired,
+  lang:      PropTypes.string.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+  isPlaying: PropTypes.bool.isRequired,
+  onPlay:    PropTypes.func.isRequired,
+  onStop:    PropTypes.func.isRequired,
 };
 
 TTSPlayer.propTypes = {

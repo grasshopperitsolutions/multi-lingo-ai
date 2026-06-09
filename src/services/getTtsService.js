@@ -7,13 +7,10 @@
  * Usage:
  *   import { speak, stopSpeaking } from '../services/getTtsService';
  *
- *   // Gemini TTS (primary)
+ *   // Gemini TTS (primary) — requires a Firebase ID token
  *   await speak('Olá mundo', 'pt-PT', { token: '...firebase-token...' });
  *
- *   // With explicit fallback
- *   await speak('Olá mundo', 'pt-PT', { token: '...', preferFallback: true });
- *
- *   // Web Speech API only (synchronous, no token needed)
+ *   // Force Web Speech API only (no token needed)
  *   speak('Olá mundo', 'pt-PT', { useFallback: true });
  *
  *   // With lifecycle callbacks
@@ -27,15 +24,22 @@
 // ---------------------------------------------------------------------------
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-const GEMINI_TTS_MODEL = 'gemini-3.5-flash-preview-tts';
-const WEB_SPEECH_RATE = 1.0;
+
+/**
+ * Current active Gemini TTS model.
+ * NOTE: 'gemini-3.5-flash-preview-tts' does NOT exist — never use it.
+ * Use 'gemini-2.5-flash-preview-tts' (current stable preview).
+ */
+const GEMINI_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
+const GEMINI_TTS_VOICE = 'Sulafat';
+const WEB_SPEECH_RATE  = 1.0;
 
 // ---------------------------------------------------------------------------
 // Global singleton — tracks the currently active onEnd callback so that
 // stopSpeaking() can notify the previous caller that playback was interrupted.
 // ---------------------------------------------------------------------------
 
-let _currentOnEnd = null;
+let _currentOnEnd   = null;
 let _currentOnError = null;
 
 // ---------------------------------------------------------------------------
@@ -48,15 +52,15 @@ let _currentOnError = null;
  * Uses Gemini TTS if a token is provided. Falls back to the Web Speech API
  * if Gemini fails or if `useFallback` is explicitly set.
  *
- * @param {string} text                    - Text to speak
- * @param {string} lang                    - BCP-47 locale, e.g. 'pt-PT', 'en-US'
+ * @param {string} text                      - Text to speak
+ * @param {string} lang                      - BCP-47 locale, e.g. 'pt-PT', 'en-US'
  * @param {object} [options]
- * @param {string}   [options.token]        - Firebase ID token (required for Gemini TTS)
- * @param {boolean}  [options.useFallback]  - Force Web Speech API only
- * @param {boolean}  [options.preferFallback] - Try Gemini first, fall back on error
- * @param {number}   [options.rate]         - Speech rate (Web Speech API only, default 1.0)
- * @param {Function} [options.onEnd]        - Called when playback ends naturally or is stopped
- * @param {Function} [options.onError]      - Called when playback fails
+ * @param {string}   [options.token]          - Firebase ID token (required for Gemini TTS)
+ * @param {boolean}  [options.useFallback]    - Force Web Speech API only
+ * @param {boolean}  [options.preferFallback] - Try Gemini first, fall back on error (default: true)
+ * @param {number}   [options.rate]           - Speech rate (Web Speech API fallback only, default 1.0)
+ * @param {Function} [options.onEnd]          - Called when playback ends naturally or is stopped
+ * @param {Function} [options.onError]        - Called when playback fails
  * @returns {Promise<boolean>} true if speech succeeded
  */
 export async function speak(
@@ -75,7 +79,7 @@ export async function speak(
 
   const _handleEnd = () => {
     if (_currentOnEnd) {
-      const cb = _currentOnEnd;
+      const cb    = _currentOnEnd;
       _currentOnEnd   = null;
       _currentOnError = null;
       cb();
@@ -84,7 +88,7 @@ export async function speak(
 
   const _handleError = (err) => {
     if (_currentOnError) {
-      const cb = _currentOnError;
+      const cb    = _currentOnError;
       _currentOnEnd   = null;
       _currentOnError = null;
       cb(err);
@@ -103,7 +107,7 @@ export async function speak(
     }
   }
 
-  // Option B: Web Speech API (fallback, synchronous-like)
+  // Option B: Web Speech API (fallback)
   _speakWithWebSpeech(text, lang, rate, _handleEnd, _handleError);
   return true;
 }
@@ -139,7 +143,7 @@ export function resumeSpeaking() {
  * Fires the registered onEnd callback of the interrupted session.
  */
 export function stopSpeaking() {
-  const onEnd = _currentOnEnd;
+  const onEnd    = _currentOnEnd;
   _currentOnEnd   = null;
   _currentOnError = null;
 
@@ -167,9 +171,11 @@ async function _speakWithGemini(token, text, lang, onEnd, onError) {
     body: JSON.stringify({
       prompt: text,
       providerParams: {
-        provider: 'gemini',
-        model: GEMINI_TTS_MODEL,
-        language: lang,
+        provider:  'gemini',
+        model:     GEMINI_TTS_MODEL,
+        tts:       true,
+        voice:     GEMINI_TTS_VOICE,
+        language:  lang,
       },
     }),
   });
@@ -184,11 +190,6 @@ async function _speakWithGemini(token, text, lang, onEnd, onError) {
 
   if (result?.audioUrl)  return _playAudioUrl(result.audioUrl, onEnd, onError);
   if (result?.audioData) return _playAudioBase64(result.audioData, result.mimeType || 'audio/wav', onEnd, onError);
-
-  if (json?.audioData || json?.audioUrl) {
-    if (json.audioUrl)  return _playAudioUrl(json.audioUrl, onEnd, onError);
-    if (json.audioData) return _playAudioBase64(json.audioData, json.mimeType || 'audio/wav', onEnd, onError);
-  }
 
   console.warn('[getTtsService] Unexpected Gemini TTS response shape', result);
   return false;
@@ -228,11 +229,11 @@ function _speakWithWebSpeech(text, lang, rate, onEnd, onError) {
     return;
   }
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang  = lang;
-  utterance.rate  = rate;
-  utterance.onend   = () => onEnd?.();
-  utterance.onerror = (e) => {
+  const utterance    = new SpeechSynthesisUtterance(text);
+  utterance.lang     = lang;
+  utterance.rate     = rate;
+  utterance.onend    = () => onEnd?.();
+  utterance.onerror  = (e) => {
     if (e?.error === 'interrupted' || e?.error === 'canceled') return;
     onError?.(e);
   };
