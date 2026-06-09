@@ -1020,7 +1020,7 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
           examMode={true}
           examPhase="generating"
           examSession={examSession}
-          onExamGenerate={handleGenerate}
+          onGenerate={handleGenerate}
           onExamSectionChange={handleSectionChange}
           isDarkMode={isDarkMode}
           timerRef={timerRef}
@@ -1062,7 +1062,7 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
           examMode={true}
           examPhase={phase}
           examSession={examSession}
-          onExamGenerate={handleGenerate}
+          onGenerate={handleGenerate}
           onExamSectionChange={handleSectionChange}
           isDarkMode={isDarkMode}
           timerRef={timerRef}
