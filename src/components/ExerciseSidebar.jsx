@@ -32,15 +32,23 @@
  *   maxWords         number
  *   wordCountPenalty number
  *   timerRef         ref
+ *
+ *   // Full Exam props (all optional, ignored when examMode=false)
+ *   examMode          bool
+ *   examPhase         'generating'|'listening'|'reading'|'writing'|'results'
+ *   examSession       object
+ *   onExamGenerate    func
+ *   onExamSectionChange func
  */
 
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { ChevronRight, RotateCcw } from "lucide-react";
+import { ChevronRight, RotateCcw, Headphones, BookOpen, PenLine, Play } from "lucide-react";
 import NeoDropdown from "./NeoDropdown";
 import ExamTimer from "./ExamTimer";
 import ConfirmModal from "./ConfirmModal";
+import { LevelBadge } from "./ui";
 
 const READING_TYPES = [
   { value: "random", label: "Random" },
@@ -71,6 +79,7 @@ const CEFR_LEVELS = [
 ];
 
 const ExerciseSidebar = ({
+  // Standard props
   exerciseType,
   level,
   onLevelChange,
@@ -90,6 +99,12 @@ const ExerciseSidebar = ({
   maxWords,
   wordCountPenalty,
   timerRef,
+  // Full Exam props
+  examMode,
+  examPhase,
+  examSession,
+  onExamGenerate,
+  onExamSectionChange,
 }) => {
   const { t } = useTranslation();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -115,6 +130,201 @@ const ExerciseSidebar = ({
     setShowResetConfirm(false);
   };
 
+  // ── Exam Mode ───────────────────────────────────────────────────────────────
+  if (examMode) {
+    const phase = examPhase ?? "generating";
+    const sessionLevel = examSession?.level ?? level;
+    const listeningCount = examSession?.sections?.listening?.exercises?.length ?? 0;
+    const readingCount = examSession?.sections?.reading?.exercises?.length ?? 0;
+    const hasScores = examSession?.finalScores != null;
+    const scores = examSession?.finalScores;
+
+    const phaseLabel = {
+      generating: t("exam.generating", "Generating..."),
+      listening: t("exam.full.section_listening", "Listening"),
+      reading: t("exam.full.section_reading", "Reading"),
+      writing: t("exam.full.section_writing", "Writing"),
+      results: t("exam.full.results_title", "Exam Results"),
+    };
+
+    // Count answered exercises per section
+    const countAnswered = (sectionExercises) => {
+      return (sectionExercises ?? []).filter((ex) => ex.answers && Object.keys(ex.answers).length > 0).length;
+    };
+
+    const listeningAnswered = countAnswered(examSession?.sections?.listening?.exercises);
+    const readingAnswered = countAnswered(examSession?.sections?.reading?.exercises);
+
+    const sidebarContent = (
+      <div className={`${panelBase} p-4 flex flex-col gap-4`}>
+        {/* Level badge (locked) */}
+        <div className="flex items-center gap-2">
+          <LevelBadge level={sessionLevel} isDarkMode={isDarkMode} color="rose" />
+          <span className={`text-xs font-black uppercase tracking-widest ${labelClass}`}>
+            {phaseLabel[phase] ?? phase}
+          </span>
+        </div>
+
+        {/* Pre-generation: Generate Exam button */}
+        {phase === "generating" && !examSession && (
+          <button
+            onClick={onExamGenerate}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-4 font-black text-sm uppercase tracking-wide transition-all active:scale-[0.98] ${
+              isDarkMode
+                ? "bg-rose-600 border-rose-500 text-white hover:bg-rose-500 shadow-[4px_4px_0px_0px_#1e293b]"
+                : "bg-rose-400 border-slate-900 text-slate-900 hover:bg-rose-300 shadow-[4px_4px_0px_0px_#0f172a]"
+            }`}
+          >
+            <Play size={14} /> {t("exam.full.generate_btn", "Generate Exam")}
+          </button>
+        )}
+
+        {/* Generating phase: show message */}
+        {phase === "generating" && examSession && (
+          <p className={`text-xs font-semibold ${isDarkMode ? "text-sky-400" : "text-sky-600"}`}>
+            {t("exam.generating", "Generating...")}
+          </p>
+        )}
+
+        {/* Post-generation: Section navigation */}
+        {["listening", "reading", "writing"].includes(phase) && (
+          <div className="flex flex-col gap-1.5">
+            <p className={`text-xs font-black uppercase tracking-widest ${labelClass}`}>
+              {t("exam_exercises.text", "Sections")}
+            </p>
+            {/* Listening row */}
+            <button
+              onClick={() => onExamSectionChange?.("listening")}
+              disabled={phase === "generating"}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${
+                phase === "listening"
+                  ? isDarkMode
+                    ? "border-sky-500 bg-sky-500/20 text-sky-300"
+                    : "border-sky-500 bg-sky-50 text-sky-700"
+                  : isDarkMode
+                    ? "border-transparent text-slate-400 hover:bg-slate-700"
+                    : "border-transparent text-slate-500 hover:bg-slate-100"
+              }`}
+            >
+              <Headphones size={14} />
+              <span className="text-xs font-bold flex-1">{t("exam.full.section_listening", "Listening")}</span>
+              <span className="text-xs font-black tabular-nums">
+                {Array.from({ length: listeningCount }, (_, i) => (
+                  <span key={i} className={i < listeningAnswered ? "text-emerald-400" : "text-slate-500"}>
+                    {i < listeningAnswered ? "●" : "○"}
+                  </span>
+                ))}
+              </span>
+            </button>
+
+            {/* Reading row */}
+            <button
+              onClick={() => onExamSectionChange?.("reading")}
+              disabled={phase === "generating"}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${
+                phase === "reading"
+                  ? isDarkMode
+                    ? "border-teal-500 bg-teal-500/20 text-teal-300"
+                    : "border-teal-500 bg-teal-50 text-teal-700"
+                  : isDarkMode
+                    ? "border-transparent text-slate-400 hover:bg-slate-700"
+                    : "border-transparent text-slate-500 hover:bg-slate-100"
+              }`}
+            >
+              <BookOpen size={14} />
+              <span className="text-xs font-bold flex-1">{t("exam.full.section_reading", "Reading")}</span>
+              <span className="text-xs font-black tabular-nums">
+                {Array.from({ length: readingCount }, (_, i) => (
+                  <span key={i} className={i < readingAnswered ? "text-emerald-400" : "text-slate-500"}>
+                    {i < readingAnswered ? "●" : "○"}
+                  </span>
+                ))}
+              </span>
+            </button>
+
+            {/* Writing row */}
+            <button
+              onClick={() => onExamSectionChange?.("writing")}
+              disabled={phase === "generating"}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${
+                phase === "writing"
+                  ? isDarkMode
+                    ? "border-amber-500 bg-amber-500/20 text-amber-300"
+                    : "border-amber-500 bg-amber-50 text-amber-700"
+                  : isDarkMode
+                    ? "border-transparent text-slate-400 hover:bg-slate-700"
+                    : "border-transparent text-slate-500 hover:bg-slate-100"
+              }`}
+            >
+              <PenLine size={14} />
+              <span className="text-xs font-bold flex-1">{t("exam.full.section_writing", "Writing")}</span>
+              <span className="text-xs font-black text-slate-500">&mdash;</span>
+            </button>
+          </div>
+        )}
+
+        {/* Timer */}
+        <ExamTimer ref={timerRef} isDarkMode={isDarkMode} />
+      </div>
+    );
+
+    // Score panel (only when results phase)
+    const scorePanel = hasScores && scores && (
+      <div className={`${panelBase} p-4 flex flex-col gap-3`}>
+        <p className={`text-xs font-black uppercase tracking-widest ${labelClass}`}>
+          {t("exam.full.total_score", "Total Score")}
+        </p>
+        <p className={`text-4xl font-black tabular-nums leading-none ${
+          isDarkMode ? "text-white" : "text-slate-900"
+        }`}>
+          {scores.total}
+          <span className={`text-lg font-bold ${labelClass}`}>/{scores.totalMax}</span>
+        </p>
+        <p className={`text-xs font-bold ${labelClass}`}>
+          {scores.totalMax > 0 ? Math.round((scores.total / scores.totalMax) * 100) : 0}%
+        </p>
+        {/* Sub-scores */}
+        <div className={`pt-2 border-t-2 ${isDarkMode ? "border-slate-700" : "border-slate-200"} flex flex-col gap-1.5`}>
+          <div className="flex justify-between text-xs font-bold">
+            <span className={isDarkMode ? "text-sky-400" : "text-sky-600"}>
+              {t("exam.full.section_listening", "Listening")}:
+            </span>
+            <span className={labelClass}>{scores.listening}/{scores.listeningMax}</span>
+          </div>
+          <div className="flex justify-between text-xs font-bold">
+            <span className={isDarkMode ? "text-teal-400" : "text-teal-600"}>
+              {t("exam.full.section_reading", "Reading")}:
+            </span>
+            <span className={labelClass}>{scores.reading}/{scores.readingMax}</span>
+          </div>
+          <div className="flex justify-between text-xs font-bold">
+            <span className={isDarkMode ? "text-amber-400" : "text-amber-600"}>
+              {t("exam.full.section_writing", "Writing")}:
+            </span>
+            <span className={labelClass}>{scores.writing}/{scores.writingMax}</span>
+          </div>
+        </div>
+      </div>
+    );
+
+    return (
+      <>
+        {/* Desktop sidebar */}
+        <aside className="hidden lg:flex flex-col gap-4 w-64 shrink-0">
+          {sidebarContent}
+          {scorePanel}
+        </aside>
+
+        {/* Mobile bottom strip */}
+        <div className={`lg:hidden order-last w-full flex flex-col gap-4`}>
+          {sidebarContent}
+          {scorePanel}
+        </div>
+      </>
+    );
+  }
+
+  // ── Standard (non-exam) Mode ──────────────────────────────────────────────
   // ── Controls ───────────────────────────────────────────────────────────────
   const controls = (
     <>
@@ -294,13 +504,13 @@ const ExerciseSidebar = ({
 };
 
 ExerciseSidebar.propTypes = {
-  exerciseType: PropTypes.oneOf(["reading", "listening", "writing"]).isRequired,
-  level: PropTypes.string.isRequired,
-  onLevelChange: PropTypes.func.isRequired,
+  exerciseType: PropTypes.oneOf(["reading", "listening", "writing"]),
+  level: PropTypes.string,
+  onLevelChange: PropTypes.func,
   questionType: PropTypes.string,
   onQuestionTypeChange: PropTypes.func,
-  onGenerate: PropTypes.func.isRequired,
-  loading: PropTypes.bool.isRequired,
+  onGenerate: PropTypes.func,
+  loading: PropTypes.bool,
   isDarkMode: PropTypes.bool.isRequired,
   seenExerciseCount: PropTypes.number,
   onReset: PropTypes.func,
@@ -313,11 +523,22 @@ ExerciseSidebar.propTypes = {
   maxWords: PropTypes.number,
   wordCountPenalty: PropTypes.number,
   timerRef: PropTypes.shape({ current: PropTypes.object }),
+  // Full Exam props
+  examMode: PropTypes.bool,
+  examPhase: PropTypes.oneOf(["generating", "listening", "reading", "writing", "results"]),
+  examSession: PropTypes.object,
+  onExamGenerate: PropTypes.func,
+  onExamSectionChange: PropTypes.func,
 };
 
 ExerciseSidebar.defaultProps = {
+  exerciseType: "reading",
+  level: "A1",
+  onLevelChange: () => {},
   questionType: "random",
   onQuestionTypeChange: () => {},
+  onGenerate: () => {},
+  loading: false,
   seenExerciseCount: 0,
   onReset: () => Promise.resolve(),
   isResetting: false,
@@ -329,6 +550,12 @@ ExerciseSidebar.defaultProps = {
   maxWords: null,
   wordCountPenalty: null,
   timerRef: { current: null },
+  // Full Exam defaults
+  examMode: false,
+  examPhase: "generating",
+  examSession: null,
+  onExamGenerate: () => {},
+  onExamSectionChange: () => {},
 };
 
 export default ExerciseSidebar;

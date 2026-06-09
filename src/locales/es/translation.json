@@ -526,6 +526,33 @@
       "b2": "B2 - Intermedio Alto",
       "c1": "C1 - Avanzado",
       "c2": "C2 - Proficiente"
+    },
+    "full": {
+      "gen_step_level": "Leyendo tu nivel...",
+      "gen_step_listening": "Creando escenarios auditivos...",
+      "gen_step_reading": "Construyendo textos de lectura...",
+      "gen_step_writing": "Diseñando tu tarea de escritura...",
+      "gen_step_done": "¡Tu examen está listo!",
+      "section_listening": "Comprensión Auditiva",
+      "section_reading": "Lectura",
+      "section_writing": "Escritura",
+      "exercise_of": "Ejercicio {{n}} de {{total}}",
+      "finish_listening": "Finalizar Comprensión Auditiva",
+      "finish_reading": "Finalizar Lectura",
+      "submit_exam": "Enviar Examen Completo",
+      "submit_confirm_title": "¿Enviar tu Examen?",
+      "submit_confirm_message": "Una vez enviado, tus respuestas se bloquearán y serán evaluadas.",
+      "results_title": "Resultados del Examen",
+      "total_score": "Puntuación Total",
+      "start_new": "Iniciar Nuevo Examen",
+      "instructions_listening": "Escucha el audio y responde las preguntas.",
+      "instructions_reading": "Lee el texto y responde las preguntas.",
+      "instructions_writing": "Escribe un texto basado en el tema a continuación.",
+      "instructions_translated": "Las instrucciones traducidas a tu idioma se muestran a continuación.",
+      "time_listening": "Tiempo sugerido: 30 min",
+      "time_reading_writing": "Tiempo sugerido: 45 min",
+      "generate_btn": "Generar Examen",
+      "start_btn": "Iniciar Examen"
     }
   },
   "exam_exercises": {

@@ -522,6 +522,33 @@
       "b2": "B2 - Intermédiaire Supérieur",
       "c1": "C1 - Avancé",
       "c2": "C2 - Compétent"
+    },
+    "full": {
+      "gen_step_level": "Lecture de ton niveau...",
+      "gen_step_listening": "Création de scénarios d'écoute...",
+      "gen_step_reading": "Création de textes de lecture...",
+      "gen_step_writing": "Conception de ta tâche d'écriture...",
+      "gen_step_done": "Ton examen est prêt !",
+      "section_listening": "Compréhension Orale",
+      "section_reading": "Lecture",
+      "section_writing": "Écriture",
+      "exercise_of": "Exercice {{n}} sur {{total}}",
+      "finish_listening": "Terminer la Compréhension Orale",
+      "finish_reading": "Terminer la Lecture",
+      "submit_exam": "Soumettre l'Examen Complet",
+      "submit_confirm_title": "Soumettre ton Examen ?",
+      "submit_confirm_message": "Une fois soumis, tes réponses seront verrouillées et notées.",
+      "results_title": "Résultats de l'Examen",
+      "total_score": "Score Total",
+      "start_new": "Commencer un Nouvel Examen",
+      "instructions_listening": "Écoute l'audio et réponds aux questions.",
+      "instructions_reading": "Lis le texte et réponds aux questions.",
+      "instructions_writing": "Écris un texte basé sur le sujet ci-dessous.",
+      "instructions_translated": "Les instructions traduites dans ta langue sont affichées ci-dessous.",
+      "time_listening": "Temps suggéré : 30 min",
+      "time_reading_writing": "Temps suggéré : 45 min",
+      "generate_btn": "Générer l'Examen",
+      "start_btn": "Commencer l'Examen"
     }
   },
   "exam_exercises": {

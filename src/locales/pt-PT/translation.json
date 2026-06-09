@@ -522,6 +522,33 @@
       "b2": "B2 - Independente",
       "c1": "C1 - Avançado",
       "c2": "C2 - Proficiente"
+    },
+    "full": {
+      "gen_step_level": "A ler o teu nível...",
+      "gen_step_listening": "A criar cenários auditivos...",
+      "gen_step_reading": "A construir textos de leitura...",
+      "gen_step_writing": "A desenhar a tua tarefa de escrita...",
+      "gen_step_done": "O teu exame está pronto!",
+      "section_listening": "Compreensão Auditiva",
+      "section_reading": "Leitura",
+      "section_writing": "Escrita",
+      "exercise_of": "Exercício {{n}} de {{total}}",
+      "finish_listening": "Terminar Compreensão Auditiva",
+      "finish_reading": "Terminar Leitura",
+      "submit_exam": "Submeter Exame Completo",
+      "submit_confirm_title": "Submeter o Teu Exame?",
+      "submit_confirm_message": "Depois de submetido, as tuas respostas serão bloqueadas e avaliadas.",
+      "results_title": "Resultados do Exame",
+      "total_score": "Pontuação Total",
+      "start_new": "Iniciar Novo Exame",
+      "instructions_listening": "Ouve o áudio e responde às perguntas.",
+      "instructions_reading": "Lê o texto e responde às perguntas.",
+      "instructions_writing": "Escreve um texto com base no tópico abaixo.",
+      "instructions_translated": "As instruções traduzidas para a tua língua são mostradas abaixo.",
+      "time_listening": "Tempo sugerido: 30 min",
+      "time_reading_writing": "Tempo sugerido: 45 min",
+      "generate_btn": "Gerar Exame",
+      "start_btn": "Iniciar Exame"
     }
   },
   "exam_exercises": {

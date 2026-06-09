@@ -522,6 +522,33 @@
       "b2": "B2 - Upper Intermediate",
       "c1": "C1 - Advanced",
       "c2": "C2 - Proficient"
+    },
+    "full": {
+      "gen_step_level": "Reading your level...",
+      "gen_step_listening": "Crafting listening scenarios...",
+      "gen_step_reading": "Building reading passages...",
+      "gen_step_writing": "Designing your writing task...",
+      "gen_step_done": "Your exam is ready!",
+      "section_listening": "Listening",
+      "section_reading": "Reading",
+      "section_writing": "Writing",
+      "exercise_of": "Exercise {{n}} of {{total}}",
+      "finish_listening": "Finish Listening",
+      "finish_reading": "Finish Reading",
+      "submit_exam": "Submit Full Exam",
+      "submit_confirm_title": "Submit Your Exam?",
+      "submit_confirm_message": "Once submitted, your answers will be locked and scored.",
+      "results_title": "Exam Results",
+      "total_score": "Total Score",
+      "start_new": "Start New Exam",
+      "instructions_listening": "Listen to the audio and answer the questions.",
+      "instructions_reading": "Read the passage and answer the questions.",
+      "instructions_writing": "Write a text based on the prompt below.",
+      "instructions_translated": "Instructions translated to your language are shown below.",
+      "time_listening": "Suggested time: 30 min",
+      "time_reading_writing": "Suggested time: 45 min",
+      "generate_btn": "Generate Exam",
+      "start_btn": "Start Exam"
     }
   },
   "exam_exercises": {

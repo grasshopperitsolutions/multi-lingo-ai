@@ -522,6 +522,33 @@
       "b2": "B2 - Obere Mittelstufe",
       "c1": "C1 - Fortgeschritten",
       "c2": "C2 - Kompetent"
+    },
+    "full": {
+      "gen_step_level": "Dein Niveau wird gelesen...",
+      "gen_step_listening": "Hörszenarien werden erstellt...",
+      "gen_step_reading": "Lesetexte werden erstellt...",
+      "gen_step_writing": "Deine Schreibaufgabe wird entworfen...",
+      "gen_step_done": "Deine Prüfung ist bereit!",
+      "section_listening": "Hörverständnis",
+      "section_reading": "Lesen",
+      "section_writing": "Schreiben",
+      "exercise_of": "Übung {{n}} von {{total}}",
+      "finish_listening": "Hörverständnis abschließen",
+      "finish_reading": "Lesen abschließen",
+      "submit_exam": "Vollständige Prüfung einreichen",
+      "submit_confirm_title": "Deine Prüfung einreichen?",
+      "submit_confirm_message": "Nach der Einreichung werden deine Antworten gesperrt und bewertet.",
+      "results_title": "Prüfungsergebnisse",
+      "total_score": "Gesamtpunktzahl",
+      "start_new": "Neue Prüfung starten",
+      "instructions_listening": "Höre dir das Audio an und beantworte die Fragen.",
+      "instructions_reading": "Lies den Text und beantworte die Fragen.",
+      "instructions_writing": "Schreibe einen Text basierend auf der untenstehenden Aufgabe.",
+      "instructions_translated": "Übersetzte Anweisungen für deine Sprache werden unten angezeigt.",
+      "time_listening": "Empfohlene Zeit: 30 Min",
+      "time_reading_writing": "Empfohlene Zeit: 45 Min",
+      "generate_btn": "Prüfung generieren",
+      "start_btn": "Prüfung starten"
     }
   },
   "exam_exercises": {

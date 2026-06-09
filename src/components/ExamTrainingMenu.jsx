@@ -10,6 +10,7 @@ import { Breadcrumb } from './ui';
 const ListeningExercise = lazy(() => import('./ListeningExercise'));
 const ReadingExercise    = lazy(() => import('./ReadingExercise'));
 const WritingExercise    = lazy(() => import('./WritingExercise'));
+const FullExamExercise   = lazy(() => import('./FullExamExercise'));
 
 // ── Exercise Registry ─────────────────────────────────────────────────────────
 const EXERCISES = [
@@ -55,8 +56,8 @@ const EXERCISES = [
     color: "bg-rose-400",
     titleKey: "exam.full_exam",
     descKey: "exam.full_exam_desc",
-    component: null,
-    comingSoon: true,
+    component: FullExamExercise,
+    comingSoon: false,
   },
 ];
 

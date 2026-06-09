@@ -49,6 +49,24 @@ export const AppProvider = ({ children }) => {
   const [tokenExpired, setTokenExpired] = useState(false);
   const tokenCheckRef = useRef(null);
 
+  // ── Full Exam session state ────────────────────────────────────────────
+  const [examSession, setExamSession] = useState(null);
+
+  const updateExamSection = useCallback((section, patch) =>
+    setExamSession(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        sections: {
+          ...prev.sections,
+          [section]: {
+            ...prev.sections[section],
+            ...patch,
+          },
+        },
+      };
+    }), []);
+
   const showAlert = (type, message, action = null) => {
     setAlert({ show: true, type, message, action });
   };
@@ -297,6 +315,7 @@ export const AppProvider = ({ children }) => {
       await logoutUserService();
       setUser(null);
       setIsDarkMode(false);
+      setExamSession(null);
       return { success: true };
     } catch (e) {
       showAlert("error", e.message);
@@ -323,6 +342,10 @@ export const AppProvider = ({ children }) => {
         handleTokenExpired,
         dismissTokenExpired,
         validateToken,
+        // Full Exam session
+        examSession,
+        setExamSession,
+        updateExamSection,
       }}
     >
       {children}
