@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { Headphones, BookOpen, PenLine, Mic, ClipboardList } from 'lucide-react';
+import { Headphones, BookOpen, PenLine, ClipboardList } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import ReportButton from './ReportButton';
 import { Breadcrumb } from './ui';
@@ -40,15 +40,6 @@ const EXERCISES = [
     descKey: 'exam.writing_desc',
     component: WritingExercise,
     comingSoon: false,
-  },
-  {
-    id: 'speaking',
-    icon: Mic,
-    color: 'bg-purple-500',
-    titleKey: 'exam.speaking',
-    descKey: 'exam.speaking_desc',
-    component: null,
-    comingSoon: true,
   },
   {    
     id: "full_exam",
