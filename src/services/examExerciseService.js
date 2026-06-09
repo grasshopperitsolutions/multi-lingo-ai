@@ -23,6 +23,7 @@
  *     level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"
  *     targetLang: "pt-PT" | "en-US"
  *     questionType: string (for reading: "multiple-choice" | "true-false" | "best-title" | "ordering" | "cloze" | "fill-blanks" | "matching" | "notice-sign")
+ *                        (for listening: "multiple-choice" | "true-false" | "fill-blanks")
  *     status: "ready" | "draft" | "blocked"
  *     aiGenerated: boolean
  *     verified: boolean
@@ -75,7 +76,7 @@ import { generateReadingExercise } from './examReadingExerciseService';
  * @property {string}    exerciseId       - examExercises document ID
  * @property {string}    type             - Exercise type
  * @property {string}    level            - CEFR level
- * @property {string}    [questionType]   - Question type (for reading exercises)
+ * @property {string}    [questionType]   - Question type (for reading and listening exercises)
  * @property {'db'|'ai'} source           - Where it came from
  * @property {Object}    content          - Exercise content (writing/reading/listening)
  */
@@ -260,6 +261,11 @@ async function _writeNewExercise(generated, targetLang, token) {
     exerciseData.questionType = generated.questionType;
   }
 
+  // Add questionType for listening exercises (hoisted from content.exerciseType)
+  if (generated.type === 'listening' && generated.questionType) {
+    exerciseData.questionType = generated.questionType;
+  }
+
   const exerciseResponse = await fetch(`${PROXY_URL}/api/firestore`, {
     method: 'POST',
     headers: {
@@ -314,6 +320,10 @@ async function _writeExerciseContent(exerciseId, locale, generated, token) {
     }
   } else if (generated.type === 'listening') {
     contentData.listening = generated.content;
+    // Also store questionType at the content document level for easier querying
+    if (generated.questionType) {
+      contentData.questionType = generated.questionType;
+    }
   }
 
   const response = await fetch(`${PROXY_URL}/api/firestore`, {
@@ -367,6 +377,7 @@ async function _generateNewExercise({ type, level, questionType, targetLang }, t
       type: 'listening',
       level,
       targetLang,
+      questionType: content.exerciseType,  // hoist exerciseType from content to root level
       content,
     };
   }
