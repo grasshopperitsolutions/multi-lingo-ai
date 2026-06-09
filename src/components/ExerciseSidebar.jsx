@@ -43,7 +43,7 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { ChevronRight, RotateCcw, Headphones, BookOpen, PenLine, Play } from "lucide-react";
+import { ChevronRight, RotateCcw, Headphones, BookOpen, PenLine } from "lucide-react";
 import NeoDropdown from "./NeoDropdown";
 import ExamTimer from "./ExamTimer";
 import ConfirmModal from "./ConfirmModal";
@@ -266,35 +266,6 @@ const ExerciseSidebar = ({
     </div>
   );
 
-  // Exam generating message / pre-gen level + generate button
-  const examGenerateSection = examMode && phase === "generating" && !examSession && (
-    <>
-      <NeoDropdown
-        options={CEFR_LEVELS}
-        value={level}
-        onChange={onLevelChange}
-        isDarkMode={isDarkMode}
-        label={t("exam.sidebar.level", "Level")}
-      />
-      <button
-        onClick={onGenerate}
-        className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-4 font-black text-sm uppercase tracking-wide transition-all active:scale-[0.98] ${
-          isDarkMode
-            ? "bg-rose-600 border-rose-500 text-white hover:bg-rose-500 shadow-[4px_4px_0px_0px_#1e293b]"
-            : "bg-rose-400 border-slate-900 text-slate-900 hover:bg-rose-300 shadow-[4px_4px_0px_0px_#0f172a]"
-        }`}
-      >
-        <Play size={14} /> {t("exam.full.generate_btn", "Generate Exam")}
-      </button>
-    </>
-  );
-
-  const examGeneratingMessage = examMode && phase === "generating" && examSession && (
-    <p className={`text-xs font-semibold ${isDarkMode ? "text-sky-400" : "text-sky-600"}`}>
-      {t("exam.generating", "Generating...")}
-    </p>
-  );
-
   const examPhaseBadge = examMode && ["listening", "reading", "writing"].includes(phase) && (
     <div className="flex items-center gap-2">
       <LevelBadge level={sessionLevel} isDarkMode={isDarkMode} color="rose" />
@@ -307,12 +278,10 @@ const ExerciseSidebar = ({
   // ── Shared Controls ──────────────────────────────────────────────────────
   const controls = (
     <>
-      {examGenerateSection}
-      {examGeneratingMessage}
       {examPhaseBadge}
       {examSectionNav}
 
-      {!examMode && (
+      {(!examMode || (examMode && phase === "generating" && !examSession)) && (
         <NeoDropdown
           options={CEFR_LEVELS}
           value={level}
@@ -332,7 +301,7 @@ const ExerciseSidebar = ({
         />
       )}
 
-      {!examMode && (
+      {(!examMode || (examMode && phase === "generating" && !examSession)) && (
         <button
           onClick={onGenerate}
           disabled={loading}
@@ -348,7 +317,7 @@ const ExerciseSidebar = ({
         </button>
       )}
 
-      {!examMode && (
+      {(!examMode || (examMode && phase === "generating" && !examSession)) && (
         <button
           onClick={() => setShowResetConfirm(true)}
           disabled={seenExerciseCount === 0 || isResetting}
