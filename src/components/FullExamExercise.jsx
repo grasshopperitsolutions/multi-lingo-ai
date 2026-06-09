@@ -7,13 +7,12 @@
  * Phases: generating → listening → reading → writing → results
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { ClipboardList, ChevronLeft, ChevronRight, Check, Loader as LoaderIcon } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import ExerciseSidebar from "./ExerciseSidebar";
-import Loader from "./Loader";
 import ReportButton from "./ReportButton";
 import ConfirmModal from "./ConfirmModal";
 import TTSPlayer from "./TTSPlayer";
@@ -159,23 +158,8 @@ ExamGenerationStep.propTypes = {
 // ═══════════════════════════════════════════════════════════════════════════════
 // ExamGenerationLoader — full step list during generation phase
 // ═══════════════════════════════════════════════════════════════════════════════
-const ROTATING_KEYS = [
-  "exam.full.gen_step_listening",
-  "exam.full.gen_step_reading",
-  "exam.full.gen_step_writing",
-  "exam.full.gen_step_done",
-];
-
 const ExamGenerationLoader = ({ steps, isDarkMode }) => {
   const { t } = useTranslation();
-  const [rotatingIndex, setRotatingIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRotatingIndex((prev) => (prev + 1) % ROTATING_KEYS.length);
-    }, 2500);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="flex flex-col gap-6">
@@ -195,14 +179,6 @@ const ExamGenerationLoader = ({ steps, isDarkMode }) => {
               isDarkMode={isDarkMode}
             />
           ))}
-        </div>
-      </Card>
-      <Card isDarkMode={isDarkMode}>
-        <p className={`text-sm font-semibold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-          {t(ROTATING_KEYS[rotatingIndex])}
-        </p>
-        <div className="mt-3">
-          <Loader isDarkMode={isDarkMode} message="" />
         </div>
       </Card>
     </div>
