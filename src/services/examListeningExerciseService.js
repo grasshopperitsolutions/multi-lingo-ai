@@ -14,7 +14,7 @@
 import { getListeningPrompt } from './examPromptTemplates';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-const GEMINI_MODEL = 'gemini-3.5-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 const MAX_OUTPUT_TOKENS_BY_LEVEL = {
   A1: 2048, A2: 3072, B1: 4096, B2: 4096, C1: 6144, C2: 6144,
