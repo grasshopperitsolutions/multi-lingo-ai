@@ -20,9 +20,12 @@ import Loader from "./Loader";
 // ---------------------------------------------------------------------------
 
 const GAME_ID    = "word_search";
-const GRID_SIZE  = 10;
+const GRID_COLS  = 10;   // horizontal columns
+const GRID_ROWS  = 15;   // vertical rows
 const WORD_COUNT = 10;
-const MAX_LENGTH = GRID_SIZE;
+// Words can be placed vertically up to GRID_ROWS letters long.
+// Horizontal words are still capped by GRID_COLS inside _placeWord.
+const MAX_LENGTH = GRID_ROWS;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -46,9 +49,8 @@ const formatTime = (seconds) => {
 const GridCell = ({ letter, isSelected, isFound, onClick, isDarkMode }) => {
   let bg, text, border;
 
-  // FIX: isSelected takes priority over isFound so the user sees yellow
-  // feedback when tapping a crossing letter that already belongs to a found
-  // word. Once they complete the second word it reverts to green.
+  // isSelected takes priority over isFound so the user sees yellow feedback
+  // when tapping a crossing letter that already belongs to a found word.
   if (isSelected) {
     bg     = isDarkMode ? "bg-yellow-400"  : "bg-yellow-300";
     text   = "text-slate-900";
@@ -142,33 +144,33 @@ const WordSearchGame = ({ isDarkMode }) => {
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
 
-  // ── Game data ─────────────────────────────────────────────────────────────────────
+  // ── Game data ────────────────────────────────────────────────────────────
   const [words,      setWords]      = useState([]);
   const [grid,       setGrid]       = useState([]);
   const [placements, setPlacements] = useState([]);
 
-  // ── Interaction state ──────────────────────────────────────────────────────────────────────────────
+  // ── Interaction state ────────────────────────────────────────────────────
   const [selectedCells, setSelectedCells] = useState([]);
   const [foundCells,    setFoundCells]    = useState(new Set());
   const [foundWords,    setFoundWords]    = useState(new Set());
   const [flashCells,    setFlashCells]    = useState(new Set());
 
-  // ── Timer ────────────────────────────────────────────────────────────────────────────────────────────
+  // ── Timer ────────────────────────────────────────────────────────────────
   const [elapsed,  setElapsed]  = useState(0);
   const [gameWon,  setGameWon]  = useState(false);
   const timerRef = useRef(null);
 
-  // ── Loading / error ──────────────────────────────────────────────────────────────────────────────
+  // ── Loading / error ──────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
 
-  // ── Sidebar stats ───────────────────────────────────────────────────────────────────────────────
+  // ── Sidebar stats ────────────────────────────────────────────────────────
   const [progress,       setProgress]       = useState(null);
   const [seenCount,      setSeenCount]      = useState(0);
   const [totalWords,     setTotalWords]     = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  // ── Refs ───────────────────────────────────────────────────────────────────────────────────────────
+  // ── Refs ─────────────────────────────────────────────────────────────────
   const progressRef      = useRef(null);
   const markedRef        = useRef(new Set());
   const gameRecordedRef  = useRef(false);
@@ -177,14 +179,14 @@ const WordSearchGame = ({ isDarkMode }) => {
     progressRef.current = progress;
   }, [progress]);
 
-  // ── Timer management ────────────────────────────────────────────────────────────────────────────
+  // ── Timer management ─────────────────────────────────────────────────────
   useEffect(() => {
     if (loading || gameWon) return;
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(timerRef.current);
   }, [loading, gameWon]);
 
-  // ── Stats fetch ───────────────────────────────────────────────────────────────────────────────
+  // ── Stats fetch ───────────────────────────────────────────────────────────
   const fetchStats = useCallback(async () => {
     if (!user?.token || !user?.uid) return;
     setIsLoadingStats(true);
@@ -204,7 +206,7 @@ const WordSearchGame = ({ isDarkMode }) => {
     }
   }, [user, learningDialect]);
 
-  // ── Core word fetch — reads global seenConceptIds ────────────────────────────────────────
+  // ── Core word fetch — reads global seenConceptIds ────────────────────────
   const fetchAllWords = useCallback(async () => {
     if (!user) throw new Error(t("challenges.word_fetch_error"));
     const { token, uid } = user;
@@ -243,7 +245,8 @@ const WordSearchGame = ({ isDarkMode }) => {
 
     const { grid: newGrid, placements: newPlacements, placedWords } = buildGrid(
       wordEntries,
-      GRID_SIZE,
+      GRID_COLS,
+      GRID_ROWS,
       false
     );
 
@@ -341,14 +344,14 @@ const WordSearchGame = ({ isDarkMode }) => {
     return () => { cancelled = true; };
   }, [fetchAllWords, applyWords, user, t]);
 
-  // ── Reset seen words — global reset ─────────────────────────────────────────────────────
+  // ── Reset seen words — global reset ──────────────────────────────────────
   const handleResetSeenWords = useCallback(async () => {
     if (!user?.token || !user?.uid) return;
     await resetAllSeenWords(user.token, user.uid);
     await fetchStats();
   }, [user, fetchStats]);
 
-  // ── Win detection ─────────────────────────────────────────────────────────────────────────────
+  // ── Win detection ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (words.length === 0 || loading) return;
     if (foundWords.size < words.length) return;
@@ -366,11 +369,10 @@ const WordSearchGame = ({ isDarkMode }) => {
       .catch((err) => console.warn("[WordSearchGame] recordPlay failed:", err));
   }, [foundWords, words, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Cell tap handler ────────────────────────────────────────────────────────────────────────────
+  // ── Cell tap handler ──────────────────────────────────────────────────────
   const handleCellTap = useCallback((row, col) => {
     if (gameWon) return;
 
-    // FIX: Removed `if (foundCells.has(key)) return` guard here.
     // A cell that belongs to an already-found word must still be tappable
     // so that crossing words that share that letter can be selected.
 
@@ -412,14 +414,10 @@ const WordSearchGame = ({ isDarkMode }) => {
         if (!markedRef.current.has(matchedPlacement.conceptId) && user?.token && user?.uid) {
           markedRef.current.add(matchedPlacement.conceptId);
 
-          // Update local progress optimistically (for sidebar display)
-          const updatedProgress = {
-            ...(progressRef.current ?? {}),
-          };
+          const updatedProgress = { ...(progressRef.current ?? {}) };
           progressRef.current = updatedProgress;
           setProgress(updatedProgress);
 
-          // Write to global seen list
           getGlobalSeenIds(user.token, user.uid)
             .then((currentSeenIds) =>
               markConceptSeenGlobal(
@@ -438,9 +436,9 @@ const WordSearchGame = ({ isDarkMode }) => {
 
       return next;
     });
-  }, [gameWon, placements, user, fetchStats]); // FIX: removed foundCells from deps (no longer needed)
+  }, [gameWon, placements, user, fetchStats]);
 
-  // ── Shared sidebar props ───────────────────────────────────────────────────────────────────────
+  // ── Shared sidebar props ──────────────────────────────────────────────────
   const sidebarProps = {
     isDarkMode,
     seenCount,
@@ -455,12 +453,12 @@ const WordSearchGame = ({ isDarkMode }) => {
     resetConfirmLabel: t("challenges.sidebar.reset_confirm"),
   };
 
-  // ── Loading ────────────────────────────────────────────────────────────────────────────────────────────
+  // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return <Loader isDarkMode={isDarkMode} message={t("challenges.loading_word")} />;
   }
 
-  // ── Error ────────────────────────────────────────────────────────────────────────────────────────────
+  // ── Error ─────────────────────────────────────────────────────────────────
   if (error) {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in gap-4">
@@ -477,7 +475,7 @@ const WordSearchGame = ({ isDarkMode }) => {
     );
   }
 
-  // ── Victory screen ───────────────────────────────────────────────────────────────────────────────
+  // ── Victory screen ────────────────────────────────────────────────────────
   if (gameWon) {
     return (
       <div className="flex flex-col lg:flex-row items-start gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95">
@@ -515,7 +513,7 @@ const WordSearchGame = ({ isDarkMode }) => {
     );
   }
 
-  // ── Game render ───────────────────────────────────────────────────────────────────────────────────
+  // ── Game render ───────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col lg:flex-row items-start gap-6 w-full max-w-5xl mx-auto animate-in fade-in zoom-in-95">
 
@@ -553,7 +551,7 @@ const WordSearchGame = ({ isDarkMode }) => {
           className={`rounded-2xl border-4 p-2 sm:p-3 inline-grid gap-0.5 sm:gap-1 ${
             isDarkMode ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
           }`}
-          style={{ gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(${GRID_COLS}, minmax(0, 1fr))` }}
         >
           {grid.map((row, rIdx) =>
             row.map((cell, cIdx) => {
@@ -565,7 +563,7 @@ const WordSearchGame = ({ isDarkMode }) => {
                 <GridCell
                   key={key}
                   letter={isFlash ? "\u2717" : cell.letter}
-                  isSelected={isSel}          // FIX: was `isSel && !isFnd` — that masked selection on found cells
+                  isSelected={isSel}
                   isFound={isFnd}
                   onClick={() => handleCellTap(rIdx, cIdx)}
                   isDarkMode={isDarkMode}

@@ -5,7 +5,7 @@
  * No React, no services — fully testable in isolation.
  *
  * Exports:
- *   buildGrid(words, gridSize, hardMode) → { grid, placements, placedWords }
+ *   buildGrid(words, gridCols, gridRows, hardMode) → { grid, placements, placedWords }
  *   checkSelection(placements, selectedCells) → Placement | null
  *
  * Grid cell shape:
@@ -61,7 +61,8 @@ const DELTAS = {
  * Build a word-search grid.
  *
  * @param {Array<{word: string, conceptId: string}>} words  — already filtered to maxLength
- * @param {number} gridSize   - e.g. 12
+ * @param {number} gridCols   - number of columns (horizontal extent), e.g. 10
+ * @param {number} gridRows   - number of rows    (vertical extent),   e.g. 15
  * @param {boolean} hardMode  - false = H+V only; true = all 8 directions
  * @param {string} [script]   - BCP-47 script hint for filler alphabet (see _buildAlphabet)
  * @returns {{ grid: Cell[][], placements: Placement[], placedWords: {word,hint,conceptId}[] }}
@@ -71,12 +72,12 @@ const DELTAS = {
  * condition and word-list display, so that unplaceable words never make the
  * game unwinnable.
  */
-export function buildGrid(words, gridSize, hardMode = false, script = 'latin') {
+export function buildGrid(words, gridCols, gridRows, hardMode = false, script = 'latin') {
   const directions = hardMode ? ALL_DIRECTIONS : EASY_DIRECTIONS;
 
-  // Initialize empty grid
-  const grid = Array.from({ length: gridSize }, () =>
-    Array.from({ length: gridSize }, () => ({ letter: '', conceptId: null, wordIndex: null }))
+  // Initialize empty grid — rows × cols
+  const grid = Array.from({ length: gridRows }, () =>
+    Array.from({ length: gridCols }, () => ({ letter: '', conceptId: null, wordIndex: null }))
   );
 
   const placements  = [];
@@ -86,7 +87,7 @@ export function buildGrid(words, gridSize, hardMode = false, script = 'latin') {
     const entry = words[wi];
     // Always uppercase for consistent comparison in checkSelection
     const upper = entry.word.toUpperCase();
-    const placed = _placeWord(grid, upper, entry.conceptId, wi, directions, gridSize);
+    const placed = _placeWord(grid, upper, entry.conceptId, wi, directions, gridCols, gridRows);
     if (placed) {
       placements.push(placed);
       placedWords.push({ ...entry, word: upper }); // store uppercase to match placement
@@ -96,15 +97,9 @@ export function buildGrid(words, gridSize, hardMode = false, script = 'latin') {
   }
 
   // Fill empty cells with random filler letters from the appropriate script.
-  // Currently only Latin (A–Z) is supported as filler.
-  // TODO: When adding non-Latin language support (e.g. Japanese hiragana/katakana,
-  // Arabic, Cyrillic, Hebrew, Korean Hangul, etc.) extend _buildAlphabet() to
-  // accept the script/language code and return the correct character set.
-  // Without this, non-Latin words stand out visually against Latin filler,
-  // making the game trivially easy for those languages.
   const alphabet = _buildAlphabet(script);
-  for (let r = 0; r < gridSize; r++) {
-    for (let c = 0; c < gridSize; c++) {
+  for (let r = 0; r < gridRows; r++) {
+    for (let c = 0; c < gridCols; c++) {
       if (!grid[r][c].letter) {
         grid[r][c].letter = alphabet[Math.floor(Math.random() * alphabet.length)];
       }
@@ -159,20 +154,20 @@ export function checkSelection(placements, selectedCells) {
 // Private: _placeWord
 // ---------------------------------------------------------------------------
 
-function _placeWord(grid, word, conceptId, wordIndex, directions, gridSize) {
+function _placeWord(grid, word, conceptId, wordIndex, directions, gridCols, gridRows) {
   // Shuffle directions to avoid always preferring the same first
   const shuffledDirs = [...directions].sort(() => Math.random() - 0.5);
 
   for (let attempt = 0; attempt < 150; attempt++) {
     const dir = shuffledDirs[attempt % shuffledDirs.length];
     const [dr, dc] = DELTAS[dir];
-    const startRow = Math.floor(Math.random() * gridSize);
-    const startCol = Math.floor(Math.random() * gridSize);
+    const startRow = Math.floor(Math.random() * gridRows);
+    const startCol = Math.floor(Math.random() * gridCols);
 
-    // Check bounds for all letters
+    // Check bounds for all letters using the correct axis limits
     const endRow = startRow + dr * (word.length - 1);
     const endCol = startCol + dc * (word.length - 1);
-    if (endRow < 0 || endRow >= gridSize || endCol < 0 || endCol >= gridSize) continue;
+    if (endRow < 0 || endRow >= gridRows || endCol < 0 || endCol >= gridCols) continue;
 
     // Check collisions — allow overlap only when the same letter occupies the cell
     let canPlace = true;
