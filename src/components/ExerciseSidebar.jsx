@@ -157,26 +157,27 @@ const ExerciseSidebar = ({
 
     const sidebarContent = (
       <div className={`${panelBase} p-4 flex flex-col gap-4`}>
-        {/* Level badge (locked) */}
-        <div className="flex items-center gap-2">
-          <LevelBadge level={sessionLevel} isDarkMode={isDarkMode} color="rose" />
-          <span className={`text-xs font-black uppercase tracking-widest ${labelClass}`}>
-            {phaseLabel[phase] ?? phase}
-          </span>
-        </div>
-
-        {/* Pre-generation: Generate Exam button */}
+        {/* Pre-generation: level selector + Generate Exam button */}
         {phase === "generating" && !examSession && (
-          <button
-            onClick={onExamGenerate}
-            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-4 font-black text-sm uppercase tracking-wide transition-all active:scale-[0.98] ${
-              isDarkMode
-                ? "bg-rose-600 border-rose-500 text-white hover:bg-rose-500 shadow-[4px_4px_0px_0px_#1e293b]"
-                : "bg-rose-400 border-slate-900 text-slate-900 hover:bg-rose-300 shadow-[4px_4px_0px_0px_#0f172a]"
-            }`}
-          >
-            <Play size={14} /> {t("exam.full.generate_btn", "Generate Exam")}
-          </button>
+          <>
+            <NeoDropdown
+              options={CEFR_LEVELS}
+              value={level}
+              onChange={onLevelChange}
+              isDarkMode={isDarkMode}
+              label={t("exam.sidebar.level", "Level")}
+            />
+            <button
+              onClick={onExamGenerate}
+              className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-4 font-black text-sm uppercase tracking-wide transition-all active:scale-[0.98] ${
+                isDarkMode
+                  ? "bg-rose-600 border-rose-500 text-white hover:bg-rose-500 shadow-[4px_4px_0px_0px_#1e293b]"
+                  : "bg-rose-400 border-slate-900 text-slate-900 hover:bg-rose-300 shadow-[4px_4px_0px_0px_#0f172a]"
+              }`}
+            >
+              <Play size={14} /> {t("exam.full.generate_btn", "Generate Exam")}
+            </button>
+          </>
         )}
 
         {/* Generating phase: show message */}
@@ -186,81 +187,90 @@ const ExerciseSidebar = ({
           </p>
         )}
 
-        {/* Post-generation: Section navigation */}
+        {/* Post-generation: Level badge (locked) + Section navigation */}
         {["listening", "reading", "writing"].includes(phase) && (
-          <div className="flex flex-col gap-1.5">
-            <p className={`text-xs font-black uppercase tracking-widest ${labelClass}`}>
-              {t("exam_exercises.text", "Sections")}
-            </p>
-            {/* Listening row */}
-            <button
-              onClick={() => onExamSectionChange?.("listening")}
-              disabled={phase === "generating"}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${
-                phase === "listening"
-                  ? isDarkMode
-                    ? "border-sky-500 bg-sky-500/20 text-sky-300"
-                    : "border-sky-500 bg-sky-50 text-sky-700"
-                  : isDarkMode
-                    ? "border-transparent text-slate-400 hover:bg-slate-700"
-                    : "border-transparent text-slate-500 hover:bg-slate-100"
-              }`}
-            >
-              <Headphones size={14} />
-              <span className="text-xs font-bold flex-1">{t("exam.full.section_listening", "Listening")}</span>
-              <span className="text-xs font-black tabular-nums">
-                {Array.from({ length: listeningCount }, (_, i) => (
-                  <span key={i} className={i < listeningAnswered ? "text-emerald-400" : "text-slate-500"}>
-                    {i < listeningAnswered ? "●" : "○"}
-                  </span>
-                ))}
+          <>
+            <div className="flex items-center gap-2">
+              <LevelBadge level={sessionLevel} isDarkMode={isDarkMode} color="rose" />
+              <span className={`text-xs font-black uppercase tracking-widest ${labelClass}`}>
+                {phaseLabel[phase] ?? phase}
               </span>
-            </button>
+            </div>
 
-            {/* Reading row */}
-            <button
-              onClick={() => onExamSectionChange?.("reading")}
-              disabled={phase === "generating"}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${
-                phase === "reading"
-                  ? isDarkMode
-                    ? "border-teal-500 bg-teal-500/20 text-teal-300"
-                    : "border-teal-500 bg-teal-50 text-teal-700"
-                  : isDarkMode
-                    ? "border-transparent text-slate-400 hover:bg-slate-700"
-                    : "border-transparent text-slate-500 hover:bg-slate-100"
-              }`}
-            >
-              <BookOpen size={14} />
-              <span className="text-xs font-bold flex-1">{t("exam.full.section_reading", "Reading")}</span>
-              <span className="text-xs font-black tabular-nums">
-                {Array.from({ length: readingCount }, (_, i) => (
-                  <span key={i} className={i < readingAnswered ? "text-emerald-400" : "text-slate-500"}>
-                    {i < readingAnswered ? "●" : "○"}
-                  </span>
-                ))}
-              </span>
-            </button>
+            <div className="flex flex-col gap-1.5">
+              <p className={`text-xs font-black uppercase tracking-widest ${labelClass}`}>
+                {t("exam_exercises.text", "Sections")}
+              </p>
+              {/* Listening row */}
+              <button
+                onClick={() => onExamSectionChange?.("listening")}
+                disabled={phase === "generating"}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${
+                  phase === "listening"
+                    ? isDarkMode
+                      ? "border-sky-500 bg-sky-500/20 text-sky-300"
+                      : "border-sky-500 bg-sky-50 text-sky-700"
+                    : isDarkMode
+                      ? "border-transparent text-slate-400 hover:bg-slate-700"
+                      : "border-transparent text-slate-500 hover:bg-slate-100"
+                }`}
+              >
+                <Headphones size={14} />
+                <span className="text-xs font-bold flex-1">{t("exam.full.section_listening", "Listening")}</span>
+                <span className="text-xs font-black tabular-nums">
+                  {Array.from({ length: listeningCount }, (_, i) => (
+                    <span key={i} className={i < listeningAnswered ? "text-emerald-400" : "text-slate-500"}>
+                      {i < listeningAnswered ? "\u25CF" : "\u25CB"}
+                    </span>
+                  ))}
+                </span>
+              </button>
 
-            {/* Writing row */}
-            <button
-              onClick={() => onExamSectionChange?.("writing")}
-              disabled={phase === "generating"}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${
-                phase === "writing"
-                  ? isDarkMode
-                    ? "border-amber-500 bg-amber-500/20 text-amber-300"
-                    : "border-amber-500 bg-amber-50 text-amber-700"
-                  : isDarkMode
-                    ? "border-transparent text-slate-400 hover:bg-slate-700"
-                    : "border-transparent text-slate-500 hover:bg-slate-100"
-              }`}
-            >
-              <PenLine size={14} />
-              <span className="text-xs font-bold flex-1">{t("exam.full.section_writing", "Writing")}</span>
-              <span className="text-xs font-black text-slate-500">&mdash;</span>
-            </button>
-          </div>
+              {/* Reading row */}
+              <button
+                onClick={() => onExamSectionChange?.("reading")}
+                disabled={phase === "generating"}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${
+                  phase === "reading"
+                    ? isDarkMode
+                      ? "border-teal-500 bg-teal-500/20 text-teal-300"
+                      : "border-teal-500 bg-teal-50 text-teal-700"
+                    : isDarkMode
+                      ? "border-transparent text-slate-400 hover:bg-slate-700"
+                      : "border-transparent text-slate-500 hover:bg-slate-100"
+                }`}
+              >
+                <BookOpen size={14} />
+                <span className="text-xs font-bold flex-1">{t("exam.full.section_reading", "Reading")}</span>
+                <span className="text-xs font-black tabular-nums">
+                  {Array.from({ length: readingCount }, (_, i) => (
+                    <span key={i} className={i < readingAnswered ? "text-emerald-400" : "text-slate-500"}>
+                      {i < readingAnswered ? "\u25CF" : "\u25CB"}
+                    </span>
+                  ))}
+                </span>
+              </button>
+
+              {/* Writing row */}
+              <button
+                onClick={() => onExamSectionChange?.("writing")}
+                disabled={phase === "generating"}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${
+                  phase === "writing"
+                    ? isDarkMode
+                      ? "border-amber-500 bg-amber-500/20 text-amber-300"
+                      : "border-amber-500 bg-amber-50 text-amber-700"
+                    : isDarkMode
+                      ? "border-transparent text-slate-400 hover:bg-slate-700"
+                      : "border-transparent text-slate-500 hover:bg-slate-100"
+                }`}
+              >
+                <PenLine size={14} />
+                <span className="text-xs font-bold flex-1">{t("exam.full.section_writing", "Writing")}</span>
+                <span className="text-xs font-black text-slate-500">&mdash;</span>
+              </button>
+            </div>
+          </>
         )}
 
         {/* Timer */}
@@ -470,7 +480,7 @@ const ExerciseSidebar = ({
             "exam.sidebar.reset_message",
             "This will clear all completed exercises, allowing you to see previously attempted exercises again.",
           )}
-          warning={t("exam.sidebar.reset_warning", "⚠ This cannot be undone.")}
+          warning={t("exam.sidebar.reset_warning", "\u26A0 This cannot be undone.")}
           confirmLabel={t("exam.sidebar.reset_confirm", "Yes, reset exercises")}
           confirmColor="yellow"
           isLoading={isResetting}

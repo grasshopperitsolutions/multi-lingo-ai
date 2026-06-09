@@ -784,10 +784,11 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [exerciseIndex, setExerciseIndex] = useState(0);
+  const [selectedLevel, setSelectedLevel] = useState("A1");
   const timerRef = useRef(null);
 
   const phase = examSession?.phase ?? "generating";
-  const level = examSession?.level ?? "A1";
+  const level = examSession?.level ?? selectedLevel;
 
   const updateStep = useCallback((key, status) => {
     setGenSteps((prev) =>
@@ -1047,6 +1048,8 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
           onExamSectionChange={handleSectionChange}
           isDarkMode={isDarkMode}
           timerRef={timerRef}
+          level={selectedLevel}
+          onLevelChange={setSelectedLevel}
         />
         <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-4">
           <div className="w-16 h-16 rounded-2xl border-4 border-slate-900 bg-rose-400 flex items-center justify-center shrink-0">
