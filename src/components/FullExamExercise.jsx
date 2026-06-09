@@ -7,7 +7,7 @@
  * Phases: generating → listening → reading → writing → results
  */
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { ClipboardList, ChevronLeft, ChevronRight, Check, Loader as LoaderIcon } from "lucide-react";
@@ -35,6 +35,7 @@ import {
   CollapsibleCard,
   ExamScoreCard,
 } from "./ui";
+import Loader from "./Loader";
 import { getExercise } from "../services/examExerciseService";
 import { evaluateWriting } from "../services/examWritingExerciseService";
 import { getScoreColor } from "../services/examUtils";
@@ -250,11 +251,10 @@ const EXAM_TYPE_MAP = {
   "image-multiple-choice": ImageMultipleChoiceExercise,
 };
 
-const ExamListeningSection = ({ isDarkMode }) => {
+const ExamListeningSection = ({ isDarkMode, activeIndex, onSelectExercise }) => {
   const { t } = useTranslation();
   const { examSession, updateExamSection } = useAppContext();
-  const exercises = useMemo(() => examSession?.sections?.listening?.exercises ?? [], [examSession]);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const exercises = examSession?.sections?.listening?.exercises ?? [];
 
   const current = exercises[activeIndex];
   const exerciseData = current?.exercise ?? {};
@@ -281,7 +281,7 @@ const ExamListeningSection = ({ isDarkMode }) => {
         <ExamExerciseStepper
           total={exercises.length}
           activeIndex={activeIndex}
-          onSelect={setActiveIndex}
+          onSelect={onSelectExercise}
           answeredSet={new Set(exercises.map((ex, i) => (ex.answers && Object.keys(ex.answers).length > 0 ? i : -1)).filter((i) => i >= 0))}
           isDarkMode={isDarkMode}
         />
@@ -333,7 +333,11 @@ const ExamListeningSection = ({ isDarkMode }) => {
   );
 };
 
-ExamListeningSection.propTypes = { isDarkMode: PropTypes.bool.isRequired };
+ExamListeningSection.propTypes = {
+  isDarkMode: PropTypes.bool.isRequired,
+  activeIndex: PropTypes.number.isRequired,
+  onSelectExercise: PropTypes.func.isRequired,
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ExamReadingSection — renders N reading exercises sequentially
@@ -348,11 +352,10 @@ const EXAM_READING_TYPE_MAP = {
   matching: MatchingExercise,
 };
 
-const ExamReadingSection = ({ isDarkMode }) => {
+const ExamReadingSection = ({ isDarkMode, activeIndex, onSelectExercise }) => {
   const { t } = useTranslation();
   const { examSession, updateExamSection } = useAppContext();
   const exercises = examSession?.sections?.reading?.exercises ?? [];
-  const [activeIndex, setActiveIndex] = useState(0);
 
   const current = exercises[activeIndex];
   const exerciseData = current?.exercise ?? {};
@@ -378,7 +381,7 @@ const ExamReadingSection = ({ isDarkMode }) => {
         <ExamExerciseStepper
           total={exercises.length}
           activeIndex={activeIndex}
-          onSelect={setActiveIndex}
+          onSelect={onSelectExercise}
           answeredSet={new Set(exercises.map((ex, i) => (ex.answers && Object.keys(ex.answers).length > 0 ? i : -1)).filter((i) => i >= 0))}
           isDarkMode={isDarkMode}
         />
@@ -433,7 +436,11 @@ const ExamReadingSection = ({ isDarkMode }) => {
   );
 };
 
-ExamReadingSection.propTypes = { isDarkMode: PropTypes.bool.isRequired };
+ExamReadingSection.propTypes = {
+  isDarkMode: PropTypes.bool.isRequired,
+  activeIndex: PropTypes.number.isRequired,
+  onSelectExercise: PropTypes.func.isRequired,
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ExamWritingSection — writing task UI, synced to context
@@ -1020,7 +1027,7 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
           examMode={true}
           examPhase="generating"
           examSession={examSession}
-          onGenerate={handleGenerate}
+          onExamGenerate={handleGenerate}
           onExamSectionChange={handleSectionChange}
           isDarkMode={isDarkMode}
           timerRef={timerRef}
@@ -1062,7 +1069,7 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
           examMode={true}
           examPhase={phase}
           examSession={examSession}
-          onGenerate={handleGenerate}
+          onExamGenerate={handleGenerate}
           onExamSectionChange={handleSectionChange}
           isDarkMode={isDarkMode}
           timerRef={timerRef}
@@ -1073,12 +1080,28 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
             <ExamGenerationLoader steps={genSteps} isDarkMode={isDarkMode} />
           )}
 
+          {submitting && (
+            <Loader
+              isDarkMode={isDarkMode}
+              message={t("exam.evaluating_writing", "Evaluating writing...")}
+              fullScreen={true}
+            />
+          )}
+
           {phase === "listening" && (
-            <ExamListeningSection isDarkMode={isDarkMode} />
+            <ExamListeningSection
+              isDarkMode={isDarkMode}
+              activeIndex={exerciseIndex}
+              onSelectExercise={setExerciseIndex}
+            />
           )}
 
           {phase === "reading" && (
-            <ExamReadingSection isDarkMode={isDarkMode} />
+            <ExamReadingSection
+              isDarkMode={isDarkMode}
+              activeIndex={exerciseIndex}
+              onSelectExercise={setExerciseIndex}
+            />
           )}
 
           {phase === "writing" && (
