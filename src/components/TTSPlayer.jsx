@@ -38,12 +38,6 @@ const TTSPlayer = ({ text, lang, isDarkMode }) => {
 
   const isPlaying = ttsState.activeKey === PLAYER_KEY;
 
-  // Track how many times the user has pressed play
-  // We use a ref-free approach: count is derived from playCount state in the hook
-  // but since useTts doesn't expose it, we manage it locally.
-  const [playCount, setPlayCount] = [0, () => {}];
-  // Note: playCount display is handled below via a local counter.
-
   // Stop on unmount to prevent zombie audio
   useEffect(() => {
     return () => { if (ttsState.activeKey === PLAYER_KEY) stopTts(); };
@@ -51,9 +45,8 @@ const TTSPlayer = ({ text, lang, isDarkMode }) => {
   }, []);
 
   return (
-    <_TTSPlayerInner
+    <TTSPlayerInner
       text={text}
-      lang={lang}
       isDarkMode={isDarkMode}
       token={user?.token}
       isPlaying={isPlaying}
@@ -71,7 +64,7 @@ const TTSPlayer = ({ text, lang, isDarkMode }) => {
 
 import { useState } from 'react';
 
-const _TTSPlayerInner = ({ text, lang, isDarkMode, isPlaying, onPlay, onStop }) => {
+const TTSPlayerInner = ({ text, isDarkMode, isPlaying, onPlay, onStop }) => {
   const [playCount, setPlayCount] = useState(0);
   const [rate, setRate] = useState(1);
 
@@ -180,9 +173,8 @@ const _TTSPlayerInner = ({ text, lang, isDarkMode, isPlaying, onPlay, onStop }) 
   );
 };
 
-_TTSPlayerInner.propTypes = {
+TTSPlayerInner.propTypes = {
   text:      PropTypes.string.isRequired,
-  lang:      PropTypes.string.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
   isPlaying: PropTypes.bool.isRequired,
   onPlay:    PropTypes.func.isRequired,
