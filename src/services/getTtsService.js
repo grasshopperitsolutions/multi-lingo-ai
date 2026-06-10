@@ -188,6 +188,8 @@ async function _speakWithGemini(token, text, lang, onEnd, onError) {
 
   const result = json?.data ?? json;
 
+  console.log('[getTtsService] Gemini TTS mimeType:', result?.mimeType);
+
   if (result?.audioUrl)  return _playAudioUrl(result.audioUrl, onEnd, onError);
   if (result?.audioData) return _playAudioBase64(result.audioData, result.mimeType || 'audio/wav', onEnd, onError);
 
@@ -195,17 +197,23 @@ async function _speakWithGemini(token, text, lang, onEnd, onError) {
   return false;
 }
 
-function _playAudioUrl(url, onEnd, onError) {
+function _playAudioUrl(url, onEnd, onError, blobUrlToRevoke = null) {
   return new Promise((resolve, reject) => {
     const audio = new Audio(url);
     audio.dataset.ttsAudio = 'true';
-    audio.onended = () => { onEnd?.(); resolve(true); };
+    audio.onended = () => {
+      if (blobUrlToRevoke) URL.revokeObjectURL(blobUrlToRevoke);
+      onEnd?.();
+      resolve(true);
+    };
     audio.onerror = (err) => {
+      if (blobUrlToRevoke) URL.revokeObjectURL(blobUrlToRevoke);
       console.warn('[getTtsService] Audio playback error:', err);
       onError?.(err);
       reject(new Error('Audio playback failed'));
     };
     audio.play().catch((err) => {
+      if (blobUrlToRevoke) URL.revokeObjectURL(blobUrlToRevoke);
       console.warn('[getTtsService] Audio play() failed:', err);
       onError?.(err);
       reject(err);
@@ -213,7 +221,83 @@ function _playAudioUrl(url, onEnd, onError) {
   });
 }
 
+/**
+ * Convert raw PCM Base64 audio (e.g. audio/L16;codec=pcm;rate=24000) into
+ * a blob: URL backed by a proper WAV file.
+ *
+ * Gemini TTS returns signed 16-bit little-endian mono PCM with no container.
+ * Browsers cannot decode this as a data: URL — they need the 44-byte RIFF/WAV
+ * header to know the sample rate, bit depth, and channel count.
+ *
+ * @param {string} base64Data - Base64-encoded raw PCM bytes
+ * @param {string} mimeType   - e.g. 'audio/L16;codec=pcm;rate=24000'
+ * @returns {string} blob: URL pointing to a valid WAV file
+ */
+function _pcmToWavBlobUrl(base64Data, mimeType) {
+  // Parse sample rate from mimeType string, e.g. "rate=24000" → 24000
+  const rateMatch = mimeType.match(/rate=(\d+)/i);
+  const sampleRate   = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+  const numChannels  = 1;   // Gemini TTS is always mono
+  const bitsPerSample = 16; // L16 = signed 16-bit
+  const byteRate     = sampleRate * numChannels * (bitsPerSample / 8);
+  const blockAlign   = numChannels * (bitsPerSample / 8);
+
+  // Decode base64 → raw PCM bytes
+  const binaryStr = atob(base64Data);
+  const pcmBytes  = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) {
+    pcmBytes[i] = binaryStr.charCodeAt(i);
+  }
+
+  const dataSize   = pcmBytes.byteLength;
+  const headerSize = 44;
+  const wavBuffer  = new ArrayBuffer(headerSize + dataSize);
+  const view       = new DataView(wavBuffer);
+
+  // RIFF chunk
+  _writeStr(view, 0,  'RIFF');
+  view.setUint32(4,  36 + dataSize, true);  // file size - 8
+  _writeStr(view, 8,  'WAVE');
+
+  // fmt sub-chunk
+  _writeStr(view, 12, 'fmt ');
+  view.setUint32(16, 16,           true);  // sub-chunk size (PCM = 16)
+  view.setUint16(20, 1,            true);  // audio format (1 = PCM)
+  view.setUint16(22, numChannels,  true);
+  view.setUint32(24, sampleRate,   true);
+  view.setUint32(28, byteRate,     true);
+  view.setUint16(32, blockAlign,   true);
+  view.setUint16(34, bitsPerSample,true);
+
+  // data sub-chunk
+  _writeStr(view, 36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  // Copy PCM payload
+  new Uint8Array(wavBuffer, headerSize).set(pcmBytes);
+
+  const blob    = new Blob([wavBuffer], { type: 'audio/wav' });
+  const blobUrl = URL.createObjectURL(blob);
+  return blobUrl;
+}
+
+function _writeStr(view, offset, str) {
+  for (let i = 0; i < str.length; i++) {
+    view.setUint8(offset + i, str.charCodeAt(i));
+  }
+}
+
 function _playAudioBase64(base64Data, mimeType, onEnd, onError) {
+  // Gemini returns raw L16 PCM — browsers cannot play it without a WAV header.
+  // Detect by mimeType and wrap in a proper WAV container via blob: URL.
+  const isPcm = /L16|pcm/i.test(mimeType);
+
+  if (isPcm) {
+    const blobUrl = _pcmToWavBlobUrl(base64Data, mimeType);
+    return _playAudioUrl(blobUrl, onEnd, onError, blobUrl);
+  }
+
+  // Already a browser-playable format (audio/wav, audio/mp3, audio/ogg, etc.)
   const dataUrl = `data:${mimeType};base64,${base64Data}`;
   return _playAudioUrl(dataUrl, onEnd, onError);
 }
