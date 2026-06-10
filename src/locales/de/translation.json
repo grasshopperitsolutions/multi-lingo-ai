@@ -441,7 +441,9 @@
     "challenges": "Herausforderungen",
     "challenges_desc": "Teste deine Fähigkeiten mit Minispielen, Quizfragen und täglichen Sprachherausforderungen.",
     "exam_training": "Prüfungsvorbereitung",
-    "exam_training_desc": "Bereite dich auf offizielle Sprachzertifikatsprüfungen vor."
+    "exam_training_desc": "Bereite dich auf offizielle Sprachzertifikatsprüfungen vor.",
+    "professional_tools": "Berufliche Werkzeuge",
+    "professional_tools_desc": "Erstelle Lebensläufe, Anschreiben, E-Mails und professionelle Dokumente auf Portugiesisch mit formellem oder lockerem Ton."
   },
   "exam": {
     "title": "Prüfungsvorbereitung",

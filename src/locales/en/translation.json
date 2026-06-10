@@ -441,7 +441,9 @@
     "challenges": "Challenges",
     "challenges_desc": "Test your skills with mini-games, quizzes, and daily language challenges.",
     "exam_training": "Exam Training",
-    "exam_training_desc": "Prepare for official language certification exams."
+    "exam_training_desc": "Prepare for official language certification exams.",
+    "professional_tools": "Professional Tools",
+    "professional_tools_desc": "Create CVs, resumes, emails and professional documents in Portuguese with a formal or casual tone."
   },
   "exam": {
     "title": "Exam Training",

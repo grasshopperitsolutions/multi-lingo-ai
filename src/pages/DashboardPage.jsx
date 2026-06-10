@@ -22,6 +22,7 @@ import {
   Video,
   BookOpen,
   Landmark,
+  Briefcase,
   Gamepad2,
   GraduationCap,
   Settings,
@@ -177,6 +178,7 @@ const DashboardPage = () => {
     { id: "voice_practice",   icon: Video,          title: t("dashboard.voice_practice"),    description: t("dashboard.voice_practice_desc"),    color: "text-purple-500",  statusBadgeLabel: t("dashboard.coming_soon") },
     { id: "story_generator",  icon: BookOpen,       title: t("dashboard.story_generator"),   description: t("dashboard.story_generator_desc"),   color: "text-rose-500",    statusBadgeLabel: t("dashboard.coming_soon") },
     { id: "history_culture",  icon: Landmark,       title: t("dashboard.history_culture"),   description: t("dashboard.history_culture_desc"),   color: "text-orange-500",  statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "professional_tools", icon: Briefcase,    title: t("dashboard.professional_tools"), description: t("dashboard.professional_tools_desc"), color: "text-indigo-500", statusBadgeLabel: t("dashboard.coming_soon") },
   ];
 
   const isTranslator   = selectedFeature?.id === 'translator';

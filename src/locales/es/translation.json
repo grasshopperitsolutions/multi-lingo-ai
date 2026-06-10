@@ -445,7 +445,9 @@
     "challenges": "Desafíos",
     "challenges_desc": "Pon a prueba tus habilidades con minijuegos, cuestionarios y desafíos diarios.",
     "exam_training": "Preparación de Exámenes",
-    "exam_training_desc": "Prepárate para exámenes oficiales de certificación de idiomas."
+    "exam_training_desc": "Prepárate para exámenes oficiales de certificación de idiomas.",
+    "professional_tools": "Herramientas Profesionales",
+    "professional_tools_desc": "Crea CVs, currículums, correos y documentos profesionales en portugués con tono formal o informal."
   },
   "exam": {
     "title": "Preparación de Exámenes",

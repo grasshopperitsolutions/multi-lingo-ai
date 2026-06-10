@@ -441,7 +441,9 @@
     "challenges": "Desafios",
     "challenges_desc": "Testa as tuas competências com mini-jogos, questionários e desafios diários.",
     "exam_training": "Preparação para Exames",
-    "exam_training_desc": "Prepara-te para exames oficiais de certificação de idiomas."
+    "exam_training_desc": "Prepara-te para exames oficiais de certificação de idiomas.",
+    "professional_tools": "Ferramentas Profissionais",
+    "professional_tools_desc": "Cria CVs, currículos, emails e documentos profissionais em português com tom formal ou informal."
   },
   "exam": {
     "title": "Preparação para Exames",

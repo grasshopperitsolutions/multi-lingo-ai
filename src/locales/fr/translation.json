@@ -441,7 +441,9 @@
     "challenges": "Défis",
     "challenges_desc": "Teste tes compétences avec des mini-jeux, des quiz et des défis linguistiques quotidiens.",
     "exam_training": "Préparation aux Examens",
-    "exam_training_desc": "Prépare-toi pour les examens officiels de certification des langues."
+    "exam_training_desc": "Prépare-toi pour les examens officiels de certification des langues.",
+    "professional_tools": "Outils Professionnels",
+    "professional_tools_desc": "Crée des CVs, des lettres de motivation, des emails et des documents professionnels en portugais avec un ton formel ou décontracté."
   },
   "exam": {
     "title": "Préparation aux Examens",
