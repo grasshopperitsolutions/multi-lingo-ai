@@ -5,9 +5,9 @@ import { useAppContext } from "../contexts/AppContext";
 import {
   getUserGameProgress,
   recordPlay,
-  resetAllSeenWords,
-  getGlobalSeenIds,
-  markConceptSeenGlobal,
+  resetSeenWordLinkPuzzles,
+  getSeenWordLinkPuzzleIds,
+  markWordLinkPuzzleSeen,
 } from "../services/userService";
 import { fetchWordLinkPuzzle, getWordLinkPoolCount } from "../services/wordLinkService";
 import ChallengeSidebar from "./ChallengeSidebar";
@@ -85,7 +85,6 @@ const ClueStack = ({ clues, revealedCount, theme, themeTranslation, gameOver, is
             {theme}
           </span>
         </div>
-        {/* Secondary line: theme in learning language */}
         {themeTranslation && themeTranslation !== theme && (
           <span className={`text-xs font-medium opacity-70 ${
             gameOver ? "" : "blur-sm select-none"
@@ -178,7 +177,7 @@ const WordLinkGame = ({ isDarkMode }) => {
     try {
       const [prog, seenIds, poolCount] = await Promise.all([
         getUserGameProgress(user.token, user.uid, GAME_ID, learningDialect),
-        getGlobalSeenIds(user.token, user.uid),
+        getSeenWordLinkPuzzleIds(user.token, user.uid),
         getWordLinkPoolCount(user.token, interfaceLang, learningDialect),
       ]);
       setProgress(prog);
@@ -200,15 +199,15 @@ const WordLinkGame = ({ isDarkMode }) => {
 
     try {
       const [seenIds, prog] = await Promise.all([
-        getGlobalSeenIds(user.token, user.uid),
+        getSeenWordLinkPuzzleIds(user.token, user.uid),
         getUserGameProgress(user.token, user.uid, GAME_ID, learningDialect),
       ]);
 
       const puzzle = await fetchWordLinkPuzzle({
-        token:           user.token,
-        userDialect:     interfaceLang,
+        token:          user.token,
+        userDialect:    interfaceLang,
         learningDialect,
-        seenPuzzleIds:   seenIds,
+        seenPuzzleIds:  seenIds,
       });
 
       setPuzzleId(puzzle.puzzleId);
@@ -247,12 +246,12 @@ const WordLinkGame = ({ isDarkMode }) => {
     recordPlay(user.token, user.uid, GAME_ID, learningDialect, progress)
       .catch((err) => console.warn("[WordLinkGame] recordPlay failed:", err));
 
-    getGlobalSeenIds(user.token, user.uid)
+    getSeenWordLinkPuzzleIds(user.token, user.uid)
       .then((currentSeenIds) =>
-        markConceptSeenGlobal(user.token, user.uid, puzzleId, currentSeenIds)
+        markWordLinkPuzzleSeen(user.token, user.uid, puzzleId, currentSeenIds)
       )
       .then(() => fetchStats())
-      .catch((err) => console.warn("[WordLinkGame] markConceptSeenGlobal failed:", err));
+      .catch((err) => console.warn("[WordLinkGame] markWordLinkPuzzleSeen failed:", err));
   }, [puzzleId, user, learningDialect, progress, fetchStats]);
 
   // ── Submit guess ─────────────────────────────────────────────────────────
@@ -284,7 +283,7 @@ const WordLinkGame = ({ isDarkMode }) => {
 
   const handleResetSeenWords = useCallback(async () => {
     if (!user?.token || !user?.uid) return;
-    await resetAllSeenWords(user.token, user.uid);
+    await resetSeenWordLinkPuzzles(user.token, user.uid);
     await fetchStats();
   }, [user, fetchStats]);
 

@@ -1,8 +1,8 @@
-const PROXY_URL    = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-const GEMINI_MODEL = 'gemini-3.5-flash';
-const MAX_CLUES    = 5;
+const PROXY_URL       = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
+const GEMINI_MODEL    = 'gemini-3.5-flash';
+const MAX_CLUES       = 5;
 const POOL_COLLECTION = 'wordLinkGamePool';
-const POOL_LIMIT   = 200;
+const POOL_LIMIT      = 200;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -21,7 +21,7 @@ const POOL_LIMIT   = 200;
  * @param {string}   params.token            - Firebase ID token
  * @param {string}   params.userDialect      - BCP-47 interface language (e.g. 'en-US')
  * @param {string}   params.learningDialect  - BCP-47 learning language (e.g. 'pt-PT')
- * @param {string[]} params.seenPuzzleIds    - Already-seen puzzle IDs from global seen list
+ * @param {string[]} params.seenPuzzleIds    - Already-seen puzzle IDs from seenWordLinkPuzzleIds
  * @returns {Promise<{ puzzleId: string, theme: string, themeTranslation: string, clues: string[], keywords: string[] }>}
  */
 export const fetchWordLinkPuzzle = async ({ token, userDialect, learningDialect, seenPuzzleIds = [] }) => {
@@ -42,15 +42,14 @@ export const fetchWordLinkPuzzle = async ({ token, userDialect, learningDialect,
       };
     }
   } catch (err) {
-    // Pool fetch failed — fall through to AI silently
     console.warn('[wordLinkService] Pool fetch failed, falling back to AI:', err);
   }
 
-  // ── Step 2: generate via AI ───────────────────────────────────────────────
+  // ── Step 2: generate via AI ──────────────────────────────────────────────
   const puzzle = await _generateFromAI({ token, userDialect, learningDialect });
 
-  // ── Step 3: cache silently (fire-and-forget) ──────────────────────────────
-  let puzzleId = `ai_${Date.now()}`; // fallback ID if cache write fails
+  // ── Step 3: cache silently (fire-and-forget) ─────────────────────────────
+  let puzzleId = `ai_${Date.now()}`;
   try {
     const savedId = await _cachePuzzle({ token, puzzle, userDialect, learningDialect });
     if (savedId) puzzleId = savedId;
@@ -137,13 +136,13 @@ async function _generateFromAI({ token, userDialect, learningDialect }) {
     throw new Error(j?.error || j?.message || 'Failed to generate Word Link puzzle');
   }
 
-  const json   = await res.json();
-  const data   = json?.data ?? json;
+  const json = await res.json();
+  const data = json?.data ?? json;
 
-  const theme            = data?.theme            ?? data?.text?.theme;
-  const themeTranslation = data?.themeTranslation ?? data?.text?.themeTranslation;
-  const clues            = data?.clues            ?? data?.text?.clues;
-  const keywords         = data?.keywords         ?? data?.text?.keywords;
+  const theme            = data?.theme;
+  const themeTranslation = data?.themeTranslation;
+  const clues            = data?.clues;
+  const keywords         = data?.keywords;
 
   if (!theme || !themeTranslation || !Array.isArray(clues) || !Array.isArray(keywords)) {
     throw new Error('Invalid puzzle format from AI');
