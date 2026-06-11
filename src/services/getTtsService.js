@@ -40,27 +40,40 @@ const WEB_SPEECH_RATE  = 1.0;
  * so Gemini TTS reads with the correct accent and pronunciation.
  */
 const LOCALE_METADATA = {
-  'pt-PT': { language: 'European Portuguese', region: 'Portugal' },
-  'pt-BR': { language: 'Brazilian Portuguese', region: 'Brazil' },
-  'en-US': { language: 'American English',     region: 'the United States' },
-  'en-GB': { language: 'British English',      region: 'the United Kingdom' },
-  'en-AU': { language: 'Australian English',   region: 'Australia' },
-  'es-ES': { language: 'Castilian Spanish',    region: 'Spain' },
-  'es-MX': { language: 'Mexican Spanish',      region: 'Mexico' },
-  'es-AR': { language: 'Rioplatense Spanish',  region: 'Argentina' },
-  'fr-FR': { language: 'French',               region: 'France' },
-  'fr-CA': { language: 'Canadian French',      region: 'Canada' },
-  'de-DE': { language: 'German',               region: 'Germany' },
-  'it-IT': { language: 'Italian',              region: 'Italy' },
-  'ja-JP': { language: 'Japanese',             region: 'Japan' },
-  'zh-CN': { language: 'Mandarin Chinese',     region: 'mainland China' },
-  'zh-TW': { language: 'Traditional Chinese',  region: 'Taiwan' },
-  'ko-KR': { language: 'Korean',               region: 'South Korea' },
-  'ru-RU': { language: 'Russian',              region: 'Russia' },
-  'ar-SA': { language: 'Arabic',               region: 'Saudi Arabia' },
-  'nl-NL': { language: 'Dutch',                region: 'the Netherlands' },
-  'pl-PL': { language: 'Polish',               region: 'Poland' },
-  'tr-TR': { language: 'Turkish',              region: 'Turkey' },
+  // ── Portuguese ────────────────────────────────────────────────────────────
+  'pt-PT': { language: 'European Portuguese',    region: 'Portugal' },
+  'pt-BR': { language: 'Brazilian Portuguese',   region: 'Brazil' },
+  // ── English ───────────────────────────────────────────────────────────────
+  'en-US': { language: 'American English',       region: 'the United States' },
+  'en-GB': { language: 'British English',        region: 'the United Kingdom' },
+  'en-AU': { language: 'Australian English',     region: 'Australia' },
+  // ── Spanish ───────────────────────────────────────────────────────────────
+  'es-ES': { language: 'Castilian Spanish',      region: 'Spain' },
+  'es-MX': { language: 'Mexican Spanish',        region: 'Mexico' },
+  'es-AR': { language: 'Rioplatense Spanish',    region: 'Argentina' },
+  // ── Catalan ───────────────────────────────────────────────────────────────
+  'ca':    { language: 'Catalan',                region: 'Catalonia' },
+  'ca-ES': { language: 'Catalan',                region: 'Catalonia, Spain' },
+  'ca-AD': { language: 'Andorran Catalan',       region: 'Andorra' },
+  'ca-FR': { language: 'Northern Catalan',       region: 'the Pyrenees-Orientales region of France' },
+  'ca-IT': { language: 'Algherese Catalan',      region: 'Alghero, Sardinia, Italy' },
+  // ── French ────────────────────────────────────────────────────────────────
+  'fr-FR': { language: 'French',                 region: 'France' },
+  'fr-CA': { language: 'Canadian French',        region: 'Canada' },
+  // ── Other European ────────────────────────────────────────────────────────
+  'de-DE': { language: 'German',                 region: 'Germany' },
+  'it-IT': { language: 'Italian',                region: 'Italy' },
+  'nl-NL': { language: 'Dutch',                  region: 'the Netherlands' },
+  'pl-PL': { language: 'Polish',                 region: 'Poland' },
+  'ru-RU': { language: 'Russian',                region: 'Russia' },
+  'tr-TR': { language: 'Turkish',                region: 'Turkey' },
+  // ── Asian ─────────────────────────────────────────────────────────────────
+  'ja-JP': { language: 'Japanese',               region: 'Japan' },
+  'zh-CN': { language: 'Mandarin Chinese',       region: 'mainland China' },
+  'zh-TW': { language: 'Traditional Chinese',    region: 'Taiwan' },
+  'ko-KR': { language: 'Korean',                 region: 'South Korea' },
+  // ── Middle East ───────────────────────────────────────────────────────────
+  'ar-SA': { language: 'Arabic',                 region: 'Saudi Arabia' },
 };
 
 // ---------------------------------------------------------------------------
