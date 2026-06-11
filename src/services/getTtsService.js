@@ -34,6 +34,35 @@ const GEMINI_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
 const GEMINI_TTS_VOICE = 'Sulafat';
 const WEB_SPEECH_RATE  = 1.0;
 
+/**
+ * Locale metadata used to build dialect-aware TTS prompts.
+ * Each entry maps a BCP-47 locale to human-readable language/region info
+ * so Gemini TTS reads with the correct accent and pronunciation.
+ */
+const LOCALE_METADATA = {
+  'pt-PT': { language: 'European Portuguese', region: 'Portugal' },
+  'pt-BR': { language: 'Brazilian Portuguese', region: 'Brazil' },
+  'en-US': { language: 'American English',     region: 'the United States' },
+  'en-GB': { language: 'British English',      region: 'the United Kingdom' },
+  'en-AU': { language: 'Australian English',   region: 'Australia' },
+  'es-ES': { language: 'Castilian Spanish',    region: 'Spain' },
+  'es-MX': { language: 'Mexican Spanish',      region: 'Mexico' },
+  'es-AR': { language: 'Rioplatense Spanish',  region: 'Argentina' },
+  'fr-FR': { language: 'French',               region: 'France' },
+  'fr-CA': { language: 'Canadian French',      region: 'Canada' },
+  'de-DE': { language: 'German',               region: 'Germany' },
+  'it-IT': { language: 'Italian',              region: 'Italy' },
+  'ja-JP': { language: 'Japanese',             region: 'Japan' },
+  'zh-CN': { language: 'Mandarin Chinese',     region: 'mainland China' },
+  'zh-TW': { language: 'Traditional Chinese',  region: 'Taiwan' },
+  'ko-KR': { language: 'Korean',               region: 'South Korea' },
+  'ru-RU': { language: 'Russian',              region: 'Russia' },
+  'ar-SA': { language: 'Arabic',               region: 'Saudi Arabia' },
+  'nl-NL': { language: 'Dutch',                region: 'the Netherlands' },
+  'pl-PL': { language: 'Polish',               region: 'Poland' },
+  'tr-TR': { language: 'Turkish',              region: 'Turkey' },
+};
+
 // ---------------------------------------------------------------------------
 // Global singleton — tracks the currently active onEnd callback so that
 // stopSpeaking() can notify the previous caller that playback was interrupted.
@@ -158,6 +187,37 @@ export function stopSpeaking() {
 }
 
 // ---------------------------------------------------------------------------
+// TTS Prompt Builder
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a dialect-aware instructional prompt for Gemini TTS.
+ *
+ * Instead of sending raw text (which causes Gemini to infer the dialect
+ * from the content alone), this wraps the text with clear instructions
+ * about language, regional origin, and tone — ensuring the correct accent
+ * and pronunciation is used regardless of text content.
+ *
+ * @param {string} text - The text to be read aloud (not modified)
+ * @param {string} lang - BCP-47 locale, e.g. 'pt-PT', 'en-US'
+ * @returns {string} Full instructional prompt for Gemini TTS
+ */
+function _buildTtsPrompt(text, lang) {
+  const meta = LOCALE_METADATA[lang] ?? {
+    language: lang,
+    region: 'the appropriate region',
+  };
+
+  return (
+    `You are a native ${meta.language} speaker from ${meta.region}. ` +
+    `Please read the following text aloud in a clear and natural tone, ` +
+    `using the accent and pronunciation typical of ${meta.region}. ` +
+    `Do not translate, summarize, or modify the text in any way — read it exactly as written.` +
+    `\n\n${text}`
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Gemini TTS (primary)
 // ---------------------------------------------------------------------------
 
@@ -169,7 +229,7 @@ async function _speakWithGemini(token, text, lang, onEnd, onError) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      prompt: text,
+      prompt: _buildTtsPrompt(text, lang),
       providerParams: {
         provider:  'gemini',
         model:     GEMINI_TTS_MODEL,
