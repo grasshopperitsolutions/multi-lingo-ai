@@ -115,7 +115,7 @@ const TTSPlayerInner = ({ text, isDarkMode, isPlaying, onPlay, onStop }) => {
               isDarkMode ? 'text-slate-200' : 'text-slate-800'
             }`}
           >
-            {isPlaying ? 'Playing\u2026' : 'Press play to listen'}
+            {isPlaying ? 'Playing…' : 'Press play to listen'}
           </p>
           {playCount > 0 && (
             <p
@@ -123,7 +123,7 @@ const TTSPlayerInner = ({ text, isDarkMode, isPlaying, onPlay, onStop }) => {
                 isDarkMode ? 'text-slate-500' : 'text-slate-400'
               }`}
             >
-              \u25b6 Listened \u00d7 {playCount}
+              ▶ Listened × {playCount}
             </p>
           )}
         </div>
@@ -163,7 +163,7 @@ const TTSPlayerInner = ({ text, isDarkMode, isPlaying, onPlay, onStop }) => {
                       : 'bg-transparent border-slate-300 text-slate-500 hover:bg-slate-100'
                   }`}
               >
-                {option}\u00d7
+                {option}×
               </button>
             );
           })}
