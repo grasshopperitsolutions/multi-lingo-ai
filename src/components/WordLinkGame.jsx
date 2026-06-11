@@ -5,9 +5,11 @@ import { useAppContext } from "../contexts/AppContext";
 import {
   getUserGameProgress,
   recordPlay,
-  resetAllSeenWords,
+  resetSeenWordLinkPuzzles,
+  getSeenWordLinkPuzzleIds,
+  markWordLinkPuzzleSeen,
 } from "../services/userService";
-import { fetchWordLinkPuzzle } from "../services/wordLinkService";
+import { fetchWordLinkPuzzle, getWordLinkPoolCount } from "../services/wordLinkService";
 import ChallengeSidebar from "./ChallengeSidebar";
 import Loader from "./Loader";
 import { sanitizeAIError } from "../utils/errorUtils";
@@ -83,7 +85,6 @@ const ClueStack = ({ clues, revealedCount, theme, themeTranslation, gameOver, is
             {theme}
           </span>
         </div>
-        {/* Secondary line: theme in learning language */}
         {themeTranslation && themeTranslation !== theme && (
           <span className={`text-xs font-medium opacity-70 ${
             gameOver ? "" : "blur-sm select-none"
@@ -144,6 +145,7 @@ const WordLinkGame = ({ isDarkMode }) => {
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
 
   // ── Puzzle state ─────────────────────────────────────────────────────────
+  const [puzzleId,         setPuzzleId]         = useState(null);
   const [theme,            setTheme]            = useState("");
   const [themeTranslation, setThemeTranslation] = useState("");
   const [clues,            setClues]            = useState([]);
@@ -161,6 +163,8 @@ const WordLinkGame = ({ isDarkMode }) => {
 
   // ── Sidebar / stats ──────────────────────────────────────────────────────
   const [progress,       setProgress]       = useState(null);
+  const [seenCount,      setSeenCount]      = useState(0);
+  const [totalWords,     setTotalWords]     = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   const hasRecordedRef = useRef(false);
@@ -171,14 +175,20 @@ const WordLinkGame = ({ isDarkMode }) => {
     if (!user?.token || !user?.uid) return;
     setIsLoadingStats(true);
     try {
-      const prog = await getUserGameProgress(user.token, user.uid, GAME_ID, learningDialect);
+      const [prog, seenIds, poolCount] = await Promise.all([
+        getUserGameProgress(user.token, user.uid, GAME_ID, learningDialect),
+        getSeenWordLinkPuzzleIds(user.token, user.uid),
+        getWordLinkPoolCount(user.token, interfaceLang, learningDialect),
+      ]);
       setProgress(prog);
+      setSeenCount(seenIds.length);
+      setTotalWords(poolCount);
     } catch (err) {
       console.warn("[WordLinkGame] fetchStats failed:", err);
     } finally {
       setIsLoadingStats(false);
     }
-  }, [user, learningDialect]);
+  }, [user, learningDialect, interfaceLang]);
 
   // ── Load puzzle ──────────────────────────────────────────────────────────
   const loadPuzzle = useCallback(async () => {
@@ -188,10 +198,19 @@ const WordLinkGame = ({ isDarkMode }) => {
     hasRecordedRef.current = false;
 
     try {
-      const [puzzle, prog] = await Promise.all([
-        fetchWordLinkPuzzle({ token: user.token, userDialect: interfaceLang, learningDialect }),
+      const [seenIds, prog] = await Promise.all([
+        getSeenWordLinkPuzzleIds(user.token, user.uid),
         getUserGameProgress(user.token, user.uid, GAME_ID, learningDialect),
       ]);
+
+      const puzzle = await fetchWordLinkPuzzle({
+        token:          user.token,
+        userDialect:    interfaceLang,
+        learningDialect,
+        seenPuzzleIds:  seenIds,
+      });
+
+      setPuzzleId(puzzle.puzzleId);
       setTheme(puzzle.theme);
       setThemeTranslation(puzzle.themeTranslation ?? "");
       setClues(puzzle.clues);
@@ -201,6 +220,7 @@ const WordLinkGame = ({ isDarkMode }) => {
       setWrongGuesses([]);
       setGameStatus("playing");
       setProgress(prog);
+      setSeenCount(seenIds.length);
     } catch (err) {
       if (isSessionExpiredError(err)) {
         alert(t("challenges.session_expired"));
@@ -218,6 +238,22 @@ const WordLinkGame = ({ isDarkMode }) => {
     loadPuzzle();
   }, [loadPuzzle]);
 
+  // ── Mark puzzle seen + record play ───────────────────────────────────────
+  const markSeenAndRecord = useCallback(async () => {
+    if (hasRecordedRef.current || !puzzleId || !user?.token || !user?.uid) return;
+    hasRecordedRef.current = true;
+
+    recordPlay(user.token, user.uid, GAME_ID, learningDialect, progress)
+      .catch((err) => console.warn("[WordLinkGame] recordPlay failed:", err));
+
+    getSeenWordLinkPuzzleIds(user.token, user.uid)
+      .then((currentSeenIds) =>
+        markWordLinkPuzzleSeen(user.token, user.uid, puzzleId, currentSeenIds)
+      )
+      .then(() => fetchStats())
+      .catch((err) => console.warn("[WordLinkGame] markWordLinkPuzzleSeen failed:", err));
+  }, [puzzleId, user, learningDialect, progress, fetchStats]);
+
   // ── Submit guess ─────────────────────────────────────────────────────────
   const handleSubmit = useCallback(
     async (e) => {
@@ -226,12 +262,7 @@ const WordLinkGame = ({ isDarkMode }) => {
 
       if (matchesAnswer(guess, keywords)) {
         setGameStatus("won");
-        if (!hasRecordedRef.current && user?.token && user?.uid) {
-          hasRecordedRef.current = true;
-          recordPlay(user.token, user.uid, GAME_ID, learningDialect, progress)
-            .then(() => fetchStats())
-            .catch((err) => console.warn("[WordLinkGame] recordPlay failed:", err));
-        }
+        markSeenAndRecord();
       } else {
         const newWrong     = [...wrongGuesses, guess.trim()];
         const nextRevealed = revealedCount + 1;
@@ -240,24 +271,19 @@ const WordLinkGame = ({ isDarkMode }) => {
 
         if (nextRevealed > clues.length) {
           setGameStatus("lost");
-          if (!hasRecordedRef.current && user?.token && user?.uid) {
-            hasRecordedRef.current = true;
-            recordPlay(user.token, user.uid, GAME_ID, learningDialect, progress)
-              .then(() => fetchStats())
-              .catch((err) => console.warn("[WordLinkGame] recordPlay failed:", err));
-          }
+          markSeenAndRecord();
         } else {
           setRevealedCount(nextRevealed);
           setTimeout(() => inputRef.current?.focus(), 50);
         }
       }
     },
-    [guess, gameStatus, keywords, wrongGuesses, revealedCount, clues.length, user, learningDialect, progress, fetchStats]
+    [guess, gameStatus, keywords, wrongGuesses, revealedCount, clues.length, markSeenAndRecord]
   );
 
   const handleResetSeenWords = useCallback(async () => {
     if (!user?.token || !user?.uid) return;
-    await resetAllSeenWords(user.token, user.uid);
+    await resetSeenWordLinkPuzzles(user.token, user.uid);
     await fetchStats();
   }, [user, fetchStats]);
 
@@ -388,7 +414,7 @@ const WordLinkGame = ({ isDarkMode }) => {
               <p className={`text-base font-semibold ${
                 isDarkMode ? "text-slate-300" : "text-slate-700"
               }`}>
-                {t("challenges.word_link_answer", "The theme was:")}
+                {t("challenges.word_link_answer", "The theme was: ")}
                 <span className="font-black text-blue-500">{theme}</span>
                 {themeTranslation && themeTranslation !== theme && (
                   <span className={`ml-1 font-normal text-sm ${
@@ -417,9 +443,9 @@ const WordLinkGame = ({ isDarkMode }) => {
       {/* ── Sidebar ── */}
       <ChallengeSidebar
         isDarkMode={isDarkMode}
-        seenCount={0}
+        seenCount={seenCount}
         progress={progress}
-        totalWords={null}
+        totalWords={totalWords}
         isLoadingStats={isLoadingStats}
         onReset={handleResetSeenWords}
         title={t("challenges.sidebar.title")}

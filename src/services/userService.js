@@ -105,7 +105,7 @@ export const deleteAccount = async (token) => {
 
 // ---------------------------------------------------------------------------
 // Global seen words — stored on users/{uid}.seenConceptIds
-// Shared across ALL app features (games, challenges, etc.)
+// Shared across ALL word-based game features (hangman, scrambled, wordsearch).
 // ---------------------------------------------------------------------------
 
 /**
@@ -139,7 +139,7 @@ export const markConceptSeenGlobal = async (token, uid, conceptId, currentSeenId
 /**
  * Clear all seen concept IDs globally.
  * Resets users/{uid}.seenConceptIds to [].
- * Affects ALL features — used from global Settings reset.
+ * Affects ALL word-based game features — used from global Settings reset.
  *
  * @param {string} token
  * @param {string} uid
@@ -148,6 +148,54 @@ export const resetAllSeenWords = async (token, uid) => {
   await updateUserProfile(token, uid, {
     seenConceptIds: [],
     seenWordsResetAt: new Date().toISOString(),
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Word Link seen puzzles — stored on users/{uid}.seenWordLinkPuzzleIds
+// Dedicated field so Word Link progress is isolated from word-game seen counts.
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the list of seen Word Link puzzle IDs for a user.
+ * Reads users/{uid}.seenWordLinkPuzzleIds — returns [] if not yet set.
+ *
+ * @param {string} token
+ * @param {string} uid
+ * @returns {Promise<string[]>}
+ */
+export const getSeenWordLinkPuzzleIds = async (token, uid) => {
+  const profile = await getUserProfile(token, uid);
+  return profile?.seenWordLinkPuzzleIds ?? [];
+};
+
+/**
+ * Append a puzzleId to users/{uid}.seenWordLinkPuzzleIds.
+ * Safe to call concurrently — uses a Set to deduplicate.
+ * Should be called on both win and lose.
+ *
+ * @param {string}   token
+ * @param {string}   uid
+ * @param {string}   puzzleId
+ * @param {string[]} currentSeenIds  - current value from getSeenWordLinkPuzzleIds() to avoid extra read
+ */
+export const markWordLinkPuzzleSeen = async (token, uid, puzzleId, currentSeenIds = []) => {
+  const updated = [...new Set([...currentSeenIds, puzzleId])];
+  await updateUserProfile(token, uid, { seenWordLinkPuzzleIds: updated });
+};
+
+/**
+ * Clear all seen Word Link puzzle IDs.
+ * Resets users/{uid}.seenWordLinkPuzzleIds to [].
+ * Only affects Word Link — does not touch seenConceptIds.
+ *
+ * @param {string} token
+ * @param {string} uid
+ */
+export const resetSeenWordLinkPuzzles = async (token, uid) => {
+  await updateUserProfile(token, uid, {
+    seenWordLinkPuzzleIds: [],
+    seenWordLinkPuzzlesResetAt: new Date().toISOString(),
   });
 };
 
@@ -195,7 +243,6 @@ export const getSeenExerciseIds = async (token, uid, type) => {
  */
 export const markExerciseSeen = async (token, uid, type, exerciseId, currentSeenIds = []) => {
   const updated = [...new Set([...currentSeenIds, exerciseId])];
-  // Read the full object to preserve other types
   const profile = await getUserProfile(token, uid);
   const seen = { ...emptySeenExerciseIds(), ...(profile?.seenExerciseIds ?? {}) };
   seen[type] = updated;
@@ -226,16 +273,8 @@ export const resetSeenExercises = async (token, uid, type) => {
 // lastStreakDate is stored as a YYYY-MM-DD string (UTC).
 // ---------------------------------------------------------------------------
 
-/**
- * Returns today's date as a YYYY-MM-DD string in UTC.
- * @returns {string}
- */
 const getTodayUTC = () => new Date().toISOString().slice(0, 10);
 
-/**
- * Returns yesterday's date as a YYYY-MM-DD string in UTC.
- * @returns {string}
- */
 const getYesterdayUTC = () => {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() - 1);
@@ -250,10 +289,6 @@ const getYesterdayUTC = () => {
  *  - lastStreakDate was yesterday → increment streak by 1
  *  - lastStreakDate is older or missing → reset streak to 1
  *
- * Writes { dayStreak, lastStreakDate } to users/{uid} and returns the
- * updated streak value so the caller can update context immediately
- * without an extra read.
- *
  * @param {string}      token
  * @param {string}      uid
  * @param {object}      profile  - the already-fetched Firestore profile object
@@ -265,15 +300,12 @@ export const updateDayStreak = async (token, uid, profile) => {
   const last      = profile?.lastStreakDate ?? null;
   const current   = profile?.dayStreak ?? 0;
 
-  // Already updated today — return existing value without writing
   if (last === today) return current;
 
   let newStreak;
   if (last === yesterday) {
-    // Consecutive day — keep the streak going
     newStreak = current + 1;
   } else {
-    // First ever login, or streak broken — start fresh
     newStreak = 1;
   }
 
@@ -287,8 +319,6 @@ export const updateDayStreak = async (token, uid, profile) => {
 
 // ---------------------------------------------------------------------------
 // Game progress — userGameProgress/{uid}/games/{gameId}__{learningDialect}
-// Stores per-game stats ONLY: totalPlayed, lastPlayedAt, etc.
-// seenConceptIds is NO LONGER stored here — see getGlobalSeenIds above.
 // ---------------------------------------------------------------------------
 
 const PROGRESS_COLLECTION = (uid) => `userGameProgress/${uid}/games`;
@@ -296,8 +326,6 @@ const PROGRESS_DOC_ID     = (gameId, learningDialect) => `${gameId}__${learningD
 
 /**
  * Get per-game stats for a specific game + dialect.
- * Used by the sidebar to show totalPlayed, lastPlayedAt, etc.
- * Does NOT return seenConceptIds — use getGlobalSeenIds() for that.
  *
  * @param {string} token
  * @param {string} uid
@@ -331,8 +359,6 @@ export const getUserGameProgress = async (token, uid, gameId, learningDialect) =
 /**
  * Record a play attempt (correct or incorrect).
  * Increments totalPlayed and sets lastPlayedAt.
- * Does NOT touch seenConceptIds — call markConceptSeenGlobal() for that.
- * Should be called on every answer submission (win or lose).
  *
  * @param {string}             token
  * @param {string}             uid
@@ -400,11 +426,7 @@ export const recordPlay = async (
 
 /**
  * @deprecated — seenConceptIds is no longer stored per-game.
- * This function is kept for backward compatibility only.
- * Use markConceptSeenGlobal() instead.
- *
- * If the game progress doc does not yet exist, it will be created
- * (without seenConceptIds) so that recordPlay() has a doc to update.
+ * Kept for backward compatibility. Redirects to markConceptSeenGlobal().
  */
 export const markConceptSeen = async (
   token,
@@ -414,11 +436,9 @@ export const markConceptSeen = async (
   conceptId,
   currentProgress
 ) => {
-  // Redirect to the global implementation
   const currentSeenIds = await getGlobalSeenIds(token, uid);
   await markConceptSeenGlobal(token, uid, conceptId, currentSeenIds);
 
-  // If there's no game progress doc yet, create a minimal one so stats work
   if (!currentProgress) {
     const collection = PROGRESS_COLLECTION(uid);
     const id         = PROGRESS_DOC_ID(gameId, learningDialect);
@@ -439,7 +459,6 @@ export const markConceptSeen = async (
         },
       }),
     }).then(async (r) => {
-      // 409 Conflict = doc already exists, safe to ignore
       if (!r.ok && r.status !== 409) {
         const j = await r.json();
         throw new Error(j?.error || j?.message || 'Failed to create game progress');
@@ -450,7 +469,6 @@ export const markConceptSeen = async (
 
 /**
  * @deprecated — use resetAllSeenWords() instead.
- * Kept for backward compatibility. Redirects to the global reset.
  */
 export const resetSeenWords = async (token, uid) => {
   await resetAllSeenWords(token, uid);
