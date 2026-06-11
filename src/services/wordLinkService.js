@@ -1,24 +1,89 @@
 const PROXY_URL    = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 const GEMINI_MODEL = 'gemini-3.5-flash';
 const MAX_CLUES    = 5;
+const POOL_COLLECTION = 'wordLinkGamePool';
+const POOL_LIMIT   = 200;
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 /**
- * Generates a Word Link puzzle via Gemini AI.
+ * Fetch the next unseen Word Link puzzle.
  *
- * Returns:
- *   - theme            : theme label in userDialect  (e.g. "Names of fruits")
- *   - themeTranslation : theme label in learningDialect (e.g. "Nomes de frutas")
- *   - clues            : 5 clue words in learningDialect, hardest → easiest
- *   - keywords         : accepted answer words in BOTH userDialect AND learningDialect
- *                        (singular + plural for each)
+ * Strategy (cache-first):
+ *   1. Query wordLinkGamePool for puzzles matching learningDialect + userDialect.
+ *   2. Filter out already-seen puzzle IDs client-side.
+ *   3. Return first unseen cached puzzle if found.
+ *   4. Otherwise generate a new one via AI, cache it silently, return it.
  *
- * @param {object} params
- * @param {string} params.token           - Firebase ID token
- * @param {string} params.userDialect     - BCP-47 interface language (e.g. 'en-US')
- * @param {string} params.learningDialect - BCP-47 learning language (e.g. 'pt-PT')
- * @returns {Promise<{ theme: string, themeTranslation: string, clues: string[], keywords: string[] }>}
+ * @param {object}   params
+ * @param {string}   params.token            - Firebase ID token
+ * @param {string}   params.userDialect      - BCP-47 interface language (e.g. 'en-US')
+ * @param {string}   params.learningDialect  - BCP-47 learning language (e.g. 'pt-PT')
+ * @param {string[]} params.seenPuzzleIds    - Already-seen puzzle IDs from global seen list
+ * @returns {Promise<{ puzzleId: string, theme: string, themeTranslation: string, clues: string[], keywords: string[] }>}
  */
-export const fetchWordLinkPuzzle = async ({ token, userDialect, learningDialect }) => {
+export const fetchWordLinkPuzzle = async ({ token, userDialect, learningDialect, seenPuzzleIds = [] }) => {
+  const seenSet = new Set(seenPuzzleIds);
+
+  // ── Step 1: try to find an unseen cached puzzle ──────────────────────────
+  try {
+    const cached = await _fetchCachedPuzzles(token, userDialect, learningDialect);
+    const unseen = cached.find((p) => !seenSet.has(p.id));
+
+    if (unseen) {
+      return {
+        puzzleId:         unseen.id,
+        theme:            unseen.theme,
+        themeTranslation: unseen.themeTranslation,
+        clues:            unseen.clues,
+        keywords:         unseen.keywords,
+      };
+    }
+  } catch (err) {
+    // Pool fetch failed — fall through to AI silently
+    console.warn('[wordLinkService] Pool fetch failed, falling back to AI:', err);
+  }
+
+  // ── Step 2: generate via AI ───────────────────────────────────────────────
+  const puzzle = await _generateFromAI({ token, userDialect, learningDialect });
+
+  // ── Step 3: cache silently (fire-and-forget) ──────────────────────────────
+  let puzzleId = `ai_${Date.now()}`; // fallback ID if cache write fails
+  try {
+    const savedId = await _cachePuzzle({ token, puzzle, userDialect, learningDialect });
+    if (savedId) puzzleId = savedId;
+  } catch (err) {
+    console.warn('[wordLinkService] Cache write failed (non-fatal):', err);
+  }
+
+  return { puzzleId, ...puzzle };
+};
+
+/**
+ * Return the total number of cached puzzles for a given dialect pair.
+ * Used by the sidebar to show pool size.
+ *
+ * @param {string} token
+ * @param {string} userDialect
+ * @param {string} learningDialect
+ * @returns {Promise<number>}
+ */
+export const getWordLinkPoolCount = async (token, userDialect, learningDialect) => {
+  try {
+    const puzzles = await _fetchCachedPuzzles(token, userDialect, learningDialect);
+    return puzzles.length;
+  } catch {
+    return 0;
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Private — AI generation
+// ---------------------------------------------------------------------------
+
+async function _generateFromAI({ token, userDialect, learningDialect }) {
   const prompt = [
     `You are generating a "Word Link" language-learning puzzle.`,
     ``,
@@ -56,10 +121,10 @@ export const fetchWordLinkPuzzle = async ({ token, userDialect, learningDialect 
         responseSchema: {
           type: 'object',
           properties: {
-            theme:             { type: 'string' },
-            themeTranslation:  { type: 'string' },
-            clues:             { type: 'array', items: { type: 'string' } },
-            keywords:          { type: 'array', items: { type: 'string' } },
+            theme:            { type: 'string' },
+            themeTranslation: { type: 'string' },
+            clues:            { type: 'array', items: { type: 'string' } },
+            keywords:         { type: 'array', items: { type: 'string' } },
           },
           required: ['theme', 'themeTranslation', 'clues', 'keywords'],
         },
@@ -73,16 +138,75 @@ export const fetchWordLinkPuzzle = async ({ token, userDialect, learningDialect 
   }
 
   const json   = await res.json();
-  const parsed = JSON.parse(json?.data?.text ?? json?.text ?? '{}');
+  const data   = json?.data ?? json;
 
-  if (!parsed.theme || !parsed.themeTranslation || !Array.isArray(parsed.clues) || !Array.isArray(parsed.keywords)) {
+  const theme            = data?.theme            ?? data?.text?.theme;
+  const themeTranslation = data?.themeTranslation ?? data?.text?.themeTranslation;
+  const clues            = data?.clues            ?? data?.text?.clues;
+  const keywords         = data?.keywords         ?? data?.text?.keywords;
+
+  if (!theme || !themeTranslation || !Array.isArray(clues) || !Array.isArray(keywords)) {
     throw new Error('Invalid puzzle format from AI');
+  }
+  if (clues.length !== MAX_CLUES) {
+    throw new Error(`AI returned ${clues.length} clues, expected ${MAX_CLUES}`);
+  }
+  if (keywords.length < 1) {
+    throw new Error('AI returned no accepted keywords');
   }
 
   return {
-    theme:            parsed.theme,
-    themeTranslation: parsed.themeTranslation,
-    clues:            parsed.clues.slice(0, MAX_CLUES),
-    keywords:         parsed.keywords,
+    theme,
+    themeTranslation,
+    clues:    clues.slice(0, MAX_CLUES),
+    keywords,
   };
-};
+}
+
+// ---------------------------------------------------------------------------
+// Private — Firestore helpers
+// ---------------------------------------------------------------------------
+
+async function _fetchCachedPuzzles(token, userDialect, learningDialect) {
+  const params = new URLSearchParams({
+    collection: POOL_COLLECTION,
+    filters: JSON.stringify([
+      { field: 'learningDialect', op: '==', value: learningDialect },
+      { field: 'userDialect',     op: '==', value: userDialect },
+    ]),
+    limit: String(POOL_LIMIT),
+  });
+
+  const res = await fetch(`${PROXY_URL}/api/firestore?${params}`, {
+    method:  'GET',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.error || json?.message || 'Failed to fetch puzzle pool');
+
+  return json?.data?.documents ?? [];
+}
+
+async function _cachePuzzle({ token, puzzle, userDialect, learningDialect }) {
+  const res = await fetch(`${PROXY_URL}/api/firestore`, {
+    method:  'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      collection: POOL_COLLECTION,
+      data: {
+        learningDialect,
+        userDialect,
+        theme:            puzzle.theme,
+        themeTranslation: puzzle.themeTranslation,
+        clues:            puzzle.clues,
+        keywords:         puzzle.keywords,
+      },
+    }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.error || json?.message || 'Failed to cache puzzle');
+
+  return json?.data?.id ?? null;
+}
