@@ -49,7 +49,7 @@ export const AppProvider = ({ children }) => {
   const [tokenExpired, setTokenExpired] = useState(false);
   const tokenCheckRef = useRef(null);
 
-  // ── Full Exam session state ────────────────────────────────────────────
+  // ── Full Exam session state ─────────────────────────────────────
   const [examSession, setExamSession] = useState(null);
 
   const updateExamSection = useCallback((section, patch) =>
@@ -113,7 +113,7 @@ export const AppProvider = ({ children }) => {
     setAlert({ show: false, type: "", message: "", action: null });
   }, []);
 
-  // ── Periodic token validation ──────────────────────────────────────────
+  // ── Periodic token validation ─────────────────────────────────
   // Every TOKEN_CHECK_INTERVAL_MS, try to force-refresh the ID token.
   // If the refresh fails the session is considered expired.
   useEffect(() => {
@@ -217,15 +217,29 @@ export const AppProvider = ({ children }) => {
         photoURL: profile?.photoURL || authUser?.photoURL || prev?.photoURL,
         interfaceLang: lang,
         theme: profile?.theme ?? "light",
-        // ── Learning profile fields ──────────────────────────────────────────
+        // ── Learning profile fields ───────────────────────────────────────
         // learningDialect: Firestore → hardcoded default pt-PT
         learningDialect: profile?.learningDialect ?? "pt-PT",
         // interests: Firestore → keep previous → empty array
         interests: profile?.interests ?? prev?.interests ?? [],
-        // ── Stats fields ─────────────────────────────────────────────────────
+        // ── Stats fields ─────────────────────────────────────────────
         dayStreak,
         wordsFound,
         seenExerciseIds,
+        // ── Subscription / tier fields (Phase 1) ─────────────────────────────
+        // subscriptionTier: Firestore → default 'explorer' (free tier)
+        subscriptionTier: profile?.subscriptionTier ?? "explorer",
+        // subscriptionStatus: 'active' | 'trialing' | 'past_due' | 'canceled' | null
+        subscriptionStatus: profile?.subscriptionStatus ?? null,
+        // currentPeriodEnd: Unix timestamp (seconds) of billing period end; null for free tier
+        currentPeriodEnd: profile?.currentPeriodEnd ?? null,
+        // aiCallsToday: resets when aiCallsDate !== today (server resets this daily)
+        aiCallsToday:
+          profile?.aiCallsDate === new Date().toISOString().slice(0, 10)
+            ? (profile?.aiCallsToday ?? 0)
+            : 0,
+        // aiCallsDate: 'YYYY-MM-DD' tracking which day the counter belongs to
+        aiCallsDate: profile?.aiCallsDate ?? null,
       }));
     } catch (err) {
       showAlert("error", `Could not load your profile: ${err.message}`);
@@ -346,6 +360,11 @@ export const AppProvider = ({ children }) => {
         examSession,
         setExamSession,
         updateExamSection,
+        // ── Subscription (read-only; mutated via refreshUser → loadUserProfile) ──
+        subscriptionTier: user?.subscriptionTier ?? 'explorer',
+        subscriptionStatus: user?.subscriptionStatus ?? null,
+        currentPeriodEnd: user?.currentPeriodEnd ?? null,
+        aiCallsToday: user?.aiCallsToday ?? 0,
       }}
     >
       {children}
