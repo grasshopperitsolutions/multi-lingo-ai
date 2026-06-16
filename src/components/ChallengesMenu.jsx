@@ -51,7 +51,7 @@ const GAMES = [
     titleKey: "challenges.word_link",
     descKey: "challenges.word_link_desc",
     component: WordLinkGame,
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: "word_ladder",
@@ -60,7 +60,7 @@ const GAMES = [
     titleKey: "challenges.word_ladder",
     descKey: "challenges.word_ladder_desc",
     component: WordLadderGame,
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: "word_quiz",
