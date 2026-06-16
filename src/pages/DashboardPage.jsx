@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import FeatureCard from "../components/FeatureCard";
+import AiUsageBadge from "../components/AiUsageBadge";
+import { useTierAccess } from "../hooks/useTierAccess";
 import Loader from "../components/Loader";
 import Avatar from "../components/Avatar";
 import ChallengesMenu from "../components/ChallengesMenu";
@@ -90,6 +92,7 @@ const DashboardPage = () => {
   } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { tier } = useTierAccess();
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [dictionaryPreFill, setDictionaryPreFill] = useState('');
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -203,11 +206,26 @@ const DashboardPage = () => {
             className="shrink-0"
           />
           <div className="min-w-0">
-            <h1 className={`text-base sm:text-3xl font-black uppercase tracking-tighter truncate ${
-              isDarkMode ? "text-white" : "text-slate-900"
-            }`}>
-              {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || t("dashboard.learner") })}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className={`text-base sm:text-3xl font-black uppercase tracking-tighter truncate ${
+                isDarkMode ? "text-white" : "text-slate-900"
+              }`}>
+                {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || t("dashboard.learner") })}
+              </h1>
+              {/* Tier Badge */}
+              {tier !== "explorer" && (
+                <span
+                  className={`hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full border-2 text-xs font-black uppercase tracking-wider ${
+                    tier === "voyager"
+                      ? "bg-blue-100 border-blue-500 text-blue-700"
+                      : "bg-yellow-100 border-yellow-500 text-yellow-700"
+                  }`}
+                >
+                  {tier === "maestro" && <Star size={12} className="fill-current" />}
+                  {tier === "voyager" ? "Voyager" : "Maestro"}
+                </span>
+              )}
+            </div>
             <p className={`hidden sm:block font-bold uppercase tracking-widest text-sm mt-1 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"
             }`}>
@@ -411,16 +429,20 @@ const DashboardPage = () => {
       {/* Stats + Features — hidden when a feature is active */}
       {!selectedFeature && (
         <>
+          {/* Stats Row + AI Usage Badge */}
           <section>
             <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"
             }`}>{t("dashboard.your_progress")}</h2>
-            <div className="flex gap-3 overflow-x-auto py-2 px-0.5 sm:py-1 sm:grid sm:grid-cols-3 sm:gap-4 snap-x snap-mandatory">
+            <div className="flex gap-3 overflow-x-auto py-2 px-0.5 sm:py-1 sm:grid sm:grid-cols-4 sm:gap-4 snap-x snap-mandatory">
               {stats.map((s) => (
                 <div key={s.label} className="snap-start shrink-0 w-[calc(50%-8px)] min-w-[100px] sm:w-auto sm:min-w-0">
                   <StatCard {...s} isDarkMode={isDarkMode} />
                 </div>
               ))}
+              <div className="snap-start shrink-0 w-[calc(50%-8px)] min-w-[100px] sm:w-auto sm:min-w-0">
+                <AiUsageBadge isDarkMode={isDarkMode} />
+              </div>
             </div>
           </section>
           <section>

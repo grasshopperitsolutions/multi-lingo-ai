@@ -1,7 +1,10 @@
 import { lazy, Suspense, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { Headphones, BookOpen, PenLine, ClipboardList } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '../contexts/AppContext';
+import { useTierAccess } from '../hooks/useTierAccess';
+import { Headphones, BookOpen, PenLine, ClipboardList, Lock } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import ReportButton from './ReportButton';
 import { Breadcrumb } from './ui';
@@ -104,9 +107,22 @@ ExerciseLoader.propTypes = { isDarkMode: PropTypes.bool.isRequired };
 // ── ExamTrainingMenu ──────────────────────────────────────────────────────────
 const ExamTrainingMenu = ({ isDarkMode, onBack }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { showAlert } = useAppContext();
+  const { isExplorer } = useTierAccess();
   const [activeExercise, setActiveExercise] = useState(null);
 
-  const handleExerciseSelect = (id) => setActiveExercise(id);
+  const handleExerciseSelect = (id) => {
+    // Lock Full Exam for Explorer users
+    if (id === 'full_exam' && isExplorer) {
+      showAlert('warning', t('subscription.errors.upgrade_required'), {
+        label: t('pricing.upgrade'),
+        onClick: () => navigate('/pricing'),
+      });
+      return;
+    }
+    setActiveExercise(id);
+  };
   const handleBackToMenu = () => setActiveExercise(null);
 
   const activeExerciseDef = activeExercise
@@ -154,19 +170,22 @@ const ExamTrainingMenu = ({ isDarkMode, onBack }) => {
       </div>
 
       <div className="grid grid-cols-1 gap-3 mt-2">
-        {EXERCISES.map((ex) => (
-          <ExamCard
-            key={ex.id}
-            title={t(ex.titleKey)}
-            description={t(ex.descKey)}
-            icon={ex.icon}
-            color={ex.color}
-            onClick={() => !ex.comingSoon && handleExerciseSelect(ex.id)}
-            isDarkMode={isDarkMode}
-            comingSoon={ex.comingSoon}
-            comingSoonLabel={t('challenges.coming_soon', 'Coming Soon')}
-          />
-        ))}
+        {EXERCISES.map((ex) => {
+          const isLocked = ex.id === 'full_exam' && isExplorer;
+          return (
+            <ExamCard
+              key={ex.id}
+              title={t(ex.titleKey)}
+              description={t(ex.descKey)}
+              icon={isLocked ? Lock : ex.icon}
+              color={ex.color}
+              onClick={() => !ex.comingSoon && !isLocked && handleExerciseSelect(ex.id)}
+              isDarkMode={isDarkMode}
+              comingSoon={ex.comingSoon || isLocked}
+              comingSoonLabel={isLocked ? t('pricing.upgrade') : t('challenges.coming_soon', 'Coming Soon')}
+            />
+          );
+        })}
       </div>
     </div>
   );

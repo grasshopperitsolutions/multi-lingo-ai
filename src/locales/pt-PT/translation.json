@@ -16,6 +16,7 @@
     "lang_de": "Alemão",
     "open_menu": "Abrir menu",
     "close_menu": "Fechar menu",
+    "pricing": "Preços",
     "brand": "Multi Lingo AI"
   },
   "common": {
@@ -666,6 +667,58 @@
     "description": "Descrição",
     "placeholder": "Descreve o problema em poucas palavras…",
     "send": "Enviar via WhatsApp"
+  },
+  "pricing": {
+    "title": "Escolhe o Teu Plano",
+    "subtitle": "Desbloqueia todo o poder da aprendizagem com IA. Começa grátis, atualiza quando precisares.",
+    "monthly": "Mensal",
+    "yearly": "Anual",
+    "per_month": "mês",
+    "per_year": "ano",
+    "free_forever": "Grátis para Sempre",
+    "most_popular": "Mais Popular",
+    "current_plan": "Plano Atual",
+    "upgrade": "Avançar",
+    "get_started": "Começar",
+    "redirecting": "A redirecionar...",
+    "save_x": "Poupa {{percent}}%",
+    "try_free_days": "Experimenta grátis por {{days}} dias",
+    "features": {
+      "ai_calls": "{{count}} chamadas IA{{suffix}}",
+      "translator": "Tradutor IA",
+      "dictionary": "Dicionário Avançado",
+      "challenges": "Desafios & Jogos",
+      "full_exam": "Modo Exame Completo",
+      "priority_support": "Suporte Prioritário"
+    }
+  },
+  "subscription": {
+    "title": "Subscrição",
+    "current_period_end": "Período de faturação termina: {{date}}",
+    "manage": "Gerir Subscrição",
+    "upgrade_plan": "Avançar Plano",
+    "update_payment": "Atualizar Pagamento",
+    "past_due_message": "O teu pagamento está em atraso. Atualiza o método de pagamento para evitar interrupção do serviço.",
+    "trial_badge": "{{days}} dias de teste grátis",
+    "errors": {
+      "upgrade_required": "Esta funcionalidade está disponível apenas nos planos Voyager e superiores."
+    },
+    "success": {
+      "title": "Subscrição Ativa!",
+      "message": "A tua subscrição foi ativada com sucesso. Tens agora acesso a todas as funcionalidades do teu plano.",
+      "redirecting": "A redirecionar para o painel em {{seconds}}s..."
+    },
+    "cancel": {
+      "title": "Subscrição Cancelada",
+      "message": "O teu checkout foi cancelado. Não foram feitas alterações à tua conta.",
+      "back": "Voltar aos Preços"
+    }
+  },
+  "ai_usage": {
+    "label": "Chamadas IA",
+    "unlimited": "Ilimitado",
+    "depleted": "Sem chamadas",
+    "remaining": "{{count}} / {{total}} restantes"
   },
   "session": {
     "expired_title": "Sessão Expirada",

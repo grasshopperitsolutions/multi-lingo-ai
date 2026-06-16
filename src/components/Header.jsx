@@ -137,17 +137,30 @@ const Header = () => {
               </button>
             </>
           ) : (
-            <Link
-              to="/login"
-              className={`flex px-8 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95
-              ${
-                isDarkMode
-                  ? "bg-blue-600 border-slate-900 text-white hover-neo-dark"
-                  : "bg-blue-600 border-slate-900 text-white hover-neo-light"
-              }`}
-            >
-              {t('nav.login')}
-            </Link>
+            <>
+              <Link
+                to="/pricing"
+                className={`flex px-5 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95
+                ${
+                  isDarkMode
+                    ? "bg-transparent border-slate-600 text-slate-300 hover:bg-slate-700"
+                    : "bg-transparent border-slate-900 text-slate-900 hover:bg-slate-100"
+                }`}
+              >
+                {t('nav.pricing')}
+              </Link>
+              <Link
+                to="/login"
+                className={`flex px-8 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95
+                ${
+                  isDarkMode
+                    ? "bg-blue-600 border-slate-900 text-white hover-neo-dark"
+                    : "bg-blue-600 border-slate-900 text-white hover-neo-light"
+                }`}
+              >
+                {t('nav.login')}
+              </Link>
+            </>
           )}
         </div>
 

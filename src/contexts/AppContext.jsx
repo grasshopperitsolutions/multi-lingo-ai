@@ -222,6 +222,12 @@ export const AppProvider = ({ children }) => {
         learningDialect: profile?.learningDialect ?? "pt-PT",
         // interests: Firestore → keep previous → empty array
         interests: profile?.interests ?? prev?.interests ?? [],
+        // ── Subscription / tier fields ───────────────────────────────────────
+        subscriptionTier: profile?.subscriptionTier ?? "explorer",
+        subscriptionStatus: profile?.subscriptionStatus ?? null,
+        currentPeriodEnd: profile?.currentPeriodEnd ?? null,
+        aiCallsToday: profile?.aiCallsToday ?? 0,
+        aiCallsDate: profile?.aiCallsDate ?? null,
         // ── Stats fields ─────────────────────────────────────────────────────
         dayStreak,
         wordsFound,

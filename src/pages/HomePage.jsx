@@ -268,6 +268,79 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+      {/* PRICING SECTION */}
+      <section className="max-w-6xl mx-auto px-4 py-20 relative z-10">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tighter inline-block border-b-8 border-yellow-400 pb-2">
+            {t("pricing.title")}
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Explorer */}
+          <div
+            className={`p-6 rounded-[2rem] border-4 flex flex-col items-center text-center
+            ${isDarkMode ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]" : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"}`}
+          >
+            <h3 className={`text-2xl font-black uppercase mb-2 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
+              Explorer
+            </h3>
+            <p className="text-3xl font-black text-emerald-500 mb-1">$0.00</p>
+            <p className={`text-xs font-bold uppercase tracking-wider mb-4 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              {t("pricing.free_forever")}
+            </p>
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full py-3 rounded-2xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95 bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-0.5"
+            >
+              {t("pricing.get_started")}
+            </button>
+          </div>
+
+          {/* Voyager */}
+          <div
+            className={`p-6 rounded-[2rem] border-4 flex flex-col items-center text-center md:scale-105 z-10
+            ${isDarkMode ? "bg-slate-800 border-yellow-400 shadow-[8px_8px_0px_0px_#ca8a04]" : "bg-white border-yellow-400 shadow-[8px_8px_0px_0px_#facc15]"}`}
+          >
+            <div className="bg-yellow-400 text-slate-900 px-4 py-1 rounded-full border-2 border-slate-900 font-black uppercase text-xs tracking-widest mb-3">
+              {t("pricing.most_popular")}
+            </div>
+            <h3 className={`text-2xl font-black uppercase mb-1 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
+              Voyager
+            </h3>
+            <p className="text-3xl font-black text-blue-600 mb-1">$4.99</p>
+            <p className={`text-xs font-bold uppercase tracking-wider mb-4 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              /{t("pricing.per_month")}
+            </p>
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full py-3 rounded-2xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95 bg-blue-600 border-slate-900 text-white shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-0.5"
+            >
+              {t("pricing.get_started")}
+            </button>
+          </div>
+
+          {/* Maestro */}
+          <div
+            className={`p-6 rounded-[2rem] border-4 flex flex-col items-center text-center
+            ${isDarkMode ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]" : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"}`}
+          >
+            <h3 className={`text-2xl font-black uppercase mb-1 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
+              Maestro
+            </h3>
+            <p className="text-3xl font-black text-yellow-500 mb-1">$14.99</p>
+            <p className={`text-xs font-bold uppercase tracking-wider mb-4 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              /{t("pricing.per_month")}
+            </p>
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full py-3 rounded-2xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95 bg-blue-600 border-slate-900 text-white shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-0.5"
+            >
+              {t("pricing.get_started")}
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ SECTION */}
       <section className="max-w-4xl mx-auto px-4 py-16 relative z-10">
         <div className="text-center mb-8">

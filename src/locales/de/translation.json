@@ -16,6 +16,7 @@
     "lang_de": "Deutsch",
     "open_menu": "Menü öffnen",
     "close_menu": "Menü schließen",
+    "pricing": "Preise",
     "brand": "Multi Lingo AI"
   },
   "common": {
@@ -666,6 +667,58 @@
     "description": "Beschreibung",
     "placeholder": "Beschreibe das Problem in ein paar Worten…",
     "send": "Per WhatsApp senden"
+  },
+  "pricing": {
+    "title": "Wähle Deinen Plan",
+    "subtitle": "Schalte die volle Kraft des KI-gestützten Sprachenlernens frei. Starte kostenlos, upgrade wenn du mehr brauchst.",
+    "monthly": "Monatlich",
+    "yearly": "Jährlich",
+    "per_month": "Monat",
+    "per_year": "Jahr",
+    "free_forever": "Kostenlos für Immer",
+    "most_popular": "Beliebteste",
+    "current_plan": "Aktueller Plan",
+    "upgrade": "Upgrade",
+    "get_started": "Loslegen",
+    "redirecting": "Weiterleitung...",
+    "save_x": "Spare {{percent}}%",
+    "try_free_days": "Kostenlos {{days}} Tage testen",
+    "features": {
+      "ai_calls": "{{count}} KI-Anrufe{{suffix}}",
+      "translator": "KI-Übersetzer",
+      "dictionary": "Erweitertes Wörterbuch",
+      "challenges": "Herausforderungen & Spiele",
+      "full_exam": "Vollständiger Prüfungsmodus",
+      "priority_support": "Prioritäts-Support"
+    }
+  },
+  "subscription": {
+    "title": "Abonnement",
+    "current_period_end": "Abrechnungszeitraum endet: {{date}}",
+    "manage": "Abonnement verwalten",
+    "upgrade_plan": "Plan upgraden",
+    "update_payment": "Zahlung aktualisieren",
+    "past_due_message": "Deine Zahlung ist überfällig. Bitte aktualisiere deine Zahlungsmethode, um eine Unterbrechung des Dienstes zu vermeiden.",
+    "trial_badge": "{{days}} Tage kostenlose Testversion",
+    "errors": {
+      "upgrade_required": "Diese Funktion ist nur auf Voyager-Plänen und höheren Plänen verfügbar."
+    },
+    "success": {
+      "title": "Abonnement Aktiv!",
+      "message": "Dein Abonnement wurde erfolgreich aktiviert. Du hast jetzt Zugriff auf alle Funktionen deines Plans.",
+      "redirecting": "Weiterleitung zum Dashboard in {{seconds}}s..."
+    },
+    "cancel": {
+      "title": "Abonnement Storniert",
+      "message": "Dein Checkout wurde storniert. Es wurden keine Änderungen an deinem Konto vorgenommen.",
+      "back": "Zurück zu den Preisen"
+    }
+  },
+  "ai_usage": {
+    "label": "KI-Anrufe",
+    "unlimited": "Unbegrenzt",
+    "depleted": "Keine Anrufe mehr",
+    "remaining": "{{count}} / {{total}} verbleibend"
   },
   "session": {
     "expired_title": "Sitzung Abgelaufen",

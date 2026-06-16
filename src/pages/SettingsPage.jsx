@@ -7,6 +7,7 @@ import NeoDropdown from "../components/NeoDropdown";
 import Avatar from "../components/Avatar";
 import FloatingActionButton from "../components/FloatingActionButton";
 import ConfirmModal from "../components/ConfirmModal";
+import { openBillingPortal } from "../services/stripeService";
 import {
   ArrowLeft,
   User,
@@ -21,7 +22,11 @@ import {
   Loader2,
   Lock,
   BookOpen,
+  CreditCard,
+  Star,
+  ExternalLink,
 } from "lucide-react";
+import { useTierAccess } from "../hooks/useTierAccess";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
 import { auth } from "../firebase";
 
@@ -372,6 +377,8 @@ const SettingsPage = () => {
   const { isDarkMode, setIsDarkMode, user, logoutUser, showAlert, refreshUser, changeLanguage } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { tier, isExplorer, isVoyager } = useTierAccess();
+  const [isPortalLoading, setIsPortalLoading] = useState(false);
 
   const [displayName,   setDisplayName]   = useState(user?.displayName || "");
   const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en-US");
@@ -541,6 +548,130 @@ const SettingsPage = () => {
           previewUrl={previewUrl}
           onFileSelect={handleFileSelect}
         />
+
+        {/* ── Subscription Section ── */}
+        <div className={sectionClasses}>
+          <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
+            <CreditCard size={16} className="inline mr-2" />
+            {t("subscription.title")}
+          </h2>
+
+          {/* Current Tier Badge */}
+          <div className="flex items-center gap-3 mb-4">
+            <span
+              className={`px-4 py-1.5 rounded-full border-2 font-black uppercase tracking-wider text-sm ${
+                isExplorer
+                  ? "border-slate-300 text-slate-500"
+                  : isVoyager
+                    ? "bg-blue-100 border-blue-500 text-blue-700"
+                    : "bg-yellow-100 border-yellow-500 text-yellow-700"
+              }`}
+            >
+              {tier === "maestro" && <Star size={14} className="inline mr-1 fill-current" />}
+              {isExplorer ? "Explorer" : isVoyager ? "Voyager" : "Maestro"}
+            </span>
+            {user?.subscriptionStatus && !isExplorer && (
+              <span
+                className={`px-3 py-1 rounded-full border-2 font-black uppercase tracking-wider text-xs ${
+                  user.subscriptionStatus === "active" || user.subscriptionStatus === "trialing"
+                    ? "border-emerald-500 text-emerald-600"
+                    : user.subscriptionStatus === "past_due"
+                      ? "border-rose-500 text-rose-600"
+                      : "border-slate-300 text-slate-500"
+                }`}
+              >
+                {user.subscriptionStatus}
+              </span>
+            )}
+          </div>
+
+          {/* Current Period End */}
+          {user?.currentPeriodEnd && !isExplorer && (
+            <p className={`text-sm font-bold mb-4 ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`}>
+              {t("subscription.current_period_end", {
+                date: new Date(user.currentPeriodEnd).toLocaleDateString(),
+              })}
+            </p>
+          )}
+
+          {/* Past-due notice */}
+          {user?.subscriptionStatus === "past_due" && (
+            <div className={`p-4 rounded-xl border-4 mb-4 ${
+              isDarkMode
+                ? "bg-rose-900/20 border-rose-500/40 text-rose-400"
+                : "bg-rose-50 border-rose-300 text-rose-600"
+            }`}>
+              <p className="font-black uppercase tracking-widest text-xs mb-3">
+                {t("subscription.past_due_message")}
+              </p>
+              <button
+                onClick={async () => {
+                  setIsPortalLoading(true);
+                  try {
+                    const firebaseUser = auth?.currentUser;
+                    if (!firebaseUser) return;
+                    const token = await firebaseUser.getIdToken();
+                    await openBillingPortal(token);
+                  } catch {
+                    showAlert("error", t("common.error"));
+                  } finally {
+                    setIsPortalLoading(false);
+                  }
+                }}
+                disabled={isPortalLoading}
+                className="px-4 py-2 bg-rose-500 text-white rounded-xl border-2 border-slate-900 font-black uppercase text-xs tracking-widest hover:bg-rose-600 transition-all"
+              >
+                {isPortalLoading ? t("common.loading") : t("subscription.update_payment")}
+              </button>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            {isExplorer ? (
+              <button
+                onClick={() => navigate("/pricing")}
+                className={`w-full flex items-center justify-center gap-3 py-3 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95 ${
+                  isDarkMode
+                    ? "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#ca8a04] hover:-translate-y-0.5"
+                    : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-0.5"
+                }`}
+              >
+                <Star size={18} />
+                {t("pricing.upgrade")}
+              </button>
+            ) : (
+              <button
+                onClick={async () => {
+                  setIsPortalLoading(true);
+                  try {
+                    const firebaseUser = auth?.currentUser;
+                    if (!firebaseUser) return;
+                    const token = await firebaseUser.getIdToken();
+                    await openBillingPortal(token);
+                  } catch {
+                    showAlert("error", t("common.error"));
+                  } finally {
+                    setIsPortalLoading(false);
+                  }
+                }}
+                disabled={isPortalLoading}
+                className={`w-full flex items-center justify-center gap-3 py-3 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95 ${
+                  isDarkMode
+                    ? "bg-slate-700 border-slate-600 text-white shadow-[4px_4px_0px_0px_#1e293b] hover:bg-slate-600"
+                    : "bg-white border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:bg-slate-100"
+                }`}
+              >
+                {isPortalLoading ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <ExternalLink size={18} />
+                )}
+                {isPortalLoading ? t("common.loading") : t("subscription.manage")}
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* Account Actions */}
         <div className={sectionClasses}>

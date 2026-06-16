@@ -10,6 +10,9 @@ import PrivacyPage from "./pages/PrivacyPage";
 import ContactPage from "./pages/ContactPage";
 import DashboardPage from "./pages/DashboardPage";
 import SettingsPage from "./pages/SettingsPage";
+import PricingPage from "./pages/PricingPage";
+import SubscriptionSuccessPage from "./pages/SubscriptionSuccessPage";
+import SubscriptionCancelPage from "./pages/SubscriptionCancelPage";
 import AlertMessage from "./components/Alert";
 import GlobalCompassCursor from "./components/GlobalCompassCursor";
 
@@ -20,6 +23,9 @@ const PublicLayout = () => (
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/contact" element={<ContactPage />} />
+      <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
+      <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
       <Route path="/*" element={<HomePage />} />
     </Routes>
     <Footer />
