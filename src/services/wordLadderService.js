@@ -1,5 +1,5 @@
 const PROXY_URL       = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-const GEMINI_MODEL    = 'gemini-2.5-flash';
+const GEMINI_MODEL    = 'gemini-3.5-flash';
 const MIN_WORDS       = 4;
 const MAX_WORDS       = 6;
 const POOL_COLLECTION = 'wordLadderGamePool';
@@ -132,7 +132,8 @@ async function _generateFromAI({ token, userDialect, learningDialect }) {
   }
 
   const json = await res.json();
-  const data = json?.data ?? json;
+  const raw  = json?.data?.text ?? json?.text ?? '';
+  const data = _parseJSON(raw);
 
   const words      = data?.words;
   const clues      = data?.clues;

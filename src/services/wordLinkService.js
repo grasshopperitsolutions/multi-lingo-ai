@@ -137,7 +137,8 @@ async function _generateFromAI({ token, userDialect, learningDialect }) {
   }
 
   const json = await res.json();
-  const data = json?.data ?? json;
+  const raw  = json?.data?.text ?? json?.text ?? '';
+  const data = _parseJSON(raw);
 
   const theme            = data?.theme;
   const themeTranslation = data?.themeTranslation;
