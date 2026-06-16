@@ -200,6 +200,54 @@ export const resetSeenWordLinkPuzzles = async (token, uid) => {
 };
 
 // ---------------------------------------------------------------------------
+// Word Ladder seen puzzles — stored on users/{uid}.seenWordLadderPuzzleIds
+// Dedicated field so Word Ladder progress is isolated from other game seen counts.
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the list of seen Word Ladder puzzle IDs for a user.
+ * Reads users/{uid}.seenWordLadderPuzzleIds — returns [] if not yet set.
+ *
+ * @param {string} token
+ * @param {string} uid
+ * @returns {Promise<string[]>}
+ */
+export const getSeenWordLadderPuzzleIds = async (token, uid) => {
+  const profile = await getUserProfile(token, uid);
+  return profile?.seenWordLadderPuzzleIds ?? [];
+};
+
+/**
+ * Append a puzzleId to users/{uid}.seenWordLadderPuzzleIds.
+ * Safe to call concurrently — uses a Set to deduplicate.
+ * Should be called on both win and lose.
+ *
+ * @param {string}   token
+ * @param {string}   uid
+ * @param {string}   puzzleId
+ * @param {string[]} currentSeenIds  - current value from getSeenWordLadderPuzzleIds() to avoid extra read
+ */
+export const markWordLadderPuzzleSeen = async (token, uid, puzzleId, currentSeenIds = []) => {
+  const updated = [...new Set([...currentSeenIds, puzzleId])];
+  await updateUserProfile(token, uid, { seenWordLadderPuzzleIds: updated });
+};
+
+/**
+ * Clear all seen Word Ladder puzzle IDs.
+ * Resets users/{uid}.seenWordLadderPuzzleIds to [].
+ * Only affects Word Ladder — does not touch seenConceptIds or seenWordLinkPuzzleIds.
+ *
+ * @param {string} token
+ * @param {string} uid
+ */
+export const resetSeenWordLadderPuzzles = async (token, uid) => {
+  await updateUserProfile(token, uid, {
+    seenWordLadderPuzzleIds: [],
+    seenWordLadderPuzzlesResetAt: new Date().toISOString(),
+  });
+};
+
+// ---------------------------------------------------------------------------
 // Seen exercise IDs — stored on users/{uid}.seenExerciseIds
 // Tracks which exam exercises the user has already been shown, split by type.
 // Structure: { reading: string[], listening: string[], writing: string[] }
