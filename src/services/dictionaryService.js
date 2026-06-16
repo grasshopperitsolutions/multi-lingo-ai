@@ -40,6 +40,8 @@
 // Constants
 // ---------------------------------------------------------------------------
 
+import { parseAIJSON } from '../utils/parseAIJSON';
+
 const PROXY_URL    = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 const GEMINI_MODEL = 'gemini-3.5-flash';
 
@@ -121,7 +123,7 @@ export async function lookupWord({ token, word, interfaceLang, learningLang }) {
 
   let parsed;
   try {
-    parsed = typeof raw === 'object' ? raw : JSON.parse(raw);
+    parsed = parseAIJSON(raw);
   } catch {
     throw new Error('[dictionaryService] Could not parse AI response as JSON');
   }

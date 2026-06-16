@@ -95,6 +95,8 @@
 // Constants
 // ---------------------------------------------------------------------------
 
+import { parseAIJSON } from '../utils/parseAIJSON';
+
 const PROXY_URL    = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 const GEMINI_MODEL = 'gemini-3.5-flash';
 const POOL_LIMIT   = 200;
@@ -390,7 +392,7 @@ async function _generateTranslation(sourceWord, { userDialect, learningDialect }
   const json = await response.json();
   if (!response.ok) throw new Error(json?.error || json?.message || 'AI translation failed');
 
-  const parsed = _parseAIJson(json?.text ?? json?.data?.text);
+  const parsed = parseAIJSON(json?.text ?? json?.data?.text);
   if (!parsed?.word || !parsed?.hint)
     throw new Error('[getWordService] AI response missing word or hint');
 
@@ -429,7 +431,7 @@ async function _generateHintForDialect(sourceWord, userDialect, token) {
   const json = await response.json();
   if (!response.ok) throw new Error(json?.error || json?.message || 'AI hint generation failed');
 
-  const parsed = _parseAIJson(json?.text ?? json?.data?.text);
+  const parsed = parseAIJSON(json?.text ?? json?.data?.text);
   if (!parsed?.hint) throw new Error('[getWordService] AI response missing hint');
   return parsed.hint.trim();
 }
@@ -483,7 +485,7 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords, m
   const json = await response.json();
   if (!response.ok) throw new Error(json?.error || json?.message || 'AI concept generation failed');
 
-  const parsed = _parseAIJson(json?.text ?? json?.data?.text);
+  const parsed = parseAIJSON(json?.text ?? json?.data?.text);
   if (!parsed?.sourceWord || !parsed?.word || !parsed?.hint)
     throw new Error('[getWordService] AI response missing required fields');
 
@@ -495,17 +497,3 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords, m
   };
 }
 
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
-function _parseAIJson(text) {
-  if (!text) return null;
-  try {
-    const clean = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    return JSON.parse(clean);
-  } catch {
-    console.error('[getWordService] Failed to parse AI JSON:', text);
-    return null;
-  }
-}

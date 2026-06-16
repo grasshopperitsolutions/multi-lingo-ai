@@ -12,6 +12,7 @@
  */
 
 import { getListeningPrompt } from './examPromptTemplates';
+import { parseAIJSON } from '../utils/parseAIJSON';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 const GEMINI_MODEL = 'gemini-3.5-flash';
@@ -47,7 +48,7 @@ export async function generateListeningExercise({ token, level, targetLang, ques
     throw new Error('Something went wrong. Please try again.');
   }
 
-  const data = _parseJSON(raw);
+  const data = parseAIJSON(raw);
 
   if (!data?.transcript) {
     console.error('[examListeningExerciseService] Missing transcript', data);
@@ -249,10 +250,3 @@ async function _callAskAI(token, prompt, maxOutputTokens, responseSchema) {
   return json?.data?.text ?? json?.text ?? '';
 }
 
-function _parseJSON(raw) {
-  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
-  if (!cleaned) throw new Error('Empty response');
-  try { return JSON.parse(cleaned); } catch {
-    throw new Error('Failed to parse AI response');
-  }
-}

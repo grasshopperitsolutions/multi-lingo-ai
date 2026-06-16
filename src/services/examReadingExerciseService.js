@@ -111,6 +111,7 @@ const TYPE_TO_PROMPT_MAP = {
 
 import { checkReadingAnswers } from './examUtils';
 import { getReadingPrompt } from './examPromptTemplates';
+import { parseAIJSON } from '../utils/parseAIJSON';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -148,7 +149,7 @@ export async function generateReadingExercise({ token, level, targetLang, questi
   }
 
   // Step 5: Parse response
-  const data = _parseJSON(raw);
+  const data = parseAIJSON(raw);
 
   // Step 6: Normalise parsed data into a consistent ReadingExerciseContent shape
   const exerciseData = _parseAIResponse(data, questionType);
@@ -557,21 +558,3 @@ async function _callAskAI(token, prompt, maxOutputTokens, responseSchema) {
   return json?.data?.text ?? json?.text ?? '';
 }
 
-function _parseJSON(raw) {
-  const cleaned = raw
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/```\s*$/i, '')
-    .trim();
-
-  if (!cleaned) {
-    console.error('[examReadingExerciseService] AI returned an empty body');
-    throw new Error('Something went wrong. Please try again.');
-  }
-
-  try {
-    return JSON.parse(cleaned);
-  } catch (err) {
-    console.error(`[examReadingExerciseService] Failed to parse AI response: ${err.message}`, cleaned.slice(0, 200));
-    throw new Error('Something went wrong. Please try again.');
-  }
-}

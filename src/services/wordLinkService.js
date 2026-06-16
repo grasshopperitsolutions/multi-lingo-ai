@@ -1,3 +1,5 @@
+import { parseAIJSON } from '../utils/parseAIJSON';
+
 const PROXY_URL       = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 const GEMINI_MODEL    = 'gemini-3.5-flash';
 const MAX_CLUES       = 5;
@@ -138,7 +140,7 @@ async function _generateFromAI({ token, userDialect, learningDialect }) {
 
   const json = await res.json();
   const raw  = json?.data?.text ?? json?.text ?? '';
-  const data = _parseJSON(raw);
+  const data = parseAIJSON(raw);
 
   const theme            = data?.theme;
   const themeTranslation = data?.themeTranslation;

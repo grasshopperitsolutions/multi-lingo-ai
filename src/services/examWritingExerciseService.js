@@ -5,6 +5,7 @@
  * Uses getWritingPrompt from examPromptTemplates for level-appropriate prompts.
  */
 import { getWritingPrompt } from './examPromptTemplates';
+import { parseAIJSON } from '../utils/parseAIJSON';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 const GEMINI_MODEL = 'gemini-3.5-flash';
@@ -54,7 +55,7 @@ export async function generateWritingExercise({ token, level, targetLang }) {
     throw new Error('Something went wrong. Please try again.');
   }
 
-  const data = _parseJSON(raw);
+  const data = parseAIJSON(raw);
 
   if (!data?.prompt || !Array.isArray(data?.instructions)) {
     console.error('[examWritingExerciseService] Unexpected response shape', data);
@@ -149,7 +150,7 @@ export async function evaluateWriting({ token, level, targetLang, interfaceLang,
     throw new Error('Something went wrong. Please try again.');
   }
 
-  const data = _parseJSON(raw);
+  const data = parseAIJSON(raw);
 
   if (!Array.isArray(data?.parameters) || data.parameters.length !== 5) {
     console.error('[examWritingExerciseService] Unexpected response shape from evaluateWriting', data);
@@ -182,40 +183,6 @@ async function _callAskAI(token, prompt, maxOutputTokens) {
   const json = await response.json();
   if (!response.ok) throw new Error(json?.error || json?.message || 'Request failed');
   return json?.data?.text ?? json?.text ?? '';
-}
-
-function _parseJSON(raw) {
-  // If raw is not a string (e.g., already a parsed object), return it directly
-  if (typeof raw !== 'string') {
-    if (raw && typeof raw === 'object') return raw;
-    throw new Error('Failed to parse AI response');
-  }
-
-  // Remove markdown code fences and trim
-  const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
-
-  if (!cleaned) throw new Error('Empty response');
-
-  try {
-    return JSON.parse(cleaned);
-  } catch {
-    // Recovery: extract content between outermost braces and progressively
-    // truncate from the end to handle trailing garbage (e.g., stray quotes,
-    // extra text that Gemini sometimes appends after the closing brace).
-    const firstBrace = cleaned.indexOf('{');
-    const lastBrace = cleaned.lastIndexOf('}');
-    if (firstBrace === -1 || lastBrace <= firstBrace) throw new Error('Failed to parse AI response');
-
-    let end = lastBrace;
-    while (end > firstBrace) {
-      try {
-        return JSON.parse(cleaned.substring(firstBrace, end + 1));
-      } catch {
-        end--;
-      }
-    }
-    throw new Error('Failed to parse AI response');
-  }
 }
 
 function _countWords(text) {
