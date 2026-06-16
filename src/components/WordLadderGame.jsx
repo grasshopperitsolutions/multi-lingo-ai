@@ -25,14 +25,6 @@ const isSessionExpiredError = (err) => {
 };
 
 // ---------------------------------------------------------------------------
-// Utility — check if two strings differ by exactly 1 char (client-side guard)
-// ---------------------------------------------------------------------------
-const diffByOne = (a, b) => {
-  if (a.length !== b.length) return false;
-  return [...a].filter((ch, i) => ch !== b[i]).length === 1;
-};
-
-// ---------------------------------------------------------------------------
 // LetterTiles — displays a word as individual letter boxes
 // ---------------------------------------------------------------------------
 const LetterTiles = ({ word, status, isDarkMode }) => {
@@ -165,9 +157,8 @@ const WordLadderGame = ({ isDarkMode }) => {
   const [clues,      setClues]      = useState([]);
 
   // ── Game state ───────────────────────────────────────────────────────────
-  const [currentStep,  setCurrentStep]  = useState(0);  // index of row being guessed
-  const [solvedSteps,  setSolvedSteps]  = useState([]); // array of solved indices
-  const [failedSteps,  setFailedSteps]  = useState([]); // indices failed (strike used)
+  const [currentStep,  setCurrentStep]  = useState(0);
+  const [solvedSteps,  setSolvedSteps]  = useState([]);
   const [strikesLeft,  setStrikesLeft]  = useState(MAX_STRIKES);
   const [guess,        setGuess]        = useState("");
   const [shakeInput,   setShakeInput]   = useState(false);
@@ -231,7 +222,6 @@ const WordLadderGame = ({ isDarkMode }) => {
       setClues(puzzle.clues);
       setCurrentStep(0);
       setSolvedSteps([]);
-      setFailedSteps([]);
       setStrikesLeft(MAX_STRIKES);
       setGuess("");
       setGameStatus("playing");
@@ -306,7 +296,6 @@ const WordLadderGame = ({ isDarkMode }) => {
         setGuess("");
         const newStrikes = strikesLeft - 1;
         setStrikesLeft(newStrikes);
-        setFailedSteps((prev) => [...prev, currentStep]);
 
         if (newStrikes <= 0) {
           setGameStatus("lost");
@@ -331,7 +320,7 @@ const WordLadderGame = ({ isDarkMode }) => {
     if (gameStatus === "lost" && index === currentStep) return "failed";
     if (gameStatus !== "playing" && index > currentStep) return "idle";
     if (index === currentStep) return "active";
-    if (index < currentStep) return "solved"; // already passed
+    if (index < currentStep) return "solved";
     return "idle";
   }, [solvedSteps, currentStep, gameStatus]);
 
