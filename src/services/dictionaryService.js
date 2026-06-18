@@ -2,7 +2,7 @@
  * dictionaryService.js
  *
  * Looks up the definition and synonyms of a word or expression using
- * the /api/ask-ai proxy backed by Gemini 2.5 Flash (JSON mode).
+ * the /api/ask-ai proxy backed by Gemini 3.5 Flash (JSON mode).
  *
  * - The definition is returned in the user's interface language (interfaceLang).
  * - The synonyms are returned in the learning language (learningLang).

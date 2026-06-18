@@ -2,7 +2,7 @@
  * translatorService.js
  *
  * Translates text between two BCP-47 locales using the /api/ask-ai proxy
- * backed by Gemini 2.5 Flash.
+ * backed by Gemini 3.5 Flash.
  *
  * Usage:
  *   import { translateText } from '../services/translatorService';
