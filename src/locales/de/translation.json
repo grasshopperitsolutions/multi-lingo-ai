@@ -409,7 +409,7 @@
   },
   "dashboard": {
     "loading": "Dein Dashboard wird geladen\u2026",
-    "welcome": "Hallo, {{name}} 👋",
+    "welcome": "Hallo, {{name}} ",
     "welcome_subtitle": "Willkommen zurück in deinem Sprachzentrum",
     "your_progress": "Dein Fortschritt",
     "languages": "Sprachen",

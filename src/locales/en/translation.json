@@ -409,7 +409,7 @@
   },
   "dashboard": {
     "loading": "Loading your dashboard\u2026",
-    "welcome": "Hey, {{name}} 👋",
+    "welcome": "Hey, {{name}} ",
     "welcome_subtitle": "Welcome back to your language hub",
     "your_progress": "Your Progress",
     "languages": "Languages",
