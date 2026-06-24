@@ -18,4 +18,20 @@ export const TIER_LIMITS = {
     label: 'Maestro',
     isFree: false,
   },
+  // ── Hidden tier: VIP (like Maestro but no payment required) ──────────
+  // VIP users get unlimited AI calls and all features without subscription checks.
+  // This tier is NOT shown on the pricing page — assigned manually via Firestore.
+  vip: {
+    aiCallsPerDay: Infinity,
+    label: 'VIP',
+    isFree: true,        // No payment needed
+  },
+  // ── Hidden tier: Admin (future admin panel access) ───────────────────
+  // Admin users get unlimited everything + future admin panel access.
+  // This tier is NOT shown on the pricing page — assigned manually via Firestore.
+  admin: {
+    aiCallsPerDay: Infinity,
+    label: 'Admin',
+    isFree: true,        // No payment needed
+  },
 };

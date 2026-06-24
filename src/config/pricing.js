@@ -41,6 +41,26 @@ export const TIER_FEATURES = {
     { key: 'full_exam', value: true },
     { key: 'priority_support', value: true },
   ],
+  // ── Hidden tier: VIP (same features as Maestro, no payment) ──────────
+  // Not shown on the pricing page — assigned manually via Firestore.
+  vip: [
+    { key: 'ai_calls', value: 'Unlimited', raw: Infinity },
+    { key: 'translator', value: true },
+    { key: 'dictionary', value: true },
+    { key: 'challenges', value: true },
+    { key: 'full_exam', value: true },
+    { key: 'priority_support', value: true },
+  ],
+  // ── Hidden tier: Admin (same features as Maestro, no payment) ────────
+  // Not shown on the pricing page — assigned manually via Firestore.
+  admin: [
+    { key: 'ai_calls', value: 'Unlimited', raw: Infinity },
+    { key: 'translator', value: true },
+    { key: 'dictionary', value: true },
+    { key: 'challenges', value: true },
+    { key: 'full_exam', value: true },
+    { key: 'priority_support', value: true },
+  ],
 };
 
 /**

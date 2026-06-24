@@ -12,6 +12,8 @@ import { TIER_LIMITS } from "../config/tierLimits";
  *   isExplorer: boolean,
  *   isVoyager: boolean,
  *   isMaestro: boolean,
+ *   isVip: boolean,
+ *   isAdmin: boolean,
  *   hasActiveSubscription: boolean,
  * }}
  */
@@ -29,10 +31,14 @@ export const useTierAccess = () => {
   const isExplorer = tier === "explorer";
   const isVoyager = tier === "voyager";
   const isMaestro = tier === "maestro";
+  const isVip = tier === "vip";
+  const isAdmin = tier === "admin";
 
+  // VIP and Admin bypass payment checks entirely
   const hasActiveSubscription =
-    tier !== "explorer" &&
-    (user?.subscriptionStatus === "active" || user?.subscriptionStatus === "trialing");
+    isVip || isAdmin ||
+    (tier !== "explorer" &&
+      (user?.subscriptionStatus === "active" || user?.subscriptionStatus === "trialing"));
 
   return {
     tier,
@@ -42,6 +48,8 @@ export const useTierAccess = () => {
     isExplorer,
     isVoyager,
     isMaestro,
+    isVip,
+    isAdmin,
     hasActiveSubscription,
   };
 };
