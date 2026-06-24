@@ -377,7 +377,7 @@ const SettingsPage = () => {
   const { isDarkMode, setIsDarkMode, user, logoutUser, showAlert, refreshUser, changeLanguage } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { tier, isExplorer, isVoyager } = useTierAccess();
+  const { tier, isExplorer, isVoyager, isVip, isAdmin } = useTierAccess();
   const [isPortalLoading, setIsPortalLoading] = useState(false);
 
   const [displayName,   setDisplayName]   = useState(user?.displayName || "");
@@ -564,13 +564,18 @@ const SettingsPage = () => {
                   ? "border-slate-300 text-slate-500"
                   : isVoyager
                     ? "bg-blue-100 border-blue-500 text-blue-700"
-                    : "bg-yellow-100 border-yellow-500 text-yellow-700"
+                    : isVip
+                      ? "bg-purple-100 border-purple-500 text-purple-700"
+                      : isAdmin
+                        ? "bg-rose-100 border-rose-500 text-rose-700"
+                        : "bg-yellow-100 border-yellow-500 text-yellow-700"
               }`}
             >
-              {tier === "maestro" && <Star size={14} className="inline mr-1 fill-current" />}
-              {isExplorer ? "Explorer" : isVoyager ? "Voyager" : "Maestro"}
+              {(tier === "maestro" || isVip || isAdmin) && <Star size={14} className="inline mr-1 fill-current" />}
+              {isExplorer ? "Explorer" : isVoyager ? "Voyager" : isVip ? "VIP" : isAdmin ? "Admin" : "Maestro"}
             </span>
-            {user?.subscriptionStatus && !isExplorer && (
+            {/* Show subscription status only for paid tiers that have one */}
+            {user?.subscriptionStatus && !isExplorer && !isVip && !isAdmin && (
               <span
                 className={`px-3 py-1 rounded-full border-2 font-black uppercase tracking-wider text-xs ${
                   user.subscriptionStatus === "active" || user.subscriptionStatus === "trialing"
@@ -585,8 +590,8 @@ const SettingsPage = () => {
             )}
           </div>
 
-          {/* Current Period End */}
-          {user?.currentPeriodEnd && !isExplorer && (
+          {/* Current Period End — only for paid tiers */}
+          {user?.currentPeriodEnd && !isExplorer && !isVip && !isAdmin && (
             <p className={`text-sm font-bold mb-4 ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`}>
               {t("subscription.current_period_end", {
                 date: new Date(user.currentPeriodEnd).toLocaleDateString(),
@@ -594,8 +599,8 @@ const SettingsPage = () => {
             </p>
           )}
 
-          {/* Past-due notice */}
-          {user?.subscriptionStatus === "past_due" && (
+          {/* Past-due notice — only for paid tiers */}
+          {user?.subscriptionStatus === "past_due" && !isVip && !isAdmin && (
             <div className={`p-4 rounded-xl border-4 mb-4 ${
               isDarkMode
                 ? "bg-rose-900/20 border-rose-500/40 text-rose-400"
@@ -640,6 +645,58 @@ const SettingsPage = () => {
                 <Star size={18} />
                 {t("pricing.upgrade")}
               </button>
+            ) : isVip ? (
+              // VIP — show donation links instead of subscription management
+              <div className="space-y-3">
+                <p className={`text-xs font-black uppercase tracking-widest text-center mb-2 ${
+                  isDarkMode ? "text-slate-400" : "text-slate-500"
+                }`}>
+                  Support the project &mdash; donate here
+                </p>
+                <div className="flex gap-3">
+                  <a
+                    href="https://revolut.me/nunothetraveler"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95 hover:-translate-y-0.5 ${
+                      isDarkMode
+                        ? "bg-slate-700 border-slate-600 text-white shadow-[4px_4px_0px_0px_#1e293b] hover:bg-slate-600"
+                        : "bg-white border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:bg-slate-100"
+                    }`}
+                  >
+                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden="true">
+                      <path d="M20.94 14.04A8.96 8.96 0 0 1 12 21a9 9 0 0 1-9-9 9 9 0 0 1 9-9 8.96 8.96 0 0 1 8.94 6.96H12a3 3 0 0 0-3 3 3 3 0 0 0 3 3h8.94z"/>
+                    </svg>
+                    Revolut
+                  </a>
+                  <a
+                    href="https://www.paypal.me/nunoMfmore"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95 hover:-translate-y-0.5 ${
+                      isDarkMode
+                        ? "bg-blue-900/30 border-blue-600 text-blue-400 shadow-[4px_4px_0px_0px_#1e3a5f] hover:bg-blue-900/50"
+                        : "bg-blue-50 border-blue-600 text-blue-700 shadow-[4px_4px_0px_0px_#1e3a5f] hover:bg-blue-100"
+                    }`}
+                  >
+                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden="true">
+                      <path d="M7.08 2.5c-1.2 0-2.18.98-2.18 2.18v14.64c0 1.2.98 2.18 2.18 2.18h9.84c1.2 0 2.18-.98 2.18-2.18V4.68c0-1.2-.98-2.18-2.18-2.18H7.08zm0 1.5h9.84c.38 0 .68.3.68.68v14.64c0 .38-.3.68-.68.68H7.08c-.38 0-.68-.3-.68-.68V4.68c0-.38.3-.68.68-.68zm1.5 2.5v1.5h6.84V6.5H8.58zm0 3v1.5h6.84V9.5H8.58zm0 3v1.5h6.84v-1.5H8.58z"/>
+                    </svg>
+                    PayPal
+                  </a>
+                </div>
+              </div>
+            ) : isAdmin ? (
+              // Admin — no subscription needed
+              <div className={`p-4 rounded-xl border-4 text-center ${
+                isDarkMode
+                  ? "bg-slate-700/50 border-slate-600 text-slate-400"
+                  : "bg-slate-50 border-slate-200 text-slate-500"
+              }`}>
+                <p className="font-black uppercase tracking-widest text-xs">
+                  Admin &mdash; No subscription needed
+                </p>
+              </div>
             ) : (
               <button
                 onClick={async () => {
