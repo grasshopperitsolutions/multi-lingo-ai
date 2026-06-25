@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import PropTypes from "prop-types";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -10,6 +11,7 @@ import PrivacyPage from "./pages/PrivacyPage";
 import ContactPage from "./pages/ContactPage";
 import DashboardPage from "./pages/DashboardPage";
 import SettingsPage from "./pages/SettingsPage";
+import OnboardingPage from "./pages/OnboardingPage";
 import AlertMessage from "./components/Alert";
 import GlobalCompassCursor from "./components/GlobalCompassCursor";
 
@@ -25,6 +27,24 @@ const PublicLayout = () => (
     <Footer />
   </>
 );
+
+// Guard component that redirects to onboarding if learningDialect is not set
+const RequireOnboarding = ({ children }) => {
+  const { user, isLoadingUser } = useAppContext();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoadingUser && user && !user.learningDialect) {
+      navigate("/onboarding", { replace: true });
+    }
+  }, [user, isLoadingUser, navigate]);
+
+  return children;
+};
+
+RequireOnboarding.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 const AppLayout = () => {
   const { isDarkMode, alert, closeAlert } = useAppContext();
@@ -70,8 +90,9 @@ const AppLayout = () => {
 
           {/* App pages — no Header or Footer */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/dashboard" element={<RequireOnboarding><DashboardPage /></RequireOnboarding>} />
+          <Route path="/settings" element={<RequireOnboarding><SettingsPage /></RequireOnboarding>} />
         </Routes>
       </div>
     </>

@@ -1,7 +1,9 @@
-// Single source of truth for all language lists and interest categories.
-// To add a new language: add an entry here — all dropdowns and guards update automatically.
+/**
+ * Centralised single source of truth for all language and interest lists.
+ * Import from this file everywhere instead of defining inline constants.
+ */
 
-// All learning dialects the app can serve (used in onboarding + settings dropdowns)
+// All learning dialects the app can serve (used in dropdowns)
 export const LEARNING_LANGUAGES = [
   { value: "pt-PT", labelKey: "settings.lang_pt_pt", flag: "🇵🇹" },
   { value: "pt-BR", labelKey: "settings.lang_pt_br", flag: "🇧🇷" },
@@ -13,7 +15,7 @@ export const LEARNING_LANGUAGES = [
   { value: "de-DE", labelKey: "settings.lang_de_de", flag: "🇩🇪" },
 ];
 
-// Interface languages (UI translation files available)
+// Interface languages (UI translation available)
 export const INTERFACE_LANGUAGES = [
   { value: "en-US", labelKey: "nav.lang_en" },
   { value: "pt-PT", labelKey: "nav.lang_pt" },
@@ -22,16 +24,15 @@ export const INTERFACE_LANGUAGES = [
   { value: "de-DE", labelKey: "nav.lang_de" },
 ];
 
-// Dialects where Exam Training Hub is fully supported.
-// Add new dialects here when exam content is ready for them.
-export const EXAM_SUPPORTED_LANGUAGES = ["pt-PT"];
+// Dialects where Exam Training is fully supported
+export const EXAM_SUPPORTED_LANGUAGES = ["pt-PT", "pt-BR"];
 
-// Fixed interest categories — stored on the user profile for future content personalisation.
+// Fixed interest categories
 export const INTEREST_CATEGORIES = [
-  { value: "general",  labelKey: "categories.general" },
-  { value: "food",     labelKey: "categories.food" },
-  { value: "travel",   labelKey: "categories.travel" },
-  { value: "sports",   labelKey: "categories.sports" },
-  { value: "tech",     labelKey: "categories.tech" },
-  { value: "nature",   labelKey: "categories.nature" },
+  { value: "general", labelKey: "categories.general" },
+  { value: "food",    labelKey: "categories.food" },
+  { value: "travel",  labelKey: "categories.travel" },
+  { value: "sports",  labelKey: "categories.sports" },
+  { value: "tech",    labelKey: "categories.tech" },
+  { value: "nature",  labelKey: "categories.nature" },
 ];

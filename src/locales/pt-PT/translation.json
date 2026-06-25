@@ -382,14 +382,14 @@
     "learning_locked_hint": "Bloqueado — o Português Europeu é atualmente o único idioma disponível.",
     "interests": "Interesses",
     "interests_hint": "Seleciona tópicos que gostes para personalizar a tua experiência de aprendizagem.",
-    "categories": {
-      "general": "Geral",
-      "food": "Comida",
-      "travel": "Viagens",
-      "sports": "Desportos",
-      "tech": "Tecnologia",
-      "nature": "Natureza"
-    }
+    "lang_pt_pt": "Português (Portugal)",
+    "lang_pt_br": "Português (Brasil)",
+    "lang_en_us": "Inglês (EUA)",
+    "lang_en_gb": "Inglês (Reino Unido)",
+    "lang_es_es": "Espanhol (Espanha)",
+    "lang_es_mx": "Espanhol (México)",
+    "lang_fr_fr": "Francês",
+    "lang_de_de": "Alemão"
   },
   "translator": {
     "input_placeholder": "Escreve ou cola texto aqui\u2026",
@@ -422,6 +422,7 @@
     "coming_soon": "Em breve...",
     "learner": "Aluno",
     "profile_alt": "Perfil",
+    "exam_not_available_for_language": "A Preparação para Exames ainda não está disponível para o teu idioma de aprendizagem.",
     "translator": "Tradutor",
     "translator_desc": "Traduz texto entre dois idiomas instantaneamente com IA sensível ao contexto.",
     "dictionary": "Dicionário",
@@ -666,6 +667,25 @@
     "description": "Descrição",
     "placeholder": "Descreve o problema em poucas palavras…",
     "send": "Enviar via WhatsApp"
+  },
+  "categories": {
+    "general": "Geral",
+    "food": "Comida",
+    "travel": "Viagens",
+    "sports": "Desportos",
+    "tech": "Tecnologia",
+    "nature": "Natureza"
+  },
+  "onboarding": {
+    "welcome_title": "Bem-vindo ao MultiLingo!",
+    "welcome_subtitle": "Vamos configurar o teu perfil de aprendizagem.",
+    "step_language": "Que língua estás a aprender?",
+    "step_interface": "Qual é o teu idioma de interface preferido?",
+    "step_interests": "Escolhe os teus interesses",
+    "interests_hint": "Usaremos estes para personalizar o teu conteúdo.",
+    "finish": "Começar a Aprender!",
+    "next": "Seguinte",
+    "back": "Anterior"
   },
   "session": {
     "expired_title": "Sessão Expirada",
