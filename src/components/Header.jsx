@@ -1,4 +1,4 @@
-import { Sun, Moon, Settings, LogOut, Globe, Menu, X } from "lucide-react";
+import { Sun, Moon, Settings, LogOut, Globe, Menu, X, LayoutDashboard } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
@@ -112,6 +112,18 @@ const Header = () => {
           {user ? (
             <>
               <Link
+                to="/dashboard"
+                className={`flex items-center gap-2 px-5 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95 hover:-translate-y-0.5
+                ${
+                  isDarkMode
+                    ? "bg-slate-700 border-slate-600 text-white shadow-[3px_3px_0px_0px_#1e293b]"
+                    : "bg-white border-slate-900 text-slate-900 shadow-[3px_3px_0px_0px_#0f172a]"
+                }`}
+              >
+                <LayoutDashboard size={16} />
+                {t('nav.dashboard')}
+              </Link>
+              <Link
                 to="/settings"
                 className={`flex items-center gap-2 px-5 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95 hover:-translate-y-0.5
                 ${
@@ -137,17 +149,30 @@ const Header = () => {
               </button>
             </>
           ) : (
-            <Link
-              to="/login"
-              className={`flex px-8 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95
-              ${
-                isDarkMode
-                  ? "bg-blue-600 border-slate-900 text-white hover-neo-dark"
-                  : "bg-blue-600 border-slate-900 text-white hover-neo-light"
-              }`}
-            >
-              {t('nav.login')}
-            </Link>
+            <>
+              <Link
+                to="/pricing"
+                className={`flex px-5 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95
+                ${
+                  isDarkMode
+                    ? "bg-transparent border-slate-600 text-slate-300 hover:bg-slate-700"
+                    : "bg-transparent border-slate-900 text-slate-900 hover:bg-slate-100"
+                }`}
+              >
+                {t('nav.pricing')}
+              </Link>
+              <Link
+                to="/login"
+                className={`flex px-8 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95
+                ${
+                  isDarkMode
+                    ? "bg-blue-600 border-slate-900 text-white hover-neo-dark"
+                    : "bg-blue-600 border-slate-900 text-white hover-neo-light"
+                }`}
+              >
+                {t('nav.login')}
+              </Link>
+            </>
           )}
         </div>
 

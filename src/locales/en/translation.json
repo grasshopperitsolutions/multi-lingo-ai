@@ -16,6 +16,7 @@
     "lang_de": "German",
     "open_menu": "Open menu",
     "close_menu": "Close menu",
+    "pricing": "Pricing",
     "brand": "Multi Lingo AI"
   },
   "common": {
@@ -408,7 +409,7 @@
   },
   "dashboard": {
     "loading": "Loading your dashboard\u2026",
-    "welcome": "Hey, {{name}} 👋",
+    "welcome": "Hey, {{name}} ",
     "welcome_subtitle": "Welcome back to your language hub",
     "your_progress": "Your Progress",
     "languages": "Languages",
@@ -666,6 +667,58 @@
     "description": "Description",
     "placeholder": "Describe the issue in a few words…",
     "send": "Send via WhatsApp"
+  },
+  "pricing": {
+    "title": "Choose Your Plan",
+    "subtitle": "Unlock the full power of AI-assisted language learning. Start free, upgrade when you need more.",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "per_month": "month",
+    "per_year": "year",
+    "free_forever": "Free Forever",
+    "most_popular": "Most Popular",
+    "current_plan": "Current Plan",
+    "upgrade": "Upgrade",
+    "get_started": "Get Started",
+    "redirecting": "Redirecting...",
+    "save_x": "Save {{percent}}%",
+    "try_free_days": "Try free for {{days}} days",
+    "features": {
+      "ai_calls": "{{count}} AI calls{{suffix}}",
+      "translator": "AI Translator",
+      "dictionary": "Advanced Dictionary",
+      "challenges": "Challenges & Games",
+      "full_exam": "Full Exam Mode",
+      "priority_support": "Priority Support"
+    }
+  },
+  "subscription": {
+    "title": "Subscription",
+    "current_period_end": "Billing period ends: {{date}}",
+    "manage": "Manage Subscription",
+    "upgrade_plan": "Upgrade Plan",
+    "update_payment": "Update Payment",
+    "past_due_message": "Your payment is past due. Please update your payment method to avoid service interruption.",
+    "trial_badge": "{{days}}-day free trial",
+    "errors": {
+      "upgrade_required": "This feature is only available on Voyager and higher plans."
+    },
+    "success": {
+      "title": "Subscription Active!",
+      "message": "Your subscription has been activated successfully. You now have access to all your plan features.",
+      "redirecting": "Redirecting to dashboard in {{seconds}}s..."
+    },
+    "cancel": {
+      "title": "Subscription Canceled",
+      "message": "Your checkout was canceled. No changes were made to your account.",
+      "back": "Back to Pricing"
+    }
+  },
+  "ai_usage": {
+    "label": "AI Calls",
+    "unlimited": "Unlimited",
+    "depleted": "Out of calls",
+    "remaining": "{{count}} / {{total}} left"
   },
   "session": {
     "expired_title": "Session Expired",

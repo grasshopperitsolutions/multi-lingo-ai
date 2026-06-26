@@ -1,4 +1,4 @@
-import { Sun, Moon, Globe, Settings, LogOut } from "lucide-react";
+import { Sun, Moon, Globe, Settings, LogOut, LayoutDashboard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
@@ -30,6 +30,11 @@ const MobileMenuDrawer = ({ onThemeToggle, onLanguageChange, onClose }) => {
     { code: "fr-FR", label: t("nav.lang_fr"), short: "FR" },
     { code: "de-DE", label: t("nav.lang_de"), short: "DE" },
   ];
+
+  const handleDashboard = () => {
+    navigate("/dashboard");
+    onClose();
+  };
 
   const handleSettings = () => {
     navigate("/settings");
@@ -130,6 +135,18 @@ const MobileMenuDrawer = ({ onThemeToggle, onLanguageChange, onClose }) => {
       <div className="px-4 py-4 flex flex-col gap-3">
         {user ? (
           <>
+            <button
+              onClick={handleDashboard}
+              className={`flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 font-black uppercase tracking-wide transition-all active:scale-95
+                ${
+                  isDarkMode
+                    ? "bg-slate-700 border-slate-600 text-white shadow-[3px_3px_0px_0px_#1e293b]"
+                    : "bg-white border-slate-900 text-slate-900 shadow-[3px_3px_0px_0px_#0f172a]"
+                }`}
+            >
+              <LayoutDashboard size={18} />
+              {t("nav.dashboard")}
+            </button>
             <button
               onClick={handleSettings}
               className={`flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 font-black uppercase tracking-wide transition-all active:scale-95
