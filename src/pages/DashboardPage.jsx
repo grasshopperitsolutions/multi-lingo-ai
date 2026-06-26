@@ -262,7 +262,7 @@ const DashboardPage = () => {
             <div className="text-right">
               <p className={`text-xs font-black uppercase tracking-widest leading-tight ${
                 tier === "explorer"
-                  ? "text-green-400"
+                  ? "text-emerald-400"
                   : tier === "voyager"
                     ? "text-blue-500"
                     : tier === "vip"
