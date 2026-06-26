@@ -44,6 +44,7 @@ const getSavedLanguage = () => {
 export const AppProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(getSavedTheme());
   const [interfaceLang, setInterfaceLang] = useState(getSavedLanguage());
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [alert, setAlert] = useState({ show: false, type: "", message: "", action: null });
   const [user, setUser] = useState(null);
   const [tokenExpired, setTokenExpired] = useState(false);
@@ -218,10 +219,12 @@ export const AppProvider = ({ children }) => {
         interfaceLang: lang,
         theme: profile?.theme ?? "light",
         // ── Learning profile fields ──────────────────────────────────────────
-        // learningDialect: Firestore → hardcoded default pt-PT
-        learningDialect: profile?.learningDialect ?? "pt-PT",
+        // learningDialect: Firestore value only — null means onboarding not completed
+        learningDialect: profile?.learningDialect ?? null,
         // interests: Firestore → keep previous → empty array
         interests: profile?.interests ?? prev?.interests ?? [],
+        // onboardingCompleted: Firestore flag — used by RequireOnboarding guard
+        onboardingCompleted: profile?.onboardingCompleted ?? false,
         // ── Subscription / tier fields ───────────────────────────────────────
         subscriptionTier: profile?.subscriptionTier ?? "explorer",
         subscriptionStatus: profile?.subscriptionStatus ?? null,
@@ -235,6 +238,8 @@ export const AppProvider = ({ children }) => {
       }));
     } catch (err) {
       showAlert("error", `Could not load your profile: ${err.message}`);
+    } finally {
+      setIsLoadingUser(false);
     }
   };
 
@@ -296,6 +301,7 @@ export const AppProvider = ({ children }) => {
         loadUserProfile(authUser);
       } else {
         setUser(null);
+        setIsLoadingUser(false);
         const savedTheme = getSavedTheme();
         setIsDarkMode(savedTheme);
       }
@@ -341,6 +347,7 @@ export const AppProvider = ({ children }) => {
         closeAlert,
         user,
         setUser,
+        isLoadingUser,
         loginGoogle,
         logoutUser,
         refreshUser,

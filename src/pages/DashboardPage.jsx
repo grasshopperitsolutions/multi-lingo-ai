@@ -15,6 +15,9 @@ import MobileMenuDrawer from "../components/MobileMenuDrawer";
 import { auth } from "../firebase";
 import { updateUserProfile } from "../services/userService";
 import {
+  EXAM_SUPPORTED_LANGUAGES,
+} from "../config/supportedLanguages";
+import {
   Languages,
   BookMarked,
   PenLine,
@@ -125,7 +128,7 @@ const DashboardPage = () => {
         displayName: user.displayName,
         interfaceLang: lang ?? interfaceLang,
         theme: theme ?? (isDarkMode ? "dark" : "light"),
-        learningDialect: user.learningDialect ?? "pt-PT",
+        learningDialect: user.learningDialect ?? null,
         interests: user.interests ?? [],
       });
       await refreshUser();
@@ -150,7 +153,13 @@ const DashboardPage = () => {
     if (result?.success) navigate("/");
   };
 
-  const handleFeatureClick = (feature) => setSelectedFeature(feature);
+  const handleFeatureClick = (feature) => {
+    if (feature.disabled) {
+      showAlert("info", feature.disabledReason);
+      return;
+    }
+    setSelectedFeature(feature);
+  };
 
   const handleBackToDashboard = () => {
     setSelectedFeature(null);
@@ -171,7 +180,15 @@ const DashboardPage = () => {
 
   const features = [
     { id: "challenges",       icon: Gamepad2,       title: t("dashboard.challenges"),        description: t("dashboard.challenges_desc"),        color: "text-yellow-500" },
-    { id: "exam_training",    icon: GraduationCap,  title: t("dashboard.exam_training"),     description: t("dashboard.exam_training_desc"),     color: "text-teal-500" },
+    {
+      id: "exam_training",
+      icon: GraduationCap,
+      title: t("dashboard.exam_training"),
+      description: t("dashboard.exam_training_desc"),
+      color: "text-teal-500",
+      disabled: !EXAM_SUPPORTED_LANGUAGES.includes(user?.learningDialect),
+      disabledReason: t("dashboard.exam_not_available_for_language"),
+    },
     { id: "translator",       icon: Languages,      title: t("dashboard.translator"),        description: t("dashboard.translator_desc"),        color: "text-sky-500" },
     { id: "dictionary",       icon: BookMarked,     title: t("dashboard.dictionary"),        description: t("dashboard.dictionary_desc"),        color: "text-violet-500" },
     { id: "grammar",          icon: PenLine,        title: t("dashboard.grammar"),           description: t("dashboard.grammar_desc"),           color: "text-amber-500",   statusBadgeLabel: t("dashboard.coming_soon") },
@@ -492,6 +509,7 @@ const DashboardPage = () => {
                   isDarkMode={isDarkMode}
                   onClick={() => handleFeatureClick(f)}
                   statusBadgeLabel={f.statusBadgeLabel}
+                  disabled={f.disabled}
                 />
               ))}
             </div>

@@ -383,14 +383,14 @@
     "learning_locked_hint": "Locked — European Portuguese is currently the only language offered.",
     "interests": "Interests",
     "interests_hint": "Select topics you enjoy to personalize your learning experience.",
-    "categories": {
-      "general": "General",
-      "food": "Food",
-      "travel": "Travel",
-      "sports": "Sports",
-      "tech": "Tech",
-      "nature": "Nature"
-    }
+    "lang_pt_pt": "Portuguese (Portugal)",
+    "lang_pt_br": "Portuguese (Brazil)",
+    "lang_en_us": "English (US)",
+    "lang_en_gb": "English (UK)",
+    "lang_es_es": "Spanish (Spain)",
+    "lang_es_mx": "Spanish (Mexico)",
+    "lang_fr_fr": "French",
+    "lang_de_de": "German"
   },
   "translator": {
     "input_placeholder": "Type or paste text here\u2026",
@@ -423,6 +423,7 @@
     "coming_soon": "Coming soon...",
     "learner": "Learner",
     "profile_alt": "Profile",
+    "exam_not_available_for_language": "Exam Training is not yet available for your learning language.",
     "translator": "Translator",
     "translator_desc": "Instantly translate text between any two languages with context-aware AI.",
     "dictionary": "Dictionary",
@@ -667,6 +668,17 @@
     "description": "Description",
     "placeholder": "Describe the issue in a few words…",
     "send": "Send via WhatsApp"
+  },
+  "onboarding": {
+    "welcome_title": "Welcome to MultiLingo!",
+    "welcome_subtitle": "Let's set up your learning profile.",
+    "step_language": "What language are you learning?",
+    "step_interface": "What's your preferred interface language?",
+    "step_interests": "Pick your interests",
+    "interests_hint": "We'll use these to personalise your content.",
+    "finish": "Start Learning!",
+    "next": "Next",
+    "back": "Back"
   },
   "pricing": {
     "title": "Choose Your Plan",
