@@ -245,7 +245,7 @@ const DashboardPage = () => {
             <div className="text-right">
               <p className={`text-xs font-black uppercase tracking-widest leading-tight ${
                 tier === "explorer"
-                  ? "text-slate-400"
+                  ? "text-green-400"
                   : tier === "voyager"
                     ? "text-blue-500"
                     : tier === "vip"
@@ -254,7 +254,7 @@ const DashboardPage = () => {
                         ? "text-rose-500"
                         : "text-yellow-500"
               }`}>
-                {limits.label} Level
+                {limits.label}
               </p>
               <p className={`text-sm font-black tracking-tight ${
                 isDarkMode ? "text-white" : "text-slate-900"
