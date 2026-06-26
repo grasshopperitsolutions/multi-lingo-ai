@@ -9,13 +9,14 @@
     "light_mode": "Modo Claro",
     "dark_mode": "Modo Oscuro",
     "language": "Idioma",
-    "lang_en": "Ingl\u00e9s",
-    "lang_pt": "Portugu\u00e9s",
-    "lang_es": "Espa\u00f1ol",
-    "lang_fr": "Franc\u00e9s",
-    "lang_de": "Alem\u00e1n",
-    "open_menu": "Abrir men\u00fa",
-    "close_menu": "Cerrar men\u00fa",
+    "lang_en": "Inglés",
+    "lang_pt": "Portugués",
+    "lang_es": "Español",
+    "lang_fr": "Francés",
+    "lang_de": "Alemán",
+    "open_menu": "Abrir menú",
+    "close_menu": "Cerrar menú",
+    "pricing": "Precios",
     "brand": "Multi Lingo AI"
   },
   "common": {
@@ -672,14 +673,6 @@
     "placeholder": "Describe el problema en pocas palabras\u2026",
     "send": "Enviar por WhatsApp"
   },
-  "categories": {
-    "general": "General",
-    "food": "Comida",
-    "travel": "Viajes",
-    "sports": "Deportes",
-    "tech": "Tecnolog\u00eda",
-    "nature": "Naturaleza"
-  },
   "onboarding": {
     "welcome_title": "\u00a1Bienvenido a MultiLingo!",
     "welcome_subtitle": "Configuremos tu perfil de aprendizaje.",
@@ -690,6 +683,58 @@
     "finish": "\u00a1Empezar a Aprender!",
     "next": "Siguiente",
     "back": "Atr\u00e1s"
+  },
+  "pricing": {
+    "title": "Elige Tu Plan",
+    "subtitle": "Desbloquea todo el poder del aprendizaje de idiomas con IA. Empieza gratis, actualiza cuando necesites más.",
+    "monthly": "Mensual",
+    "yearly": "Anual",
+    "per_month": "mes",
+    "per_year": "año",
+    "free_forever": "Gratis para Siempre",
+    "most_popular": "Más Popular",
+    "current_plan": "Plan Actual",
+    "upgrade": "Mejorar",
+    "get_started": "Empezar",
+    "redirecting": "Redirigiendo...",
+    "save_x": "Ahorra {{percent}}%",
+    "try_free_days": "Prueba gratis {{days}} días",
+    "features": {
+      "ai_calls": "{{count}} llamadas IA{{suffix}}",
+      "translator": "Traductor IA",
+      "dictionary": "Diccionario Avanzado",
+      "challenges": "Desafíos y Juegos",
+      "full_exam": "Modo Examen Completo",
+      "priority_support": "Soporte Prioritario"
+    }
+  },
+  "subscription": {
+    "title": "Suscripción",
+    "current_period_end": "El período de facturación termina: {{date}}",
+    "manage": "Gestionar Suscripción",
+    "upgrade_plan": "Mejorar Plan",
+    "update_payment": "Actualizar Pago",
+    "past_due_message": "Tu pago está vencido. Actualiza tu método de pago para evitar la interrupción del servicio.",
+    "trial_badge": "{{days}} días de prueba gratis",
+    "errors": {
+      "upgrade_required": "Esta función solo está disponible en los planes Voyager y superiores."
+    },
+    "success": {
+      "title": "¡Suscripción Activa!",
+      "message": "Tu suscripción se ha activado correctamente. Ahora tienes acceso a todas las funciones de tu plan.",
+      "redirecting": "Redirigiendo al panel en {{seconds}}s..."
+    },
+    "cancel": {
+      "title": "Suscripción Cancelada",
+      "message": "Tu compra fue cancelada. No se realizaron cambios en tu cuenta.",
+      "back": "Volver a Precios"
+    }
+  },
+  "ai_usage": {
+    "label": "Llamadas IA",
+    "unlimited": "Ilimitado",
+    "depleted": "Sin llamadas",
+    "remaining": "{{count}} / {{total}} restantes"
   },
   "session": {
     "expired_title": "Sesi\u00f3n Expirada",

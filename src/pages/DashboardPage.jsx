@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import FeatureCard from "../components/FeatureCard";
+import { useTierAccess } from "../hooks/useTierAccess";
 import Loader from "../components/Loader";
 import Avatar from "../components/Avatar";
 import ChallengesMenu from "../components/ChallengesMenu";
@@ -93,6 +94,7 @@ const DashboardPage = () => {
   } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { tier, limits, aiCallsRemaining } = useTierAccess();
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [dictionaryPreFill, setDictionaryPreFill] = useState('');
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -220,11 +222,30 @@ const DashboardPage = () => {
             className="shrink-0"
           />
           <div className="min-w-0">
-            <h1 className={`text-base sm:text-3xl font-black uppercase tracking-tighter truncate ${
-              isDarkMode ? "text-white" : "text-slate-900"
-            }`}>
-              {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || t("dashboard.learner") })}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className={`text-base sm:text-3xl font-black uppercase tracking-tighter truncate ${
+                isDarkMode ? "text-white" : "text-slate-900"
+              }`}>
+                {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || t("dashboard.learner") })}
+              </h1>
+              {/* Tier Badge */}
+              {tier !== "explorer" && (
+                <span
+                  className={`hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full border-2 text-xs font-black uppercase tracking-wider ${
+                    tier === "voyager"
+                      ? "bg-blue-100 border-blue-500 text-blue-700"
+                      : tier === "vip"
+                        ? "bg-purple-100 border-purple-500 text-purple-700"
+                        : tier === "admin"
+                          ? "bg-rose-100 border-rose-500 text-rose-700"
+                          : "bg-yellow-100 border-yellow-500 text-yellow-700"
+                  }`}
+                >
+                  {(tier === "maestro" || tier === "vip" || tier === "admin") && <Star size={12} className="fill-current" />}
+                  {tier === "voyager" ? "Voyager" : tier === "vip" ? "VIP" : tier === "admin" ? "Admin" : "Maestro"}
+                </span>
+              )}
+            </div>
             <p className={`hidden sm:block font-bold uppercase tracking-widest text-sm mt-1 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"
             }`}>
@@ -233,8 +254,40 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* Right: action buttons */}
+        {/* Right: tier + AI usage + action buttons */}
         <div className="flex items-center gap-3 shrink-0">
+
+          {/* ── Tier & AI Usage — desktop only ── */}
+          <div className="hidden md:flex items-center gap-3 pr-3 border-r-4 border-current">
+            <div className="text-right">
+              <p className={`text-xs font-black uppercase tracking-widest leading-tight ${
+                tier === "explorer"
+                  ? "text-slate-400"
+                  : tier === "voyager"
+                    ? "text-blue-500"
+                    : tier === "vip"
+                      ? "text-purple-500"
+                      : tier === "admin"
+                        ? "text-rose-500"
+                        : "text-yellow-500"
+              }`}>
+                {limits.label} Level
+              </p>
+              <p className={`text-sm font-black tracking-tight ${
+                isDarkMode ? "text-white" : "text-slate-900"
+              }`}>
+                {limits.aiCallsPerDay === Infinity ? (
+                  <span className="text-emerald-500">{t("ai_usage.unlimited")}</span>
+                ) : aiCallsRemaining === 0 ? (
+                  <span className="text-rose-500">{t("ai_usage.depleted")}</span>
+                ) : (
+                  <span className={aiCallsRemaining <= 3 ? "text-rose-500" : ""}>
+                    {t("ai_usage.remaining", { count: aiCallsRemaining, total: limits.aiCallsPerDay })}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
 
           {/* ── Theme Toggle — desktop only ── */}
           <div className="hidden md:block">
@@ -428,6 +481,7 @@ const DashboardPage = () => {
       {/* Stats + Features — hidden when a feature is active */}
       {!selectedFeature && (
         <>
+          {/* Stats Row */}
           <section>
             <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"

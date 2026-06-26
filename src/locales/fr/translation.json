@@ -16,6 +16,7 @@
     "lang_de": "Allemand",
     "open_menu": "Ouvrir le menu",
     "close_menu": "Fermer le menu",
+    "pricing": "Tarifs",
     "brand": "Multi Lingo AI"
   },
   "common": {
@@ -672,14 +673,6 @@
     "placeholder": "D\u00e9cris le probl\u00e8me en quelques mots\u2026",
     "send": "Envoyer par WhatsApp"
   },
-  "categories": {
-    "general": "G\u00e9n\u00e9ral",
-    "food": "Nourriture",
-    "travel": "Voyage",
-    "sports": "Sports",
-    "tech": "Technologie",
-    "nature": "Nature"
-  },
   "onboarding": {
     "welcome_title": "Bienvenue sur MultiLingo !",
     "welcome_subtitle": "Configurons ton profil d'apprentissage.",
@@ -690,6 +683,58 @@
     "finish": "Commencer \u00e0 Apprendre !",
     "next": "Suivant",
     "back": "Retour"
+  },
+  "pricing": {
+    "title": "Choisis Ton Forfait",
+    "subtitle": "Débloque toute la puissance de l'apprentissage des langues avec IA. Commence gratuitement, passe à un forfait supérieur quand tu as besoin de plus.",
+    "monthly": "Mensuel",
+    "yearly": "Annuel",
+    "per_month": "mois",
+    "per_year": "an",
+    "free_forever": "Gratuit à Vie",
+    "most_popular": "Le Plus Populaire",
+    "current_plan": "Forfait Actuel",
+    "upgrade": "Passer à",
+    "get_started": "Commencer",
+    "redirecting": "Redirection...",
+    "save_x": "Économise {{percent}}%",
+    "try_free_days": "Essai gratuit de {{days}} jours",
+    "features": {
+      "ai_calls": "{{count}} appels IA{{suffix}}",
+      "translator": "Traducteur IA",
+      "dictionary": "Dictionnaire Avancé",
+      "challenges": "Défis & Jeux",
+      "full_exam": "Mode Examen Complet",
+      "priority_support": "Support Prioritaire"
+    }
+  },
+  "subscription": {
+    "title": "Abonnement",
+    "current_period_end": "La période de facturation se termine : {{date}}",
+    "manage": "Gérer l'Abonnement",
+    "upgrade_plan": "Passer à un Forfait Supérieur",
+    "update_payment": "Mettre à Jour le Paiement",
+    "past_due_message": "Votre paiement est en retard. Veuillez mettre à jour votre méthode de paiement pour éviter une interruption de service.",
+    "trial_badge": "{{days}} jours d'essai gratuit",
+    "errors": {
+      "upgrade_required": "Cette fonctionnalité est disponible uniquement sur les forfaits Voyager et supérieurs."
+    },
+    "success": {
+      "title": "Abonnement Actif !",
+      "message": "Votre abonnement a été activé avec succès. Vous avez maintenant accès à toutes les fonctionnalités de votre forfait.",
+      "redirecting": "Redirection vers le tableau de bord dans {{seconds}}s..."
+    },
+    "cancel": {
+      "title": "Abonnement Annulé",
+      "message": "Votre paiement a été annulé. Aucun changement n'a été apporté à votre compte.",
+      "back": "Retour aux Tarifs"
+    }
+  },
+  "ai_usage": {
+    "label": "Appels IA",
+    "unlimited": "Illimité",
+    "depleted": "Plus d'appels",
+    "remaining": "{{count}} / {{total}} restants"
   },
   "session": {
     "expired_title": "Session Expir\u00e9e",

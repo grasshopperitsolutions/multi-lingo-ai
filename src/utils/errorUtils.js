@@ -73,3 +73,25 @@ export function sanitizeAIError(
 
   return msg;
 }
+
+// ── RateLimitError ────────────────────────────────────────────────────────
+
+/**
+ * Thrown by any AI service when the backend returns HTTP 429.
+ * Caught by `useRateLimitHandler` to show the upgrade alert instead
+ * of a generic error message.
+ *
+ * Usage in services:
+ *   import { RateLimitError } from "../utils/errorUtils";
+ *   if (response.status === 429) throw new RateLimitError(json?.error);
+ *
+ * Usage in components:
+ *   import { RateLimitError } from "../utils/errorUtils";
+ *   if (err instanceof RateLimitError) { ... }
+ */
+export class RateLimitError extends Error {
+  constructor(message = 'Daily AI limit reached') {
+    super(message);
+    this.name = 'RateLimitError';
+  }
+}
