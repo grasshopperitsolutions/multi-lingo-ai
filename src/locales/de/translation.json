@@ -364,7 +364,7 @@
     "sign_out": "Abmelden",
     "delete_account": "Konto l\u00f6schen",
     "delete_confirm_title": "Konto l\u00f6schen",
-    "delete_confirm_message": "Dies wird <1>dein Konto und alle zugeh\u00f6rigen Daten unwiderruflich l\u00f6schen</1> \u2013 einschlie\u00dflich deines Profils, hochgeladener Dateien und des Gespr\u00e4chsverlaufs.",
+    "delete_confirm_message": "Dies wird dein Konto und alle zugeh\u00f6rigen Daten unwiderruflich l\u00f6schen \u2013 einschlie\u00dflich deines Profils, hochgeladener Dateien und des Gespr\u00e4chsverlaufs.",
     "delete_confirm_warning": "\u26a0 Diese Aktion kann nicht r\u00fcckg\u00e4ngig gemacht werden.",
     "delete_confirm_button": "Ja, mein Konto l\u00f6schen",
     "upload_failed": "Fehler beim Hochladen des Profilbilds. Bitte versuche es erneut.",

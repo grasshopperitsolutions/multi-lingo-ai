@@ -368,7 +368,7 @@
     "sign_out": "D\u00e9connexion",
     "delete_account": "Supprimer le Compte",
     "delete_confirm_title": "Supprimer le Compte",
-    "delete_confirm_message": "Cela <1>supprimera d\u00e9finitivement</1> votre compte et toutes les donn\u00e9es associ\u00e9es \u2014 y compris votre profil, fichiers t\u00e9l\u00e9charg\u00e9s et historique de conversations.",
+    "delete_confirm_message": "Cela supprimera d\u00e9finitivement votre compte et toutes les donn\u00e9es associ\u00e9es \u2014 y compris votre profil, fichiers t\u00e9l\u00e9charg\u00e9s et historique de conversations.",
     "delete_confirm_warning": "\u26a0 Cette action ne peut pas \u00eatre annul\u00e9e.",
     "delete_confirm_button": "Oui, supprimer mon compte",
     "upload_failed": "\u00c9chec du t\u00e9l\u00e9chargement de l'image de profil. Veuillez r\u00e9essayer.",

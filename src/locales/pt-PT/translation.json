@@ -364,7 +364,7 @@
     "sign_out": "Sair",
     "delete_account": "Eliminar Conta",
     "delete_confirm_title": "Eliminar Conta",
-    "delete_confirm_message": "Isto <1>eliminará permanentemente</1> a tua conta e todos os dados associados — incluindo o teu perfil, ficheiros enviados e histórico de conversas.",
+    "delete_confirm_message": "Isto eliminará permanentemente a tua conta e todos os dados associados — incluindo o teu perfil, ficheiros enviados e histórico de conversas.",
     "delete_confirm_warning": "⚠ Esta ação não pode ser desfeita.",
     "delete_confirm_button": "Sim, eliminar a minha conta",
     "upload_failed": "Falha ao enviar a imagem de perfil. Por favor tenta novamente.",

@@ -364,7 +364,7 @@
     "sign_out": "Sign Out",
     "delete_account": "Delete Account",
     "delete_confirm_title": "Delete Account",
-    "delete_confirm_message": "This will <1>permanently delete</1> your account and all associated data — including your profile, uploaded files, and conversation history.",
+    "delete_confirm_message": "This will permanently delete your account and all associated data — including your profile, uploaded files, and conversation history.",
     "delete_confirm_warning": "⚠ This action cannot be undone.",
     "delete_confirm_button": "Yes, delete my account",
     "upload_failed": "Failed to upload profile image. Please try again.",

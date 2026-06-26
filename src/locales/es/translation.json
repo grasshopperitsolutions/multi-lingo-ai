@@ -368,7 +368,7 @@
     "sign_out": "Cerrar Sesi\u00f3n",
     "delete_account": "Eliminar Cuenta",
     "delete_confirm_title": "Eliminar Cuenta",
-    "delete_confirm_message": "Esto <1>eliminar\u00e1 permanentemente</1> tu cuenta y todos los datos asociados \u2014 incluyendo tu perfil, archivos subidos e historial de conversaciones.",
+    "delete_confirm_message": "Esto eliminar\u00e1 permanentemente tu cuenta y todos los datos asociados \u2014 incluyendo tu perfil, archivos subidos e historial de conversaciones.",
     "delete_confirm_warning": "\u26a0 Esta acci\u00f3n no se puede deshacer.",
     "delete_confirm_button": "S\u00ed, eliminar mi cuenta",
     "upload_failed": "Error al subir la imagen de perfil. Int\u00e9ntalo de nuevo.",
