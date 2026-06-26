@@ -2,8 +2,8 @@
   "nav": {
     "home": "Inicio",
     "contact": "Contacto",
-    "login": "Iniciar Sesión",
-    "logout": "Cerrar Sesión",
+    "login": "Iniciar Sesi\u00f3n",
+    "logout": "Cerrar Sesi\u00f3n",
     "dashboard": "Panel",
     "settings": "Ajustes",
     "light_mode": "Modo Claro",
@@ -23,7 +23,7 @@
     "loading": "Cargando...",
     "cancel": "Cancelar",
     "close": "Cerrar",
-    "error": "Algo salió mal. Por favor, inténtalo de nuevo.",
+    "error": "Algo sali\u00f3 mal. Por favor, int\u00e9ntalo de nuevo.",
     "back": "Volver"
   },
   "avatar": {
@@ -38,125 +38,125 @@
     "close": "Cerrar"
   },
   "home": {
-    "badge": "LA REVOLUCIÓN DE LA IA ESTÁ AQUÍ",
-    "hero_line1": "Pregúntale a la IA",
+    "badge": "LA REVOLUCI\u00d3N DE LA IA EST\u00c1 AQU\u00cd",
+    "hero_line1": "Preg\u00fantale a la IA",
     "hero_highlight": "Todo",
-    "hero_line2": "sobre Portugués",
-    "subtitle": "La primera plataforma que te enseña Portugués Europeo desde cualquier idioma o dialecto que hables. Con IA, con apoyo humano.",
+    "hero_line2": "sobre Portugu\u00e9s",
+    "subtitle": "La primera plataforma que te ense\u00f1a Portugu\u00e9s Europeo desde cualquier idioma o dialecto que hables. Con IA, con apoyo humano.",
     "cta_start": "Empieza Ahora",
     "marquee": [
-      "APRENDE PORTUGUÉS RÁPIDO",
-      "SIN GRAMÁTICA ABURRIDA",
+      "APRENDE PORTUGU\u00c9S R\u00c1PIDO",
+      "SIN GRAM\u00c1TICA ABURRIDA",
       "CON IA",
       "JERGA LOCAL"
     ],
     "features": {
       "voice_tutor": "Tutor de Voz IA 24/7",
       "urban_dictionary": "Diccionario Urbano",
-      "smart_scheduler": "Programación Inteligente",
+      "smart_scheduler": "Programaci\u00f3n Inteligente",
       "human_sessions": "Sesiones con Tutor Humano"
     },
     "universal_input": {
       "title": "El Input Universal",
-      "subtitle": "¿Aprendiendo de Irlandés? ¿Gaélico Irlandés? ¿Mandarín? Solo escríbelo. Nuestra IA tiende el puente."
+      "subtitle": "\u00bfAprendiendo de Irland\u00e9s? \u00bfGa\u00e9lico Irland\u00e9s? \u00bfMandar\u00edn? Solo escr\u00edbelo. Nuestra IA tiende el puente."
     },
     "language_pills": [
-      "Gaélico ➜ PT",
-      "Inglés EUA ➜ PT",
-      "Tailandés ➜ PT",
-      "Jerga Australiana ➜ PT"
+      "Ga\u00e9lico \u279c PT",
+      "Ingl\u00e9s EUA \u279c PT",
+      "Tailand\u00e9s \u279c PT",
+      "Jerga Australiana \u279c PT"
     ],
     "wall_of_love_heading": "Muro de Amor",
     "reviews": [
       {
         "name": "Nadja",
         "date": "10 de Febrero, 2026",
-        "quote": "Nuno es un tutor increíble, adapta las lecciones a las necesidades del estudiante y es muy servicial."
+        "quote": "Nuno es un tutor incre\u00edble, adapta las lecciones a las necesidades del estudiante y es muy servicial."
       },
       {
         "name": "Claudia",
         "date": "16 de Enero, 2026",
-        "quote": "Nuno es un profesor excepcional que está acelerando mi aprendizaje de portugués. Su método divertido y efectivo está aumentando mi confianza y habilidades."
+        "quote": "Nuno es un profesor excepcional que est\u00e1 acelerando mi aprendizaje de portugu\u00e9s. Su m\u00e9todo divertido y efectivo est\u00e1 aumentando mi confianza y habilidades."
       },
       {
         "name": "Chloe",
         "date": "15 de Enero, 2026",
-        "quote": "ME ENCANTA aprender con Nuno. Es inteligente, divertido y sus clases son muy interesantes. Siento que aprendo mucho y los 50 minutos vuelan. Me siento segura aprendiendo con él."
+        "quote": "ME ENCANTA aprender con Nuno. Es inteligente, divertido y sus clases son muy interesantes. Siento que aprendo mucho y los 50 minutos vuelan. Me siento segura aprendiendo con \u00e9l."
       },
       {
         "name": "Fabian",
         "date": "8 de Enero, 2026",
-        "quote": "Nuno es un gran profesor, es paciente y está feliz de adaptar cada lección a lo que necesitamos. Su conocimiento de idiomas es vasto y explica todo claramente con ejemplos."
+        "quote": "Nuno es un gran profesor, es paciente y est\u00e1 feliz de adaptar cada lecci\u00f3n a lo que necesitamos. Su conocimiento de idiomas es vasto y explica todo claramente con ejemplos."
       },
       {
         "name": "Kelsey",
         "date": "17 de Diciembre, 2025",
-        "quote": "Las clases de Nuno son fáciles de entender y realmente se adapta a tus necesidades y nivel de habilidad. ¡Definitivamente lo recomendaría!"
+        "quote": "Las clases de Nuno son f\u00e1ciles de entender y realmente se adapta a tus necesidades y nivel de habilidad. \u00a1Definitivamente lo recomendar\u00eda!"
       },
       {
         "name": "Jacob",
         "date": "15 de Diciembre, 2025",
-        "quote": "Nuno es un gran tutor; realmente escucha a sus estudiantes y, a través de eso, se convierte en un mejor tutor que muchos otros."
+        "quote": "Nuno es un gran tutor; realmente escucha a sus estudiantes y, a trav\u00e9s de eso, se convierte en un mejor tutor que muchos otros."
       },
       {
         "name": "Erek",
         "date": "21 de Noviembre, 2025",
-        "quote": "Excelente para conversación casual del día a día con estructura verbal y repaso. Buen tipo y accesible, fácil de relacionarse."
+        "quote": "Excelente para conversaci\u00f3n casual del d\u00eda a d\u00eda con estructura verbal y repaso. Buen tipo y accesible, f\u00e1cil de relacionarse."
       },
       {
         "name": "Alasdair",
         "date": "6 de Noviembre, 2025",
-        "quote": "Nuno es un gran profesor. Es muy paciente y está dispuesto a adaptarse a las necesidades de los estudiantes. Tiene mucho conocimiento y es capaz de explicar las cosas muy claramente."
+        "quote": "Nuno es un gran profesor. Es muy paciente y est\u00e1 dispuesto a adaptarse a las necesidades de los estudiantes. Tiene mucho conocimiento y es capaz de explicar las cosas muy claramente."
       },
       {
         "name": "Ludovic",
         "date": "7 de Octubre, 2025",
-        "quote": "¡Perfecto!"
+        "quote": "\u00a1Perfecto!"
       },
       {
         "name": "Nia",
         "date": "7 de Octubre, 2025",
-        "quote": "Nuno es un profesor dedicado que aborda las necesidades individuales y adopta un enfoque práctico."
+        "quote": "Nuno es un profesor dedicado que aborda las necesidades individuales y adopta un enfoque pr\u00e1ctico."
       },
       {
         "name": "Mark",
         "date": "6 de Octubre, 2025",
-        "quote": "Muy simpático."
+        "quote": "Muy simp\u00e1tico."
       },
       {
         "name": "Jade",
         "date": "6 de Octubre, 2025",
-        "quote": "Me gusta el enfoque personalizado que Nuno tiene en sus clases. Va al ritmo que necesitas/quieres sin añadir demasiada presión."
+        "quote": "Me gusta el enfoque personalizado que Nuno tiene en sus clases. Va al ritmo que necesitas/quieres sin a\u00f1adir demasiada presi\u00f3n."
       },
       {
         "name": "Ludovica",
         "date": "2 de Octubre, 2025",
-        "quote": "Nuno es un gran profesor. Es paciente y realmente se centra en tus necesidades. Noté progreso después de solo unas pocas lecciones. Nuestras lecciones son una mezcla de lectura, gramática y escritura, lo que las hace muy completas."
+        "quote": "Nuno es un gran profesor. Es paciente y realmente se centra en tus necesidades. Not\u00e9 progreso despu\u00e9s de solo unas pocas lecciones. Nuestras lecciones son una mezcla de lectura, gram\u00e1tica y escritura, lo que las hace muy completas."
       },
       {
         "name": "Andrew",
         "date": "29 de Enero, 2025",
-        "quote": "Trabajar con Nuno ha sido genial. Ya estoy notando progreso después de solo dos lecciones. ¡Esperando la siguiente!"
+        "quote": "Trabajar con Nuno ha sido genial. Ya estoy notando progreso despu\u00e9s de solo dos lecciones. \u00a1Esperando la siguiente!"
       },
       {
         "name": "Michael",
         "date": "29 de Enero, 2025",
-        "quote": "¡He estado aprendiendo portugués con Nuno y ha sido una excelente experiencia! Es paciente, inteligente y se toma el tiempo para personalizar el aprendizaje."
+        "quote": "\u00a1He estado aprendiendo portugu\u00e9s con Nuno y ha sido una excelente experiencia! Es paciente, inteligente y se toma el tiempo para personalizar el aprendizaje."
       },
       {
         "name": "George",
         "date": "29 de Noviembre, 2024",
-        "quote": "El enfoque de Nuno hacia la enseñanza es fantástico, atractivo e interesante. Proporciona orientación y explicaciones claras y útiles de una manera relajada e informal."
+        "quote": "El enfoque de Nuno hacia la ense\u00f1anza es fant\u00e1stico, atractivo e interesante. Proporciona orientaci\u00f3n y explicaciones claras y \u00fatiles de una manera relajada e informal."
       },
       {
         "name": "Philipp",
         "date": "26 de Septiembre, 2024",
-        "quote": "Comencé mi viaje en Preply con Nuno y estoy muy contento con nuestras clases. Es divertido y se puede hablar fácilmente sobre la vida cotidiana y pasatiempos."
+        "quote": "Comenc\u00e9 mi viaje en Preply con Nuno y estoy muy contento con nuestras clases. Es divertido y se puede hablar f\u00e1cilmente sobre la vida cotidiana y pasatiempos."
       },
       {
         "name": "Charles",
         "date": "25 de Septiembre, 2024",
-        "quote": "¡Haciendo grandes progresos en mi portugués! Recomiendo mucho a Nuno para empezar, hace un gran trabajo para que te sientas cómodo con lo básico."
+        "quote": "\u00a1Haciendo grandes progresos en mi portugu\u00e9s! Recomiendo mucho a Nuno para empezar, hace un gran trabajo para que te sientas c\u00f3modo con lo b\u00e1sico."
       },
       {
         "name": "Sh",
@@ -166,12 +166,12 @@
       {
         "name": "Laura",
         "date": "10 de Septiembre, 2024",
-        "quote": "Nuno es muy paciente. Él puede explicar palabras y significados para que tengan sentido."
+        "quote": "Nuno es muy paciente. \u00c9l puede explicar palabras y significados para que tengan sentido."
       },
       {
         "name": "Hlib",
         "date": "6 de Septiembre, 2024",
-        "quote": "Nuno es un excelente tutor de portugués. Explica todo claramente, facilitando el seguimiento. Especialmente para aquellos que trabajan en TI."
+        "quote": "Nuno es un excelente tutor de portugu\u00e9s. Explica todo claramente, facilitando el seguimiento. Especialmente para aquellos que trabajan en TI."
       },
       {
         "name": "Jennifer",
@@ -181,22 +181,22 @@
       {
         "name": "Yegane",
         "date": "5 de Agosto, 2024",
-        "quote": "Nuno es un profesor fantástico, y lo recomiendo encarecidamente. Su amable comportamiento me puso rápidamente cómoda con el idioma portugués."
+        "quote": "Nuno es un profesor fant\u00e1stico, y lo recomiendo encarecidamente. Su amable comportamiento me puso r\u00e1pidamente c\u00f3moda con el idioma portugu\u00e9s."
       },
       {
         "name": "Rosa",
         "date": "1 de Agosto, 2024",
-        "quote": "¡Él tiene mucha paciencia y es muy alentador!"
+        "quote": "\u00a1\u00c9l tiene mucha paciencia y es muy alentador!"
       },
       {
         "name": "Angie",
         "date": "29 de Julio, 2024",
-        "quote": "Nuno es un tutor increíble, amigable y conocedor. Desde la primera sesión, su naturaleza acogedora hizo que aprender fuera divertido y fácil."
+        "quote": "Nuno es un tutor incre\u00edble, amigable y conocedor. Desde la primera sesi\u00f3n, su naturaleza acogedora hizo que aprender fuera divertido y f\u00e1cil."
       },
       {
         "name": "Josep",
         "date": "20 de Julio, 2024",
-        "quote": "Nuno es un profesor de portugués excepcional. Sus clases son siempre dinámicas y atractivas. Gracias a su personalidad amigable y paciencia, cada lección es muy agradable."
+        "quote": "Nuno es un profesor de portugu\u00e9s excepcional. Sus clases son siempre din\u00e1micas y atractivas. Gracias a su personalidad amigable y paciencia, cada lecci\u00f3n es muy agradable."
       },
       {
         "name": "Isobelle",
@@ -209,260 +209,261 @@
         "quote": "Hoy tuve mi primera clase con Nuno, fue muy agradable, tiene mucha paciencia. Me dio una tarea muy divertida."
       }
     ],
-    "how_it_works_heading": "Cómo Funciona",
+    "how_it_works_heading": "C\u00f3mo Funciona",
     "how_it_works_step1_title": "Elige Tu Idioma",
-    "how_it_works_step1_desc": "¿Hablas Inglés, Tailandés o jerga australiana? Empezamos desde donde TÚ estás.",
-    "how_it_works_step2_title": "Pregúntale a la IA",
-    "how_it_works_step2_desc": "Sin lecciones rígidas. Pregunta cómo pedir una \"bifana\" o ligar en Lisboa naturalmente.",
+    "how_it_works_step1_desc": "\u00bfHablas Ingl\u00e9s, Tailand\u00e9s o jerga australiana? Empezamos desde donde T\u00da est\u00e1s.",
+    "how_it_works_step2_title": "Preg\u00fantale a la IA",
+    "how_it_works_step2_desc": "Sin lecciones r\u00edgidas. Pregunta c\u00f3mo pedir una \"bifana\" o ligar en Lisboa naturalmente.",
     "how_it_works_step3_title": "Domina la Jerga",
     "how_it_works_step3_desc": "Descarga hojas de trucos personalizadas y practica con nuestro tutor de voz 24/7.",
     "cta_watch_demo": "Ver Demo",
-    "faq_heading": "¿Tienes Preguntas?",
-    "final_cta_heading": "¿Listo para dejar los libros de texto?",
-    "final_cta_subtitle": "Únete a miles de estudiantes dominando el Portugués real del día a día.",
+    "faq_heading": "\u00bfTienes Preguntas?",
+    "final_cta_heading": "\u00bfListo para dejar los libros de texto?",
+    "final_cta_subtitle": "\u00danete a miles de estudiantes dominando el Portugu\u00e9s real del d\u00eda a d\u00eda.",
     "final_cta_button": "Empieza Gratis",
     "faqs": [
       {
-        "question": "¿Es estrictamente Portugués Europeo?",
-        "answer": "100%. Construimos esto específicamente porque todas las otras aplicaciones usan Portugués Brasileño. Sin 'você' aquí a menos que estemos siendo estrictamente formales."
+        "question": "\u00bfEs estrictamente Portugu\u00e9s Europeo?",
+        "answer": "100%. Construimos esto espec\u00edficamente porque todas las otras aplicaciones usan Portugu\u00e9s Brasile\u00f1o. Sin 'voc\u00ea' aqu\u00ed a menos que estemos siendo estrictamente formales."
       },
       {
-        "question": "¿Necesito saber Inglés para usar esto?",
-        "answer": "¡No! Multi Lingo AI funciona con un motor que traduce y explica conceptos usando CUALQUIER idioma o dialecto de inicio que proporciones."
+        "question": "\u00bfNecesito saber Ingl\u00e9s para usar esto?",
+        "answer": "\u00a1No! Multi Lingo AI funciona con un motor que traduce y explica conceptos usando CUALQUIER idioma o dialecto de inicio que proporciones."
       },
       {
-        "question": "¿Puedo hablar con un humano real?",
-        "answer": "¡Sí! Aunque nuestro tutor IA está disponible 24/7, puedes programar fácilmente sesiones en vivo con tutores humanos verificados a través de nuestro Programación Inteligente."
+        "question": "\u00bfPuedo hablar con un humano real?",
+        "answer": "\u00a1S\u00ed! Aunque nuestro tutor IA est\u00e1 disponible 24/7, puedes programar f\u00e1cilmente sesiones en vivo con tutores humanos verificados a trav\u00e9s de nuestro Programaci\u00f3n Inteligente."
       },
       {
-        "question": "¿Qué hace diferente a Multi Lingo AI?",
-        "answer": "Nos enfocamos en Portugués real y conversacional con jerga y expresiones auténticas. Sin lenguaje de libro de texto aquí, solo comunicación práctica y cotidiana."
+        "question": "\u00bfQu\u00e9 hace diferente a Multi Lingo AI?",
+        "answer": "Nos enfocamos en Portugu\u00e9s real y conversacional con jerga y expresiones aut\u00e9nticas. Sin lenguaje de libro de texto aqu\u00ed, solo comunicaci\u00f3n pr\u00e1ctica y cotidiana."
       },
       {
-        "question": "¿Cuánto cuesta?",
+        "question": "\u00bfCu\u00e1nto cuesta?",
         "answer": "Ofrecemos planes de precios flexibles comenzando con un nivel gratuito. Los planes premium desbloquean conversaciones IA ilimitadas y sesiones con tutores en vivo."
       },
       {
-        "question": "¿Puedo probarlo gratis?",
-        "answer": "¡Absolutamente! Puedes usar nuestro nivel gratuito para explorar todas las funciones. La mayoría de los estudiantes comienzan con nuestro plan gratuito para ver si Multi Lingo AI es adecuado para ellos."
+        "question": "\u00bfPuedo probarlo gratis?",
+        "answer": "\u00a1Absolutamente! Puedes usar nuestro nivel gratuito para explorar todas las funciones. La mayor\u00eda de los estudiantes comienzan con nuestro plan gratuito para ver si Multi Lingo AI es adecuado para ellos."
       },
       {
-        "question": "¿Mis datos de aprendizaje son privados?",
-        "answer": "¡Sí! Tu privacidad es importante para nosotros. Todos los datos de conversación están encriptados y mantienes control total sobre tu información de aprendizaje."
+        "question": "\u00bfMis datos de aprendizaje son privados?",
+        "answer": "\u00a1S\u00ed! Tu privacidad es importante para nosotros. Todos los datos de conversaci\u00f3n est\u00e1n encriptados y mantienes control total sobre tu informaci\u00f3n de aprendizaje."
       }
     ]
   },
   "login": {
-    "title": "Iniciar Sesión",
-    "subtitle": "Elige tu método de inicio de sesión preferido para continuar.",
+    "title": "Iniciar Sesi\u00f3n",
+    "subtitle": "Elige tu m\u00e9todo de inicio de sesi\u00f3n preferido para continuar.",
     "google": "Continuar con Google",
     "apple": "Continuar con Apple",
     "facebook": "Continuar con Facebook",
     "x": "Continuar con X",
-    "terms_note": "Al iniciar sesión, aceptas nuestros",
-    "terms": "Términos",
-    "privacy": "Política de Privacidad",
-    "not_available": "Este método de inicio de sesión aún no está disponible — ¡vuelve pronto!",
-    "signing_in": "Iniciando sesión con Google…",
+    "terms_note": "Al iniciar sesi\u00f3n, aceptas nuestros",
+    "terms": "T\u00e9rminos",
+    "privacy": "Pol\u00edtica de Privacidad",
+    "not_available": "Este m\u00e9todo de inicio de sesi\u00f3n a\u00fan no est\u00e1 disponible \u2014 \u00a1vuelve pronto!",
+    "signing_in": "Iniciando sesi\u00f3n con Google\u2026",
     "back_home": "Volver al Inicio"
   },
   "contact": {
     "title": "Ponte en Contacto",
-    "subtitle": "¿Tienes preguntas sobre Portugués Europeo? Nuestra bandada está aquí para ayudarte a volar.",
+    "subtitle": "\u00bfTienes preguntas sobre Portugu\u00e9s Europeo? Nuestra bandada est\u00e1 aqu\u00ed para ayudarte a volar.",
     "title_touch": "Contacto",
-    "email_label": "Envíanos un email",
-    "whatsapp_label": "WhatsApp (respuesta más rápida)",
-    "location_label": "Ubicación",
-    "location_value": "🌍 Totalmente Remoto & Mundial",
-    "hours_label": "Horario de Atención",
-    "hours_value": "🟢 24/7 / Todos los Días",
+    "email_label": "Env\u00edanos un email",
+    "whatsapp_label": "WhatsApp (respuesta m\u00e1s r\u00e1pida)",
+    "location_label": "Ubicaci\u00f3n",
+    "location_value": "\ud83c\udf0d Totalmente Remoto & Mundial",
+    "hours_label": "Horario de Atenci\u00f3n",
+    "hours_value": "\ud83d\udfe2 24/7 / Todos los D\u00edas",
     "faq_title": "Preguntas Frecuentes",
-    "faq_q1": "¿Qué tan rápido obtendré respuesta?",
-    "faq_a1": "Generalmente respondemos dentro de 24 horas en días hábiles. Para asuntos urgentes, usa WhatsApp para una respuesta más rápida.",
-    "faq_q2": "¿Ofrecen planes personalizados para escuelas?",
-    "faq_a2": "¡Sí! Tenemos paquetes educativos especiales para escuelas e institutos de idiomas. Envíanos un mensaje para discutir tus necesidades.",
-    "faq_q3": "¿Puedo solicitar nuevas funciones?",
-    "faq_a3": "¡Absolutamente! Nos encanta escuchar sugerencias de usuarios. Muchas de nuestras mejores funciones vinieron directamente de solicitudes de usuarios.",
-    "faq_q4": "¿Multi Lingo AI es realmente 100% remoto?",
-    "faq_a4": "¡Sí! Somos un equipo totalmente distribuido trabajando desde playas, cafés y espacios de coworking alrededor del mundo. Sin oficina, sin código de vestimenta, solo excelente aprendizaje de idiomas.",
+    "faq_q1": "\u00bfQu\u00e9 tan r\u00e1pido obtendr\u00e9 respuesta?",
+    "faq_a1": "Generalmente respondemos dentro de 24 horas en d\u00edas h\u00e1biles. Para asuntos urgentes, usa WhatsApp para una respuesta m\u00e1s r\u00e1pida.",
+    "faq_q2": "\u00bfOfrecen planes personalizados para escuelas?",
+    "faq_a2": "\u00a1S\u00ed! Tenemos paquetes educativos especiales para escuelas e institutos de idiomas. Env\u00edanos un mensaje para discutir tus necesidades.",
+    "faq_q3": "\u00bfPuedo solicitar nuevas funciones?",
+    "faq_a3": "\u00a1Absolutamente! Nos encanta escuchar sugerencias de usuarios. Muchas de nuestras mejores funciones vinieron directamente de solicitudes de usuarios.",
+    "faq_q4": "\u00bfMulti Lingo AI es realmente 100% remoto?",
+    "faq_a4": "\u00a1S\u00ed! Somos un equipo totalmente distribuido trabajando desde playas, caf\u00e9s y espacios de coworking alrededor del mundo. Sin oficina, sin c\u00f3digo de vestimenta, solo excelente aprendizaje de idiomas.",
     "form": {
       "name": "Nombre Completo",
       "name_placeholder": "Nuno Silva",
       "email": "Email",
       "email_placeholder": "nuno@ejemplo.com",
-      "phone": "Teléfono (Opcional)",
+      "phone": "Tel\u00e9fono (Opcional)",
       "phone_placeholder": "+34 6",
       "subject": "Asunto",
       "subject_general": "Pregunta General",
-      "subject_support": "Soporte Técnico",
+      "subject_support": "Soporte T\u00e9cnico",
       "subject_feedback": "Comentarios",
       "subject_business": "Consulta Comercial",
       "subject_bug": "Reportar Error",
       "message": "Mensaje",
-      "message_placeholder": "¿Qué tienes en mente?",
+      "message_placeholder": "\u00bfQu\u00e9 tienes en mente?",
       "submit": "Enviar Mensaje",
       "sending": "Enviando...",
-      "success": "¡Mensaje enviado con éxito! Te responderemos pronto.",
+      "success": "\u00a1Mensaje enviado con \u00e9xito! Te responderemos pronto.",
       "error": "Por favor, completa todos los campos obligatorios"
     }
   },
   "footer": {
-    "tagline": "Portugués Europeo con IA para todos.",
+    "tagline": "Portugu\u00e9s Europeo con IA para todos.",
     "links": "Enlaces",
     "legal": "Legal",
-    "terms": "Términos de Servicio",
-    "privacy": "Política de Privacidad",
+    "terms": "T\u00e9rminos de Servicio",
+    "privacy": "Pol\u00edtica de Privacidad",
     "contact": "Contacto",
     "rights": "Todos los derechos reservados.",
-    "built_by": "Obtén tu propio sitio web increíble de Grasshopper IT Solutions",
+    "built_by": "Obt\u00e9n tu propio sitio web incre\u00edble de Grasshopper IT Solutions",
     "brand": "Multi Lingo AI"
   },
   "terms": {
-    "title": "Términos de Servicio",
-    "section1_title": "1. Aceptación de los Términos",
-    "section1_text": "Al acceder y usar este sitio web, aceptas y te comprometes a cumplir con los términos y disposiciones de este acuerdo. Si no aceptas estos términos, por favor no uses este sitio web.",
+    "title": "T\u00e9rminos de Servicio",
+    "section1_title": "1. Aceptaci\u00f3n de los T\u00e9rminos",
+    "section1_text": "Al acceder y usar este sitio web, aceptas y te comprometes a cumplir con los t\u00e9rminos y disposiciones de este acuerdo. Si no aceptas estos t\u00e9rminos, por favor no uses este sitio web.",
     "section2_title": "2. Licencia de Uso",
-    "section2_text": "Se concede permiso para ver temporalmente los materiales en este sitio web para visualización personal y no comercial. Esta es una concesión de licencia, no una transferencia de título.",
+    "section2_text": "Se concede permiso para ver temporalmente los materiales en este sitio web para visualizaci\u00f3n personal y no comercial. Esta es una concesi\u00f3n de licencia, no una transferencia de t\u00edtulo.",
     "section3_title": "3. Descargo de Responsabilidad",
-    "section3_text": "Los materiales en este sitio web se proporcionan 'tal cual'. No ofrecemos garantías, expresas o implícitas, y por la presente renunciamos y negamos todas las demás garantías.",
+    "section3_text": "Los materiales en este sitio web se proporcionan 'tal cual'. No ofrecemos garant\u00edas, expresas o impl\u00edcitas, y por la presente renunciamos y negamos todas las dem\u00e1s garant\u00edas.",
     "section4_title": "4. Limitaciones",
-    "section4_text": "En ningún caso seremos responsables por daños (incluyendo, sin limitación, daños por pérdida de datos o beneficios) que surjan del uso o la imposibilidad de usar los materiales en este sitio web.",
+    "section4_text": "En ning\u00fan caso seremos responsables por da\u00f1os (incluyendo, sin limitaci\u00f3n, da\u00f1os por p\u00e9rdida de datos o beneficios) que surjan del uso o la imposibilidad de usar los materiales en este sitio web.",
     "section5_title": "5. Revisiones",
-    "section5_text": "Podemos revisar estos términos de servicio en cualquier momento sin previo aviso. Al usar este sitio web, aceptas estar sujeto a la versión actual de estos términos.",
-    "last_updated": "Última actualización: Abril 2026"
+    "section5_text": "Podemos revisar estos t\u00e9rminos de servicio en cualquier momento sin previo aviso. Al usar este sitio web, aceptas estar sujeto a la versi\u00f3n actual de estos t\u00e9rminos.",
+    "last_updated": "\u00daltima actualizaci\u00f3n: Abril 2026"
   },
   "privacy": {
-    "title": "Política de Privacidad",
-    "section1_title": "1. Información que Recopilamos",
-    "section1_text": "Podemos recopilar información personal como tu nombre, dirección de correo electrónico y cualquier otra información que proporciones voluntariamente al usar nuestro sitio web.",
-    "section2_title": "2. Cómo Usamos Tu Información",
-    "section2_text": "La información que recopilamos puede usarse para personalizar tu experiencia, mejorar nuestro sitio web, enviar correos periódicos o administrar concursos, promociones, encuestas u otras funciones del sitio.",
+    "title": "Pol\u00edtica de Privacidad",
+    "section1_title": "1. Informaci\u00f3n que Recopilamos",
+    "section1_text": "Podemos recopilar informaci\u00f3n personal como tu nombre, direcci\u00f3n de correo electr\u00f3nico y cualquier otra informaci\u00f3n que proporciones voluntariamente al usar nuestro sitio web.",
+    "section2_title": "2. C\u00f3mo Usamos Tu Informaci\u00f3n",
+    "section2_text": "La informaci\u00f3n que recopilamos puede usarse para personalizar tu experiencia, mejorar nuestro sitio web, enviar correos peri\u00f3dicos o administrar concursos, promociones, encuestas u otras funciones del sitio.",
     "section3_title": "3. Cookies",
-    "section3_text": "Este sitio web puede usar cookies para mejorar la experiencia del usuario. Tu navegador coloca cookies en tu disco duro con fines de mantenimiento de registros y, a veces, para rastrear información sobre ti.",
-    "section4_title": "4. Protección de Datos",
-    "section4_text": "Adoptamos prácticas apropiadas de recopilación, almacenamiento y procesamiento de datos y medidas de seguridad para proteger contra el acceso no autorizado, alteración, divulgación o destrucción de tu información personal.",
-    "section5_title": "5. Compartir Tu Información",
-    "section5_text": "No vendemos, intercambiamos ni alquilamos tu información de identificación personal a otros. Podemos compartir información demográfica agregada genérica no vinculada a información de identificación personal.",
-    "section6_title": "6. Cambios a Esta Política",
-    "section6_text": "Nos reservamos el derecho de actualizar esta política de privacidad en cualquier momento. Cuando lo hagamos, revisaremos la fecha de actualización en la parte inferior de esta página.",
-    "last_updated": "Última actualización: Abril 2026"
+    "section3_text": "Este sitio web puede usar cookies para mejorar la experiencia del usuario. Tu navegador coloca cookies en tu disco duro con fines de mantenimiento de registros y, a veces, para rastrear informaci\u00f3n sobre ti.",
+    "section4_title": "4. Protecci\u00f3n de Datos",
+    "section4_text": "Adoptamos pr\u00e1cticas apropiadas de recopilaci\u00f3n, almacenamiento y procesamiento de datos y medidas de seguridad para proteger contra el acceso no autorizado, alteraci\u00f3n, divulgaci\u00f3n o destrucci\u00f3n de tu informaci\u00f3n personal.",
+    "section5_title": "5. Compartir Tu Informaci\u00f3n",
+    "section5_text": "No vendemos, intercambiamos ni alquilamos tu informaci\u00f3n de identificaci\u00f3n personal a otros. Podemos compartir informaci\u00f3n demogr\u00e1fica agregada gen\u00e9rica no vinculada a informaci\u00f3n de identificaci\u00f3n personal.",
+    "section6_title": "6. Cambios a Esta Pol\u00edtica",
+    "section6_text": "Nos reservamos el derecho de actualizar esta pol\u00edtica de privacidad en cualquier momento. Cuando lo hagamos, revisaremos la fecha de actualizaci\u00f3n en la parte inferior de esta p\u00e1gina.",
+    "last_updated": "\u00daltima actualizaci\u00f3n: Abril 2026"
   },
   "settings": {
     "back_to_dashboard": "Volver al Panel",
     "title": "Ajustes",
     "profile": "Perfil",
-    "display_name": "Nombre de Visualización",
-    "display_name_placeholder": "Tu nombre de visualización",
+    "display_name": "Nombre de Visualizaci\u00f3n",
+    "display_name_placeholder": "Tu nombre de visualizaci\u00f3n",
     "email": "Email",
     "change_photo": "Cambiar foto",
     "uploading": "Subiendo...",
     "profile_photo_alt": "Foto de perfil",
     "appearance": "Apariencia",
-    "app_theme": "Tema de la Aplicación",
+    "app_theme": "Tema de la Aplicaci\u00f3n",
     "dark_mode": "Modo Oscuro",
     "light_mode": "Modo Claro",
     "interface_language": "Idioma de Interfaz",
     "save_settings": "Guardar Ajustes",
     "saving": "Guardando...",
     "account": "Cuenta",
-    "sign_out": "Cerrar Sesión",
+    "sign_out": "Cerrar Sesi\u00f3n",
     "delete_account": "Eliminar Cuenta",
     "delete_confirm_title": "Eliminar Cuenta",
-    "delete_confirm_message": "Esto <1>eliminará permanentemente</1> tu cuenta y todos los datos asociados — incluyendo tu perfil, archivos subidos e historial de conversaciones.",
-    "delete_confirm_warning": "⚠ Esta acción no se puede deshacer.",
-    "delete_confirm_button": "Sí, eliminar mi cuenta",
-    "upload_failed": "Error al subir la imagen de perfil. Inténtalo de nuevo.",
+    "delete_confirm_message": "Esto <1>eliminar\u00e1 permanentemente</1> tu cuenta y todos los datos asociados \u2014 incluyendo tu perfil, archivos subidos e historial de conversaciones.",
+    "delete_confirm_warning": "\u26a0 Esta acci\u00f3n no se puede deshacer.",
+    "delete_confirm_button": "S\u00ed, eliminar mi cuenta",
+    "upload_failed": "Error al subir la imagen de perfil. Int\u00e9ntalo de nuevo.",
     "account_deleted": "Tu cuenta ha sido eliminada permanentemente.",
-    "delete_failed": "Error al eliminar la cuenta. Inténtalo de nuevo.",
-    "portuguese_label": "Portugués (Portugal)",
+    "delete_failed": "Error al eliminar la cuenta. Int\u00e9ntalo de nuevo.",
+    "portuguese_label": "Portugu\u00e9s (Portugal)",
     "errors": {
-      "not_signed_in": "Debes iniciar sesión para guardar ajustes.",
-      "save_failed": "Error al guardar los ajustes. Por favor, inténtalo de nuevo.",
-      "network_error": "No se pudo conectar con el servidor. Verifica tu conexión e inténtalo de nuevo."
+      "not_signed_in": "Debes iniciar sesi\u00f3n para guardar ajustes.",
+      "save_failed": "Error al guardar los ajustes. Por favor, int\u00e9ntalo de nuevo.",
+      "network_error": "No se pudo conectar con el servidor. Verifica tu conexi\u00f3n e int\u00e9ntalo de nuevo."
     },
-    "success_message": "¡Ajustes guardados correctamente!",
-    "delete_not_implemented": "La eliminación de cuenta aún no está implementada.",
+    "success_message": "\u00a1Ajustes guardados correctamente!",
+    "delete_not_implemented": "La eliminaci\u00f3n de cuenta a\u00fan no est\u00e1 implementada.",
     "language_learning": "Aprendizaje de Idiomas",
     "learning_language": "Idioma de Aprendizaje",
-    "learning_locked_hint": "Bloqueado — el Portugués Europeo es actualmente el único idioma ofrecido.",
+    "learning_locked_hint": "Bloqueado \u2014 el Portugu\u00e9s Europeo es actualmente el \u00fanico idioma ofrecido.",
     "interests": "Intereses",
     "interests_hint": "Selecciona temas que te gusten para personalizar tu experiencia de aprendizaje.",
-    "categories": {
-      "general": "General",
-      "food": "Comida",
-      "travel": "Viajes",
-      "sports": "Deportes",
-      "tech": "Tecnología",
-      "nature": "Naturaleza"
-    }
+    "lang_pt_pt": "Portugu\u00e9s (Portugal)",
+    "lang_pt_br": "Portugu\u00e9s (Brasil)",
+    "lang_en_us": "Ingl\u00e9s (EE. UU.)",
+    "lang_en_gb": "Ingl\u00e9s (Reino Unido)",
+    "lang_es_es": "Espa\u00f1ol (Espa\u00f1a)",
+    "lang_es_mx": "Espa\u00f1ol (M\u00e9xico)",
+    "lang_fr_fr": "Franc\u00e9s",
+    "lang_de_de": "Alem\u00e1n"
   },
   "translator": {
-    "input_placeholder": "Escribe o pega texto aquí\u2026",
+    "input_placeholder": "Escribe o pega texto aqu\u00ed\u2026",
     "listen": "Escuchar",
     "listen_slow": "Escuchar Lento",
     "clear": "Limpiar",
     "translating": "Traduciendo\u2026",
-    "output_placeholder": "La traducción aparecerá aquí\u2026",
+    "output_placeholder": "La traducci\u00f3n aparecer\u00e1 aqu\u00ed\u2026",
     "copy": "Copiar",
-    "copied": "¡Copiado!",
+    "copied": "\u00a1Copiado!",
     "swap": "Intercambiar",
     "translate": "Traducir",
-    "keyboard_hint": "Consejo: presiona Ctrl+Enter (o ⌘+Enter) para traducir",
-    "error_failed": "La traducción falló. Por favor, inténtalo de nuevo.",
+    "keyboard_hint": "Consejo: presiona Ctrl+Enter (o \u2318+Enter) para traducir",
+    "error_failed": "La traducci\u00f3n fall\u00f3. Por favor, int\u00e9ntalo de nuevo.",
     "lookup_in_dictionary": "Buscar en el Diccionario"
   },
   "dashboard": {
     "loading": "Cargando tu panel...",
-    "welcome": "¡Hola, {{name}}!",
-    "welcome_subtitle": "¿Listo para practicar hoy?",
+    "welcome": "\u00a1Hola, {{name}}!",
+    "welcome_subtitle": "\u00bfListo para practicar hoy?",
     "your_progress": "Tu Progreso",
     "what_you_can_do": "Lo Que Puedes Hacer",
     "languages": "Idiomas",
     "sessions": "Sesiones",
-    "day_streak": "Racha de Días",
+    "day_streak": "Racha de D\u00edas",
     "words": "Palabras Aprendidas",
     "awards": "Premios",
     "back": "Volver al Panel",
-    "not_implemented": "Esta función estará disponible pronto — ¡estate atento!",
-    "coming_soon": "Próximamente...",
+    "not_implemented": "Esta funci\u00f3n estar\u00e1 disponible pronto \u2014 \u00a1estate atento!",
+    "coming_soon": "Pr\u00f3ximamente...",
     "learner": "Estudiante",
     "profile_alt": "Perfil",
+    "exam_not_available_for_language": "La Preparaci\u00f3n de Ex\u00e1menes a\u00fan no est\u00e1 disponible para tu idioma de aprendizaje.",
     "translator": "Traductor",
     "translator_desc": "Traduce texto entre dos idiomas al instante con IA consciente del contexto.",
     "dictionary": "Diccionario",
     "dictionary_desc": "Busca palabras, significados, ejemplos y conjugaciones en cualquier idioma.",
-    "grammar": "Gramática",
-    "grammar_desc": "Revisa y corrige tu gramática, obtén explicaciones y consejos de escritura.",
+    "grammar": "Gram\u00e1tica",
+    "grammar_desc": "Revisa y corrige tu gram\u00e1tica, obt\u00e9n explicaciones y consejos de escritura.",
     "ai_tutor": "Tutor IA",
-    "ai_tutor_desc": "Chatea con un tutor de IA para practicar, correcciones y retroalimentación.",
+    "ai_tutor_desc": "Chatea con un tutor de IA para practicar, correcciones y retroalimentaci\u00f3n.",
     "real_person_tutor": "Tutor Real",
-    "real_person_tutor_desc": "Reserva una sesión en vivo con un tutor nativo certificado.",
-    "voice_practice": "Práctica de Voz",
-    "voice_practice_desc": "Grábate hablando y recibe retroalimentación de pronunciación con IA.",
+    "real_person_tutor_desc": "Reserva una sesi\u00f3n en vivo con un tutor nativo certificado.",
+    "voice_practice": "Pr\u00e1ctica de Voz",
+    "voice_practice_desc": "Gr\u00e1bate hablando y recibe retroalimentaci\u00f3n de pronunciaci\u00f3n con IA.",
     "story_generator": "Generador de Historias",
     "story_generator_desc": "Lee y escucha historias generadas por IA adaptadas a tu nivel.",
     "history_culture": "Historia y Cultura",
-    "history_culture_desc": "Explora la historia, costumbres y cultura detrás del idioma que aprendes.",
-    "challenges": "Desafíos",
-    "challenges_desc": "Pon a prueba tus habilidades con minijuegos, cuestionarios y desafíos diarios.",
-    "exam_training": "Preparación de Exámenes",
-    "exam_training_desc": "Prepárate para exámenes oficiales de certificación de idiomas.",
+    "history_culture_desc": "Explora la historia, costumbres y cultura detr\u00e1s del idioma que aprendes.",
+    "challenges": "Desaf\u00edos",
+    "challenges_desc": "Pon a prueba tus habilidades con minijuegos, cuestionarios y desaf\u00edos diarios.",
+    "exam_training": "Preparaci\u00f3n de Ex\u00e1menes",
+    "exam_training_desc": "Prep\u00e1rate para ex\u00e1menes oficiales de certificaci\u00f3n de idiomas.",
     "professional_tools": "Herramientas Profesionales",
-    "professional_tools_desc": "Crea CVs, currículums, correos y documentos profesionales en portugués con tono formal o informal."
+    "professional_tools_desc": "Crea CVs, curr\u00edculums, correos y documentos profesionales en portugu\u00e9s con tono formal o informal."
   },
   "exam": {
-    "title": "Preparación de Exámenes",
-    "listening": "Comprensión Auditiva",
-    "listening_desc": "Entrena tu oído con ejercicios de comprensión auditiva",
+    "title": "Preparaci\u00f3n de Ex\u00e1menes",
+    "listening": "Comprensi\u00f3n Auditiva",
+    "listening_desc": "Entrena tu o\u00eddo con ejercicios de comprensi\u00f3n auditiva",
     "writing": "Escritura",
-    "writing_desc": "Practica la expresión escrita en tu nivel",
-    "reading": "Comprensión Lectora",
+    "writing_desc": "Practica la expresi\u00f3n escrita en tu nivel",
+    "reading": "Comprensi\u00f3n Lectora",
     "reading_desc": "Comprende y analiza textos escritos",
     "full_exam": "Examen Completo",
-    "full_exam_desc": "Simula una sesión completa de examen de certificación",
+    "full_exam_desc": "Simula una sesi\u00f3n completa de examen de certificaci\u00f3n",
     "select_level": "Selecciona tu nivel",
-    "language_note": "El ejercicio está en Portugués Europeo (pt-PT).",
-    "language_note_dynamic": "El ejercicio está en {{lang}}.",
+    "language_note": "El ejercicio est\u00e1 en Portugu\u00e9s Europeo (pt-PT).",
+    "language_note_dynamic": "El ejercicio est\u00e1 en {{lang}}.",
     "your_answers": "Tus Respuestas",
     "no_answer": "Sin respuesta",
     "correct_answer": "Correcto",
@@ -478,36 +479,36 @@
     "words": "palabras",
     "too_short": "demasiado corto",
     "too_long": "demasiado largo",
-    "textarea_placeholder": "Escribe tu texto aquí...",
+    "textarea_placeholder": "Escribe tu texto aqu\u00ed...",
     "evaluating": "Evaluando...",
     "evaluate": "Evaluar Mi Escritura",
     "try_again": "Intentar de Nuevo",
     "results": "Resultados",
-    "score": "Puntuación",
-    "penalty": "-{{n}} penalización de recuento de palabras",
+    "score": "Puntuaci\u00f3n",
+    "penalty": "-{{n}} penalizaci\u00f3n de recuento de palabras",
     "word_count": "Recuento de palabras",
-    "breakdown": "Desglose de Puntuación",
+    "breakdown": "Desglose de Puntuaci\u00f3n",
     "general_feedback": "Comentarios Generales",
     "improve": "Mejorar Mi Texto",
     "param_a_name": "Logro de la Tarea",
-    "param_b_name": "Coherencia & Cohesión",
-    "param_c_name": "Recurso Léxico",
-    "param_d_name": "Rango Gramatical & Precisión",
-    "param_e_name": "Control Ortográfico",
+    "param_b_name": "Coherencia & Cohesi\u00f3n",
+    "param_c_name": "Recurso L\u00e9xico",
+    "param_d_name": "Rango Gramatical & Precisi\u00f3n",
+    "param_e_name": "Control Ortogr\u00e1fico",
     "reading_passage": "Texto de Lectura",
     "vocabulary": "Vocabulario",
-    "comprehension_questions": "Preguntas de Comprensión",
+    "comprehension_questions": "Preguntas de Comprensi\u00f3n",
     "questions_answered": "preguntas respondidas",
     "check_answers": "Comprobar Mis Respuestas",
-    "training": "Preparación de Exámenes",
-    "listening_lang_unsupported": "Los ejercicios de comprensión auditiva solo están disponibles para pt-PT. Tu idioma de aprendizaje es {{lang}}.",
+    "training": "Preparaci\u00f3n de Ex\u00e1menes",
+    "listening_lang_unsupported": "Los ejercicios de comprensi\u00f3n auditiva solo est\u00e1n disponibles para pt-PT. Tu idioma de aprendizaje es {{lang}}.",
     "audio": "Audio",
-    "hide_transcript": "Ocultar Transcripción",
-    "show_transcript": "Mostrar Transcripción",
-    "transcript": "Transcripción",
+    "hide_transcript": "Ocultar Transcripci\u00f3n",
+    "show_transcript": "Mostrar Transcripci\u00f3n",
+    "transcript": "Transcripci\u00f3n",
     "instructions": "Instrucciones",
     "sidebar": {
-      "settings": "Configuración",
+      "settings": "Configuraci\u00f3n",
       "level": "Nivel",
       "type": "Tipo",
       "generate": "Generar",
@@ -534,24 +535,24 @@
       "gen_step_level": "Leyendo tu nivel...",
       "gen_step_listening": "Creando escenarios auditivos...",
       "gen_step_reading": "Construyendo textos de lectura...",
-      "gen_step_writing": "Diseñando tu tarea de escritura...",
-      "gen_step_done": "¡Tu examen está listo!",
-      "section_listening": "Comprensión Auditiva",
+      "gen_step_writing": "Dise\u00f1ando tu tarea de escritura...",
+      "gen_step_done": "\u00a1Tu examen est\u00e1 listo!",
+      "section_listening": "Comprensi\u00f3n Auditiva",
       "section_reading": "Lectura",
       "section_writing": "Escritura",
       "exercise_of": "Ejercicio {{n}} de {{total}}",
-      "finish_listening": "Finalizar Comprensión Auditiva",
+      "finish_listening": "Finalizar Comprensi\u00f3n Auditiva",
       "finish_reading": "Finalizar Lectura",
       "submit_exam": "Enviar Examen Completo",
-      "submit_confirm_title": "¿Enviar tu Examen?",
-      "submit_confirm_message": "Una vez enviado, tus respuestas se bloquearán y serán evaluadas.",
+      "submit_confirm_title": "\u00bfEnviar tu Examen?",
+      "submit_confirm_message": "Una vez enviado, tus respuestas se bloquear\u00e1n y ser\u00e1n evaluadas.",
       "results_title": "Resultados del Examen",
-      "total_score": "Puntuación Total",
+      "total_score": "Puntuaci\u00f3n Total",
       "start_new": "Iniciar Nuevo Examen",
       "instructions_listening": "Escucha el audio y responde las preguntas.",
       "instructions_reading": "Lee el texto y responde las preguntas.",
-      "instructions_writing": "Escribe un texto basado en el tema a continuación.",
-      "instructions_translated": "Las instrucciones traducidas a tu idioma se muestran a continuación.",
+      "instructions_writing": "Escribe un texto basado en el tema a continuaci\u00f3n.",
+      "instructions_translated": "Las instrucciones traducidas a tu idioma se muestran a continuaci\u00f3n.",
       "time_listening": "Tiempo sugerido: 30 min",
       "time_reading_writing": "Tiempo sugerido: 45 min",
       "generate_btn": "Generar Examen",
@@ -560,7 +561,7 @@
   },
   "exam_exercises": {
     "text": "Texto",
-    "best_title": "Mejor Título",
+    "best_title": "Mejor T\u00edtulo",
     "example": "Ejemplo",
     "column_a": "Columna A",
     "column_b": "Columna B",
@@ -568,61 +569,61 @@
     "select": "Selecciona",
     "extra": "extra",
     "task": "Tarea",
-    "transcription_placeholder": "Copia aquí la frase del texto...",
+    "transcription_placeholder": "Copia aqu\u00ed la frase del texto...",
     "true": "Verdadero",
     "false": "Falso",
     "correct": "Corregir",
-    "correction_placeholder": "Versión corregida...",
+    "correction_placeholder": "Versi\u00f3n corregida...",
     "word_bank": "Banco de Palabras",
     "extra_words": "* Hay {{count}} palabra(s) extra(s)",
     "select_word": "Selecciona una palabra"
   },
   "dictionary": {
     "lang_tooltip": "Escribiendo en {{lang}}",
-    "input_placeholder": "Escribe una palabra o expresión\u2026",
+    "input_placeholder": "Escribe una palabra o expresi\u00f3n\u2026",
     "looking_up": "Buscando\u2026",
     "look_up": "Buscar",
     "keyboard_hint": "Consejo: presiona Ctrl+Enter (o \u2318+Enter) para buscar",
-    "definition": "Definición",
-    "synonyms": "Sinónimos",
-    "error_failed": "La búsqueda falló. Por favor, inténtalo de nuevo."
+    "definition": "Definici\u00f3n",
+    "synonyms": "Sin\u00f3nimos",
+    "error_failed": "La b\u00fasqueda fall\u00f3. Por favor, int\u00e9ntalo de nuevo."
   },
   "challenges": {
     "title": "Challenge Hub",
-    "coming_soon": "Próximamente...",
+    "coming_soon": "Pr\u00f3ximamente...",
     "crosswords": "Crucigramas",
     "crosswords_desc": "Pon a prueba tu vocabulario con crucigramas portugueses diarios.",
     "hangman": "Ahorcado",
-    "hangman_desc": "Adivina la jerga antes de que caiga el muñeco.",
-    "hangman_azulejo_desc": "Un azulejo tradicional portugués, a menudo azul y blanco.",
-    "easy": "Fácil",
-    "hard": "Difícil",
-    "session_expired": "Sesión expirada. La página se actualizará.",
+    "hangman_desc": "Adivina la jerga antes de que caiga el mu\u00f1eco.",
+    "hangman_azulejo_desc": "Un azulejo tradicional portugu\u00e9s, a menudo azul y blanco.",
+    "easy": "F\u00e1cil",
+    "hard": "Dif\u00edcil",
+    "session_expired": "Sesi\u00f3n expirada. La p\u00e1gina se actualizar\u00e1.",
     "hangman_drawing_alt": "Dibujo del ahorcado: {{wrongCount}} intentos fallidos",
     "word_quiz": "Quiz de Palabras",
-    "word_quiz_desc": "Preguntas rápidas de vocabulario para afilar tus habilidades.",
+    "word_quiz_desc": "Preguntas r\u00e1pidas de vocabulario para afilar tus habilidades.",
     "word_search": "Sopa de Letras",
-    "word_search_desc": "Encuentra palabras portuguesas escondidas en la cuadrícula.",
-    "crossword_crushed": "¡CRUCIGRAMA CONQUISTADO!",
-    "you_survived": "¡SOBREVIVISTE!",
-    "hung_up": "¡COLGADO!",
+    "word_search_desc": "Encuentra palabras portuguesas escondidas en la cuadr\u00edcula.",
+    "crossword_crushed": "\u00a1CRUCIGRAMA CONQUISTADO!",
+    "you_survived": "\u00a1SOBREVIVISTE!",
+    "hung_up": "\u00a1COLGADO!",
     "play_again": "Jugar de Nuevo",
     "clues": "PISTAS",
     "across": "HORIZONTALES",
     "down": "VERTICALES",
-    "clue_bread": "Artículo esencial de panadería (Pan)",
+    "clue_bread": "Art\u00edculo esencial de panader\u00eda (Pan)",
     "clue_father": "Miembro de la familia (Padre)",
     "submit": "Enviar",
-    "try_again": "¡No es correcto — inténtalo de nuevo!",
-    "word_fetch_error": "Error al cargar la palabra. Inténtalo de nuevo.",
+    "try_again": "\u00a1No es correcto \u2014 int\u00e9ntalo de nuevo!",
+    "word_fetch_error": "Error al cargar la palabra. Int\u00e9ntalo de nuevo.",
     "loading_word": "Seleccionando una palabra...",
     "scrambled_word": "Palabra Mezclada",
     "scrambled_word_desc": "Desenreda las letras para encontrar la palabra portuguesa.",
     "scrambled_word_reshuffle": "Re-mezclar letras",
-    "scrambled_word_won": "¡LO RESOLVISTE!",
-    "scrambled_word_lost": "¡MEZCLADO!",
+    "scrambled_word_won": "\u00a1LO RESOLVISTE!",
+    "scrambled_word_lost": "\u00a1MEZCLADO!",
     "scrambled_word_answer": "La palabra era:",
-    "next_word": "¡Pide más!",
+    "next_word": "\u00a1Pide m\u00e1s!",
     "sidebar": {
       "never": "Nunca",
       "just_now": "Justo ahora",
@@ -634,43 +635,54 @@
       "days_ago_plural": "Hace {{count}}d",
       "expand": "Ampliar barra lateral",
       "collapse": "Colapsar barra lateral",
-      "title": "Estadísticas Actuales",
+      "title": "Estad\u00edsticas Actuales",
       "words_seen": "Palabras Vistas",
       "played": "Jugadas",
-      "last_played": "Última Partida",
+      "last_played": "\u00daltima Partida",
       "dialect": "Dialecto",
       "reset_btn": "Restablecer Progreso",
       "reset_title": "Restablecer Progreso",
-      "reset_message": "Esto borrará todas las palabras vistas, permitiéndote ver palabras jugadas anteriormente de nuevo.",
-      "reset_warning": "⚠ Esto no se puede deshacer.",
-      "reset_confirm": "Sí, restablecer progreso",
+      "reset_message": "Esto borrar\u00e1 todas las palabras vistas, permiti\u00e9ndote ver palabras jugadas anteriormente de nuevo.",
+      "reset_warning": "\u26a0 Esto no se puede deshacer.",
+      "reset_confirm": "S\u00ed, restablecer progreso",
       "reset_seen_words_btn": "Restablecer Palabras Vistas"
     },
     "word_search_panel": "Encuentra estas palabras",
-    "clear_selection": "Limpiar selección",
-    "victory_title": "¡Todas encontradas!",
+    "clear_selection": "Limpiar selecci\u00f3n",
+    "victory_title": "\u00a1Todas encontradas!",
     "words_found": "{{found}} / {{total}} encontradas",
     "words_count": "{{count}} palabras encontradas",
     "word_link": "Enlace de Palabras",
-    "word_link_desc": "Conecta palabras a través de un tema común.",
-    "word_link_placeholder": "¿Cuál es el tema?",
+    "word_link_desc": "Conecta palabras a trav\u00e9s de un tema com\u00fan.",
+    "word_link_placeholder": "\u00bfCu\u00e1l es el tema?",
     "word_link_guess": "Adivinar",
     "word_link_clues_left": "{{count}} pista(s) restante(s)",
-    "word_link_won": "¡Enlazado!",
-    "word_link_lost": "¡Sin Enlace!",
-    "word_link_score": "¡Adivinaste en {{count}} pista(s)!",
+    "word_link_won": "\u00a1Enlazado!",
+    "word_link_lost": "\u00a1Sin Enlace!",
+    "word_link_score": "\u00a1Adivinaste en {{count}} pista(s)!",
     "word_link_answer": "El tema era:"
   },
   "report": {
     "buttonLabel": "Reportar",
     "buttonAriaLabel": "Reportar un problema",
     "title": "Reportar un problema",
-    "successTitle": "¡Gracias!",
+    "successTitle": "\u00a1Gracias!",
     "successMessage": "WhatsApp abierto con tu reporte. Por favor presiona Enviar para enviarlo.",
-    "category": "Categoría",
-    "description": "Descripción",
-    "placeholder": "Describe el problema en pocas palabras…",
+    "category": "Categor\u00eda",
+    "description": "Descripci\u00f3n",
+    "placeholder": "Describe el problema en pocas palabras\u2026",
     "send": "Enviar por WhatsApp"
+  },
+  "onboarding": {
+    "welcome_title": "\u00a1Bienvenido a MultiLingo!",
+    "welcome_subtitle": "Configuremos tu perfil de aprendizaje.",
+    "step_language": "\u00bfQu\u00e9 idioma est\u00e1s aprendiendo?",
+    "step_interface": "\u00bfCu\u00e1l es tu idioma de interfaz preferido?",
+    "step_interests": "Elige tus intereses",
+    "interests_hint": "Los usaremos para personalizar tu contenido.",
+    "finish": "\u00a1Empezar a Aprender!",
+    "next": "Siguiente",
+    "back": "Atr\u00e1s"
   },
   "pricing": {
     "title": "Elige Tu Plan",
@@ -725,9 +737,9 @@
     "remaining": "{{count}} / {{total}} restantes"
   },
   "session": {
-    "expired_title": "Sesión Expirada",
-    "expired_message": "Tu sesión ha expirado. Por favor, inicia sesión de nuevo para continuar.",
-    "refresh_button": "Iniciar Sesión de Nuevo",
-    "checking": "Verificando sesión..."
+    "expired_title": "Sesi\u00f3n Expirada",
+    "expired_message": "Tu sesi\u00f3n ha expirado. Por favor, inicia sesi\u00f3n de nuevo para continuar.",
+    "refresh_button": "Iniciar Sesi\u00f3n de Nuevo",
+    "checking": "Verificando sesi\u00f3n..."
   }
 }

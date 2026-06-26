@@ -20,7 +20,6 @@ import {
   Trash2,
   Camera,
   Loader2,
-  Lock,
   BookOpen,
   CreditCard,
   Star,
@@ -29,23 +28,11 @@ import {
 import { useTierAccess } from "../hooks/useTierAccess";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
 import { auth } from "../firebase";
-
-const LANGUAGES = [
-  { value: "en-US", labelKey: "nav.lang_en" },
-  { value: "pt-PT", labelKey: "nav.lang_pt" },
-  { value: "es-ES", labelKey: "nav.lang_es" },
-  { value: "fr-FR", labelKey: "nav.lang_fr" },
-  { value: "de-DE", labelKey: "nav.lang_de" },
-];
-
-const INTEREST_CATEGORIES = [
-  { value: "general", labelKey: "categories.general" },
-  { value: "food",    labelKey: "categories.food" },
-  { value: "travel",  labelKey: "categories.travel" },
-  { value: "sports",  labelKey: "categories.sports" },
-  { value: "tech",    labelKey: "categories.tech" },
-  { value: "nature",  labelKey: "categories.nature" },
-];
+import {
+  LEARNING_LANGUAGES,
+  INTERFACE_LANGUAGES,
+  INTEREST_CATEGORIES,
+} from "../config/supportedLanguages";
 
 // ── Avatar Upload Widget ─────────────────────────────────────────────────────────
 const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading, t }) => {
@@ -171,6 +158,7 @@ const SettingsForm = ({
   user, isDarkMode,
   displayName, setDisplayName,
   interfaceLang, setInterfaceLang,
+  learningDialect, setLearningDialect,
   interests, setInterests,
   draftDarkMode, setDraftDarkMode,
   isSaving, isUploading, handleSave,
@@ -266,7 +254,7 @@ const SettingsForm = ({
               <Globe size={12} className="inline mr-1" /> {t("settings.interface_language")}
             </label>
             <NeoDropdown
-              options={LANGUAGES.map((l) => ({ value: l.value, label: t(l.labelKey) }))}
+              options={INTERFACE_LANGUAGES.map((l) => ({ value: l.value, label: t(l.labelKey) }))}
               value={interfaceLang}
               onChange={setInterfaceLang}
               isDarkMode={isDarkMode}
@@ -285,29 +273,18 @@ const SettingsForm = ({
         <div className="space-y-6">
           <div>
             <label className={labelClasses}>
-              <Lock size={12} className="inline mr-1" /> {t("settings.learning_language")}
+              <Globe size={12} className="inline mr-1" /> {t("settings.learning_language")}
             </label>
-            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border-4 cursor-not-allowed
-              ${ isDarkMode
-                ? "bg-slate-700/50 border-slate-600 text-slate-400"
-                : "bg-slate-50 border-slate-200 text-slate-500"
-              }`}>
-              <span className="text-xl" aria-hidden="true">🇵🇹</span>
-              <div>
-                <p className={`font-black text-sm ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
-                  {t("settings.portuguese_label")}
-                </p>
-                <p className={`text-xs font-bold uppercase tracking-widest
-                  ${ isDarkMode ? "text-slate-500" : "text-slate-400" }`}>
-                  pt-PT
-                </p>
-              </div>
-              <Lock size={14} className="ml-auto opacity-40" />
-            </div>
-            <p className={`mt-2 text-xs font-bold uppercase tracking-widest
-              ${ isDarkMode ? "text-slate-600" : "text-slate-400" }`}>
-              {t("settings.learning_locked_hint")}
-            </p>
+            <NeoDropdown
+              options={LEARNING_LANGUAGES.map((l) => ({
+                value: l.value,
+                label: `${l.flag || ""} ${t(l.labelKey)}`,
+              }))}
+              value={learningDialect}
+              onChange={setLearningDialect}
+              isDarkMode={isDarkMode}
+              className="w-full"
+            />
           </div>
           <div>
             <label className={labelClasses}>
@@ -356,20 +333,22 @@ SettingsForm.propTypes = {
     learningDialect: PropTypes.string,
     interests: PropTypes.arrayOf(PropTypes.string),
   }),
-  isDarkMode:       PropTypes.bool.isRequired,
-  displayName:      PropTypes.string.isRequired,
-  setDisplayName:   PropTypes.func.isRequired,
-  interfaceLang:    PropTypes.string.isRequired,
-  setInterfaceLang: PropTypes.func.isRequired,
-  interests:        PropTypes.arrayOf(PropTypes.string).isRequired,
-  setInterests:     PropTypes.func.isRequired,
-  draftDarkMode:    PropTypes.bool.isRequired,
-  setDraftDarkMode: PropTypes.func.isRequired,
-  isSaving:         PropTypes.bool.isRequired,
-  isUploading:      PropTypes.bool.isRequired,
-  handleSave:       PropTypes.func.isRequired,
-  previewUrl:       PropTypes.string,
-  onFileSelect:     PropTypes.func.isRequired,
+  isDarkMode:         PropTypes.bool.isRequired,
+  displayName:        PropTypes.string.isRequired,
+  setDisplayName:     PropTypes.func.isRequired,
+  interfaceLang:      PropTypes.string.isRequired,
+  setInterfaceLang:   PropTypes.func.isRequired,
+  learningDialect:    PropTypes.string.isRequired,
+  setLearningDialect: PropTypes.func.isRequired,
+  interests:          PropTypes.arrayOf(PropTypes.string).isRequired,
+  setInterests:       PropTypes.func.isRequired,
+  draftDarkMode:      PropTypes.bool.isRequired,
+  setDraftDarkMode:   PropTypes.func.isRequired,
+  isSaving:           PropTypes.bool.isRequired,
+  isUploading:        PropTypes.bool.isRequired,
+  handleSave:         PropTypes.func.isRequired,
+  previewUrl:         PropTypes.string,
+  onFileSelect:       PropTypes.func.isRequired,
 };
 
 // ── Settings Page ───────────────────────────────────────────────────────────────
@@ -380,11 +359,12 @@ const SettingsPage = () => {
   const { tier, isExplorer, isVoyager, isVip, isAdmin } = useTierAccess();
   const [isPortalLoading, setIsPortalLoading] = useState(false);
 
-  const [displayName,   setDisplayName]   = useState(user?.displayName || "");
-  const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en-US");
-  const [interests,     setInterests]     = useState(user?.interests || []);
-  const [draftDarkMode, setDraftDarkMode] = useState(isDarkMode);
-  const [isSaving,      setIsSaving]      = useState(false);
+  const [displayName,      setDisplayName]      = useState(user?.displayName || "");
+  const [interfaceLang,    setInterfaceLang]    = useState(user?.interfaceLang || "en-US");
+  const [learningDialect,  setLearningDialect]  = useState(user?.learningDialect || "");
+  const [interests,        setInterests]        = useState(user?.interests || []);
+  const [draftDarkMode,    setDraftDarkMode]    = useState(isDarkMode);
+  const [isSaving,         setIsSaving]         = useState(false);
 
   const [pendingFile, setPendingFile] = useState(null);
   const [previewUrl,  setPreviewUrl]  = useState(null);
@@ -398,14 +378,16 @@ const SettingsPage = () => {
     user?.uid || "",
     user?.displayName || "",
     user?.interfaceLang || "",
+    user?.learningDialect || "",
     (user?.interests || []).join(","),
     isDarkMode,
   ].join("|");
 
   if (syncKey !== prevSyncKey) {
     setPrevSyncKey(syncKey);
-    if (user?.displayName)   setDisplayName(user.displayName);
-    if (user?.interfaceLang) setInterfaceLang(user.interfaceLang);
+    if (user?.displayName)        setDisplayName(user.displayName);
+    if (user?.interfaceLang)      setInterfaceLang(user.interfaceLang);
+    if (user?.learningDialect)    setLearningDialect(user.learningDialect);
     setInterests(Array.isArray(user?.interests) ? user.interests : []);
     setDraftDarkMode(isDarkMode);
   }
@@ -444,8 +426,9 @@ const SettingsPage = () => {
         displayName,
         interfaceLang,
         theme: draftDarkMode ? "dark" : "light",
-        learningDialect: "pt-PT",
+        learningDialect: learningDialect || null,
         interests,
+        onboardingCompleted: user?.onboardingCompleted ?? true,
       });
       changeLanguage(interfaceLang);
       setIsDarkMode(draftDarkMode);
@@ -538,6 +521,8 @@ const SettingsPage = () => {
           setDisplayName={setDisplayName}
           interfaceLang={interfaceLang}
           setInterfaceLang={setInterfaceLang}
+          learningDialect={learningDialect}
+          setLearningDialect={setLearningDialect}
           interests={interests}
           setInterests={setInterests}
           draftDarkMode={draftDarkMode}
