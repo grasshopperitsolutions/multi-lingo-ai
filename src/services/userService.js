@@ -319,6 +319,7 @@ export const resetSeenExercises = async (token, uid, type) => {
 // ---------------------------------------------------------------------------
 // Day streak — stored on users/{uid}.dayStreak + users/{uid}.lastStreakDate
 // lastStreakDate is stored as a YYYY-MM-DD string (UTC).
+// highestDayStreak tracks the all-time highest streak ever reached.
 // ---------------------------------------------------------------------------
 
 const getTodayUTC = () => new Date().toISOString().slice(0, 10);
@@ -331,6 +332,7 @@ const getYesterdayUTC = () => {
 
 /**
  * Update the user's day streak based on their last active date.
+ * Also updates highestDayStreak if the new streak exceeds the previous record.
  *
  * Rules:
  *  - Same day as lastStreakDate  → no-op (already counted today)
@@ -340,15 +342,18 @@ const getYesterdayUTC = () => {
  * @param {string}      token
  * @param {string}      uid
  * @param {object}      profile  - the already-fetched Firestore profile object
- * @returns {Promise<number>}    - the new (or unchanged) streak value
+ * @returns {Promise<{ dayStreak: number, highestDayStreak: number }>}
  */
 export const updateDayStreak = async (token, uid, profile) => {
   const today     = getTodayUTC();
   const yesterday = getYesterdayUTC();
   const last      = profile?.lastStreakDate ?? null;
   const current   = profile?.dayStreak ?? 0;
+  const highest   = profile?.highestDayStreak ?? 0;
 
-  if (last === today) return current;
+  if (last === today) {
+    return { dayStreak: current, highestDayStreak: highest };
+  }
 
   let newStreak;
   if (last === yesterday) {
@@ -357,12 +362,21 @@ export const updateDayStreak = async (token, uid, profile) => {
     newStreak = 1;
   }
 
-  await updateUserProfile(token, uid, {
+  const newHighest = Math.max(newStreak, highest);
+
+  const updatePayload = {
     dayStreak: newStreak,
     lastStreakDate: today,
-  });
+  };
 
-  return newStreak;
+  // Only write highestDayStreak if it has actually improved
+  if (newHighest > highest) {
+    updatePayload.highestDayStreak = newHighest;
+  }
+
+  await updateUserProfile(token, uid, updatePayload);
+
+  return { dayStreak: newStreak, highestDayStreak: newHighest };
 };
 
 // ---------------------------------------------------------------------------

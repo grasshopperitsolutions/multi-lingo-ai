@@ -174,7 +174,8 @@ export const AppProvider = ({ children }) => {
    *   2. Auth provider    — Google / Facebook / Apple / X display name and photo
    *
    * All other profile fields (theme, interfaceLang,
-   * learningDialect, interests, dayStreak, wordsFound) come from Firestore only.
+   * learningDialect, interests, dayStreak, wordsFound,
+   * highestDayStreak) come from Firestore only.
    *
    * @param {object} authUser - The raw Firebase Auth user object fields + token.
    *                            Used as fallback source for displayName and photoURL.
@@ -201,8 +202,8 @@ export const AppProvider = ({ children }) => {
       }
 
       // Day streak — update in Firestore (no-op if already updated today)
-      // Returns the current or newly incremented streak value.
-      const dayStreak = await updateDayStreak(authUser.token, authUser.uid, profile);
+      // Returns { dayStreak, highestDayStreak } — current or newly updated values.
+      const { dayStreak, highestDayStreak } = await updateDayStreak(authUser.token, authUser.uid, profile);
 
       // Words found — derived from the length of seenConceptIds (no extra read needed)
       const wordsFound = profile?.seenConceptIds?.length ?? 0;
@@ -233,6 +234,7 @@ export const AppProvider = ({ children }) => {
         aiCallsDate: profile?.aiCallsDate ?? null,
         // ── Stats fields ─────────────────────────────────────────────────────
         dayStreak,
+        highestDayStreak,
         wordsFound,
         seenExerciseIds,
       }));
