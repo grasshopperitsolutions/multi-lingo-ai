@@ -34,6 +34,7 @@ import {
   Flame,
   Star,
   Trophy,
+  TrendingUp,
   ArrowLeft,
   Sun,
   Moon,
@@ -173,9 +174,10 @@ const DashboardPage = () => {
 
   // ── Stats ──
   const stats = [
-    { icon: Flame,  label: t("dashboard.day_streak"), value: String(user?.dayStreak ?? 0),  color: "text-rose-500" },
-    { icon: Star,   label: t("dashboard.words"),       value: String(user?.wordsFound ?? 0), color: "text-emerald-500" },
-    { icon: Trophy, label: t("dashboard.awards"),      value: "0",                            color: "text-yellow-500" },
+    { icon: Flame,      label: t("dashboard.day_streak"),      value: String(user?.dayStreak ?? 0),        color: "text-rose-500" },
+    { icon: TrendingUp, label: t("dashboard.highest_streak"),  value: String(user?.highestDayStreak ?? 0), color: "text-orange-500" },
+    { icon: Star,       label: t("dashboard.words"),           value: String(user?.wordsFound ?? 0),       color: "text-emerald-500" },
+    { icon: Trophy,     label: t("dashboard.awards"),          value: "0",                                  color: "text-yellow-500" },
   ];
 
   const features = [
@@ -486,7 +488,7 @@ const DashboardPage = () => {
             <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
               isDarkMode ? "text-slate-400" : "text-slate-500"
             }`}>{t("dashboard.your_progress")}</h2>
-            <div className="flex gap-3 overflow-x-auto py-2 px-0.5 sm:py-1 sm:grid sm:grid-cols-3 sm:gap-4 snap-x snap-mandatory">
+            <div className="flex gap-3 overflow-x-auto py-2 px-0.5 sm:py-1 sm:grid sm:grid-cols-4 sm:gap-4 snap-x snap-mandatory">
               {stats.map((s) => (
                 <div key={s.label} className="snap-start shrink-0 w-[calc(50%-8px)] min-w-[100px] sm:w-auto sm:min-w-0">
                   <StatCard {...s} isDarkMode={isDarkMode} />
