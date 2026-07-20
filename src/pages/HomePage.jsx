@@ -5,9 +5,7 @@ import {
   Calendar,
   Users,
   Globe,
-  Zap,
   Play,
-  Star,
   CheckCircle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -16,6 +14,25 @@ import { useAppContext } from "../contexts/AppContext";
 import FeatureCard from "../components/FeatureCard";
 import RotatingReviews from "../components/RotatingReviews";
 import FaqItem from "../components/FaqItem";
+
+const SUPPORTED_LANGUAGES = ['PT-PT', 'PT-BR', 'EN-US', 'EN-GB', 'ES-ES', 'ES-MX', 'FR-FR', 'DE-DE'];
+
+const BG_COLORS = ['bg-yellow-400', 'bg-blue-400', 'bg-pink-400', 'bg-emerald-400'];
+
+const FLOAT_ANIMS = ['float-1', 'float-2', 'float-3'];
+
+const ROTATIONS = ['rotate-12', '-rotate-12', 'rotate-6', '-rotate-6'];
+
+const LANG_POSITIONS = [
+  { top: 'top-20', left: 'left-10', right: null, bottom: null },
+  { top: 'top-48', left: null, right: 'right-24', bottom: null },
+  { top: null, left: 'left-8', right: null, bottom: 'bottom-48' },
+  { top: null, left: null, right: 'right-12', bottom: 'bottom-32' },
+  { top: 'top-24', left: null, right: 'right-8', bottom: null },
+  { top: null, left: 'left-16', right: null, bottom: 'bottom-20' },
+  { top: 'top-64', left: 'left-40', right: null, bottom: null },
+  { top: null, left: null, right: 'right-40', bottom: 'bottom-60' },
+];
 
 const HomePage = () => {
   const { isDarkMode } = useAppContext();
@@ -32,17 +49,22 @@ const HomePage = () => {
       {/* MAIN CONTENT */}
       <main className="flex-grow flex flex-col items-center justify-center pt-16 pb-24 px-4 relative">
         {/* Floating Decorative Elements */}
-        <div className="absolute top-20 left-10 md:left-32 w-24 h-24 bg-yellow-400 rounded-full border-4 border-slate-900 neo-shadow-light float-1 hidden md:flex items-center justify-center opacity-80 z-0">
-          <span className="font-black text-2xl rotate-12 text-slate-900">
-            PT-PT
-          </span>
-        </div>
-        <div className="absolute bottom-40 right-10 md:right-32 w-32 h-32 bg-blue-400 rounded-3xl border-4 border-slate-900 neo-shadow-light float-2 hidden md:flex items-center justify-center opacity-80 z-0 rotate-12">
-          <Zap size={48} className="text-white" />
-        </div>
-        <div className="absolute top-40 right-10 md:right-48 w-16 h-16 bg-pink-400 rounded-full border-4 border-slate-900 neo-shadow-light float-3 hidden md:flex items-center justify-center opacity-80 z-0 -rotate-12">
-          <Star size={24} className="text-white" />
-        </div>
+        {SUPPORTED_LANGUAGES.slice(0, 8).map((lang, idx) => {
+          const pos = LANG_POSITIONS[idx % LANG_POSITIONS.length];
+          const bgColor = BG_COLORS[idx % BG_COLORS.length];
+          const floatAnim = FLOAT_ANIMS[idx % FLOAT_ANIMS.length];
+          const rotation = ROTATIONS[idx % ROTATIONS.length];
+          return (
+            <div
+              key={lang}
+              className={`absolute ${pos.top || ''} ${pos.left ? `left-10 md:left-${pos.left.replace('left-', '')}` : ''} ${pos.right ? `right-10 md:right-${pos.right.replace('right-', '')}` : ''} ${pos.bottom || ''} w-20 h-20 md:w-24 md:h-24 ${bgColor} rounded-full border-4 border-slate-900 neo-shadow-light ${floatAnim} hidden md:flex items-center justify-center opacity-80 z-0`}
+            >
+              <span className={`font-black text-2xl ${rotation} text-slate-900`}>
+                {lang}
+              </span>
+            </div>
+          );
+        })}
 
         {/* Hero Section */}
         <div className="max-w-5xl mx-auto text-center relative z-10">

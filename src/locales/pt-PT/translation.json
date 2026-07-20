@@ -264,7 +264,7 @@
   },
   "contact": {
     "title": "Fala Connosco",
-    "subtitle": "Tens perguntas sobre Português Europeu? O nosso bando está aqui para te ajudar a voar.",
+    "subtitle": "Tens perguntas sobre o aprendizado de línguas? O nosso bando está aqui para te ajudar a voar.",
     "title_touch": "Fala",
     "email_label": "Envia-nos um email",
     "whatsapp_label": "WhatsApp (resposta mais rápida)",
@@ -303,7 +303,7 @@
     }
   },
   "footer": {
-    "tagline": "Português Europeu com IA para todos.",
+    "tagline": "IA para aprender qualquer idioma.",
     "links": "Links",
     "legal": "Legal",
     "terms": "Termos de Serviço",
@@ -396,6 +396,9 @@
     "input_placeholder": "Escreve ou cola texto aqui\u2026",
     "listen": "Ouvir",
     "listen_slow": "Ouvir Devagar",
+    "pause": "Pausar",
+    "resume": "Retomar",
+    "stop": "Parar",
     "clear": "Limpar",
     "translating": "A traduzir\u2026",
     "output_placeholder": "A tradução aparecerá aqui\u2026",
@@ -445,7 +448,7 @@
     "exam_training": "Preparação para Exames",
     "exam_training_desc": "Prepara-te para exames oficiais de certificação de idiomas.",
     "professional_tools": "Ferramentas Profissionais",
-    "professional_tools_desc": "Cria CVs, currículos, emails e documentos profissionais em português com tom formal ou informal."
+    "professional_tools_desc": "Cria CVs, currículos, emails e documentos profissionais na língua que estás a aprender com tom formal ou casual."
   },
   "exam": {
     "title": "Preparação para Exames",
@@ -471,6 +474,8 @@
     "timer_start": "Iniciar",
     "timer_pause": "Pausa",
     "timer_reset": "Reiniciar",
+    "true": "Verdadeiro",
+    "false": "Falso",
     "your_text": "O Teu Texto",
     "words": "palavras",
     "too_short": "demasiado curto",

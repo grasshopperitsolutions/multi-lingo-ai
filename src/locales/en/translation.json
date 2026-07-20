@@ -41,11 +41,11 @@
     "badge": "THE AI REVOLUTION IS HERE",
     "hero_line1": "Ask AI",
     "hero_highlight": "Everything",
-    "hero_line2": "about Portuguese",
-    "subtitle": "The first platform that teaches you European Portuguese from any language or dialect you speak. AI-powered, human-supported.",
+    "hero_line2": "about any language",
+    "subtitle": "The first platform that teaches you any language from any dialect you speak. AI-powered, human-supported.",
     "cta_start": "Start Learning Now",
     "marquee": [
-      "LEARN PORTUGUESE FAST",
+      "LEARN ANY LANGUAGE FAST",
       "NO BORING GRAMMAR",
       "AI POWERED",
       "NATIVE SLANG"
@@ -61,9 +61,9 @@
       "subtitle": "Learning from Irish? Irish Gaelic? Mandarin? Just type it. Our AI bridges the gap."
     },
     "language_pills": [
-      "Gaelic ➜ PT",
-      "US English ➜ PT",
-      "Thai ➜ PT",
+      "Gaelic ➜ FR",
+      "Thai ➜ ES",
+      "US English ➜ DE",
       "Aussie Slang ➜ PT"
     ],
     "wall_of_love_heading": "Wall of Love",
@@ -76,7 +76,7 @@
       {
         "name": "Claudia",
         "date": "January 16, 2026",
-        "quote": "Nuno is an exceptional teacher who is accelerating my Portuguese learning. His fun and effective method is boosting my confidence and skills."
+        "quote": "Nuno is an exceptional teacher who is accelerating my language learning. His fun and effective method is boosting my confidence and skills."
       },
       {
         "name": "Chloe",
@@ -137,7 +137,7 @@
       {
         "name": "Michael",
         "date": "January 4, 2025",
-        "quote": "I have been learning Portuguese with Nuno and it has been an excellent experience! He is patient, smart and takes the time to personalize the learning."
+        "quote": "I have been learning with Nuno and it has been an excellent experience! He is patient, smart and takes the time to personalize the learning."
       },
       {
         "name": "George",
@@ -152,7 +152,7 @@
       {
         "name": "Charles",
         "date": "September 25, 2024",
-        "quote": "Making great progress on my Portuguese! Highly recommend Nuno for starting, he does a great job getting you comfortable with the basics."
+        "quote": "Making great progress on my language learning! Highly recommend Nuno for starting, he does a great job getting you comfortable with the basics."
       },
       {
         "name": "Sh",
@@ -167,7 +167,7 @@
       {
         "name": "Hlib",
         "date": "September 6, 2024",
-        "quote": "Nuno is an excellent Portuguese tutor. He explains everything clearly, making it easy to follow along. Especially for those working in IT."
+        "quote": "Nuno is an excellent tutor. He explains everything clearly, making it easy to follow along. Especially for those working in IT."
       },
       {
         "name": "Jennifer",
@@ -177,7 +177,7 @@
       {
         "name": "Yegane",
         "date": "August 5, 2024",
-        "quote": "Nuno is a fantastic teacher, and I highly recommend him. His kind demeanour quickly put me at ease with portuguese language."
+        "quote": "Nuno is a fantastic teacher, and I highly recommend him. His kind demeanour quickly put me at ease with language learning."
       },
       {
         "name": "Rosa",
@@ -192,7 +192,7 @@
       {
         "name": "Josep",
         "date": "July 20, 2024",
-        "quote": "Nuno is an exceptional Portuguese teacher. His classes are always dynamic and engaging. Thanks to his friendly personality and patience, each lesson is very pleasant."
+        "quote": "Nuno is an exceptional teacher. His classes are always dynamic and engaging. Thanks to his friendly personality and patience, each lesson is very pleasant."
       },
       {
         "name": "Isobelle",
@@ -209,18 +209,18 @@
     "how_it_works_step1_title": "Pick Your Lingo",
     "how_it_works_step1_desc": "Speak English, Thai, or Aussie slang? We start from where YOU are.",
     "how_it_works_step2_title": "Ask The AI",
-    "how_it_works_step2_desc": "No rigid lessons. Ask how to order a \"bifana\" or flirt in Lisbon naturally.",
+    "how_it_works_step2_desc": "No rigid lessons. Ask how to order a coffee or greet locals naturally.",
     "how_it_works_step3_title": "Master Slang",
     "how_it_works_step3_desc": "Download custom cheat sheets and practice with our 24/7 voice tutor.",
     "cta_watch_demo": "Watch Demo",
     "faq_heading": "Got Questions?",
     "final_cta_heading": "Ready to ditch the textbooks?",
-    "final_cta_subtitle": "Join thousands of learners mastering real-world Portuguese today.",
+    "final_cta_subtitle": "Join thousands of learners mastering real-world languages today.",
     "final_cta_button": "Get Started Free",
     "faqs": [
       {
-        "question": "Is this strictly European Portuguese?",
-        "answer": "100%. We built this specifically because every other app defaults to Brazilian Portuguese. No 'você' here unless we're being strictly formal!"
+        "question": "Are multiple languages supported?",
+        "answer": "Absolutely! We support a wide range of languages including European and Brazilian Portuguese, US and UK English, Spanish (Spain & Mexico), French, and German. No more settling for apps that only support one dialect!"
       },
       {
         "question": "Do I need to know English to use this?",
@@ -232,7 +232,7 @@
       },
       {
         "question": "What makes Multi Lingo AI different?",
-        "answer": "We focus on real, conversational Portuguese with authentic slang and expressions. No textbook language here—just practical, everyday communication."
+        "answer": "We focus on real, conversational languages with authentic slang and expressions. No textbook language here—just practical, everyday communication."
       },
       {
         "question": "How much does it cost?",
@@ -264,7 +264,7 @@
   },
   "contact": {
     "title": "Get in Touch",
-    "subtitle": "Got questions about European Portuguese? Our flock is here to help you soar.",
+    "subtitle": "Got questions about language learning? Our flock is here to help you soar.",
     "title_touch": "Touch",
     "email_label": "Email us",
     "whatsapp_label": "WhatsApp (fastest reply)",
@@ -303,7 +303,7 @@
     }
   },
   "footer": {
-    "tagline": "AI-powered European Portuguese for everyone.",
+    "tagline": "AI-powered language learning for everyone.",
     "links": "Links",
     "legal": "Legal",
     "terms": "Terms of Service",
@@ -396,6 +396,9 @@
     "input_placeholder": "Type or paste text here\u2026",
     "listen": "Listen",
     "listen_slow": "Listen Slow",
+    "pause": "Pause",
+    "resume": "Resume",
+    "stop": "Stop",
     "clear": "Clear",
     "translating": "Translating\u2026",
     "output_placeholder": "Translation will appear here\u2026",
@@ -445,7 +448,7 @@
     "exam_training": "Exam Training",
     "exam_training_desc": "Prepare for official language certification exams.",
     "professional_tools": "Professional Tools",
-    "professional_tools_desc": "Create CVs, resumes, emails and professional documents in Portuguese with a formal or casual tone."
+    "professional_tools_desc": "Create CVs, resumes, emails and professional documents in the language you're learning with a formal or casual tone."
   },
   "exam": {
     "title": "Exam Training",
@@ -471,6 +474,8 @@
     "timer_start": "Start",
     "timer_pause": "Pause",
     "timer_reset": "Reset",
+    "true": "True",
+    "false": "False",
     "your_text": "Your Text",
     "words": "words",
     "too_short": "too short",
@@ -588,10 +593,10 @@
     "title": "Challenge Hub",
     "coming_soon": "Coming soon...",
     "crosswords": "Crosswords",
-    "crosswords_desc": "Test your vocabulary with daily Portuguese crosswords.",
+    "crosswords_desc": "Test your vocabulary with daily crosswords.",
     "hangman": "Hangman",
     "hangman_desc": "Guess the slang before the man drops.",
-    "hangman_azulejo_desc": "A traditional Portuguese ceramic tile, often blue and white.",
+    "hangman_azulejo_desc": "A traditional ceramic tile illustration, often blue and white.",
     "easy": "Easy",
     "hard": "Hard",
     "session_expired": "Session expired. Page will refresh.",
@@ -599,7 +604,7 @@
     "word_quiz": "Word Quiz",
     "word_quiz_desc": "Quick vocabulary questions to sharpen your skills.",
     "word_search": "Word Search",
-    "word_search_desc": "Find Portuguese words hidden in the grid.",
+    "word_search_desc": "Find hidden words in the grid.",
     "crossword_crushed": "CROSSWORD CRUSHED!",
     "you_survived": "YOU SURVIVED!",
     "hung_up": "HUNG UP!",
@@ -614,7 +619,7 @@
     "word_fetch_error": "Failed to load the word. Please try again.",
     "loading_word": "Picking a word...",
     "scrambled_word": "Scrambled Word",
-    "scrambled_word_desc": "Unscramble the letters to find the Portuguese word.",
+    "scrambled_word_desc": "Unscramble the letters to find the hidden word.",
     "scrambled_word_reshuffle": "Re-shuffle letters",
     "scrambled_word_won": "YOU CRACKED IT!",
     "scrambled_word_lost": "SCRAMBLED!",

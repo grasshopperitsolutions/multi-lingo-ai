@@ -33,7 +33,10 @@
     "alt": "Gallo de Barcelos"
   },
   "confirm_modal": {
-    "loading": "Cargando",
+        "listen_slow": "Escuchar Lento",
+        "pause": "Pausar",
+        "resume": "Reanudar",
+        "stop": "Parar",
     "cancel": "Cancelar",
     "close": "Cerrar"
   },
@@ -164,8 +167,8 @@
         "quote": "Son clases claras y agradables, tiene paciencia y se divierte con las clases."
       },
       {
-        "name": "Laura",
-        "date": "10 de Septiembre, 2024",
+        "true": "Verdadero",
+        "false": "Falso",
         "quote": "Nuno es muy paciente. \u00c9l puede explicar palabras y significados para que tengan sentido."
       },
       {
@@ -592,7 +595,7 @@
     "title": "Challenge Hub",
     "coming_soon": "Pr\u00f3ximamente...",
     "crosswords": "Crucigramas",
-    "crosswords_desc": "Pon a prueba tu vocabulario con crucigramas portugueses diarios.",
+    "crosswords_desc": "Pon a prueba tu vocabulario con crucigramas diarios.",
     "hangman": "Ahorcado",
     "hangman_desc": "Adivina la jerga antes de que caiga el mu\u00f1eco.",
     "hangman_azulejo_desc": "Un azulejo tradicional portugu\u00e9s, a menudo azul y blanco.",
@@ -618,7 +621,7 @@
     "word_fetch_error": "Error al cargar la palabra. Int\u00e9ntalo de nuevo.",
     "loading_word": "Seleccionando una palabra...",
     "scrambled_word": "Palabra Mezclada",
-    "scrambled_word_desc": "Desenreda las letras para encontrar la palabra portuguesa.",
+    "scrambled_word_desc": "Desenreda las letras para encontrar la palabra correcta.",
     "scrambled_word_reshuffle": "Re-mezclar letras",
     "scrambled_word_won": "\u00a1LO RESOLVISTE!",
     "scrambled_word_lost": "\u00a1MEZCLADO!",
