@@ -23,11 +23,10 @@
 // Constants
 // ---------------------------------------------------------------------------
 
-const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
+import { askAI } from './aiService';
 
 /**
  * Current active Gemini TTS model.
- * NOTE: 'gemini-3.5-flash-preview-tts' does NOT exist — never use it.
  * Use 'gemini-2.5-flash-preview-tts' (current stable preview).
  */
 const GEMINI_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
@@ -235,31 +234,13 @@ function _buildTtsPrompt(text, lang) {
 // ---------------------------------------------------------------------------
 
 async function _speakWithGemini(token, text, lang, onEnd, onError) {
-  const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      prompt: _buildTtsPrompt(text, lang),
-      providerParams: {
-        provider:  'gemini',
-        model:     GEMINI_TTS_MODEL,
-        tts:       true,
-        voice:     GEMINI_TTS_VOICE,
-        language:  lang,
-      },
-    }),
+  const result = await askAI(token, _buildTtsPrompt(text, lang), {
+    provider:  'gemini',
+    model:     GEMINI_TTS_MODEL,
+    tts:       true,
+    voice:     GEMINI_TTS_VOICE,
+    language:  lang,
   });
-
-  const json = await response.json();
-
-  if (!response.ok) {
-    throw new Error(json?.error || json?.message || 'Gemini TTS failed');
-  }
-
-  const result = json?.data ?? json;
 
   console.log('[getTtsService] Gemini TTS mimeType:', result?.mimeType);
 

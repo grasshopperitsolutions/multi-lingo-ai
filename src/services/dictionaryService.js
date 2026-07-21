@@ -41,9 +41,9 @@
 // ---------------------------------------------------------------------------
 
 import { parseAIJSON } from '../utils/parseAIJSON';
+import { askAI } from './aiService';
 
-const PROXY_URL    = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-const GEMINI_MODEL = 'gemini-3.5-flash';
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 const RESPONSE_SCHEMA = {
   type: 'object',
@@ -90,34 +90,15 @@ export async function lookupWord({ token, word, interfaceLang, learningLang }) {
     `Do NOT add any explanation, notes, or extra fields outside the JSON.`,
   ].join('\n');
 
-  const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method:  'POST',
-    headers: {
-      Authorization:  `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      prompt,
-      providerParams: {
-        provider:       'gemini',
-        model:          GEMINI_MODEL,
-        temperature:    0.2,
-        jsonMode:       true,
-        responseSchema: RESPONSE_SCHEMA,
-      },
-    }),
+  const data = await askAI(token, prompt, {
+    provider:       'gemini',
+    model:          GEMINI_MODEL,
+    temperature:    0.2,
+    jsonMode:       true,
+    responseSchema: RESPONSE_SCHEMA,
   });
 
-  const json = await response.json();
-
-  if (!response.ok) {
-    throw new Error(
-      json?.error ?? json?.message ?? `[dictionaryService] Request failed (${response.status})`
-    );
-  }
-
-  // API envelope: { success: true, data: { text: string, ... } }
-  const raw = json?.data?.text ?? json?.text ?? '';
+  const raw = data?.text ?? '';
 
   if (!raw) throw new Error('[dictionaryService] Empty response returned');
 

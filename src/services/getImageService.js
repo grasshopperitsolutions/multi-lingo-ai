@@ -30,7 +30,8 @@
 // Constants
 // ---------------------------------------------------------------------------
 
-const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
+import { askAI } from './aiService';
+
 const IMAGEN_MODEL = 'imagen-4.0-fast-generate-001';
 
 // ---------------------------------------------------------------------------
@@ -69,33 +70,18 @@ export async function generateImage({ token, prompt }) {
   if (!token) throw new Error('[getImageService] token is required');
   if (!prompt?.trim()) throw new Error('[getImageService] prompt is required');
 
-  const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      prompt: prompt.trim(),
-      providerParams: {
-        provider: 'gemini',
-        model: IMAGEN_MODEL,
-        // Imagen does not use temperature/jsonMode in the same way as text models
-        // The response will be base64 image data
-      },
-    }),
-  });
-
-  const json = await response.json();
-
-  if (!response.ok) {
-    console.error('[getImageService] Request failed', json);
-    throw new Error(json?.error || json?.message || 'Failed to generate image');
+  let result;
+  try {
+    result = await askAI(token, prompt.trim(), {
+      provider: 'gemini',
+      model: IMAGEN_MODEL,
+      // Imagen does not use temperature/jsonMode in the same way as text models
+      // The response will be base64 image data
+    });
+  } catch (err) {
+    console.error('[getImageService] Request failed', err);
+    throw err;
   }
-
-  // The API response shape for Imagen images:
-  // { data: { imageData: "<base64>", mimeType: "image/png" } }
-  const result = json?.data ?? json;
 
   if (!result?.imageData) {
     console.error('[getImageService] No image data in response', result);

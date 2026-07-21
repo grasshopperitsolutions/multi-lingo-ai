@@ -59,8 +59,7 @@
 // Constants
 // ---------------------------------------------------------------------------
 
-const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-const GEMINI_MODEL = 'gemini-3.5-flash';
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 /**
  * Max output tokens for reading exercise generation, scaled by CEFR level.
@@ -112,6 +111,7 @@ const TYPE_TO_PROMPT_MAP = {
 import { checkReadingAnswers } from './examUtils';
 import { getReadingPrompt } from './examPromptTemplates';
 import { parseAIJSON } from '../utils/parseAIJSON';
+import { askAI } from './aiService';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -536,25 +536,7 @@ async function _callAskAI(token, prompt, maxOutputTokens, responseSchema) {
     providerParams.responseSchema = responseSchema;
   }
 
-  const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      prompt,
-      providerParams,
-    }),
-  });
-
-  const json = await response.json();
-
-  if (!response.ok) {
-    console.error(`[examReadingExerciseService] Request failed (${response.status})`, json);
-    throw new Error('Something went wrong. Please try again.');
-  }
-
-  return json?.data?.text ?? json?.text ?? '';
+  const data = await askAI(token, prompt, providerParams);
+  return data?.text ?? '';
 }
 

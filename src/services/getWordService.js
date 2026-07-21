@@ -96,9 +96,10 @@
 // ---------------------------------------------------------------------------
 
 import { parseAIJSON } from '../utils/parseAIJSON';
+import { askAI } from './aiService';
 
 const PROXY_URL    = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-const GEMINI_MODEL = 'gemini-3.5-flash';
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 const POOL_LIMIT   = 200;
 
 // ---------------------------------------------------------------------------
@@ -360,39 +361,30 @@ async function _generateTranslation(sourceWord, { userDialect, learningDialect }
     ? `The translated word MUST be ${maxLength} characters or fewer.`
     : '';
 
-  const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method:  'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt: [
-        `You are a language learning assistant.`,
-        `Translate the English word "${sourceWord}" into ${learningDialect}.`,
-        lengthConstraint,
-        `Return a JSON object with:`,
-        `  - "word": the translated word in ${learningDialect}, lowercase, no extra spaces.`,
-        `  - "hint": one sentence in ${userDialect} describing the word without saying it, suitable for a guessing game.`,
-        `Return ONLY valid JSON. No markdown, no explanation.`,
-      ].filter(Boolean).join('\n'),
-      providerParams: {
-        provider:    'gemini',
-        model:       GEMINI_MODEL,
-        temperature: 0.7,
-        jsonMode:    true,
-        responseSchema: {
-          type: 'object',
-          properties: {
-            word: { type: 'string' },
-            hint: { type: 'string' },
-          },
-          required: ['word', 'hint'],
-        },
+  const data = await askAI(token, [
+    `You are a language learning assistant.`,
+    `Translate the English word "${sourceWord}" into ${learningDialect}.`,
+    lengthConstraint,
+    `Return a JSON object with:`,
+    `  - "word": the translated word in ${learningDialect}, lowercase, no extra spaces.`,
+    `  - "hint": one sentence in ${userDialect} describing the word without saying it, suitable for a guessing game.`,
+    `Return ONLY valid JSON. No markdown, no explanation.`,
+  ].filter(Boolean).join('\n'), {
+    provider:    'gemini',
+    model:       GEMINI_MODEL,
+    temperature: 0.7,
+    jsonMode:    true,
+    responseSchema: {
+      type: 'object',
+      properties: {
+        word: { type: 'string' },
+        hint: { type: 'string' },
       },
-    }),
+      required: ['word', 'hint'],
+    },
   });
-  const json = await response.json();
-  if (!response.ok) throw new Error(json?.error || json?.message || 'AI translation failed');
 
-  const parsed = parseAIJSON(json?.text ?? json?.data?.text);
+  const parsed = parseAIJSON(data?.text ?? '');
   if (!parsed?.word || !parsed?.hint)
     throw new Error('[getWordService] AI response missing word or hint');
 
@@ -404,34 +396,25 @@ async function _generateTranslation(sourceWord, { userDialect, learningDialect }
 }
 
 async function _generateHintForDialect(sourceWord, userDialect, token) {
-  const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method:  'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt: [
-        `You are a language learning assistant.`,
-        `Write exactly one sentence in ${userDialect} that describes the word "${sourceWord}" without saying it.`,
-        `The sentence should be suitable as a hint in a word-guessing game.`,
-        `Return a JSON object with a single "hint" field.`,
-        `Return ONLY valid JSON. No markdown, no explanation.`,
-      ].join('\n'),
-      providerParams: {
-        provider:    'gemini',
-        model:       GEMINI_MODEL,
-        temperature: 0.7,
-        jsonMode:    true,
-        responseSchema: {
-          type:       'object',
-          properties: { hint: { type: 'string' } },
-          required:   ['hint'],
-        },
-      },
-    }),
+  const data = await askAI(token, [
+    `You are a language learning assistant.`,
+    `Write exactly one sentence in ${userDialect} that describes the word "${sourceWord}" without saying it.`,
+    `The sentence should be suitable as a hint in a word-guessing game.`,
+    `Return a JSON object with a single "hint" field.`,
+    `Return ONLY valid JSON. No markdown, no explanation.`,
+  ].join('\n'), {
+    provider:    'gemini',
+    model:       GEMINI_MODEL,
+    temperature: 0.7,
+    jsonMode:    true,
+    responseSchema: {
+      type:       'object',
+      properties: { hint: { type: 'string' } },
+      required:   ['hint'],
+    },
   });
-  const json = await response.json();
-  if (!response.ok) throw new Error(json?.error || json?.message || 'AI hint generation failed');
 
-  const parsed = parseAIJSON(json?.text ?? json?.data?.text);
+  const parsed = parseAIJSON(data?.text ?? '');
   if (!parsed?.hint) throw new Error('[getWordService] AI response missing hint');
   return parsed.hint.trim();
 }
@@ -450,42 +433,33 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords, m
     ? `Both the English word and the ${learningDialect} translation MUST be ${maxLength} characters or fewer.`
     : '';
 
-  const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method:  'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt: [
-        `You are a language learning assistant.`,
-        `Generate exactly ONE common vocabulary word.`,
-        lengthConstraint,
-        `Return a JSON object with:`,
-        `  - "sourceWord": the English label for the concept, lowercase.`,
-        `  - "word": the translation in ${learningDialect}, lowercase.`,
-        `  - "hint": one sentence in ${userDialect} describing the word without saying it, suitable for a guessing game.`,
-        avoidList,
-        `Return ONLY valid JSON. No markdown, no explanation.`,
-      ].filter(Boolean).join('\n'),
-      providerParams: {
-        provider:    'gemini',
-        model:       GEMINI_MODEL,
-        temperature: 0.9,
-        jsonMode:    true,
-        responseSchema: {
-          type: 'object',
-          properties: {
-            sourceWord: { type: 'string' },
-            word:       { type: 'string' },
-            hint:       { type: 'string' },
-          },
-          required: ['sourceWord', 'word', 'hint'],
-        },
+  const data = await askAI(token, [
+    `You are a language learning assistant.`,
+    `Generate exactly ONE common vocabulary word.`,
+    lengthConstraint,
+    `Return a JSON object with:`,
+    `  - "sourceWord": the English label for the concept, lowercase.`,
+    `  - "word": the translation in ${learningDialect}, lowercase.`,
+    `  - "hint": one sentence in ${userDialect} describing the word without saying it, suitable for a guessing game.`,
+    avoidList,
+    `Return ONLY valid JSON. No markdown, no explanation.`,
+  ].filter(Boolean).join('\n'), {
+    provider:    'gemini',
+    model:       GEMINI_MODEL,
+    temperature: 0.9,
+    jsonMode:    true,
+    responseSchema: {
+      type: 'object',
+      properties: {
+        sourceWord: { type: 'string' },
+        word:       { type: 'string' },
+        hint:       { type: 'string' },
       },
-    }),
+      required: ['sourceWord', 'word', 'hint'],
+    },
   });
-  const json = await response.json();
-  if (!response.ok) throw new Error(json?.error || json?.message || 'AI concept generation failed');
 
-  const parsed = parseAIJSON(json?.text ?? json?.data?.text);
+  const parsed = parseAIJSON(data?.text ?? '');
   if (!parsed?.sourceWord || !parsed?.word || !parsed?.hint)
     throw new Error('[getWordService] AI response missing required fields');
 

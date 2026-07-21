@@ -1,7 +1,8 @@
 import { parseAIJSON } from '../utils/parseAIJSON';
+import { askAI } from './aiService';
 
 const PROXY_URL       = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-const GEMINI_MODEL    = 'gemini-3.5-flash';
+const GEMINI_MODEL    = 'gemini-3.5-flash-lite';
 const MIN_WORDS       = 4;
 const MAX_WORDS       = 6;
 const POOL_COLLECTION = 'wordLadderGamePool';
@@ -102,44 +103,27 @@ async function _generateFromAI({ token, userDialect, learningDialect }) {
     `Return JSON with keys: words (string[]), clues (string[]), wordLength (number).`,
   ].join('\n');
 
-  const res = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      prompt,
-      providerParams: {
-        provider:    'gemini',
-        model:       GEMINI_MODEL,
-        temperature: 0.7,
-        jsonMode:    true,
-        responseSchema: {
-          type: 'object',
-          properties: {
-            words:      { type: 'array', items: { type: 'string' } },
-            clues:      { type: 'array', items: { type: 'string' } },
-            wordLength: { type: 'number' },
-          },
-          required: ['words', 'clues', 'wordLength'],
-        },
+  const data = await askAI(token, prompt, {
+    provider:    'gemini',
+    model:       GEMINI_MODEL,
+    temperature: 0.7,
+    jsonMode:    true,
+    responseSchema: {
+      type: 'object',
+      properties: {
+        words:      { type: 'array', items: { type: 'string' } },
+        clues:      { type: 'array', items: { type: 'string' } },
+        wordLength: { type: 'number' },
       },
-    }),
+      required: ['words', 'clues', 'wordLength'],
+    },
   });
 
-  if (!res.ok) {
-    const j = await res.json().catch(() => ({}));
-    throw new Error(j?.error || j?.message || 'Failed to generate Word Ladder puzzle');
-  }
+  const parsed = parseAIJSON(data?.text ?? '');
 
-  const json = await res.json();
-  const raw  = json?.data?.text ?? json?.text ?? '';
-  const data = parseAIJSON(raw);
-
-  const words      = data?.words;
-  const clues      = data?.clues;
-  const wordLength = data?.wordLength;
+  const words      = parsed?.words;
+  const clues      = parsed?.clues;
+  const wordLength = parsed?.wordLength;
 
   if (!Array.isArray(words) || !Array.isArray(clues) || typeof wordLength !== 'number') {
     throw new Error('Invalid puzzle format from AI');

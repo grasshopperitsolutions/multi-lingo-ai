@@ -36,8 +36,9 @@
 // Constants
 // ---------------------------------------------------------------------------
 
-const PROXY_URL    = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-const GEMINI_MODEL = 'gemini-3.5-flash';
+import { askAI } from './aiService';
+
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -62,31 +63,14 @@ export async function translateText({ token, text, sourceLang, targetLang }) {
     text.trim(),
   ].join('\n');
 
-  const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method:  'POST',
-    headers: {
-      Authorization:  `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      prompt,
-      providerParams: {
-        provider:    'gemini',
-        model:       GEMINI_MODEL,
-        temperature: 0.2,
-        jsonMode:    false,
-      },
-    }),
+  const data = await askAI(token, prompt, {
+    provider:    'gemini',
+    model:       GEMINI_MODEL,
+    temperature: 0.2,
+    jsonMode:    false,
   });
 
-  const json = await response.json();
-
-  if (!response.ok) {
-    throw new Error(json?.error ?? json?.message ?? `[translatorService] Request failed (${response.status})`);
-  }
-
-  // API envelope: { success: true, data: { text: string, ... } }
-  const translation = json?.data?.text ?? json?.text ?? '';
+  const translation = data?.text ?? '';
 
   if (!translation) throw new Error('[translatorService] Empty translation returned');
 

@@ -6,9 +6,9 @@
  */
 import { getWritingPrompt } from './examPromptTemplates';
 import { parseAIJSON } from '../utils/parseAIJSON';
+import { askAI } from './aiService';
 
-const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-const GEMINI_MODEL = 'gemini-3.5-flash';
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 const LOCALE_TO_LANGUAGE_NAME = {
   'en': 'English', 'en-US': 'English', 'en-GB': 'English',
@@ -172,17 +172,14 @@ export async function evaluateWriting({ token, level, targetLang, interfaceLang,
 }
 
 async function _callAskAI(token, prompt, maxOutputTokens) {
-  const response = await fetch(`${PROXY_URL}/api/ask-ai`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      prompt,
-      providerParams: { provider: 'gemini', model: GEMINI_MODEL, temperature: 0.7, jsonMode: true, maxOutputTokens },
-    }),
+  const data = await askAI(token, prompt, {
+    provider: 'gemini',
+    model: GEMINI_MODEL,
+    temperature: 0.7,
+    jsonMode: true,
+    maxOutputTokens,
   });
-  const json = await response.json();
-  if (!response.ok) throw new Error(json?.error || json?.message || 'Request failed');
-  return json?.data?.text ?? json?.text ?? '';
+  return data?.text ?? '';
 }
 
 function _countWords(text) {
