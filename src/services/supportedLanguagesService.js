@@ -95,8 +95,7 @@ export async function seedLanguage(code, name, token) {
   const aiData = await askAI(
     token,
     SEED_PROMPT(code, name),
-    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.2 },
-    { timeout: 45000 }
+    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.2 }
   );
 
   if (!aiData?.code || !aiData?.characters) {
