@@ -15,9 +15,6 @@ import MobileMenuDrawer from "../components/MobileMenuDrawer";
 import { auth } from "../firebase";
 import { updateUserProfile } from "../services/userService";
 import {
-  EXAM_SUPPORTED_LANGUAGES,
-} from "../config/supportedLanguages";
-import {
   Languages,
   BookMarked,
   PenLine,
@@ -92,6 +89,7 @@ const DashboardPage = () => {
     logoutUser,
     refreshUser,
     showAlert,
+    supportedLanguages,
   } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -188,7 +186,7 @@ const DashboardPage = () => {
       title: t("dashboard.exam_training"),
       description: t("dashboard.exam_training_desc"),
       color: "text-teal-500",
-      disabled: !EXAM_SUPPORTED_LANGUAGES.includes(user?.learningDialect),
+      disabled: !supportedLanguages.some(lang => lang.code === user?.learningDialect && lang.examSupported),
       disabledReason: t("dashboard.exam_not_available_for_language"),
     },
     { id: "translator",       icon: Languages,      title: t("dashboard.translator"),        description: t("dashboard.translator_desc"),        color: "text-sky-500" },
