@@ -17,6 +17,13 @@ import SubscriptionSuccessPage from "./pages/SubscriptionSuccessPage";
 import SubscriptionCancelPage from "./pages/SubscriptionCancelPage";
 import AlertMessage from "./components/Alert";
 import GlobalCompassCursor from "./components/GlobalCompassCursor";
+import app from "./firebase";
+import { getDocument, createDocument } from "./services/firestoreService";
+import enLocale from "./locales/en/translation.json";
+import deLocale from "./locales/de/translation.json";
+import esLocale from "./locales/es/translation.json";
+import frLocale from "./locales/fr/translation.json";
+import ptPtLocale from "./locales/pt-PT/translation.json";
 
 const PublicLayout = () => (
   <>
@@ -70,6 +77,34 @@ const AppLayout = () => {
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [isTouchDevice]);
+
+  // TODO: DELETE THIS ASAP — seeds all locale data to Firestore on first load
+  useEffect(() => {
+    const run = async () => {
+      if (!app) return;
+      try {
+        const entries = [
+          ["en-US", enLocale],
+          ["de-DE", deLocale],
+          ["es-ES", esLocale],
+          ["fr-FR", frLocale],
+          ["pt-PT", ptPtLocale],
+        ];
+        for (const [code, data] of entries) {
+          const existing = await getDocument("appConfig/config/locales", code);
+          if (existing?.data) {
+            console.log(`[firestore-init] locale "${code}" already exists`);
+            continue;
+          }
+          await createDocument("appConfig/config/locales", data, code);
+          console.log(`[firestore-init] locale "${code}" seeded`);
+        }
+      } catch (err) {
+        console.warn("[firestore-init] skipped:", err.message);
+      }
+    };
+    run();
+  }, []);
 
   return (
     <>
