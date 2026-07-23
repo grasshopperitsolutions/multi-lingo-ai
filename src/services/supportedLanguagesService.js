@@ -92,11 +92,14 @@ export async function seedLanguage(code, name, token) {
   }
 
   // 1. Ask AI to generate metadata + character sets
-  const aiData = await askAI(
+  const aiResponse = await askAI(
     token,
     SEED_PROMPT(code, name),
     { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.2 }
   );
+
+  // The API returns the JSON string inside the `text` field
+  const aiData = typeof aiResponse?.text === "string" ? JSON.parse(aiResponse.text) : aiResponse;
 
   if (!aiData?.code || !aiData?.characters) {
     throw new Error(
