@@ -134,9 +134,11 @@ const OnboardingPage = () => {
   const seedIfNeeded = async (code, token) => {
     const knownLanguage = supportedLanguages.find((lang) => lang.code === code);
     if (!knownLanguage) {
-      await seedLanguage(code, code, token);
+      const created = await seedLanguage(code, code, token);
       await refreshSupportedLanguages();
+      return created;
     }
+    return knownLanguage;
   };
 
   const handleNext = async () => {
@@ -159,7 +161,10 @@ const OnboardingPage = () => {
       if (supportedLanguages.length === 0 || !supportedLanguages.find((l) => l.code === interfaceLang)) {
         setIsSeedingInterface(true);
         try {
-          await seedIfNeeded(interfaceLang, token);
+          const created = await seedIfNeeded(interfaceLang, token);
+          if (created?.id) {
+            setInterfaceLang(created.id);
+          }
         } catch (err) {
           showAlert("error", `Could not add language: ${err.message}`);
           setIsSeedingInterface(false);
@@ -177,7 +182,10 @@ const OnboardingPage = () => {
 
       setIsSeedingLanguage(true);
       try {
-        await seedIfNeeded(learningDialect, token);
+        const created = await seedIfNeeded(learningDialect, token);
+        if (created?.id) {
+          setLearningDialect(created.id);
+        }
         await handleFinish();
       } catch (err) {
         showAlert("error", `Could not add language: ${err.message}`);

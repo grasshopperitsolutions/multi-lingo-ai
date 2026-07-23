@@ -21,11 +21,23 @@ const WRITING_SYSTEMS_COLLECTION = "writingSystems";
 // ---------------------------------------------------------------------------
 // Prompt for AI language generation
 // ---------------------------------------------------------------------------
-const SEED_PROMPT = (code, humanName) => `You are a linguistics assistant. Generate structured metadata for the language "${humanName}" with BCP-47 code "${code}".
+const SEED_PROMPT = (code, humanName) => `You are a linguistics assistant. The user wants to add a language to the system.
+
+User input: "${humanName}"
+Possible BCP-47 code hint: "${code}"
+
+Your job:
+1. Determine the most appropriate BCP-47 code for this language/dialect.
+   - If the hint looks like a valid BCP-47 code (e.g. "en-AU", "pt-BR", "ja-JP"), use it.
+   - If the hint is a description (e.g. "australia english", "african portuguese em angola"), derive the correct BCP-47 code yourself.
+   - If you cannot determine a precise code, use a sensible best guess (e.g. "en-AU" for Australian English).
+2. Generate metadata for that language.
+
+CRITICAL: The "code" field MUST be a valid BCP-47 language tag such as "en-AU", "pt-AO", "pt-BR", etc. Do NOT return a plain description like "australia english".
 
 Return ONLY a JSON object (no markdown, no backticks, no commentary) with exactly these fields:
 {
-  "code": "${code}",
+  "code": "<the BCP-47 code you determined>",
   "label": "Full language name in English (e.g. 'Portuguese (Portugal)')",
   "flag": "Single emoji flag for the primary country where this language is spoken",
   "examSupported": boolean (true only for Portuguese pt-PT and pt-BR, false for all others),
@@ -38,6 +50,7 @@ Return ONLY a JSON object (no markdown, no backticks, no commentary) with exactl
 }
 
 Rules:
+- The code MUST be a valid BCP-47 code (language-region format like "en-AU", "pt-AO", etc.).
 - default and special arrays must be deduplicated.
 - default should contain at least 20 characters if the language uses a Latin-like script.
 - For non-Latin scripts (Cyrillic, Greek, Japanese, Korean, Chinese, etc.), include the relevant characters.
@@ -117,12 +130,10 @@ export async function seedLanguage(code, name, token) {
     characters,
   } = aiData;
 
-  // Sanity check: AI should echo back the same code
-  if (returnedCode !== code) {
-    throw new Error(
-      `[supportedLanguagesService] AI returned mismatched code: expected ${code}, got ${returnedCode}`
-    );
-  }
+  // The AI derives the proper BCP-47 code from the user's description.
+  const canonicalCode = typeof returnedCode === "string" && returnedCode.trim()
+    ? returnedCode.trim()
+    : code.trim();
 
   const defaultChars = Array.isArray(characters?.default)
     ? [...new Set(characters.default.map((c) => String(c).toLowerCase()))]
@@ -152,8 +163,8 @@ export async function seedLanguage(code, name, token) {
     // 3a. Update existing writing system — append new language code if missing
     writingSystemId = matchingSystem.id;
     const updatedCodes = Array.isArray(matchingSystem.supportedLanguageCodes)
-      ? [...new Set([...matchingSystem.supportedLanguageCodes, code])]
-      : [code];
+      ? [...new Set([...matchingSystem.supportedLanguageCodes, canonicalCode])]
+      : [canonicalCode];
 
     await updateDocument(
       WRITING_SYSTEMS_COLLECTION,
@@ -163,15 +174,15 @@ export async function seedLanguage(code, name, token) {
     );
   } else {
     // 3b. Create new writing system
-    const newSystemId = generateWritingSystemId(code, defaultChars, specialChars);
+    const newSystemId = generateWritingSystemId(canonicalCode, defaultChars, specialChars);
     const newSystem = {
       id: newSystemId,
-      name: buildWritingSystemName(code, label),
+      name: buildWritingSystemName(canonicalCode, label),
       characters: {
         default: defaultChars,
         special: specialChars,
       },
-      supportedLanguageCodes: [code],
+      supportedLanguageCodes: [canonicalCode],
     };
 
     await createDocument(WRITING_SYSTEMS_COLLECTION, newSystem, newSystemId, token);
@@ -180,7 +191,7 @@ export async function seedLanguage(code, name, token) {
 
   // 4. Create the supportedLanguage document
   const languageDoc = {
-    code,
+    code: canonicalCode,
     label: label || name,
     flag: flag || "🌐",
     examSupported: Boolean(examSupported),
@@ -190,10 +201,11 @@ export async function seedLanguage(code, name, token) {
     aiGenerated: true,
   };
 
-  const created = await createDocument(LANGUAGES_COLLECTION, languageDoc, code, token);
+  // Use the canonical BCP-47 code as the document ID
+  const created = await createDocument(LANGUAGES_COLLECTION, languageDoc, canonicalCode, token);
 
   // 5. Return the created document (API returns { id, data, collection })
-  return created?.data ?? { ...languageDoc, id: code };
+  return created?.data ?? { ...languageDoc, id: canonicalCode };
 }
 
 // ---------------------------------------------------------------------------
@@ -226,6 +238,7 @@ function generateWritingSystemId(code, defaultChars, specialChars) {
   const fingerprint = [...defaultChars.slice(0, 5), ...specialChars.slice(0, 3)].join("");
   return `${script}-${region}${fingerprint ? `__${fingerprint}` : ""}`;
 }
+
 
 /**
  * Very rough script detector based on Unicode ranges.
