@@ -110,6 +110,9 @@ const OnboardingPage = () => {
   const [interests, setInterests] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isSeedingLanguage, setIsSeedingLanguage] = useState(false);
+  const [isSeedingInterface, setIsSeedingInterface] = useState(false);
+  const [showOtherInterface, setShowOtherInterface] = useState(false);
+  const [showOtherLearning, setShowOtherLearning] = useState(false);
 
   const totalSteps = 3;
 
@@ -120,8 +123,34 @@ const OnboardingPage = () => {
     }
   }, [user, navigate]);
 
+  const seedIfNeeded = async (code, token) => {
+    const knownLanguage = supportedLanguages.find((lang) => lang.code === code);
+    if (!knownLanguage) {
+      await seedLanguage(code, code, token);
+      await refreshSupportedLanguages();
+    }
+  };
+
   const handleNext = async () => {
+    const token = await auth?.currentUser?.getIdToken();
+    if (!token) {
+      showAlert("error", "No authentication token available");
+      return;
+    }
+
     if (step === 0) {
+      // Interface language step — seed if needed
+      if (interfaceLang && !supportedLanguages.find((l) => l.code === interfaceLang)) {
+        setIsSeedingInterface(true);
+        try {
+          await seedIfNeeded(interfaceLang, token);
+        } catch (err) {
+          showAlert("error", `Could not add language: ${err.message}`);
+          setIsSeedingInterface(false);
+          return;
+        }
+        setIsSeedingInterface(false);
+      }
       setStep(1);
     } else if (step === 1) {
       if (!learningDialect) {
@@ -129,23 +158,14 @@ const OnboardingPage = () => {
         return;
       }
 
-      // If the language is not yet supported, seed it dynamically via AI
-      const knownLanguage = supportedLanguages.find((lang) => lang.code === learningDialect);
-      if (!knownLanguage) {
-        setIsSeedingLanguage(true);
-        try {
-          const token = await auth?.currentUser?.getIdToken();
-          if (!token) throw new Error("No authentication token available");
-          await seedLanguage(learningDialect, learningDialect, token);
-          await refreshSupportedLanguages();
-          setStep(2);
-        } catch (err) {
-          showAlert("error", `Could not add language: ${err.message}`);
-        } finally {
-          setIsSeedingLanguage(false);
-        }
-      } else {
+      setIsSeedingLanguage(true);
+      try {
+        await seedIfNeeded(learningDialect, token);
         setStep(2);
+      } catch (err) {
+        showAlert("error", `Could not add language: ${err.message}`);
+      } finally {
+        setIsSeedingLanguage(false);
       }
     }
   };
@@ -222,7 +242,102 @@ const OnboardingPage = () => {
     </div>
   );
 
-  // ── Step 1: Learning Language ──
+  // ── Step 1: Interface Language ──
+  const renderInterfaceStep = () => (
+    <div className="space-y-6">
+      <h2 className={`text-2xl font-black uppercase tracking-tighter text-center ${isDarkMode ? "text-white" : "text-slate-900"}`}>
+        {t("onboarding.step_interface")}
+      </h2>
+      <div>
+        <label className={labelClasses}>
+          {t("settings.interface_language")}
+        </label>
+        {isLoadingLanguages ? (
+          <div className={`p-4 rounded-xl border-4 text-center ${isDarkMode ? "bg-slate-800 border-slate-700 text-slate-300" : "bg-white border-slate-300 text-slate-600"}`}>
+            <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+            Loading available languages...
+          </div>
+        ) : supportedLanguages.length > 0 ? (
+          <>
+            <NeoDropdown
+              options={supportedLanguages.map((l) => ({
+                value: l.code,
+                label: `${l.flag || ""} ${l.label || l.code}`,
+              }))}
+              value={showOtherInterface ? "" : interfaceLang}
+              onChange={(val) => {
+                setShowOtherInterface(false);
+                setInterfaceLang(val);
+              }}
+              showOtherOption
+              otherLabel={t("onboarding.other_option")}
+              onOtherSelect={() => setShowOtherInterface(true)}
+              isDarkMode={isDarkMode}
+              className="w-full"
+            />
+            {showOtherInterface && (
+              <div className="mt-3">
+                <input
+                  type="text"
+                  value={interfaceLang}
+                  onChange={(e) => setInterfaceLang(e.target.value)}
+                  placeholder={t("onboarding.interface_placeholder")}
+                  className={`w-full p-3 rounded-xl border-4 font-mono text-sm uppercase tracking-widest
+                    ${isDarkMode ? "bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400"}`}
+                />
+              </div>
+            )}
+          </>
+        ) : (
+          <input
+            type="text"
+            value={interfaceLang}
+            onChange={(e) => setInterfaceLang(e.target.value)}
+            placeholder={t("onboarding.interface_placeholder")}
+            className={`w-full p-3 rounded-xl border-4 font-mono text-sm uppercase tracking-widest
+              ${isDarkMode ? "bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400"}`}
+          />
+        )}
+      </div>
+      {isSeedingInterface && (
+        <div className={`p-3 rounded-xl border-4 text-center ${isDarkMode ? "bg-slate-800 border-yellow-400 text-yellow-400" : "bg-white border-yellow-500 text-yellow-700"}`}>
+          <Loader2 size={18} className="animate-spin inline mr-2" />
+          Adding new language via AI, this may take a moment...
+        </div>
+      )}
+      <div className="flex justify-between pt-4">
+        <button
+          onClick={handleBack}
+          className={`flex items-center gap-2 font-black uppercase tracking-widest text-sm transition-all hover:-translate-x-1
+            ${isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"}`}
+        >
+          <ChevronLeft size={16} />
+          {t("onboarding.back")}
+        </button>
+        <button
+          onClick={handleNext}
+          disabled={!interfaceLang || isSeedingInterface}
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95
+            ${interfaceLang && !isSeedingInterface
+              ? isDarkMode
+                ? "bg-yellow-400 border-yellow-400 text-slate-900 shadow-[4px_4px_0px_0px_#854d0e]"
+                : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
+              : isDarkMode
+                ? "bg-slate-700 border-slate-600 text-slate-400 cursor-not-allowed"
+                : "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed"
+            }`}
+        >
+          {isSeedingInterface ? (
+            <><Loader2 size={16} className="animate-spin" /> Please wait</>
+          ) : (
+            <>{t("onboarding.next")} <ChevronRight size={16} /></>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+
+  // ── Step 2: Learning Language + Interests ──
   const renderLanguageStep = () => (
     <div className="space-y-6">
       <h2 className={`text-2xl font-black uppercase tracking-tighter text-center ${isDarkMode ? "text-white" : "text-slate-900"}`}>
@@ -237,31 +352,47 @@ const OnboardingPage = () => {
             <Loader2 size={20} className="animate-spin mx-auto mb-2" />
             Loading available languages...
           </div>
+        ) : supportedLanguages.length > 0 ? (
+          <>
+            <NeoDropdown
+              options={supportedLanguages.map((l) => ({
+                value: l.code,
+                label: `${l.flag || ""} ${l.label || l.code}`,
+              }))}
+              value={showOtherLearning ? "" : learningDialect}
+              onChange={(val) => {
+                setShowOtherLearning(false);
+                setLearningDialect(val);
+              }}
+              showOtherOption
+              otherLabel={t("onboarding.other_option")}
+              onOtherSelect={() => setShowOtherLearning(true)}
+              isDarkMode={isDarkMode}
+              className="w-full"
+            />
+            {showOtherLearning && (
+              <div className="mt-3">
+                <input
+                  type="text"
+                  value={learningDialect}
+                  onChange={(e) => setLearningDialect(e.target.value)}
+                  placeholder={t("onboarding.learning_placeholder")}
+                  className={`w-full p-3 rounded-xl border-4 font-mono text-sm uppercase tracking-widest
+                    ${isDarkMode ? "bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400"}`}
+                />
+              </div>
+            )}
+          </>
         ) : (
-          <NeoDropdown
-            options={supportedLanguages.map((l) => ({
-              value: l.code,
-              label: `${l.flag || ""} ${l.label || l.code}`,
-            }))}
-            value={learningDialect}
-            onChange={setLearningDialect}
-            isDarkMode={isDarkMode}
-            className="w-full"
-          />
-        )}
-        <div className="mt-3">
-          <label className={`${labelClasses} text-[10px]`}>
-            Or enter a BCP-47 code if your language is not listed
-          </label>
           <input
             type="text"
             value={learningDialect}
             onChange={(e) => setLearningDialect(e.target.value)}
-            placeholder="e.g. it-IT, ja-JP, ru-RU"
+            placeholder={t("onboarding.learning_placeholder")}
             className={`w-full p-3 rounded-xl border-4 font-mono text-sm uppercase tracking-widest
               ${isDarkMode ? "bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400"}`}
           />
-        </div>
+        )}
       </div>
       {isSeedingLanguage && (
         <div className={`p-3 rounded-xl border-4 text-center ${isDarkMode ? "bg-slate-800 border-yellow-400 text-yellow-400" : "bg-white border-yellow-500 text-yellow-700"}`}>
@@ -269,6 +400,22 @@ const OnboardingPage = () => {
           Adding new language via AI, this may take a moment...
         </div>
       )}
+
+      <div className="pt-4">
+        <label className={labelClasses}>
+          {t("onboarding.step_interests")}
+        </label>
+        <p className={`text-xs font-semibold mb-3 ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
+          {t("onboarding.interests_hint")}
+        </p>
+        <InterestPills
+          selected={interests}
+          onChange={setInterests}
+          isDarkMode={isDarkMode}
+          t={t}
+        />
+      </div>
+
       <div className="flex justify-between pt-4">
         <button
           onClick={handleBack}
@@ -301,70 +448,6 @@ const OnboardingPage = () => {
     </div>
   );
 
-  // ── Step 2: Interface Language + Interests ──
-  const renderInterfaceStep = () => (
-    <div className="space-y-6">
-      <h2 className={`text-2xl font-black uppercase tracking-tighter text-center ${isDarkMode ? "text-white" : "text-slate-900"}`}>
-        {t("onboarding.step_interface")}
-      </h2>
-      <div>
-        <label className={labelClasses}>
-          {t("settings.interface_language")}
-        </label>
-        <NeoDropdown
-          options={supportedLanguages.map((l) => ({ value: l.code, label: `${l.flag || ""} ${l.label || l.code}` }))}
-          value={interfaceLang}
-          onChange={setInterfaceLang}
-          isDarkMode={isDarkMode}
-          className="w-full"
-        />
-      </div>
-
-      <div className="pt-4">
-        <label className={labelClasses}>
-          {t("onboarding.step_interests")}
-        </label>
-        <p className={`text-xs font-semibold mb-3 ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
-          {t("onboarding.interests_hint")}
-        </p>
-        <InterestPills
-          selected={interests}
-          onChange={setInterests}
-          isDarkMode={isDarkMode}
-          t={t}
-        />
-      </div>
-
-      <div className="flex justify-between pt-4">
-        <button
-          onClick={handleBack}
-          className={`flex items-center gap-2 font-black uppercase tracking-widest text-sm transition-all hover:-translate-x-1
-            ${isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"}`}
-        >
-          <ChevronLeft size={16} />
-          {t("onboarding.back")}
-        </button>
-        <button
-          onClick={handleFinish}
-          disabled={isSaving}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95
-            ${isSaving
-              ? "opacity-60 cursor-not-allowed bg-slate-400 border-slate-500 text-white"
-              : isDarkMode
-                ? "bg-yellow-400 border-yellow-400 text-slate-900 shadow-[4px_4px_0px_0px_#854d0e]"
-                : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
-            }`}
-        >
-          {isSaving ? (
-            <><Loader2 size={16} className="animate-spin" /> {t("common.saving")}</>
-          ) : (
-            <>{t("onboarding.finish")} <Sparkles size={16} /></>
-          )}
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className={containerClasses}>
       <main className="flex-1 flex items-center justify-center px-4 py-10">
@@ -372,8 +455,8 @@ const OnboardingPage = () => {
           <StepIndicator currentStep={step} totalSteps={totalSteps} isDarkMode={isDarkMode} />
 
           {step === 0 && renderWelcome()}
-          {step === 1 && renderLanguageStep()}
-          {step === 2 && renderInterfaceStep()}
+          {step === 1 && renderInterfaceStep()}
+          {step === 2 && renderLanguageStep()}
         </div>
       </main>
     </div>

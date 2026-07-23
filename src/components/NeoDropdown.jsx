@@ -10,12 +10,19 @@ const NeoDropdown = ({
   isDarkMode,
   className = "",
   label = "",
+  showOtherOption = false,
+  otherLabel = "Other",
+  onOtherSelect,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   const selectedOption =
     options.find((opt) => opt.value === value) || options[0];
+
+  const allOptions = showOtherOption
+    ? [...options, { value: "__other__", label: otherLabel }]
+    : options;
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -74,12 +81,16 @@ const NeoDropdown = ({
               : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
           }`}
         >
-          {options.map((option) => (
+          {allOptions.map((option) => (
             <button
               key={option.value}
               type="button"
               onClick={() => {
-                onChange(option.value);
+                if (option.value === "__other__") {
+                  onOtherSelect?.();
+                } else {
+                  onChange(option.value);
+                }
                 setIsOpen(false);
               }}
               className={`w-full text-left px-4 py-2.5 font-bold uppercase text-sm tracking-tight transition-colors ${
@@ -114,6 +125,9 @@ NeoDropdown.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
   className: PropTypes.string,
   label: PropTypes.string,
+  showOtherOption: PropTypes.bool,
+  otherLabel: PropTypes.string,
+  onOtherSelect: PropTypes.func,
 };
 
 export default NeoDropdown;

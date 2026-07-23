@@ -677,13 +677,16 @@
   "onboarding": {
     "welcome_title": "Welcome to MultiLingo!",
     "welcome_subtitle": "Let's set up your learning profile.",
-    "step_language": "What language are you learning?",
     "step_interface": "What's your preferred interface language?",
+    "step_language": "What language are you learning?",
     "step_interests": "Pick your interests",
     "interests_hint": "We'll use these to personalise your content.",
     "finish": "Start Learning!",
     "next": "Next",
-    "back": "Back"
+    "back": "Back",
+    "other_option": "Other",
+    "interface_placeholder": "e.g. en-US",
+    "learning_placeholder": "e.g. English from Australia"
   },
   "pricing": {
     "title": "Choose Your Plan",
