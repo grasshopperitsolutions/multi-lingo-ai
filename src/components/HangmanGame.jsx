@@ -18,12 +18,7 @@ import { sanitizeAIError } from "../utils/errorUtils";
 // ---------------------------------------------------------------------------
 // Keyboard layout config
 // ---------------------------------------------------------------------------
-const KEYBOARD_LAYOUTS = {
-  base: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
-  accented: {
-    "pt-PT": ["\u00C1", "\u00C2", "\u00C3", "\u00C0", "\u00C9", "\u00CA", "\u00CD", "\u00D3", "\u00D4", "\u00D5", "\u00DA", "\u00DC", "\u00C7"],
-  },
-};
+const BASE_KEYS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 const normalizeChar = (c) =>
   c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
@@ -69,7 +64,7 @@ HangmanScaffold.propTypes = {
 // ---------------------------------------------------------------------------
 const HangmanGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
-  const { user, showAlert } = useAppContext();
+  const { user, showAlert, writingSystems } = useAppContext();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
@@ -101,8 +96,19 @@ const HangmanGame = ({ isDarkMode }) => {
 
   const maxWrong = 6;
 
-  const baseKeys     = KEYBOARD_LAYOUTS.base;
-  const accentedKeys = KEYBOARD_LAYOUTS.accented[learningDialect] ?? [];
+  const baseKeys = BASE_KEYS;
+
+  // Derive accented/special keys from the writing system that supports this language
+  const accentedKeys = useMemo(() => {
+    if (!writingSystems?.length) return [];
+    const system = writingSystems.find((ws) =>
+      Array.isArray(ws?.supportedLanguageCodes)
+        ? ws.supportedLanguageCodes.includes(learningDialect)
+        : false
+    );
+    const specials = system?.characters?.special ?? [];
+    return Array.isArray(specials) ? specials.map((c) => String(c).toUpperCase()) : [];
+  }, [writingSystems, learningDialect]);
 
   const letters = useMemo(() => word.toUpperCase().split(""), [word]);
 

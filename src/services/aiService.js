@@ -24,7 +24,7 @@
  *   // imgData.imageData, imgData.mimeType
  *
  *   // With timeout override
- *   const data = await askAI(token, prompt, params, { timeout: 60000 });
+ *   const data = await askAI(token, prompt, params, { timeout: 30000 });
  *
  *   // With cancellation
  *   const ac = new AbortController();

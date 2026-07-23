@@ -4,6 +4,7 @@ import {
   logout as logoutUserService,
 } from "../services/authService";
 import { getUserProfile, updateDayStreak } from "../services/userService";
+import { getLanguages, getWritingSystems } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
 
@@ -50,8 +51,53 @@ export const AppProvider = ({ children }) => {
   const [tokenExpired, setTokenExpired] = useState(false);
   const tokenCheckRef = useRef(null);
 
+  // ── Supported Languages & Writing Systems state ───────────────────────────
+  const [supportedLanguages, setSupportedLanguages] = useState([]);
+  const [writingSystems, setWritingSystems] = useState([]);
+  const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
+  const [isLoadingWritingSystems, setIsLoadingWritingSystems] = useState(false);
+
   // ── Full Exam session state ────────────────────────────────────────────
   const [examSession, setExamSession] = useState(null);
+
+  const showAlert = useCallback((type, message, action = null) => {
+    setAlert({ show: true, type, message, action });
+  }, []);
+
+  const closeAlert = useCallback(() => {
+    setAlert((prev) => ({ ...prev, show: false, action: null }));
+  }, []);
+
+  // ── Fetch supported languages and writing systems ───────────────────────
+  const refreshSupportedLanguages = useCallback(async () => {
+    const firebaseUser = auth?.currentUser;
+    const token = firebaseUser?.getIdToken?.() ?? null;
+    if (!token) return;
+
+    setIsLoadingLanguages(true);
+    setIsLoadingWritingSystems(true);
+    try {
+      const [langs, writings] = await Promise.all([
+        getLanguages(token),
+        getWritingSystems(token),
+      ]);
+      setSupportedLanguages(langs);
+      setWritingSystems(writings);
+    } catch (err) {
+      showAlert("error", `Could not load supported languages: ${err.message}`);
+    } finally {
+      setIsLoadingLanguages(false);
+      setIsLoadingWritingSystems(false);
+    }
+  }, [showAlert]);
+
+  // Load languages on startup (after auth)
+  useEffect(() => {
+    if (auth?.currentUser) {
+      refreshSupportedLanguages();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const updateExamSection = useCallback((section, patch) =>
     setExamSession(prev => {
@@ -67,14 +113,6 @@ export const AppProvider = ({ children }) => {
         },
       };
     }), []);
-
-  const showAlert = (type, message, action = null) => {
-    setAlert({ show: true, type, message, action });
-  };
-
-  const closeAlert = () => {
-    setAlert((prev) => ({ ...prev, show: false, action: null }));
-  };
 
   /**
    * Attempt to force-refresh the Firebase ID token.
@@ -357,6 +395,12 @@ export const AppProvider = ({ children }) => {
         handleTokenExpired,
         dismissTokenExpired,
         validateToken,
+        // Supported languages & writing systems
+        supportedLanguages,
+        writingSystems,
+        isLoadingLanguages,
+        isLoadingWritingSystems,
+        refreshSupportedLanguages,
         // Full Exam session
         examSession,
         setExamSession,

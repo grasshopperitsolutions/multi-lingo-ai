@@ -5,12 +5,9 @@ import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import NeoDropdown from "../components/NeoDropdown";
 import { updateUserProfile } from "../services/userService";
+import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
-import {
-  LEARNING_LANGUAGES,
-  INTERFACE_LANGUAGES,
-  INTEREST_CATEGORIES,
-} from "../config/supportedLanguages";
+import { INTEREST_CATEGORIES } from "../config/supportedLanguages";
 import {
   ArrowRight,
   ChevronLeft,
@@ -93,7 +90,17 @@ StepIndicator.propTypes = {
 
 // ── Onboarding Page ────────────────────────────────────────────────────
 const OnboardingPage = () => {
-  const { isDarkMode, user, showAlert, refreshUser, changeLanguage } = useAppContext();
+  const {
+    isDarkMode,
+    user,
+    showAlert,
+    refreshUser,
+    changeLanguage,
+    // dynamic language state
+    supportedLanguages,
+    isLoadingLanguages,
+    refreshSupportedLanguages,
+  } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -102,6 +109,7 @@ const OnboardingPage = () => {
   const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en-US");
   const [interests, setInterests] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSeedingLanguage, setIsSeedingLanguage] = useState(false);
 
   const totalSteps = 3;
 
@@ -112,7 +120,7 @@ const OnboardingPage = () => {
     }
   }, [user, navigate]);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === 0) {
       setStep(1);
     } else if (step === 1) {
@@ -120,7 +128,25 @@ const OnboardingPage = () => {
         showAlert("error", "Please select a language to learn.");
         return;
       }
-      setStep(2);
+
+      // If the language is not yet supported, seed it dynamically via AI
+      const knownLanguage = supportedLanguages.find((lang) => lang.code === learningDialect);
+      if (!knownLanguage) {
+        setIsSeedingLanguage(true);
+        try {
+          const token = await auth?.currentUser?.getIdToken();
+          if (!token) throw new Error("No authentication token available");
+          await seedLanguage(learningDialect, learningDialect, token);
+          await refreshSupportedLanguages();
+          setStep(2);
+        } catch (err) {
+          showAlert("error", `Could not add language: ${err.message}`);
+        } finally {
+          setIsSeedingLanguage(false);
+        }
+      } else {
+        setStep(2);
+      }
     }
   };
 
@@ -206,17 +232,43 @@ const OnboardingPage = () => {
         <label className={labelClasses}>
           {t("settings.learning_language")}
         </label>
-        <NeoDropdown
-          options={LEARNING_LANGUAGES.map((l) => ({
-            value: l.value,
-            label: `${l.flag || ""} ${t(l.labelKey)}`,
-          }))}
-          value={learningDialect}
-          onChange={setLearningDialect}
-          isDarkMode={isDarkMode}
-          className="w-full"
-        />
+        {isLoadingLanguages ? (
+          <div className={`p-4 rounded-xl border-4 text-center ${isDarkMode ? "bg-slate-800 border-slate-700 text-slate-300" : "bg-white border-slate-300 text-slate-600"}`}>
+            <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+            Loading available languages...
+          </div>
+        ) : (
+          <NeoDropdown
+            options={supportedLanguages.map((l) => ({
+              value: l.code,
+              label: `${l.flag || ""} ${l.label || l.code}`,
+            }))}
+            value={learningDialect}
+            onChange={setLearningDialect}
+            isDarkMode={isDarkMode}
+            className="w-full"
+          />
+        )}
+        <div className="mt-3">
+          <label className={`${labelClasses} text-[10px]`}>
+            Or enter a BCP-47 code if your language is not listed
+          </label>
+          <input
+            type="text"
+            value={learningDialect}
+            onChange={(e) => setLearningDialect(e.target.value)}
+            placeholder="e.g. it-IT, ja-JP, ru-RU"
+            className={`w-full p-3 rounded-xl border-4 font-mono text-sm uppercase tracking-widest
+              ${isDarkMode ? "bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400"}`}
+          />
+        </div>
       </div>
+      {isSeedingLanguage && (
+        <div className={`p-3 rounded-xl border-4 text-center ${isDarkMode ? "bg-slate-800 border-yellow-400 text-yellow-400" : "bg-white border-yellow-500 text-yellow-700"}`}>
+          <Loader2 size={18} className="animate-spin inline mr-2" />
+          Adding new language via AI, this may take a moment...
+        </div>
+      )}
       <div className="flex justify-between pt-4">
         <button
           onClick={handleBack}
@@ -228,8 +280,9 @@ const OnboardingPage = () => {
         </button>
         <button
           onClick={handleNext}
+          disabled={!learningDialect || isSeedingLanguage}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95
-            ${learningDialect
+            ${learningDialect && !isSeedingLanguage
               ? isDarkMode
                 ? "bg-yellow-400 border-yellow-400 text-slate-900 shadow-[4px_4px_0px_0px_#854d0e]"
                 : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
@@ -237,10 +290,12 @@ const OnboardingPage = () => {
                 ? "bg-slate-700 border-slate-600 text-slate-400 cursor-not-allowed"
                 : "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed"
             }`}
-          disabled={!learningDialect}
         >
-          {t("onboarding.next")}
-          <ChevronRight size={16} />
+          {isSeedingLanguage ? (
+            <><Loader2 size={16} className="animate-spin" /> Please wait</>
+          ) : (
+            <>{t("onboarding.next")} <ChevronRight size={16} /></>
+          )}
         </button>
       </div>
     </div>
@@ -257,7 +312,7 @@ const OnboardingPage = () => {
           {t("settings.interface_language")}
         </label>
         <NeoDropdown
-          options={INTERFACE_LANGUAGES.map((l) => ({ value: l.value, label: t(l.labelKey) }))}
+          options={supportedLanguages.map((l) => ({ value: l.code, label: `${l.flag || ""} ${l.label || l.code}` }))}
           value={interfaceLang}
           onChange={setInterfaceLang}
           isDarkMode={isDarkMode}

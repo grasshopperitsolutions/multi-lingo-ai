@@ -28,11 +28,7 @@ import {
 import { useTierAccess } from "../hooks/useTierAccess";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
 import { auth } from "../firebase";
-import {
-  LEARNING_LANGUAGES,
-  INTERFACE_LANGUAGES,
-  INTEREST_CATEGORIES,
-} from "../config/supportedLanguages";
+import { INTEREST_CATEGORIES } from "../config/supportedLanguages";
 
 // ── Avatar Upload Widget ─────────────────────────────────────────────────────────
 const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading, t }) => {
@@ -163,6 +159,7 @@ const SettingsForm = ({
   draftDarkMode, setDraftDarkMode,
   isSaving, isUploading, handleSave,
   previewUrl, onFileSelect,
+  supportedLanguages,
 }) => {
   const { t } = useTranslation();
 
@@ -254,7 +251,7 @@ const SettingsForm = ({
               <Globe size={12} className="inline mr-1" /> {t("settings.interface_language")}
             </label>
             <NeoDropdown
-              options={INTERFACE_LANGUAGES.map((l) => ({ value: l.value, label: t(l.labelKey) }))}
+              options={supportedLanguages.map((l) => ({ value: l.code, label: `${l.flag || ""} ${l.label || l.code}` }))}
               value={interfaceLang}
               onChange={setInterfaceLang}
               isDarkMode={isDarkMode}
@@ -276,9 +273,9 @@ const SettingsForm = ({
               <Globe size={12} className="inline mr-1" /> {t("settings.learning_language")}
             </label>
             <NeoDropdown
-              options={LEARNING_LANGUAGES.map((l) => ({
-                value: l.value,
-                label: `${l.flag || ""} ${t(l.labelKey)}`,
+              options={supportedLanguages.map((l) => ({
+                value: l.code,
+                label: `${l.flag || ""} ${l.label || l.code}`,
               }))}
               value={learningDialect}
               onChange={setLearningDialect}
@@ -349,11 +346,16 @@ SettingsForm.propTypes = {
   handleSave:         PropTypes.func.isRequired,
   previewUrl:         PropTypes.string,
   onFileSelect:       PropTypes.func.isRequired,
+  supportedLanguages: PropTypes.arrayOf(PropTypes.shape({
+    code:    PropTypes.string.isRequired,
+    label:   PropTypes.string,
+    flag:    PropTypes.string,
+  })).isRequired,
 };
 
 // ── Settings Page ───────────────────────────────────────────────────────────────
 const SettingsPage = () => {
-  const { isDarkMode, setIsDarkMode, user, logoutUser, showAlert, refreshUser, changeLanguage } = useAppContext();
+  const { isDarkMode, setIsDarkMode, user, logoutUser, showAlert, refreshUser, changeLanguage, supportedLanguages } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { tier, isExplorer, isVoyager, isVip, isAdmin } = useTierAccess();
@@ -514,25 +516,26 @@ const SettingsPage = () => {
           {t("settings.title")}
         </h1>
 
-        <SettingsForm
-          user={user}
-          isDarkMode={isDarkMode}
-          displayName={displayName}
-          setDisplayName={setDisplayName}
-          interfaceLang={interfaceLang}
-          setInterfaceLang={setInterfaceLang}
-          learningDialect={learningDialect}
-          setLearningDialect={setLearningDialect}
-          interests={interests}
-          setInterests={setInterests}
-          draftDarkMode={draftDarkMode}
-          setDraftDarkMode={setDraftDarkMode}
-          isSaving={isSaving}
-          isUploading={isUploading}
-          handleSave={handleSave}
-          previewUrl={previewUrl}
-          onFileSelect={handleFileSelect}
-        />
+      <SettingsForm
+        user={user}
+        isDarkMode={isDarkMode}
+        displayName={displayName}
+        setDisplayName={setDisplayName}
+        interfaceLang={interfaceLang}
+        setInterfaceLang={setInterfaceLang}
+        learningDialect={learningDialect}
+        setLearningDialect={setLearningDialect}
+        interests={interests}
+        setInterests={setInterests}
+        draftDarkMode={draftDarkMode}
+        setDraftDarkMode={setDraftDarkMode}
+        isSaving={isSaving}
+        isUploading={isUploading}
+        handleSave={handleSave}
+        previewUrl={previewUrl}
+        onFileSelect={handleFileSelect}
+        supportedLanguages={supportedLanguages}
+      />
 
         {/* ── Subscription Section ── */}
         <div className={sectionClasses}>
