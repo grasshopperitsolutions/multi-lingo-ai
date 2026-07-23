@@ -114,6 +114,14 @@ const OnboardingPage = () => {
   const [showOtherInterface, setShowOtherInterface] = useState(false);
   const [showOtherLearning, setShowOtherLearning] = useState(false);
 
+  // Auto-trigger "Other" when supportedLanguages is empty
+  useEffect(() => {
+    if (!isLoadingLanguages && supportedLanguages.length === 0) {
+      setShowOtherInterface(true);
+      setShowOtherLearning(true);
+    }
+  }, [isLoadingLanguages, supportedLanguages.length]);
+
   const totalSteps = 3;
 
   // Redirect if user already completed onboarding
@@ -139,8 +147,16 @@ const OnboardingPage = () => {
     }
 
     if (step === 0) {
-      // Interface language step — seed if needed
-      if (interfaceLang && !supportedLanguages.find((l) => l.code === interfaceLang)) {
+      // Welcome → Interface Language
+      setStep(1);
+    } else if (step === 1) {
+      // Interface Language → validate & seed, then go to Learning Language
+      if (!interfaceLang) {
+        showAlert("error", "Please select or enter an interface language.");
+        return;
+      }
+
+      if (supportedLanguages.length === 0 || !supportedLanguages.find((l) => l.code === interfaceLang)) {
         setIsSeedingInterface(true);
         try {
           await seedIfNeeded(interfaceLang, token);
@@ -151,17 +167,18 @@ const OnboardingPage = () => {
         }
         setIsSeedingInterface(false);
       }
-      setStep(1);
-    } else if (step === 1) {
+      setStep(2);
+    } else if (step === 2) {
+      // Learning Language → validate & seed, then finish
       if (!learningDialect) {
-        showAlert("error", "Please select a language to learn.");
+        showAlert("error", "Please select or enter a language to learn.");
         return;
       }
 
       setIsSeedingLanguage(true);
       try {
         await seedIfNeeded(learningDialect, token);
-        setStep(2);
+        await handleFinish();
       } catch (err) {
         showAlert("error", `Could not add language: ${err.message}`);
       } finally {
@@ -257,7 +274,7 @@ const OnboardingPage = () => {
             <Loader2 size={20} className="animate-spin mx-auto mb-2" />
             Loading available languages...
           </div>
-        ) : supportedLanguages.length > 0 ? (
+        ) : (
           <>
             <NeoDropdown
               options={supportedLanguages.map((l) => ({
@@ -288,15 +305,6 @@ const OnboardingPage = () => {
               </div>
             )}
           </>
-        ) : (
-          <input
-            type="text"
-            value={interfaceLang}
-            onChange={(e) => setInterfaceLang(e.target.value)}
-            placeholder={t("onboarding.interface_placeholder")}
-            className={`w-full p-3 rounded-xl border-4 font-mono text-sm uppercase tracking-widest
-              ${isDarkMode ? "bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400"}`}
-          />
         )}
       </div>
       {isSeedingInterface && (
@@ -352,7 +360,7 @@ const OnboardingPage = () => {
             <Loader2 size={20} className="animate-spin mx-auto mb-2" />
             Loading available languages...
           </div>
-        ) : supportedLanguages.length > 0 ? (
+        ) : (
           <>
             <NeoDropdown
               options={supportedLanguages.map((l) => ({
@@ -383,15 +391,6 @@ const OnboardingPage = () => {
               </div>
             )}
           </>
-        ) : (
-          <input
-            type="text"
-            value={learningDialect}
-            onChange={(e) => setLearningDialect(e.target.value)}
-            placeholder={t("onboarding.learning_placeholder")}
-            className={`w-full p-3 rounded-xl border-4 font-mono text-sm uppercase tracking-widest
-              ${isDarkMode ? "bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500" : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400"}`}
-          />
         )}
       </div>
       {isSeedingLanguage && (
