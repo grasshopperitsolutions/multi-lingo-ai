@@ -72,6 +72,11 @@ const HangmanGame = ({ isDarkMode }) => {
   // ── Difficulty ──
   const [hardMode, setHardMode] = useState(false);
 
+  // Reset hard mode when language changes
+  useEffect(() => {
+    setHardMode(false);
+  }, [learningDialect]);
+
   // ── Word state ──
   const [word, setWord]           = useState("");
   const [hint, setHint]           = useState("");
@@ -96,7 +101,20 @@ const HangmanGame = ({ isDarkMode }) => {
 
   const maxWrong = 6;
 
-  const baseKeys = BASE_KEYS;
+  // Derive base keys from the writing system that supports this language
+  const baseKeys = useMemo(() => {
+    if (!writingSystems?.length) return BASE_KEYS;
+    const system = writingSystems.find((ws) =>
+      Array.isArray(ws?.supportedLanguageCodes)
+        ? ws.supportedLanguageCodes.includes(learningDialect)
+        : false
+    );
+    const defaults = system?.characters?.default ?? [];
+    if (Array.isArray(defaults) && defaults.length > 0) {
+      return defaults.map((c) => String(c).toUpperCase());
+    }
+    return BASE_KEYS;
+  }, [writingSystems, learningDialect]);
 
   // Derive accented/special keys from the writing system that supports this language
   const accentedKeys = useMemo(() => {
@@ -332,7 +350,8 @@ const HangmanGame = ({ isDarkMode }) => {
       {/* ── Main game column ── */}
       <div className="flex flex-col items-center flex-1 min-w-0">
 
-        {/* Easy / Hard toggle */}
+        {/* Easy / Hard toggle — only show when there are accented/special keys */}
+        {accentedKeys.length > 0 && (
         <div className={`flex mb-6 rounded-full border-4 overflow-hidden ${
           isDarkMode ? "border-slate-700" : "border-slate-900"
         }`}>
@@ -359,6 +378,7 @@ const HangmanGame = ({ isDarkMode }) => {
             {t("challenges.hard")}
           </button>
         </div>
+        )}
 
         {/* Hint */}
         {hint && (
