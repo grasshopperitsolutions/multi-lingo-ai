@@ -5,14 +5,8 @@ import {
 } from "../services/authService";
 import { getUserProfile, updateDayStreak } from "../services/userService";
 import { getLanguages, getWritingSystems } from "../services/supportedLanguagesService";
-import { getDocument, createDocument } from "../services/firestoreService";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
-import enLocale from "../locales/en/translation.json";
-import deLocale from "../locales/de/translation.json";
-import esLocale from "../locales/es/translation.json";
-import frLocale from "../locales/fr/translation.json";
-import ptPtLocale from "../locales/pt-PT/translation.json";
 
 const AppContext = createContext();
 
@@ -313,48 +307,6 @@ export const AppProvider = ({ children }) => {
     await loadUserProfile(authUser);
   };
 
-  // ── Locale seed helper (one-shot, runs once per auth session) ────────────
-  // TODO: DELETE THIS ASAP — seeds all locale data to Firestore on first load.
-  // Once the "appConfig/config/locales" collection exists in Firestore, remove
-  // this function, its call below, and its associated imports.
-  const seedLocales = useCallback(async (token) => {
-    if (!token) return;
-
-    const entries = [
-      ["en-US", enLocale],
-      ["de-DE", deLocale],
-      ["es-ES", esLocale],
-      ["fr-FR", frLocale],
-      ["pt-PT", ptPtLocale],
-    ];
-
-    let seeded = 0;
-    let skipped = 0;
-    let errors = 0;
-
-    for (const [code, data] of entries) {
-      try {
-        console.log(`[locale-seed] Checking locale "${code}"...`);
-        const existing = await getDocument("appConfig/config/locales", code, token);
-        if (existing?.data) {
-          console.log(`[locale-seed] ✓ "${code}" already exists in Firestore — skipping`);
-          skipped++;
-          continue;
-        }
-        await createDocument("appConfig/config/locales", data, code, token);
-        console.log(`[locale-seed] ✓ "${code}" successfully seeded to Firestore`);
-        seeded++;
-      } catch (err) {
-        console.error(`[locale-seed] ✗ "${code}" FAILED — ${err.message}`);
-        errors++;
-      }
-    }
-
-    console.log(
-      `[locale-seed] DONE — seeded: ${seeded}, already existed: ${skipped}, errors: ${errors}`
-    );
-  }, []);
-
   // Sync interfaceLang changes to i18next
   useEffect(() => {
     import("i18next").then((i18nModule) => {
@@ -387,8 +339,6 @@ export const AppProvider = ({ children }) => {
           token: authUser.token,
         }));
         loadUserProfile(authUser);
-        // Seed locales to Firestore (one-shot, safe to call on every login)
-        seedLocales(token);
       } else {
         setUser(null);
         setIsLoadingUser(false);
