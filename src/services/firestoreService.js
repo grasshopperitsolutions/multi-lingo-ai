@@ -57,7 +57,7 @@ export async function getDocument(collection, id, token) {
 
 // ---------------------------------------------------------------------------
 // queryCollection
-// GET /api/firestore?collection={path}&query={filters}&orderBy=...&limit=...
+// GET /api/firestore?collection={path}&filters={field,op,value}[]&orderBy=...&limit=...
 //
 // Fetches up to `limit` (max 100) documents matching the given field filters.
 // Supports subcollection paths.
@@ -67,7 +67,9 @@ export async function getDocument(collection, id, token) {
  * Run a filtered query against a Firestore collection or subcollection.
  *
  * @param {string} collection - Collection path (slash-separated for subcollections).
- * @param {Record<string, unknown>} [filters={}] - Field equality filters.
+ * @param {Record<string, unknown>} [filters={}] - Field equality filters, e.g. { code: 'pt-PT' }.
+ *   Internally converted to the API's expected `{ field, op, value }[]` shape, with
+ *   `op` defaulting to '==' for every entry.
  * @param {{ orderBy?: string, order?: 'asc'|'desc', limit?: number, startAfter?: string }} [options={}]
  * @param {string} [token] - Optional pre-fetched Firebase ID token.
  * @returns {Promise<import('../challenges-services/types').FirestoreQueryResult>}
@@ -80,9 +82,18 @@ export async function queryCollection(collection, filters = {}, options = {}, to
   // document ID order without needing composite indexes, which is faster.
   const { orderBy, order, limit=1000, startAfter } = options;
 
+  // The API expects an array of { field, op, value } filter descriptors under
+  // the "filters" query param (see api/firestore.ts). Convert the simple
+  // equality-map shape used throughout this codebase into that format.
+  const filterArray = Object.entries(filters).map(([field, value]) => ({
+    field,
+    op: '==',
+    value,
+  }));
+
   const url = new URL(`${PROXY_URL}/api/firestore`);
   url.searchParams.set('collection', collection);
-  url.searchParams.set('query', JSON.stringify(filters));
+  url.searchParams.set('filters', JSON.stringify(filterArray));
   if (orderBy) url.searchParams.set('orderBy', orderBy);
   if (order) url.searchParams.set('order', order);
   if (limit !== undefined) url.searchParams.set('limit', String(limit));
