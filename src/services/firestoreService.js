@@ -43,12 +43,18 @@ export async function getDocument(collection, id, token) {
     },
   });
 
+  // Document not found — return null (not an error)
+  if (response.status === 404) {
+    console.log(`[firestoreService] Document not found — collection: "${collection}", id: "${id}"`);
+    return null;
+  }
+
   const json = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      json?.error ?? json?.message ?? `[firestoreService] getDocument failed (${response.status})`
-    );
+    const msg = json?.error ?? json?.message ?? `getDocument failed (${response.status})`;
+    console.error(`[firestoreService] ${msg} — collection: "${collection}", id: "${id}"`);
+    throw new Error(`[firestoreService] ${msg}`);
   }
 
   // API envelope: { success: true, data: { id, data: T, collection } }
@@ -110,9 +116,9 @@ export async function queryCollection(collection, filters = {}, options = {}, to
   const json = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      json?.error ?? json?.message ?? `[firestoreService] queryCollection failed (${response.status})`
-    );
+    const msg = json?.error ?? json?.message ?? `queryCollection failed (${response.status})`;
+    console.error(`[firestoreService] ${msg} — collection: "${collection}"`);
+    throw new Error(`[firestoreService] ${msg}`);
   }
 
   // API envelope: { success: true, data: FirestoreQueryResult }
@@ -151,9 +157,9 @@ export async function createDocument(collection, data, id, token) {
   const json = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      json?.error ?? json?.message ?? `[firestoreService] createDocument failed (${response.status})`
-    );
+    const msg = json?.error ?? json?.message ?? `createDocument failed (${response.status})`;
+    console.error(`[firestoreService] ${msg} — collection: "${collection}"${id ? `, id: "${id}"` : ''}`);
+    throw new Error(`[firestoreService] ${msg}`);
   }
 
   return json.data;
@@ -191,9 +197,9 @@ export async function updateDocument(collection, id, data, token) {
   const json = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      json?.error ?? json?.message ?? `[firestoreService] updateDocument failed (${response.status})`
-    );
+    const msg = json?.error ?? json?.message ?? `updateDocument failed (${response.status})`;
+    console.error(`[firestoreService] ${msg} — collection: "${collection}", id: "${id}"`);
+    throw new Error(`[firestoreService] ${msg}`);
   }
 
   return json.data;
@@ -239,9 +245,9 @@ export async function patchDocument(collection, id, data, token) {
   const json = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      json?.error ?? json?.message ?? `[firestoreService] patchDocument failed (${response.status})`
-    );
+    const msg = json?.error ?? json?.message ?? `patchDocument failed (${response.status})`;
+    console.error(`[firestoreService] ${msg} — collection: "${collection}", id: "${id}"`);
+    throw new Error(`[firestoreService] ${msg}`);
   }
 
   return json.data;
@@ -275,9 +281,9 @@ export async function deleteDocument(collection, id, token) {
   const json = await response.json();
 
   if (!response.ok) {
-    throw new Error(
-      json?.error ?? json?.message ?? `[firestoreService] deleteDocument failed (${response.status})`
-    );
+    const msg = json?.error ?? json?.message ?? `deleteDocument failed (${response.status})`;
+    console.error(`[firestoreService] ${msg} — collection: "${collection}", id: "${id}"`);
+    throw new Error(`[firestoreService] ${msg}`);
   }
 
   return json.data;
