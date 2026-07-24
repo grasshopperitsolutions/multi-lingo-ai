@@ -108,7 +108,6 @@ const OnboardingPage = () => {
   const [learningDialect, setLearningDialect] = useState("");
   const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en-US");
   const [interests, setInterests] = useState([]);
-  const [isSaving, setIsSaving] = useState(false);
   const [isSeedingLanguage, setIsSeedingLanguage] = useState(false);
   const [isSeedingInterface, setIsSeedingInterface] = useState(false);
   const [showOtherInterface, setShowOtherInterface] = useState(false);
@@ -202,7 +201,6 @@ const OnboardingPage = () => {
   const handleFinish = async () => {
     const firebaseUser = auth?.currentUser;
     if (!firebaseUser) return;
-    setIsSaving(true);
     try {
       const token = await firebaseUser.getIdToken();
       await updateUserProfile(token, firebaseUser.uid, {
@@ -218,8 +216,6 @@ const OnboardingPage = () => {
       navigate("/dashboard", { replace: true });
     } catch (err) {
       showAlert("error", err.message || "Failed to save profile.");
-    } finally {
-      setIsSaving(false);
     }
   };
 
