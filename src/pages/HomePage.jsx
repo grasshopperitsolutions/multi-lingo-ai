@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   ArrowRight,
   Mic,
@@ -14,6 +15,13 @@ import { useAppContext } from "../contexts/AppContext";
 import FeatureCard from "../components/FeatureCard";
 import RotatingReviews from "../components/RotatingReviews";
 import FaqItem from "../components/FaqItem";
+import app from "../firebase";
+import { getDocument, createDocument } from "../services/firestoreService";
+import enLocale from "../locales/en/translation.json";
+import deLocale from "../locales/de/translation.json";
+import esLocale from "../locales/es/translation.json";
+import frLocale from "../locales/fr/translation.json";
+import ptPtLocale from "../locales/pt-PT/translation.json";
 
 const SUPPORTED_LANGUAGES = ['PT-PT', 'PT-BR', 'EN-US', 'EN-GB', 'ES-ES', 'ES-MX', 'FR-FR', 'DE-DE'];
 
@@ -43,6 +51,55 @@ const HomePage = () => {
   const marqueeItems = t("home.marquee", { returnObjects: true });
   const reviews = t("home.reviews", { returnObjects: true });
   const faqs = t("home.faqs", { returnObjects: true });
+
+  // TODO: DELETE THIS ASAP — seeds all locale data to Firestore on first load
+  // Once the "appConfig/config/locales" collection exists in Firestore, remove
+  // this entire useEffect and its associated imports.
+  useEffect(() => {
+    const run = async () => {
+      console.log("[locale-seed] Starting locale seed check...");
+
+      if (!app) {
+        console.warn("[locale-seed] SKIPPED — Firebase app not initialized (SSG build mode)");
+        return;
+      }
+
+      const entries = [
+        ["en-US", enLocale],
+        ["de-DE", deLocale],
+        ["es-ES", esLocale],
+        ["fr-FR", frLocale],
+        ["pt-PT", ptPtLocale],
+      ];
+
+      let seeded = 0;
+      let skipped = 0;
+      let errors = 0;
+
+      for (const [code, data] of entries) {
+        try {
+          console.log(`[locale-seed] Checking locale "${code}"...`);
+          const existing = await getDocument("appConfig/config/locales", code);
+          if (existing?.data) {
+            console.log(`[locale-seed] ✓ "${code}" already exists in Firestore — skipping`);
+            skipped++;
+            continue;
+          }
+          await createDocument("appConfig/config/locales", data, code);
+          console.log(`[locale-seed] ✓ "${code}" successfully seeded to Firestore`);
+          seeded++;
+        } catch (err) {
+          console.error(`[locale-seed] ✗ "${code}" FAILED — ${err.message}`);
+          errors++;
+        }
+      }
+
+      console.log(
+        `[locale-seed] DONE — seeded: ${seeded}, already existed: ${skipped}, errors: ${errors}`
+      );
+    };
+    run();
+  }, []);
 
   return (
     <>
