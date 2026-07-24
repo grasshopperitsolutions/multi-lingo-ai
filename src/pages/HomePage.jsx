@@ -43,7 +43,7 @@ const LANG_POSITIONS = [
 ];
 
 const HomePage = () => {
-  const { isDarkMode } = useAppContext();
+  const { isDarkMode, user } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -52,7 +52,7 @@ const HomePage = () => {
   const reviews = t("home.reviews", { returnObjects: true });
   const faqs = t("home.faqs", { returnObjects: true });
 
-  // TODO: DELETE THIS ASAP — seeds all locale data to Firestore on first load
+  // TODO: DELETE THIS ASAP — seeds all locale data to Firestore on first load.
   // Once the "appConfig/config/locales" collection exists in Firestore, remove
   // this entire useEffect and its associated imports.
   useEffect(() => {
@@ -63,6 +63,13 @@ const HomePage = () => {
         console.warn("[locale-seed] SKIPPED — Firebase app not initialized (SSG build mode)");
         return;
       }
+
+      if (!user?.token) {
+        console.warn("[locale-seed] SKIPPED — no authenticated user token available");
+        return;
+      }
+
+      const token = user.token;
 
       const entries = [
         ["en-US", enLocale],
@@ -79,13 +86,13 @@ const HomePage = () => {
       for (const [code, data] of entries) {
         try {
           console.log(`[locale-seed] Checking locale "${code}"...`);
-          const existing = await getDocument("appConfig/config/locales", code);
+          const existing = await getDocument("appConfig/config/locales", code, token);
           if (existing?.data) {
             console.log(`[locale-seed] ✓ "${code}" already exists in Firestore — skipping`);
             skipped++;
             continue;
           }
-          await createDocument("appConfig/config/locales", data, code);
+          await createDocument("appConfig/config/locales", data, code, token);
           console.log(`[locale-seed] ✓ "${code}" successfully seeded to Firestore`);
           seeded++;
         } catch (err) {
@@ -99,7 +106,7 @@ const HomePage = () => {
       );
     };
     run();
-  }, []);
+  }, [user?.token]);
 
   return (
     <>
