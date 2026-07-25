@@ -7,6 +7,7 @@ import { getUserProfile, updateDayStreak } from "../services/userService";
 import { getLanguages, getWritingSystems } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
+import i18n from "../i18n";
 
 const AppContext = createContext();
 
@@ -46,6 +47,7 @@ export const AppProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(getSavedTheme());
   const [interfaceLang, setInterfaceLang] = useState(getSavedLanguage());
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isChangingInterfaceLanguage, setIsChangingInterfaceLanguage] = useState(false);
   const [alert, setAlert] = useState({ show: false, type: "", message: "", action: null });
   const [user, setUser] = useState(null);
   const [tokenExpired, setTokenExpired] = useState(false);
@@ -135,11 +137,10 @@ export const AppProvider = ({ children }) => {
    */
   const handleTokenExpired = useCallback(() => {
     setTokenExpired(true);
-    // Use a non-auto-dismissing alert so the user sees the warning
     setAlert({
       show: true,
       type: "error",
-      message: "__SESSION_EXPIRED__", // sentinel; AlertMessage will resolve via i18n
+      message: "__SESSION_EXPIRED__",
     });
   }, []);
 
@@ -153,8 +154,6 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   // ── Periodic token validation ──────────────────────────────────────────
-  // Every TOKEN_CHECK_INTERVAL_MS, try to force-refresh the ID token.
-  // If the refresh fails the session is considered expired.
   useEffect(() => {
     if (!auth) return;
 
@@ -179,7 +178,6 @@ export const AppProvider = ({ children }) => {
     if (!auth) return;
     const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
       if (firebaseUser && tokenExpired) {
-        // User re-authenticated (e.g. signed in again from another tab)
         setTokenExpired(false);
         setAlert({ show: false, type: "", message: "", action: null });
       }
@@ -188,15 +186,65 @@ export const AppProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Change interface language and persist
-  const changeLanguage = (lang) => {
+  /**
+   * Load and register a locale bundle from Firestore (with sessionStorage cache),
+   * then switch i18next to that language.
+   *
+   * - If the bundle is already registered in i18next → just call changeLanguage.
+   * - Otherwise → fetch via localeService, register, then change language.
+   * - While loading, isChangingInterfaceLanguage is true so UI can show a subtle indicator.
+   * - Falls back to en-US silently if the locale cannot be fetched.
+   */
+  const changeLanguage = useCallback(async (lang) => {
+    // Persist the preference immediately so it survives a refresh
     setInterfaceLang(lang);
     try {
       localStorage.setItem("interfaceLang", lang);
     } catch {
       // localStorage unavailable
     }
-  };
+
+    // en-US is already bundled — no fetch needed
+    if (lang === 'en-US') {
+      i18n.changeLanguage(lang);
+      return;
+    }
+
+    setIsChangingInterfaceLanguage(true);
+    try {
+      const firebaseUser = auth?.currentUser;
+      const token = firebaseUser ? await firebaseUser.getIdToken() : null;
+      if (token) {
+        const { ensureLocaleLoaded } = await import('../services/localeService');
+        await ensureLocaleLoaded(lang, token);
+      }
+      // Switch language — bundle is now registered (or we fall back to en-US)
+      i18n.changeLanguage(lang);
+    } catch (err) {
+      console.error('[AppContext] Failed to load locale for', lang, err);
+      // Don't crash — fall back to en-US
+      i18n.changeLanguage('en-US');
+    } finally {
+      setIsChangingInterfaceLanguage(false);
+    }
+  }, []);
+
+  /**
+   * After auth, load only the user's interfaceLang locale from Firestore.
+   * Avoids loading all 5 locales at startup.
+   */
+  const loadUserInterfaceLocale = useCallback(async (lang, token) => {
+    if (!lang || lang === 'en-US' || !token) return;
+    try {
+      const { ensureLocaleLoaded } = await import('../services/localeService');
+      const loaded = await ensureLocaleLoaded(lang, token);
+      if (loaded) {
+        i18n.changeLanguage(lang);
+      }
+    } catch (err) {
+      console.error('[AppContext] loadUserInterfaceLocale failed:', err);
+    }
+  }, []);
 
   // Safe theme setter that persists to localStorage
   const setIsDarkModeWithPersist = (isDark) => {
@@ -206,17 +254,6 @@ export const AppProvider = ({ children }) => {
 
   /**
    * Load the Firestore profile and merge it into user state.
-   *
-   * Priority for displayName and photoURL:
-   *   1. Firestore value  — set by the user in Settings (custom name / uploaded avatar)
-   *   2. Auth provider    — Google / Facebook / Apple / X display name and photo
-   *
-   * All other profile fields (theme, interfaceLang,
-   * learningDialect, interests, dayStreak, wordsFound,
-   * highestDayStreak) come from Firestore only.
-   *
-   * @param {object} authUser - The raw Firebase Auth user object fields + token.
-   *                            Used as fallback source for displayName and photoURL.
    */
   const loadUserProfile = async (authUser) => {
     if (!authUser?.token || !authUser?.uid) return;
@@ -239,38 +276,29 @@ export const AppProvider = ({ children }) => {
         // localStorage unavailable
       }
 
-      // Day streak — update in Firestore (no-op if already updated today)
-      // Returns { dayStreak, highestDayStreak } — current or newly updated values.
+      // Lazy-load the user's interface locale from Firestore (non-blocking)
+      loadUserInterfaceLocale(lang, authUser.token);
+
+      // Day streak
       const { dayStreak, highestDayStreak } = await updateDayStreak(authUser.token, authUser.uid, profile);
 
-      // Words found — derived from the length of seenConceptIds (no extra read needed)
       const wordsFound = profile?.seenConceptIds?.length ?? 0;
-
-      // Seen exercise IDs — tracked per type for exam training features
       const seenExerciseIds = profile?.seenExerciseIds ?? { reading: [], listening: [], writing: [] };
 
       setUser((prev) => ({
         ...prev,
-        // displayName: Firestore → auth provider → keep previous
         displayName: profile?.displayName || authUser?.displayName || prev?.displayName,
-        // photoURL: Firestore → auth provider → keep previous
         photoURL: profile?.photoURL || authUser?.photoURL || prev?.photoURL,
         interfaceLang: lang,
         theme: profile?.theme ?? "light",
-        // ── Learning profile fields ──────────────────────────────────────────
-        // learningDialect: Firestore value only — null means onboarding not completed
         learningDialect: profile?.learningDialect ?? null,
-        // interests: Firestore → keep previous → empty array
         interests: profile?.interests ?? prev?.interests ?? [],
-        // onboardingCompleted: Firestore flag — used by RequireOnboarding guard
         onboardingCompleted: profile?.onboardingCompleted ?? false,
-        // ── Subscription / tier fields ───────────────────────────────────────
         subscriptionTier: profile?.subscriptionTier ?? "explorer",
         subscriptionStatus: profile?.subscriptionStatus ?? null,
         currentPeriodEnd: profile?.currentPeriodEnd ?? null,
         aiCallsToday: profile?.aiCallsToday ?? 0,
         aiCallsDate: profile?.aiCallsDate ?? null,
-        // ── Stats fields ─────────────────────────────────────────────────────
         dayStreak,
         highestDayStreak,
         wordsFound,
@@ -295,8 +323,6 @@ export const AppProvider = ({ children }) => {
       emailVerified: firebaseUser.emailVerified,
       token,
     };
-    // Only set non-profile fields immediately — displayName and photoURL
-    // are resolved by loadUserProfile (Firestore first, auth provider fallback)
     setUser((prev) => ({
       ...prev,
       uid: authUser.uid,
@@ -307,15 +333,7 @@ export const AppProvider = ({ children }) => {
     await loadUserProfile(authUser);
   };
 
-  // Sync interfaceLang changes to i18next
-  useEffect(() => {
-    import("i18next").then((i18nModule) => {
-      i18nModule.default.changeLanguage(interfaceLang);
-    });
-  }, [interfaceLang]);
-
-  // Persistent auth listener — stays alive for the app lifetime so token
-  // refreshes, custom-token re-auth, and session changes are always reflected.
+  // Persistent auth listener
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
@@ -329,8 +347,6 @@ export const AppProvider = ({ children }) => {
           emailVerified: firebaseUser.emailVerified,
           token,
         };
-        // Only set non-profile fields immediately — displayName and photoURL
-        // are resolved by loadUserProfile (Firestore first, auth provider fallback)
         setUser((prev) => ({
           ...prev,
           uid: authUser.uid,
@@ -353,8 +369,6 @@ export const AppProvider = ({ children }) => {
   const loginGoogle = async () => {
     try {
       const result = await loginWithGoogle();
-      // Do NOT call setUser or loadUserProfile here — onAuthStateChanged fires
-      // immediately after signInWithCustomToken and handles both.
       return result;
     } catch (e) {
       showAlert("error", e.message);
@@ -382,6 +396,7 @@ export const AppProvider = ({ children }) => {
         setIsDarkMode: setIsDarkModeWithPersist,
         interfaceLang,
         changeLanguage,
+        isChangingInterfaceLanguage,
         alert,
         showAlert,
         closeAlert,
@@ -395,13 +410,11 @@ export const AppProvider = ({ children }) => {
         handleTokenExpired,
         dismissTokenExpired,
         validateToken,
-        // Supported languages & writing systems
         supportedLanguages,
         writingSystems,
         isLoadingLanguages,
         isLoadingWritingSystems,
         refreshSupportedLanguages,
-        // Full Exam session
         examSession,
         setExamSession,
         updateExamSection,

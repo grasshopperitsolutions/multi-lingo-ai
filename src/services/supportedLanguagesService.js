@@ -3,6 +3,10 @@
  *
  * Manages fetching and dynamic seeding of supported languages and writing systems.
  * Uses Firestore for persistence and AI (Gemini) for generating new language metadata.
+ *
+ * When a new language is seeded via seedLanguage(), a UI locale translation scaffold
+ * is automatically generated and stored in appConfig/config/locales/{langCode} by
+ * calling localeService.seedLocaleForNewLanguage().
  */
 
 import { askAI } from "./aiService";
@@ -85,6 +89,8 @@ export async function getWritingSystems(token) {
 
 /**
  * Seed a new language using AI generation, then persist to Firestore.
+ * After successfully seeding the language metadata, automatically seeds
+ * a UI locale translation scaffold via localeService.seedLocaleForNewLanguage.
  *
  * Flow:
  * 1. Call AI to generate language metadata + character sets.
@@ -92,7 +98,8 @@ export async function getWritingSystems(token) {
  * 3. If exists → update its supportedLanguageCodes array.
  *    If not   → create new writing system document.
  * 4. Create the new supportedLanguages document linking the writing system IDs.
- * 5. Return the created language document.
+ * 5. Seed a UI locale translation for the new language (Gemini AI).
+ * 6. Return the created language document.
  *
  * @param {string} code     - BCP-47 language code (e.g. "pt-PT").
  * @param {string} name     - Human-readable language name (for AI context).
@@ -111,7 +118,6 @@ export async function seedLanguage(code, name, token) {
     { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.2 }
   );
 
-  // The API returns the JSON string inside the `text` field
   const aiData = typeof aiResponse?.text === "string" ? JSON.parse(aiResponse.text) : aiResponse;
 
   if (!aiData?.code || !aiData?.characters) {
@@ -130,7 +136,6 @@ export async function seedLanguage(code, name, token) {
     characters,
   } = aiData;
 
-  // The AI derives the proper BCP-47 code from the user's description.
   const canonicalCode = typeof returnedCode === "string" && returnedCode.trim()
     ? returnedCode.trim()
     : code.trim();
@@ -160,7 +165,6 @@ export async function seedLanguage(code, name, token) {
   let writingSystemId;
 
   if (matchingSystem) {
-    // 3a. Update existing writing system — append new language code if missing
     writingSystemId = matchingSystem.id;
     const updatedCodes = Array.isArray(matchingSystem.supportedLanguageCodes)
       ? [...new Set([...matchingSystem.supportedLanguageCodes, canonicalCode])]
@@ -173,7 +177,6 @@ export async function seedLanguage(code, name, token) {
       token
     );
   } else {
-    // 3b. Create new writing system
     const newSystemId = generateWritingSystemId(canonicalCode, defaultChars, specialChars);
     const newSystem = {
       id: newSystemId,
@@ -201,10 +204,19 @@ export async function seedLanguage(code, name, token) {
     aiGenerated: true,
   };
 
-  // Use the canonical BCP-47 code as the document ID
   const created = await createDocument(LANGUAGES_COLLECTION, languageDoc, canonicalCode, token);
 
-  // 5. Return the created document (API returns { id, data, collection })
+  // 5. Seed a UI locale translation for the new language (non-blocking, best-effort)
+  try {
+    const { seedLocaleForNewLanguage } = await import('./localeService');
+    await seedLocaleForNewLanguage(canonicalCode, label || name, token);
+  } catch (err) {
+    console.warn(
+      `[supportedLanguagesService] Could not seed UI locale for ${canonicalCode}:`,
+      err.message
+    );
+  }
+
   return created?.data ?? { ...languageDoc, id: canonicalCode };
 }
 
@@ -212,12 +224,10 @@ export async function seedLanguage(code, name, token) {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-/** Sort arrays for deterministic equality comparison */
 function sorted(arr) {
   return [...arr].sort();
 }
 
-/** Compare two arrays for element equality (order-independent) */
 function arraysEqual(a, b) {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
@@ -226,12 +236,6 @@ function arraysEqual(a, b) {
   return true;
 }
 
-/**
- * Generate a deterministic but readable writing system ID from the language code
- * and character set fingerprint.
- *
- * Examples: "latin-en", "cyrillic-ru", "japanese-hiragana"
- */
 function generateWritingSystemId(code, defaultChars, specialChars) {
   const script = detectScript(defaultChars);
   const region = code.split("-")[1]?.toLowerCase() || "default";
@@ -239,18 +243,12 @@ function generateWritingSystemId(code, defaultChars, specialChars) {
   return `${script}-${region}${fingerprint ? `__${fingerprint}` : ""}`;
 }
 
-
-/**
- * Very rough script detector based on Unicode ranges.
- * Returns a lowercase script label.
- */
 function detectScript(chars) {
   const has = (range) => chars.some((c) => {
     const code = c.charCodeAt(0);
     return code >= range[0] && code <= range[1];
   });
 
-  // Order matters — check more specific scripts first
   if (has([0x3040, 0x309F]) || has([0x30A0, 0x30FF])) return "japanese";
   if (has([0xAC00, 0xD7AF])) return "korean";
   if (has([0x4E00, 0x9FFF]) || has([0x3400, 0x4DBF])) return "chinese";
@@ -273,23 +271,15 @@ function detectScript(chars) {
   if (has([0x1780, 0x17FF])) return "khmer";
   if (has([0x1200, 0x137F])) return "ethiopic";
 
-  // Default: Latin (covers most European languages)
   return "latin";
 }
 
-/**
- * Build a human-readable writing system name,
- * e.g. "Latin (Portuguese)" or "Cyrillic (Russian)".
- */
 function buildWritingSystemName(code, label) {
   const script = detectScriptFromCode(code);
   const languageName = label?.split("(")[1]?.replace(")", "").trim() || label || code;
   return `${script.charAt(0).toUpperCase() + script.slice(1)} (${languageName})`;
 }
 
-/**
- * Map common BCP-47 sub-tags to script labels.
- */
 function detectScriptFromCode(code) {
   const lower = code.toLowerCase();
   if (lower.includes("ja")) return "Japanese";
@@ -315,6 +305,5 @@ function detectScriptFromCode(code) {
   if (lower.includes("my")) return "Myanmar";
   if (lower.includes("km")) return "Khmer";
   if (lower.includes("am")) return "Ethiopic";
-  // Most European languages (and many others) use Latin
   return "Latin";
 }
