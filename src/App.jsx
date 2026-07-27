@@ -15,6 +15,7 @@ import OnboardingPage from "./pages/OnboardingPage";
 import PricingPage from "./pages/PricingPage";
 import SubscriptionSuccessPage from "./pages/SubscriptionSuccessPage";
 import SubscriptionCancelPage from "./pages/SubscriptionCancelPage";
+import AppUnavailablePage from "./pages/AppUnavailablePage";
 import AlertMessage from "./components/Alert";
 import GlobalCompassCursor from "./components/GlobalCompassCursor";
 
@@ -99,6 +100,7 @@ const AppLayout = () => {
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/dashboard" element={<RequireOnboarding><DashboardPage /></RequireOnboarding>} />
           <Route path="/settings" element={<RequireOnboarding><SettingsPage /></RequireOnboarding>} />
+          <Route path="/app-unavailable" element={<AppUnavailablePage />} />
         </Routes>
       </div>
     </>

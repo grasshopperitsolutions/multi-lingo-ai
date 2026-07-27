@@ -7,6 +7,9 @@ import { getUserProfile, updateDayStreak } from "../services/userService";
 import { getLanguages, getWritingSystems } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
+import { getTranslations, clearTranslationsCache, fillMissingTranslations } from "../services/translationService";
+import { loadRemoteTranslations, registerMissingKeyHandler } from "../i18n";
+import Loader from "../components/Loader";
 
 const AppContext = createContext();
 
@@ -46,6 +49,7 @@ export const AppProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(getSavedTheme());
   const [interfaceLang, setInterfaceLang] = useState(getSavedLanguage());
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isLoadingTranslations, setIsLoadingTranslations] = useState(true);
   const [alert, setAlert] = useState({ show: false, type: "", message: "", action: null });
   const [user, setUser] = useState(null);
   const [tokenExpired, setTokenExpired] = useState(false);
@@ -188,15 +192,68 @@ export const AppProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Load translations for the current interface language ───────────────
+  const loadTranslationsForLang = useCallback(async (lang, token) => {
+    if (!lang) return;
+
+    setIsLoadingTranslations(true);
+    try {
+      // Clear cache so we get fresh data
+      clearTranslationsCache();
+
+      // Fetch translations from Firestore (falls back to local en-US)
+      const translations = await getTranslations(lang, token);
+
+      // Register with i18next
+      loadRemoteTranslations(lang, translations);
+
+      // Change i18next language
+      const i18nModule = await import("i18next");
+      i18nModule.default.changeLanguage(lang);
+
+      // Check for missing translation keys and fill them (non-blocking)
+      if (token && lang !== "en-US") {
+        fillMissingTranslations(lang, token).catch((err) =>
+          console.warn(`[AppContext] fillMissingTranslations failed for "${lang}": ${err.message}`)
+        );
+      }
+    } catch (err) {
+      console.error(`[AppContext] Failed to load translations for "${lang}": ${err.message}`);
+      // Navigate to app-unavailable on Firestore failure
+      window.location.hash = "#/app-unavailable";
+      window.location.reload();
+      return;
+    } finally {
+      setIsLoadingTranslations(false);
+    }
+  }, []);
+
+  // Register the fillMissingTranslations function with i18next so it
+  // can be called when a translation key is missing at runtime
+  useEffect(() => {
+    registerMissingKeyHandler((locale) => {
+      const firebaseUser = auth?.currentUser;
+      if (!firebaseUser) return Promise.resolve();
+      return firebaseUser.getIdToken().then((token) =>
+        fillMissingTranslations(locale, token)
+      );
+    });
+  }, []);
+
   // Change interface language and persist
-  const changeLanguage = (lang) => {
+  const changeLanguage = useCallback(async (lang) => {
     setInterfaceLang(lang);
     try {
       localStorage.setItem("interfaceLang", lang);
     } catch {
       // localStorage unavailable
     }
-  };
+
+    // Load translations for the new language
+    const firebaseUser = auth?.currentUser;
+    const token = firebaseUser ? await firebaseUser.getIdToken() : null;
+    await loadTranslationsForLang(lang, token);
+  }, [loadTranslationsForLang]);
 
   // Safe theme setter that persists to localStorage
   const setIsDarkModeWithPersist = (isDark) => {
@@ -307,12 +364,16 @@ export const AppProvider = ({ children }) => {
     await loadUserProfile(authUser);
   };
 
-  // Sync interfaceLang changes to i18next
+  // Sync interfaceLang changes to i18next and load remote translations
   useEffect(() => {
-    import("i18next").then((i18nModule) => {
-      i18nModule.default.changeLanguage(interfaceLang);
-    });
-  }, [interfaceLang]);
+    const loadInitialTranslations = async () => {
+      const firebaseUser = auth?.currentUser;
+      const token = firebaseUser ? await firebaseUser.getIdToken() : null;
+      await loadTranslationsForLang(interfaceLang, token);
+    };
+    loadInitialTranslations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Persistent auth listener — stays alive for the app lifetime so token
   // refreshes, custom-token re-auth, and session changes are always reflected.
@@ -375,6 +436,11 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Show full-page loading while translations are being fetched
+  if (isLoadingTranslations) {
+    return <Loader isDarkMode={isDarkMode} fullScreen message="Loading translations..." />;
+  }
+
   return (
     <AppContext.Provider
       value={{
@@ -388,6 +454,7 @@ export const AppProvider = ({ children }) => {
         user,
         setUser,
         isLoadingUser,
+        isLoadingTranslations,
         loginGoogle,
         logoutUser,
         refreshUser,
@@ -418,3 +485,5 @@ AppProvider.propTypes = {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAppContext = () => useContext(AppContext);
+
+

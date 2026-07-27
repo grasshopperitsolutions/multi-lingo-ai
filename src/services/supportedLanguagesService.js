@@ -6,6 +6,7 @@
  */
 
 import { askAI } from "./aiService";
+import { seedLanguageTranslations } from "./translationService";
 import {
   queryCollection,
   createDocument,
@@ -204,7 +205,17 @@ export async function seedLanguage(code, name, token) {
   // Use the canonical BCP-47 code as the document ID
   const created = await createDocument(LANGUAGES_COLLECTION, languageDoc, canonicalCode, token);
 
-  // 5. Return the created document (API returns { id, data, collection })
+  // 5. Seed UI translations for this language
+  try {
+    await seedLanguageTranslations(canonicalCode, token);
+  } catch (translationErr) {
+    console.warn(
+      `[supportedLanguagesService] Language "${canonicalCode}" created but UI translations failed: ${translationErr.message}`
+    );
+    // Non-fatal — the language is usable, just missing UI strings (falls back to en-US)
+  }
+
+  // 6. Return the created document (API returns { id, data, collection })
   return created?.data ?? { ...languageDoc, id: canonicalCode };
 }
 
