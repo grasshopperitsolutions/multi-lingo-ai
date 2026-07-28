@@ -258,8 +258,7 @@
     "terms_note": "By signing in you agree to our",
     "terms": "Terms",
     "privacy": "Privacy Policy",
-    "not_available": "This sign-in method isn't available yet — check back soon!",
-    "signing_in": "Signing in with Google…",
+    "signing_in": "Signing in with {{provider}}…",
     "back_home": "Back Home"
   },
   "contact": {

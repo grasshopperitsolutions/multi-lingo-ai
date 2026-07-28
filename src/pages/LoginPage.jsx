@@ -6,28 +6,36 @@ import { ArrowLeft } from "lucide-react";
 import BarcelosRooster from "../components/BarcelosRooster";
 import Loader from "../components/Loader";
 
+const PROVIDER_NAMES = {
+  google: "Google",
+  apple: "Apple",
+  facebook: "Facebook",
+  twitter: "X",
+};
+
 const LoginPage = () => {
-  const { isDarkMode, showAlert, loginGoogle } = useAppContext();
+  const { isDarkMode, loginGoogle, loginApple, loginFacebook, loginTwitter } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const [loadingProvider, setLoadingProvider] = useState(null);
+  const isLoading = Boolean(loadingProvider);
 
-  const handleNotImplemented = (e) => {
-    e.preventDefault();
-    showAlert("error", t('login.not_available'));
-  };
-
-  const handleGoogle = async () => {
-    setIsLoading(true);
+  const handleSocialLogin = (provider, loginFn) => async () => {
+    setLoadingProvider(provider);
     try {
-      const result = await loginGoogle();
+      const result = await loginFn();
       if (result?.success) {
         navigate("/dashboard");
       }
     } finally {
-      setIsLoading(false);
+      setLoadingProvider(null);
     }
   };
+
+  const handleGoogle = handleSocialLogin("google", loginGoogle);
+  const handleApple = handleSocialLogin("apple", loginApple);
+  const handleFacebook = handleSocialLogin("facebook", loginFacebook);
+  const handleX = handleSocialLogin("twitter", loginTwitter);
 
   return (
     <>
@@ -35,7 +43,7 @@ const LoginPage = () => {
       {isLoading && (
         <Loader
           fullScreen
-          message={t('login.signing_in')}
+          message={t('login.signing_in', { provider: PROVIDER_NAMES[loadingProvider] })}
           isDarkMode={isDarkMode}
         />
       )}
@@ -106,7 +114,7 @@ const LoginPage = () => {
 
             {/* Apple */}
             <button
-              onClick={handleNotImplemented}
+              onClick={handleApple}
               disabled={isLoading}
               aria-label={t('login.apple')}
               className={`w-16 h-16 flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
@@ -123,7 +131,7 @@ const LoginPage = () => {
 
             {/* Facebook */}
             <button
-              onClick={handleNotImplemented}
+              onClick={handleFacebook}
               disabled={isLoading}
               aria-label={t('login.facebook')}
               className={`w-16 h-16 flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
@@ -140,7 +148,7 @@ const LoginPage = () => {
 
             {/* X / Twitter */}
             <button
-              onClick={handleNotImplemented}
+              onClick={handleX}
               disabled={isLoading}
               aria-label={t('login.x')}
               className={`w-16 h-16 flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none

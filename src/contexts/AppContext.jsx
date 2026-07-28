@@ -1,6 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   loginWithGoogle,
+  loginWithApple,
+  loginWithFacebook,
+  loginWithTwitter,
   logout as logoutUserService,
 } from "../services/authService";
 import { getUserProfile, updateDayStreak } from "../services/userService";
@@ -46,6 +50,7 @@ const getSavedLanguage = () => {
 };
 
 export const AppProvider = ({ children }) => {
+  const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(getSavedTheme());
   const [interfaceLang, setInterfaceLang] = useState(getSavedLanguage());
   const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -220,26 +225,25 @@ export const AppProvider = ({ children }) => {
     } catch (err) {
       console.error(`[AppContext] Failed to load translations for "${lang}": ${err.message}`);
       // Navigate to app-unavailable on Firestore failure
-      window.location.hash = "#/app-unavailable";
-      window.location.reload();
+      navigate("/app-unavailable", { replace: true });
       return;
     } finally {
       setIsLoadingTranslations(false);
     }
-  }, []);
-
-  // Register the fillMissingTranslations function with i18next so it
-  // can be called when a translation key is missing at runtime
-  useEffect(() => {
-    registerMissingKeyHandler((locale) => {
-      const firebaseUser = auth?.currentUser;
-      if (!firebaseUser) return Promise.resolve();
-      return firebaseUser.getIdToken().then((token) =>
-        fillMissingTranslations(locale, token)
-      );
-    });
-  }, []);
-
+  }, [navigate]);
+
+  // Register the fillMissingTranslations function with i18next so it
+  // can be called when a translation key is missing at runtime
+  useEffect(() => {
+    registerMissingKeyHandler((locale) => {
+      const firebaseUser = auth?.currentUser;
+      if (!firebaseUser) return Promise.resolve();
+      return firebaseUser.getIdToken().then((token) =>
+        fillMissingTranslations(locale, token)
+      );
+    });
+  }, []);
+
   // Change interface language and persist
   const changeLanguage = useCallback(async (lang) => {
     setInterfaceLang(lang);
@@ -423,6 +427,33 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const loginApple = async () => {
+    try {
+      return await loginWithApple();
+    } catch (e) {
+      showAlert("error", e.message);
+      return { success: false };
+    }
+  };
+
+  const loginFacebook = async () => {
+    try {
+      return await loginWithFacebook();
+    } catch (e) {
+      showAlert("error", e.message);
+      return { success: false };
+    }
+  };
+
+  const loginTwitter = async () => {
+    try {
+      return await loginWithTwitter();
+    } catch (e) {
+      showAlert("error", e.message);
+      return { success: false };
+    }
+  };
+
   const logoutUser = async () => {
     try {
       await logoutUserService();
@@ -456,6 +487,9 @@ export const AppProvider = ({ children }) => {
         isLoadingUser,
         isLoadingTranslations,
         loginGoogle,
+        loginApple,
+        loginFacebook,
+        loginTwitter,
         logoutUser,
         refreshUser,
         tokenExpired,
