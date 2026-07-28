@@ -13,23 +13,16 @@ import PropTypes from "prop-types";
  *
  * The parent owns:
  *  - onThemeToggle   — so it can optionally persist to Firestore (dashboard) or not (home)
- *  - onLanguageChange(code) — same reason
  *  - onClose         — to close the drawer after an action
  *
- * Navigation is handled internally via useNavigate to keep parents clean.
+ * Language changes call changeLanguage() directly (it persists itself when
+ * a real user is logged in). Navigation is handled internally via useNavigate
+ * to keep parents clean.
  */
-const MobileMenuDrawer = ({ onThemeToggle, onLanguageChange, onClose }) => {
-  const { isDarkMode, interfaceLang, user, logoutUser } = useAppContext();
+const MobileMenuDrawer = ({ onThemeToggle, onClose }) => {
+  const { isDarkMode, interfaceLang, changeLanguage, interfaceLanguageOptions, isLoadingLanguages, user, logoutUser } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
-
-  const languages = [
-    { code: "en-US", label: t("nav.lang_en"), short: "EN" },
-    { code: "pt-PT", label: t("nav.lang_pt"), short: "PT" },
-    { code: "es-ES", label: t("nav.lang_es"), short: "ES" },
-    { code: "fr-FR", label: t("nav.lang_fr"), short: "FR" },
-    { code: "de-DE", label: t("nav.lang_de"), short: "DE" },
-  ];
 
   const handleDashboard = () => {
     navigate("/dashboard");
@@ -111,10 +104,10 @@ const MobileMenuDrawer = ({ onThemeToggle, onLanguageChange, onClose }) => {
           {t("nav.language")}
         </p>
         <div className="grid grid-cols-2 gap-2 px-4 pb-4">
-          {languages.map((lang) => (
+          {interfaceLanguageOptions.map((lang) => (
             <button
               key={lang.code}
-              onClick={() => { onLanguageChange(lang.code); onClose(); }}
+              onClick={() => { changeLanguage(lang.code); onClose(); }}
               className={`py-2.5 px-3 rounded-xl border-2 font-bold uppercase text-sm transition-all active:scale-95
                 ${
                   interfaceLang === lang.code
@@ -124,10 +117,17 @@ const MobileMenuDrawer = ({ onThemeToggle, onLanguageChange, onClose }) => {
                       : "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-900"
                 }`}
             >
-              <span className="hidden sm:inline">{lang.label}</span>
-              <span className="inline sm:hidden">{lang.short}</span>
+              <span className="hidden sm:inline">{lang.flag} {lang.label}</span>
+              <span className="inline sm:hidden">{lang.code.split("-")[0].toUpperCase()}</span>
             </button>
           ))}
+          {isLoadingLanguages && (
+            <p className={`col-span-2 text-center text-xs font-bold uppercase tracking-widest ${
+              isDarkMode ? "text-slate-500" : "text-slate-400"
+            }`}>
+              {t("common.loading")}
+            </p>
+          )}
         </div>
       </div>
 
@@ -187,7 +187,6 @@ const MobileMenuDrawer = ({ onThemeToggle, onLanguageChange, onClose }) => {
 
 MobileMenuDrawer.propTypes = {
   onThemeToggle: PropTypes.func.isRequired,
-  onLanguageChange: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
 };
 

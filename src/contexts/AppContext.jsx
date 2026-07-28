@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   loginWithGoogle,
@@ -7,7 +7,7 @@ import {
   loginWithTwitter,
   logout as logoutUserService,
 } from "../services/authService";
-import { getUserProfile, updateDayStreak } from "../services/userService";
+import { getUserProfile, updateDayStreak, updateUserProfile } from "../services/userService";
 import { getLanguages, getWritingSystems } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
@@ -78,17 +78,15 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   // ── Fetch supported languages and writing systems ───────────────────────
+  // Runs for guests too — getLanguages()/getWritingSystems() fall back to an
+  // anonymous Firebase session (getTokenOrAnonymous()) when nobody's signed in.
   const refreshSupportedLanguages = useCallback(async () => {
-    const firebaseUser = auth?.currentUser;
-    const token = firebaseUser?.getIdToken?.() ?? null;
-    if (!token) return;
-
     setIsLoadingLanguages(true);
     setIsLoadingWritingSystems(true);
     try {
       const [langs, writings] = await Promise.all([
-        getLanguages(token),
-        getWritingSystems(token),
+        getLanguages(),
+        getWritingSystems(),
       ]);
       setSupportedLanguages(langs);
       setWritingSystems(writings);
@@ -100,13 +98,22 @@ export const AppProvider = ({ children }) => {
     }
   }, [showAlert]);
 
-  // Load languages on startup (after auth)
+  // Load languages on startup
   useEffect(() => {
-    if (auth?.currentUser) {
-      refreshSupportedLanguages();
-    }
+    refreshSupportedLanguages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Quick-switcher language list (Header/MobileMenuDrawer/Dashboard) — always
+  // has at least English, even before Firestore has loaded/seeded anything.
+  // Settings/Onboarding intentionally use the raw supportedLanguages instead,
+  // since they have their own "Other"-seeding empty-state UX.
+  const interfaceLanguageOptions = useMemo(() => {
+    const fallback = { code: "en-US", label: "English", flag: "🇺🇸" };
+    if (!supportedLanguages || supportedLanguages.length === 0) return [fallback];
+    const hasEnglish = supportedLanguages.some((l) => l.code === fallback.code);
+    return hasEnglish ? supportedLanguages : [fallback, ...supportedLanguages];
+  }, [supportedLanguages]);
 
   const updateExamSection = useCallback((section, patch) =>
     setExamSession(prev => {
@@ -257,7 +264,18 @@ export const AppProvider = ({ children }) => {
     const firebaseUser = auth?.currentUser;
     const token = firebaseUser ? await firebaseUser.getIdToken() : null;
     await loadTranslationsForLang(lang, token);
-  }, [loadTranslationsForLang]);
+
+    // Persist to the profile for real (non-anonymous) logged-in users only —
+    // guests/anonymous sessions stay local-only (localStorage above).
+    if (firebaseUser && !firebaseUser.isAnonymous) {
+      try {
+        await updateUserProfile(token, firebaseUser.uid, { interfaceLang: lang });
+        setUser((prev) => (prev ? { ...prev, interfaceLang: lang } : prev));
+      } catch (err) {
+        showAlert("error", `Could not save language preference: ${err.message}`);
+      }
+    }
+  }, [loadTranslationsForLang, showAlert]);
 
   // Safe theme setter that persists to localStorage
   const setIsDarkModeWithPersist = (isDark) => {
@@ -500,6 +518,7 @@ export const AppProvider = ({ children }) => {
         validateToken,
         // Supported languages & writing systems
         supportedLanguages,
+        interfaceLanguageOptions,
         writingSystems,
         isLoadingLanguages,
         isLoadingWritingSystems,

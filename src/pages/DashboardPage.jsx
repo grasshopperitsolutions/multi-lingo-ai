@@ -85,6 +85,8 @@ const DashboardPage = () => {
     setIsDarkMode,
     interfaceLang,
     changeLanguage,
+    interfaceLanguageOptions,
+    isLoadingLanguages,
     user,
     logoutUser,
     refreshUser,
@@ -109,23 +111,15 @@ const DashboardPage = () => {
     );
   }
 
-  const languages = [
-    { code: "en-US", label: t("nav.lang_en"), short: "EN" },
-    { code: "pt-PT", label: t("nav.lang_pt"), short: "PT" },
-    { code: "es-ES", label: t("nav.lang_es"), short: "ES" },
-    { code: "fr-FR", label: t("nav.lang_fr"), short: "FR" },
-    { code: "de-DE", label: t("nav.lang_de"), short: "DE" },
-  ];
-
-  // ── Persist theme or language to Firestore (fire-and-forget) ──────────────
-  const persistPreference = async ({ theme, lang }) => {
+  // ── Persist theme to Firestore (fire-and-forget) ───────────────────────────
+  // Language changes are persisted by changeLanguage() itself.
+  const persistPreference = async ({ theme }) => {
     const firebaseUser = auth?.currentUser;
     if (!firebaseUser) return;
     try {
       const token = await firebaseUser.getIdToken();
       await updateUserProfile(token, firebaseUser.uid, {
         displayName: user.displayName,
-        interfaceLang: lang ?? interfaceLang,
         theme: theme ?? (isDarkMode ? "dark" : "light"),
         learningDialect: user.learningDialect ?? null,
         interests: user.interests ?? [],
@@ -140,11 +134,6 @@ const DashboardPage = () => {
     const next = !isDarkMode;
     setIsDarkMode(next);
     persistPreference({ theme: next ? "dark" : "light" });
-  };
-
-  const handleLanguageChange = (code) => {
-    changeLanguage(code);
-    persistPreference({ lang: code });
   };
 
   const handleLogout = async () => {
@@ -332,19 +321,26 @@ const DashboardPage = () => {
                 className={`absolute right-0 mt-2 rounded-2xl border-4 shadow-lg z-50 overflow-hidden
                   ${isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900"}`}
               >
-                {languages.map((lang) => (
+                {interfaceLanguageOptions.map((lang) => (
                   <button
                     key={lang.code}
-                    onClick={() => { handleLanguageChange(lang.code); setShowLangMenu(false); }}
+                    onClick={() => { changeLanguage(lang.code); setShowLangMenu(false); }}
                     className={`block w-full px-4 py-2 text-left font-bold uppercase text-sm transition-colors ${
                       interfaceLang === lang.code
                         ? isDarkMode ? "bg-blue-600 text-white" : "bg-blue-500 text-white"
                         : isDarkMode ? "text-slate-300 hover:bg-slate-700" : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
-                    {lang.label}
+                    {lang.flag} {lang.label}
                   </button>
                 ))}
+                {isLoadingLanguages && (
+                  <div className={`px-4 py-2 text-xs font-bold uppercase tracking-widest ${
+                    isDarkMode ? "text-slate-500" : "text-slate-400"
+                  }`}>
+                    {t("common.loading")}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -401,7 +397,6 @@ const DashboardPage = () => {
       {showMobileMenu && (
         <MobileMenuDrawer
           onThemeToggle={handleThemeToggle}
-          onLanguageChange={handleLanguageChange}
           onClose={() => setShowMobileMenu(false)}
         />
       )}

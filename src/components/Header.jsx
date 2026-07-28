@@ -12,6 +12,8 @@ const Header = () => {
     setIsDarkMode,
     interfaceLang,
     changeLanguage,
+    interfaceLanguageOptions,
+    isLoadingLanguages,
     user,
     logoutUser,
   } = useAppContext();
@@ -24,14 +26,6 @@ const Header = () => {
     const result = await logoutUser();
     if (result?.success) navigate("/");
   };
-
-  const languages = [
-    { code: "en-US", label: t("nav.lang_en"), short: "EN" },
-    { code: "pt-PT", label: t("nav.lang_pt"), short: "PT" },
-    { code: "es-ES", label: t("nav.lang_es"), short: "ES" },
-    { code: "fr-FR", label: t("nav.lang_fr"), short: "FR" },
-    { code: "de-DE", label: t("nav.lang_de"), short: "DE" },
-  ];
 
   return (
     <header
@@ -85,7 +79,7 @@ const Header = () => {
                 className={`absolute right-0 mt-2 rounded-2xl border-4 shadow-lg z-50 overflow-hidden
                   ${isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900"}`}
               >
-                {languages.map((lang) => (
+                {interfaceLanguageOptions.map((lang) => (
                   <button
                     key={lang.code}
                     onClick={() => {
@@ -102,9 +96,16 @@ const Header = () => {
                           : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
-                    {lang.label}
+                    {lang.flag} {lang.label}
                   </button>
                 ))}
+                {isLoadingLanguages && (
+                  <div className={`px-4 py-2 text-xs font-bold uppercase tracking-widest ${
+                    isDarkMode ? "text-slate-500" : "text-slate-400"
+                  }`}>
+                    {t("common.loading")}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -192,7 +193,6 @@ const Header = () => {
         <div className="px-4 pb-4">
           <MobileMenuDrawer
             onThemeToggle={() => setIsDarkMode(!isDarkMode)}
-            onLanguageChange={(code) => changeLanguage(code)}
             onClose={() => setShowMobileMenu(false)}
           />
         </div>

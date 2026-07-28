@@ -11,6 +11,7 @@ import {
   queryCollection,
   createDocument,
   updateDocument,
+  getTokenOrAnonymous,
 } from "./firestoreService";
 
 // ---------------------------------------------------------------------------
@@ -70,7 +71,8 @@ Rules:
  * @returns {Promise<Array<{code:string, label:string, flag:string, examSupported:boolean, status:string, rtl:boolean, writingSystemIds:string[], aiGenerated:boolean}>>}
  */
 export async function getLanguages(token) {
-  const result = await queryCollection(LANGUAGES_COLLECTION, {}, {}, token);
+  const authToken = token ?? (await getTokenOrAnonymous());
+  const result = await queryCollection(LANGUAGES_COLLECTION, {}, {}, authToken);
   return result?.documents ?? [];
 }
 
@@ -80,7 +82,8 @@ export async function getLanguages(token) {
  * @returns {Promise<Array<{id:string, name:string, characters:{default:string[], special:string[]}, supportedLanguageCodes:string[]}>>}
  */
 export async function getWritingSystems(token) {
-  const result = await queryCollection(WRITING_SYSTEMS_COLLECTION, {}, {}, token);
+  const authToken = token ?? (await getTokenOrAnonymous());
+  const result = await queryCollection(WRITING_SYSTEMS_COLLECTION, {}, {}, authToken);
   return result?.documents ?? [];
 }
 
