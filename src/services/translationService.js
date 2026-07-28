@@ -6,7 +6,7 @@
  * Firestore and cached in memory.
  */
 
-import { getDocument, createDocument, updateDocument } from "./firestoreService";
+import { getDocument, createDocument, updateDocument, getTokenOrAnonymous } from "./firestoreService";
 import { askAI } from "./aiService";
 import enTranslation from "../locales/en/translation.json";
 
@@ -44,9 +44,10 @@ export async function getTranslations(locale, token) {
     return _cache.get(locale);
   }
 
-  // 2. Firestore
+  // 2. Firestore — guests get an anonymous token so translations still load
   try {
-    const doc = await getDocument(LOCALES_COLLECTION, locale, token);
+    const authToken = token ?? (await getTokenOrAnonymous());
+    const doc = await getDocument(LOCALES_COLLECTION, locale, authToken);
     if (doc?.data) {
       _cache.set(locale, doc.data);
       return doc.data;

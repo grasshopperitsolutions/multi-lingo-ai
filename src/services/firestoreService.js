@@ -1,3 +1,4 @@
+import { signInAnonymously } from 'firebase/auth';
 import { auth } from '../firebase';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
@@ -9,6 +10,27 @@ async function getToken() {
   const user = auth?.currentUser;
   if (!user) throw new Error('[firestoreService] No authenticated user');
   return user.getIdToken();
+}
+
+// ---------------------------------------------------------------------------
+// Helper: resolve a token for calls that must work for guests too, falling
+// back to an anonymous Firebase session when nobody is signed in. Reusable
+// by any call site that needs guest-accessible reads (e.g. translations,
+// supported-languages lookups) — most call sites should keep using the
+// strict getToken() above.
+// ---------------------------------------------------------------------------
+export async function getTokenOrAnonymous() {
+  if (auth?.currentUser) return auth.currentUser.getIdToken();
+
+  // Wait for Firebase to finish restoring any persisted session before
+  // assuming there isn't one — otherwise a page refresh for an already
+  // logged-in user could race and briefly spin up a throwaway anonymous
+  // session before the real one loads.
+  await auth?.authStateReady?.();
+  if (auth?.currentUser) return auth.currentUser.getIdToken();
+
+  const cred = await signInAnonymously(auth);
+  return cred.user.getIdToken();
 }
 
 // ---------------------------------------------------------------------------

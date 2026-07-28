@@ -187,7 +187,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      if (firebaseUser && tokenExpired) {
+      if (firebaseUser && !firebaseUser.isAnonymous && tokenExpired) {
         // User re-authenticated (e.g. signed in again from another tab)
         setTokenExpired(false);
         setAlert({ show: false, type: "", message: "", action: null });
@@ -384,7 +384,9 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
+      // Anonymous sessions (used to let guests read public data like
+      // translations) must never be treated as a real logged-in user.
+      if (firebaseUser && !firebaseUser.isAnonymous) {
         const token = await firebaseUser.getIdToken();
         const authUser = {
           uid: firebaseUser.uid,

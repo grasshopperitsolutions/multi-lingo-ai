@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import NeoDropdown from "../components/NeoDropdown";
+import Loader from "../components/Loader";
 import { updateUserProfile } from "../services/userService";
 import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
@@ -93,6 +94,7 @@ const OnboardingPage = () => {
   const {
     isDarkMode,
     user,
+    isLoadingUser,
     showAlert,
     refreshUser,
     changeLanguage,
@@ -103,6 +105,14 @@ const OnboardingPage = () => {
   } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  // Guests (including anonymous Firebase sessions used for public reads like
+  // translations) must not reach the onboarding flow — it writes profile data.
+  useEffect(() => {
+    if (!isLoadingUser && !user) {
+      navigate("/login", { replace: true });
+    }
+  }, [user, isLoadingUser, navigate]);
 
   const [step, setStep] = useState(0);
   const [learningDialect, setLearningDialect] = useState("");
@@ -129,6 +139,14 @@ const OnboardingPage = () => {
       navigate("/dashboard", { replace: true });
     }
   }, [user, navigate]);
+
+  if (isLoadingUser) {
+    return <Loader fullScreen message={t("common.loading")} isDarkMode={isDarkMode} />;
+  }
+
+  if (!user) {
+    return null;
+  }
 
   const seedIfNeeded = async (code, token) => {
     const knownLanguage = supportedLanguages.find((lang) => lang.code === code);

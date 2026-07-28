@@ -1,10 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import NeoDropdown from "../components/NeoDropdown";
 import Avatar from "../components/Avatar";
+import Loader from "../components/Loader";
 import FloatingActionButton from "../components/FloatingActionButton";
 import ConfirmModal from "../components/ConfirmModal";
 import { openBillingPortal } from "../services/stripeService";
@@ -355,9 +356,17 @@ SettingsForm.propTypes = {
 
 // ── Settings Page ───────────────────────────────────────────────────────────────
 const SettingsPage = () => {
-  const { isDarkMode, setIsDarkMode, user, logoutUser, showAlert, refreshUser, changeLanguage, supportedLanguages } = useAppContext();
+  const { isDarkMode, setIsDarkMode, user, isLoadingUser, logoutUser, showAlert, refreshUser, changeLanguage, supportedLanguages } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  // Guests (including anonymous Firebase sessions used for public reads like
+  // translations) must not reach account settings.
+  useEffect(() => {
+    if (!isLoadingUser && !user) {
+      navigate("/login", { replace: true });
+    }
+  }, [user, isLoadingUser, navigate]);
   const { tier, isExplorer, isVoyager, isVip, isAdmin } = useTierAccess();
   const [isPortalLoading, setIsPortalLoading] = useState(false);
 
@@ -392,6 +401,14 @@ const SettingsPage = () => {
     if (user?.learningDialect)    setLearningDialect(user.learningDialect);
     setInterests(Array.isArray(user?.interests) ? user.interests : []);
     setDraftDarkMode(isDarkMode);
+  }
+
+  if (isLoadingUser) {
+    return <Loader fullScreen message={t("common.loading")} isDarkMode={isDarkMode} />;
+  }
+
+  if (!user) {
+    return null;
   }
 
   const handleFileSelect = (file) => {
