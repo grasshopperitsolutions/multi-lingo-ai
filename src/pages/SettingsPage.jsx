@@ -664,6 +664,7 @@ const SettingsPage = () => {
         isLoading={isBusy}
         isDarkMode={isDarkMode}
         position="bottom-6 right-6"
+        isDirty={isDirty}
       />
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-10">
