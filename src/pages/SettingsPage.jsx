@@ -6,6 +6,7 @@ import { useAppContext } from "../contexts/AppContext";
 import NeoDropdown from "../components/NeoDropdown";
 import Avatar from "../components/Avatar";
 import Loader from "../components/Loader";
+import Tooltip from "../components/Tooltip";
 import FloatingActionButton from "../components/FloatingActionButton";
 import ConfirmModal from "../components/ConfirmModal";
 import { openBillingPortal } from "../services/stripeService";
@@ -28,6 +29,7 @@ import {
 } from "lucide-react";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
+import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
 import { INTEREST_CATEGORIES } from "../config/supportedLanguages";
 
@@ -161,6 +163,11 @@ const SettingsForm = ({
   isSaving, isUploading, handleSave,
   previewUrl, onFileSelect,
   supportedLanguages,
+  isLoadingLanguages,
+  showOtherInterface, setShowOtherInterface,
+  showOtherLearning, setShowOtherLearning,
+  isSeedingInterface, isSeedingLanguage,
+  isDirty,
 }) => {
   const { t } = useTranslation();
 
@@ -179,7 +186,7 @@ const SettingsForm = ({
   const labelClasses = `block font-black uppercase text-xs tracking-widest mb-2
     ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`;
 
-  const isBusy = isSaving || isUploading;
+  const isBusy = isSaving || isUploading || isSeedingInterface || isSeedingLanguage;
 
   return (
     <form onSubmit={handleSave}>
@@ -251,13 +258,38 @@ const SettingsForm = ({
             <label className={labelClasses}>
               <Globe size={12} className="inline mr-1" /> {t("settings.interface_language")}
             </label>
-            <NeoDropdown
-              options={supportedLanguages.map((l) => ({ value: l.code, label: `${l.flag || ""} ${l.label || l.code}` }))}
-              value={interfaceLang}
-              onChange={setInterfaceLang}
-              isDarkMode={isDarkMode}
-              className="w-full"
-            />
+            {isLoadingLanguages ? (
+              <div className={`p-4 rounded-xl border-4 text-center ${isDarkMode ? "bg-slate-700 border-slate-600 text-slate-300" : "bg-white border-slate-300 text-slate-600"}`}>
+                <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+                {t("common.loading")}
+              </div>
+            ) : (
+              <>
+                <NeoDropdown
+                  options={supportedLanguages.map((l) => ({ value: l.code, label: `${l.flag || ""} ${l.label || l.code}` }))}
+                  value={showOtherInterface ? "" : interfaceLang}
+                  onChange={(val) => {
+                    setShowOtherInterface(false);
+                    setInterfaceLang(val);
+                  }}
+                  showOtherOption
+                  otherLabel={t("onboarding.other_option")}
+                  onOtherSelect={() => setShowOtherInterface(true)}
+                  isDarkMode={isDarkMode}
+                  className="w-full"
+                />
+                {showOtherInterface && (
+                  <input
+                    type="text"
+                    value={interfaceLang}
+                    onChange={(e) => setInterfaceLang(e.target.value)}
+                    placeholder={t("onboarding.interface_placeholder")}
+                    className={`mt-3 w-full p-3 rounded-xl border-4 font-mono text-sm uppercase tracking-widest
+                      ${isDarkMode ? "bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400" : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400"}`}
+                  />
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -273,16 +305,41 @@ const SettingsForm = ({
             <label className={labelClasses}>
               <Globe size={12} className="inline mr-1" /> {t("settings.learning_language")}
             </label>
-            <NeoDropdown
-              options={supportedLanguages.map((l) => ({
-                value: l.code,
-                label: `${l.flag || ""} ${l.label || l.code}`,
-              }))}
-              value={learningDialect}
-              onChange={setLearningDialect}
-              isDarkMode={isDarkMode}
-              className="w-full"
-            />
+            {isLoadingLanguages ? (
+              <div className={`p-4 rounded-xl border-4 text-center ${isDarkMode ? "bg-slate-700 border-slate-600 text-slate-300" : "bg-white border-slate-300 text-slate-600"}`}>
+                <Loader2 size={20} className="animate-spin mx-auto mb-2" />
+                {t("common.loading")}
+              </div>
+            ) : (
+              <>
+                <NeoDropdown
+                  options={supportedLanguages.map((l) => ({
+                    value: l.code,
+                    label: `${l.flag || ""} ${l.label || l.code}`,
+                  }))}
+                  value={showOtherLearning ? "" : learningDialect}
+                  onChange={(val) => {
+                    setShowOtherLearning(false);
+                    setLearningDialect(val);
+                  }}
+                  showOtherOption
+                  otherLabel={t("onboarding.other_option")}
+                  onOtherSelect={() => setShowOtherLearning(true)}
+                  isDarkMode={isDarkMode}
+                  className="w-full"
+                />
+                {showOtherLearning && (
+                  <input
+                    type="text"
+                    value={learningDialect}
+                    onChange={(e) => setLearningDialect(e.target.value)}
+                    placeholder={t("onboarding.learning_placeholder")}
+                    className={`mt-3 w-full p-3 rounded-xl border-4 font-mono text-sm uppercase tracking-widest
+                      ${isDarkMode ? "bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400" : "bg-white border-slate-300 text-slate-900 placeholder:text-slate-400"}`}
+                  />
+                )}
+              </>
+            )}
           </div>
           <div>
             <label className={labelClasses}>
@@ -303,20 +360,34 @@ const SettingsForm = ({
       </div>
 
       {/* ── Save ── */}
-      <button
-        type="submit"
-        disabled={isBusy}
-        className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl border-4 font-black uppercase tracking-widest text-lg transition-all active:scale-95 mb-6
-          ${ isBusy
-            ? "opacity-60 cursor-not-allowed bg-slate-400 border-slate-500 text-white"
-            : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1"
-          }`}
-      >
-        {isBusy
-          ? <><Loader2 size={20} className="animate-spin" /> {isUploading ? t("settings.uploading") : t("settings.saving")}</>
-          : <><Save size={20} /> {t("settings.save_settings")}</>
-        }
-      </button>
+      <Tooltip text={isDirty ? t("settings.unsaved_changes") : ""} isDarkMode={isDarkMode}>
+        <button
+          type="submit"
+          disabled={isBusy}
+          className={`relative w-full flex items-center justify-center gap-3 py-4 rounded-2xl border-4 font-black uppercase tracking-widest text-lg transition-all active:scale-95 mb-6
+            ${ isBusy
+              ? "opacity-60 cursor-not-allowed bg-slate-400 border-slate-500 text-white"
+              : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] hover:-translate-y-1"
+            }`}
+        >
+          {isBusy
+            ? <><Loader2 size={20} className="animate-spin" /> {
+                isUploading
+                  ? t("settings.uploading")
+                  : (isSeedingInterface || isSeedingLanguage)
+                    ? "Adding new language via AI, this may take a moment..."
+                    : t("settings.saving")
+              }</>
+            : <><Save size={20} /> {t("settings.save_settings")}</>
+          }
+          {isDirty && !isBusy && (
+            <span
+              className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-slate-900 animate-pulse"
+              aria-hidden="true"
+            />
+          )}
+        </button>
+      </Tooltip>
     </form>
   );
 };
@@ -352,11 +423,19 @@ SettingsForm.propTypes = {
     label:   PropTypes.string,
     flag:    PropTypes.string,
   })).isRequired,
+  isLoadingLanguages:     PropTypes.bool.isRequired,
+  showOtherInterface:     PropTypes.bool.isRequired,
+  setShowOtherInterface:  PropTypes.func.isRequired,
+  showOtherLearning:      PropTypes.bool.isRequired,
+  setShowOtherLearning:   PropTypes.func.isRequired,
+  isSeedingInterface:     PropTypes.bool.isRequired,
+  isSeedingLanguage:      PropTypes.bool.isRequired,
+  isDirty:                PropTypes.bool.isRequired,
 };
 
 // ── Settings Page ───────────────────────────────────────────────────────────────
 const SettingsPage = () => {
-  const { isDarkMode, setIsDarkMode, user, isLoadingUser, logoutUser, showAlert, refreshUser, changeLanguage, supportedLanguages } = useAppContext();
+  const { isDarkMode, setIsDarkMode, user, isLoadingUser, logoutUser, showAlert, refreshUser, changeLanguage, supportedLanguages, isLoadingLanguages, refreshSupportedLanguages } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -384,6 +463,11 @@ const SettingsPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting,      setIsDeleting]      = useState(false);
 
+  const [showOtherInterface, setShowOtherInterface] = useState(false);
+  const [showOtherLearning,  setShowOtherLearning]  = useState(false);
+  const [isSeedingInterface, setIsSeedingInterface] = useState(false);
+  const [isSeedingLanguage,  setIsSeedingLanguage]  = useState(false);
+
   const [prevSyncKey, setPrevSyncKey] = useState("");
   const syncKey = [
     user?.uid || "",
@@ -403,6 +487,20 @@ const SettingsPage = () => {
     setDraftDarkMode(isDarkMode);
   }
 
+  // ── Unsaved-changes detection ──────────────────────────────────────────
+  // Same shape as syncKey, but built from the live draft state instead of
+  // the last-saved user profile. Converges back with prevSyncKey right
+  // after a successful save (handleSave -> refreshUser() -> new syncKey).
+  const draftKey = [
+    user?.uid || "",
+    displayName,
+    interfaceLang,
+    learningDialect,
+    interests.join(","),
+    draftDarkMode,
+  ].join("|");
+  const isDirty = draftKey !== prevSyncKey || pendingFile !== null;
+
   if (isLoadingUser) {
     return <Loader fullScreen message={t("common.loading")} isDarkMode={isDarkMode} />;
   }
@@ -416,6 +514,18 @@ const SettingsPage = () => {
     setPreviewUrl(URL.createObjectURL(file));
   };
 
+  // Seed a new "Other" language via AI if it's not already known, returning
+  // the canonical code to persist (the seeded document's id, or the existing
+  // known code unchanged).
+  const seedIfNeeded = async (code, token) => {
+    const known = supportedLanguages.find((l) => l.code === code);
+    if (!known) {
+      const created = await seedLanguage(code, code, token);
+      return created?.id ?? code;
+    }
+    return code;
+  };
+
   const handleSave = async (e) => {
     e?.preventDefault();
     const firebaseUser = auth?.currentUser;
@@ -423,9 +533,44 @@ const SettingsPage = () => {
       showAlert("error", t("settings.errors.not_signed_in"));
       return;
     }
+
+    if (showOtherInterface && !interfaceLang) {
+      showAlert("error", t("onboarding.interface_placeholder"));
+      return;
+    }
+    if (showOtherLearning && !learningDialect) {
+      showAlert("error", t("onboarding.learning_placeholder"));
+      return;
+    }
+
     const token = await firebaseUser.getIdToken();
 
     try {
+      let finalInterfaceLang = interfaceLang;
+      let finalLearningDialect = learningDialect;
+
+      if (showOtherInterface) {
+        setIsSeedingInterface(true);
+        try {
+          finalInterfaceLang = await seedIfNeeded(interfaceLang, token);
+        } finally {
+          setIsSeedingInterface(false);
+        }
+      }
+      if (showOtherLearning) {
+        setIsSeedingLanguage(true);
+        try {
+          finalLearningDialect = await seedIfNeeded(learningDialect, token);
+        } finally {
+          setIsSeedingLanguage(false);
+        }
+      }
+      if (showOtherInterface || showOtherLearning) {
+        await refreshSupportedLanguages();
+        setShowOtherInterface(false);
+        setShowOtherLearning(false);
+      }
+
       if (pendingFile) {
         setIsUploading(true);
         try {
@@ -443,19 +588,21 @@ const SettingsPage = () => {
       setIsSaving(true);
       await updateUserProfile(token, firebaseUser.uid, {
         displayName,
-        interfaceLang,
+        interfaceLang: finalInterfaceLang,
         theme: draftDarkMode ? "dark" : "light",
-        learningDialect: learningDialect || null,
+        learningDialect: finalLearningDialect || null,
         interests,
         onboardingCompleted: user?.onboardingCompleted ?? true,
       });
-      changeLanguage(interfaceLang);
+      setInterfaceLang(finalInterfaceLang);
+      setLearningDialect(finalLearningDialect);
+      changeLanguage(finalInterfaceLang);
       setIsDarkMode(draftDarkMode);
       await refreshUser();
       showAlert("success", t("settings.success_message"));
     } catch (err) {
       const isNetwork = err instanceof TypeError && err.message === "Failed to fetch";
-      showAlert("error", isNetwork ? t("settings.errors.network_error") : t("settings.errors.save_failed"));
+      showAlert("error", isNetwork ? t("settings.errors.network_error") : (err.message || t("settings.errors.save_failed")));
     } finally {
       setIsSaving(false);
     }
@@ -484,7 +631,7 @@ const SettingsPage = () => {
     }
   };
 
-  const isBusy = isSaving || isUploading;
+  const isBusy = isSaving || isUploading || isSeedingInterface || isSeedingLanguage;
 
   const sectionClasses = `p-8 rounded-[2rem] border-4 mb-6
     ${ isDarkMode
@@ -552,6 +699,14 @@ const SettingsPage = () => {
         previewUrl={previewUrl}
         onFileSelect={handleFileSelect}
         supportedLanguages={supportedLanguages}
+        isLoadingLanguages={isLoadingLanguages}
+        showOtherInterface={showOtherInterface}
+        setShowOtherInterface={setShowOtherInterface}
+        showOtherLearning={showOtherLearning}
+        setShowOtherLearning={setShowOtherLearning}
+        isSeedingInterface={isSeedingInterface}
+        isSeedingLanguage={isSeedingLanguage}
+        isDirty={isDirty}
       />
 
         {/* ── Subscription Section ── */}

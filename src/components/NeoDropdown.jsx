@@ -19,7 +19,8 @@ const NeoDropdown = ({
 
   const selectedOption =
     options.find((opt) => opt.value === value) ||
-    (showOtherOption ? { value: "__other__", label: otherLabel } : options[0]);
+    (showOtherOption ? { value: "__other__", label: otherLabel } : options[0]) ||
+    { value: "", label: "" };
 
   const allOptions = showOtherOption
     ? [...options, { value: "__other__", label: otherLabel }]

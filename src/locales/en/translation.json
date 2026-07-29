@@ -359,6 +359,7 @@
     "interface_language": "Interface Language",
     "save_settings": "Save Settings",
     "saving": "Saving...",
+    "unsaved_changes": "You have unsaved changes",
     "account": "Account",
     "sign_out": "Sign Out",
     "delete_account": "Delete Account",

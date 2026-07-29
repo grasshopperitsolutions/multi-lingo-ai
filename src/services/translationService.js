@@ -6,8 +6,9 @@
  * Firestore and cached in memory.
  */
 
-import { getDocument, createDocument, updateDocument, getTokenOrAnonymous } from "./firestoreService";
+import { getDocument, createDocument, patchDocument, getTokenOrAnonymous } from "./firestoreService";
 import { askAI } from "./aiService";
+import { loadRemoteTranslations } from "../i18n";
 import enTranslation from "../locales/en/translation.json";
 
 // ---------------------------------------------------------------------------
@@ -22,6 +23,63 @@ const LOCALES_COLLECTION = "appConfig/config/locales";
 
 /** @type {Map<string, object>} */
 const _cache = new Map();
+
+// In-flight fillMissingTranslations calls, keyed by locale — de-dupes
+// concurrent triggers (a single render can hit several missing keys at once).
+/** @type {Map<string, Promise<number>>} */
+const _fillInFlight = new Map();
+
+// ---------------------------------------------------------------------------
+// Deep-diff / dot-notation helpers (for fillMissingTranslations)
+// ---------------------------------------------------------------------------
+
+function isPlainObject(val) {
+  return typeof val === "object" && val !== null && !Array.isArray(val);
+}
+
+/**
+ * Nested object containing everything present in `source` but absent from
+ * `target`, recursing into matching plain-object subtrees so a single new
+ * leaf key inside an already-existing section is detected too (not just
+ * whole new top-level sections).
+ */
+function findMissingDeep(source, target) {
+  const missing = {};
+  for (const key of Object.keys(source)) {
+    if (!(key in target)) {
+      missing[key] = source[key];
+    } else if (isPlainObject(source[key]) && isPlainObject(target[key])) {
+      const nested = findMissingDeep(source[key], target[key]);
+      if (Object.keys(nested).length > 0) missing[key] = nested;
+    }
+  }
+  return missing;
+}
+
+/** Flattens a nested object into Firestore dot-notation { "a.b.c": value } pairs. */
+function flattenToDotPaths(obj, prefix = "") {
+  const out = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (isPlainObject(value)) {
+      Object.assign(out, flattenToDotPaths(value, path));
+    } else {
+      out[path] = value;
+    }
+  }
+  return out;
+}
+
+/** Deep-merges nested `patch` into a clone of `base`. */
+function deepMergeClone(base, patch) {
+  const result = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    result[key] = isPlainObject(value) && isPlainObject(result[key])
+      ? deepMergeClone(result[key], value)
+      : value;
+  }
+  return result;
+}
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -89,43 +147,39 @@ export function clearTranslationsCache() {
 export async function fillMissingTranslations(locale, token) {
   if (!token || locale === "en-US") return 0;
 
-  // 1. Get the canonical en-US translations
-  let sourceData;
-  try {
-    const doc = await getDocument(LOCALES_COLLECTION, "en-US", token);
-    sourceData = doc?.data ?? enTranslation;
-  } catch {
-    sourceData = enTranslation;
-  }
+  // De-dupe concurrent calls for the same locale (a single render can
+  // trigger several missing-key callbacks at once).
+  if (_fillInFlight.has(locale)) return _fillInFlight.get(locale);
 
-  // 2. Get the current locale translations
-  let localeData;
-  try {
-    const doc = await getDocument(LOCALES_COLLECTION, locale, token);
-    localeData = doc?.data ?? {};
-  } catch {
-    // Locale doesn't exist yet — nothing to fill
-    return 0;
-  }
-
-  // 3. Find missing top-level keys
-  const missingKeys = [];
-  for (const key of Object.keys(sourceData)) {
-    if (!(key in localeData)) {
-      missingKeys.push(key);
+  const run = async () => {
+    // 1. Get the canonical en-US translations
+    let sourceData;
+    try {
+      const doc = await getDocument(LOCALES_COLLECTION, "en-US", token);
+      sourceData = doc?.data ?? enTranslation;
+    } catch {
+      sourceData = enTranslation;
     }
-  }
 
-  if (missingKeys.length === 0) return 0;
+    // 2. Get the current locale translations
+    let localeData;
+    try {
+      const doc = await getDocument(LOCALES_COLLECTION, locale, token);
+      localeData = doc?.data ?? {};
+    } catch {
+      // Locale doesn't exist yet — nothing to fill
+      return 0;
+    }
 
-  // 4. Build a prompt to translate only the missing sections
-  const missingPayload = {};
-  for (const key of missingKeys) {
-    missingPayload[key] = sourceData[key];
-  }
+    // 3. Find everything missing — recursively, so a single new leaf key
+    // inside an already-existing section (e.g. "settings.some_new_string")
+    // is caught, not just whole new top-level sections.
+    const missingTree = findMissingDeep(sourceData, localeData);
+    if (Object.keys(missingTree).length === 0) return 0;
 
-  const sourceJson = JSON.stringify(missingPayload, null, 2);
-  const prompt = `You are a professional translator. Below is a JSON object containing new UI strings that need to be added to an existing ${locale} translation file.
+    // 4. Build a prompt to translate only what's missing
+    const sourceJson = JSON.stringify(missingTree, null, 2);
+    const prompt = `You are a professional translator. Below is a JSON object containing new UI strings that need to be added to an existing ${locale} translation file.
 
 \`\`\`json
 ${sourceJson}
@@ -140,33 +194,44 @@ CRITICAL RULES:
 - Preserve any {{placeholders}} or interpolation variables exactly as-is.
 - Return ONLY the translated JSON object — no markdown, no backticks, no commentary.`;
 
-  // 5. Ask AI
-  const aiResponse = await askAI(
-    token,
-    prompt,
-    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1 }
-  );
-
-  const translatedPatch = typeof aiResponse?.text === "string"
-    ? JSON.parse(aiResponse.text)
-    : aiResponse;
-
-  if (!translatedPatch || typeof translatedPatch !== "object") {
-    throw new Error(
-      "[translationService] AI response did not return a valid JSON object"
+    // 5. Ask AI
+    const aiResponse = await askAI(
+      token,
+      prompt,
+      { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1 }
     );
+
+    const translatedTree = typeof aiResponse?.text === "string"
+      ? JSON.parse(aiResponse.text)
+      : aiResponse;
+
+    if (!translatedTree || typeof translatedTree !== "object") {
+      throw new Error(
+        "[translationService] AI response did not return a valid JSON object"
+      );
+    }
+
+    // 6. Persist only the new leaves — a surgical dot-notation patch, no
+    // read-modify-write race on the full document.
+    const dotPatch = flattenToDotPaths(translatedTree);
+    await patchDocument(LOCALES_COLLECTION, locale, dotPatch, token);
+
+    // 7. Update cache and push the fill live into i18next so the
+    // currently-open session reflects it immediately, no reload needed.
+    const mergedData = deepMergeClone(localeData, translatedTree);
+    _cache.set(locale, mergedData);
+    loadRemoteTranslations(locale, mergedData);
+
+    return Object.keys(dotPatch).length;
+  };
+
+  const promise = run();
+  _fillInFlight.set(locale, promise);
+  try {
+    return await promise;
+  } finally {
+    _fillInFlight.delete(locale);
   }
-
-  // 6. Merge the new keys into the existing locale data
-  const mergedData = { ...localeData, ...translatedPatch };
-
-  // 7. Update Firestore (overwrite with merged data)
-  await updateDocument(LOCALES_COLLECTION, locale, mergedData, token);
-
-  // 8. Update cache
-  _cache.set(locale, mergedData);
-
-  return missingKeys.length;
 }
 
 /**
