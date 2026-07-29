@@ -1,5 +1,6 @@
-import { Sun, Moon, Settings, LogOut, Globe, Menu, X, LayoutDashboard } from "lucide-react";
+import { Sun, Moon, Settings, LogOut, Globe, Menu, X, LayoutDashboard, ShieldCheck } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
+import { useTierAccess } from "../hooks/useTierAccess";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -17,6 +18,7 @@ const Header = () => {
     user,
     logoutUser,
   } = useAppContext();
+  const { isAdmin } = useTierAccess();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -136,6 +138,20 @@ const Header = () => {
                 <Settings size={16} />
                 {t('nav.settings')}
               </Link>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className={`flex items-center gap-2 px-5 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95 hover:-translate-y-0.5
+                  ${
+                    isDarkMode
+                      ? "bg-slate-700 border-slate-600 text-white shadow-[3px_3px_0px_0px_#1e293b]"
+                      : "bg-white border-slate-900 text-slate-900 shadow-[3px_3px_0px_0px_#0f172a]"
+                  }`}
+                >
+                  <ShieldCheck size={16} />
+                  Admin
+                </Link>
+              )}
               <button
                 onClick={handleLogout}
                 className={`flex items-center gap-2 px-5 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95 hover:-translate-y-0.5

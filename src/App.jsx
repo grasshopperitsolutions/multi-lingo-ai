@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
+import { useTierAccess } from "./hooks/useTierAccess";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import HomePage from "./pages/HomePage";
@@ -11,6 +12,7 @@ import PrivacyPage from "./pages/PrivacyPage";
 import ContactPage from "./pages/ContactPage";
 import DashboardPage from "./pages/DashboardPage";
 import SettingsPage from "./pages/SettingsPage";
+import AdminPage from "./pages/AdminPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import PricingPage from "./pages/PricingPage";
 import SubscriptionSuccessPage from "./pages/SubscriptionSuccessPage";
@@ -50,6 +52,25 @@ const RequireOnboarding = ({ children }) => {
 };
 
 RequireOnboarding.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+// Guard component that redirects to the dashboard if the user isn't an admin
+const RequireAdmin = ({ children }) => {
+  const { isAdmin } = useTierAccess();
+  const { isLoadingUser } = useAppContext();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoadingUser && !isAdmin) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAdmin, isLoadingUser, navigate]);
+
+  return isAdmin ? children : null;
+};
+
+RequireAdmin.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
@@ -100,6 +121,7 @@ const AppLayout = () => {
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/dashboard" element={<RequireOnboarding><DashboardPage /></RequireOnboarding>} />
           <Route path="/settings" element={<RequireOnboarding><SettingsPage /></RequireOnboarding>} />
+          <Route path="/admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
           <Route path="/app-unavailable" element={<AppUnavailablePage />} />
         </Routes>
       </div>

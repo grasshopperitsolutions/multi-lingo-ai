@@ -1,7 +1,8 @@
-import { Sun, Moon, Globe, Settings, LogOut, LayoutDashboard } from "lucide-react";
+import { Sun, Moon, Globe, Settings, LogOut, LayoutDashboard, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
+import { useTierAccess } from "../hooks/useTierAccess";
 import Avatar from "./Avatar";
 import PropTypes from "prop-types";
 
@@ -21,6 +22,7 @@ import PropTypes from "prop-types";
  */
 const MobileMenuDrawer = ({ onThemeToggle, onClose }) => {
   const { isDarkMode, interfaceLang, changeLanguage, interfaceLanguageOptions, isLoadingLanguages, user, logoutUser } = useAppContext();
+  const { isAdmin } = useTierAccess();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -31,6 +33,11 @@ const MobileMenuDrawer = ({ onThemeToggle, onClose }) => {
 
   const handleSettings = () => {
     navigate("/settings");
+    onClose();
+  };
+
+  const handleAdmin = () => {
+    navigate("/admin");
     onClose();
   };
 
@@ -159,6 +166,20 @@ const MobileMenuDrawer = ({ onThemeToggle, onClose }) => {
               <Settings size={18} />
               {t("nav.settings")}
             </button>
+            {isAdmin && (
+              <button
+                onClick={handleAdmin}
+                className={`flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 font-black uppercase tracking-wide transition-all active:scale-95
+                  ${
+                    isDarkMode
+                      ? "bg-slate-700 border-slate-600 text-white shadow-[3px_3px_0px_0px_#1e293b]"
+                      : "bg-white border-slate-900 text-slate-900 shadow-[3px_3px_0px_0px_#0f172a]"
+                  }`}
+              >
+                <ShieldCheck size={18} />
+                Admin
+              </button>
+            )}
             <button
               onClick={handleLogout}
               className={`flex items-center justify-center gap-2 w-full py-4 rounded-xl border-2 font-black uppercase tracking-wide transition-all active:scale-95

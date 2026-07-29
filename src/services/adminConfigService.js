@@ -1,0 +1,37 @@
+/**
+ * adminConfigService.js
+ *
+ * Read-only access to the appConfig/config/* subcollections for the Admin Page.
+ * Reuses the generic Firestore proxy wrapper — no admin-specific backend needed.
+ */
+
+import { queryCollection } from "./firestoreService";
+
+// ---------------------------------------------------------------------------
+// Sections shown on the Admin Page, in display order.
+// Add a new entry here whenever a new appConfig/config/* subcollection is
+// introduced (e.g. "prompts" once AI prompts move out of source code).
+// ---------------------------------------------------------------------------
+export const CONFIG_SECTIONS = [
+  { id: "locales", label: "Locales", collection: "appConfig/config/locales" },
+  { id: "languages", label: "Supported Languages", collection: "appConfig/config/languages" },
+  { id: "writingSystems", label: "Writing Systems", collection: "appConfig/config/writingSystems" },
+  { id: "prompts", label: "Prompts", collection: "appConfig/config/prompts" },
+];
+
+/**
+ * Fetch every document in an appConfig/config/* subcollection.
+ * Requires a real signed-in user (no anonymous fallback) — admin-only page.
+ *
+ * Document shape mirrors whatever the proxy's queryCollection returns
+ * elsewhere in the app (see getLanguages()/getWritingSystems() in
+ * supportedLanguagesService.js) — flat objects with an "id" field, not
+ * wrapped in a separate "data" key.
+ *
+ * @param {string} collectionPath - e.g. "appConfig/config/languages".
+ * @returns {Promise<Array<object>>}
+ */
+export async function getConfigSectionDocs(collectionPath) {
+  const result = await queryCollection(collectionPath, {}, {});
+  return result?.documents ?? [];
+}

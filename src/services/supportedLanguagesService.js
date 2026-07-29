@@ -17,8 +17,8 @@ import {
 // ---------------------------------------------------------------------------
 // Collection names
 // ---------------------------------------------------------------------------
-const LANGUAGES_COLLECTION = "supportedLanguages";
-const WRITING_SYSTEMS_COLLECTION = "writingSystems";
+const LANGUAGES_COLLECTION = "appConfig/config/languages";
+const WRITING_SYSTEMS_COLLECTION = "appConfig/config/writingSystems";
 
 // ---------------------------------------------------------------------------
 // Prompt for AI language generation
