@@ -34,7 +34,7 @@ const FloatingActionButton = ({ onClick, icon, label, isLoading = false, disable
 
       {isDirty && !isBusy && (
         <span
-          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 border-2 border-slate-900 animate-pulse pointer-events-none"
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-400 border-2 border-slate-900 animate-pulse pointer-events-none"
           aria-hidden="true"
         />
       )}

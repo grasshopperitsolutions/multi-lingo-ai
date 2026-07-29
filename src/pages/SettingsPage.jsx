@@ -382,7 +382,7 @@ const SettingsForm = ({
           }
           {isDirty && !isBusy && (
             <span
-              className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-slate-900 animate-pulse"
+              className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-slate-900 animate-pulse"
               aria-hidden="true"
             />
           )}
