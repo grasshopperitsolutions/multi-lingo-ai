@@ -28,6 +28,7 @@ import {
   GraduationCap,
   Settings,
   LogOut,
+  ShieldCheck,
   Flame,
   Star,
   Trophy,
@@ -95,7 +96,7 @@ const DashboardPage = () => {
   } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { tier, limits, aiCallsRemaining } = useTierAccess();
+  const { tier, limits, aiCallsRemaining, isAdmin } = useTierAccess();
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [dictionaryPreFill, setDictionaryPreFill] = useState('');
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -344,6 +345,25 @@ const DashboardPage = () => {
               </div>
             )}
           </div>
+
+          {/* ── Admin — desktop only, admin tier only ── */}
+          {isAdmin && (
+            <div className="hidden md:block">
+              <TooltipButton tooltip="Admin" isDarkMode={isDarkMode}>
+                <button
+                  onClick={() => navigate("/admin")}
+                  aria-label="Admin"
+                  className={`p-3 rounded-xl border-4 transition-all hover:-translate-y-0.5 active:scale-95 ${
+                    isDarkMode
+                      ? "bg-slate-800 border-slate-700 text-white shadow-[4px_4px_0px_0px_#1e293b]"
+                      : "bg-white border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
+                  }`}
+                >
+                  <ShieldCheck size={20} />
+                </button>
+              </TooltipButton>
+            </div>
+          )}
 
           {/* ── Settings — desktop only ── */}
           <div className="hidden md:block">
