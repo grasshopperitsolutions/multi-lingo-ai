@@ -9,6 +9,7 @@ import { updateUserProfile } from "../services/userService";
 import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
 import { INTEREST_CATEGORIES } from "../config/supportedLanguages";
+import { normalizeCode } from "../utils/languageCode";
 import {
   ArrowRight,
   ChevronLeft,
@@ -149,7 +150,7 @@ const OnboardingPage = () => {
   }
 
   const seedIfNeeded = async (code, token) => {
-    const knownLanguage = supportedLanguages.find((lang) => lang.code === code);
+    const knownLanguage = supportedLanguages.find((lang) => normalizeCode(lang.code) === normalizeCode(code));
     if (!knownLanguage) {
       const created = await seedLanguage(code, code, token);
       await refreshSupportedLanguages();
@@ -175,7 +176,7 @@ const OnboardingPage = () => {
         return;
       }
 
-      if (supportedLanguages.length === 0 || !supportedLanguages.find((l) => l.code === interfaceLang)) {
+      if (supportedLanguages.length === 0 || !supportedLanguages.find((l) => normalizeCode(l.code) === normalizeCode(interfaceLang))) {
         setIsSeedingInterface(true);
         try {
           const created = await seedIfNeeded(interfaceLang, token);
@@ -301,7 +302,8 @@ const OnboardingPage = () => {
             <NeoDropdown
               options={supportedLanguages.map((l) => ({
                 value: l.code,
-                label: `${l.flag || ""} ${l.label || l.code}`,
+                flagCode: l.code,
+                label: l.label || l.code,
               }))}
               value={showOtherInterface ? "" : interfaceLang}
               onChange={(val) => {
@@ -387,7 +389,8 @@ const OnboardingPage = () => {
             <NeoDropdown
               options={supportedLanguages.map((l) => ({
                 value: l.code,
-                label: `${l.flag || ""} ${l.label || l.code}`,
+                flagCode: l.code,
+                label: l.label || l.code,
               }))}
               value={showOtherLearning ? "" : learningDialect}
               onChange={(val) => {

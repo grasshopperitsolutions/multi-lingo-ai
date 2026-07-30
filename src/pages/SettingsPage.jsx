@@ -32,6 +32,7 @@ import { updateUserProfile, uploadProfileImage, deleteAccount } from "../service
 import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
 import { INTEREST_CATEGORIES } from "../config/supportedLanguages";
+import { normalizeCode } from "../utils/languageCode";
 
 // ── Avatar Upload Widget ─────────────────────────────────────────────────────────
 const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading, t }) => {
@@ -266,7 +267,7 @@ const SettingsForm = ({
             ) : (
               <>
                 <NeoDropdown
-                  options={supportedLanguages.map((l) => ({ value: l.code, label: `${l.flag || ""} ${l.label || l.code}` }))}
+                  options={supportedLanguages.map((l) => ({ value: l.code, flagCode: l.code, label: l.label || l.code }))}
                   value={showOtherInterface ? "" : interfaceLang}
                   onChange={(val) => {
                     setShowOtherInterface(false);
@@ -315,7 +316,8 @@ const SettingsForm = ({
                 <NeoDropdown
                   options={supportedLanguages.map((l) => ({
                     value: l.code,
-                    label: `${l.flag || ""} ${l.label || l.code}`,
+                    flagCode: l.code,
+                    label: l.label || l.code,
                   }))}
                   value={showOtherLearning ? "" : learningDialect}
                   onChange={(val) => {
@@ -518,12 +520,12 @@ const SettingsPage = () => {
   // the canonical code to persist (the seeded document's id, or the existing
   // known code unchanged).
   const seedIfNeeded = async (code, token) => {
-    const known = supportedLanguages.find((l) => l.code === code);
+    const known = supportedLanguages.find((l) => normalizeCode(l.code) === normalizeCode(code));
     if (!known) {
       const created = await seedLanguage(code, code, token);
       return created?.id ?? code;
     }
-    return code;
+    return known.code;
   };
 
   const handleSave = async (e) => {

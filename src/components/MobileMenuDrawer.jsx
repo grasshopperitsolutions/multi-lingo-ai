@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "../hooks/useTierAccess";
 import Avatar from "./Avatar";
+import LanguageFlagIcon from "./LanguageFlagIcon";
 import PropTypes from "prop-types";
 
 /**
@@ -124,8 +125,13 @@ const MobileMenuDrawer = ({ onThemeToggle, onClose }) => {
                       : "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-900"
                 }`}
             >
-              <span className="hidden sm:inline">{lang.flag} {lang.label}</span>
-              <span className="inline sm:hidden">{lang.code.split("-")[0].toUpperCase()}</span>
+              <span className="hidden sm:inline-flex items-center gap-1.5">
+                <LanguageFlagIcon code={lang.code} className="text-base leading-none" />
+                {lang.label}
+              </span>
+              <span className="inline-flex sm:hidden">
+                <LanguageFlagIcon code={lang.code} className="text-base leading-none" />
+              </span>
             </button>
           ))}
           {isLoadingLanguages && (

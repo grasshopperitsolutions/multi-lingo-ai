@@ -1,4 +1,4 @@
-import { Sun, Moon, Settings, LogOut, Globe, Menu, X, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { Sun, Moon, Settings, LogOut, Menu, X, LayoutDashboard, ShieldCheck } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import BarcelosRooster from "./BarcelosRooster";
 import MobileMenuDrawer from "./MobileMenuDrawer";
+import LanguageFlagIcon from "./LanguageFlagIcon";
 
 const Header = () => {
   const {
@@ -71,9 +72,9 @@ const Header = () => {
               className={`p-3 rounded-full border-2 transition-transform hover:scale-110 active:scale-95 flex items-center gap-2
                 ${isDarkMode ? "bg-slate-700 border-blue-400 text-blue-400" : "bg-blue-100 border-slate-900 text-blue-600 shadow-[2px_2px_0px_0px_#0f172a]"}`}
             >
-              <Globe size={20} />
+              <LanguageFlagIcon code={interfaceLang} className="text-lg leading-none" />
               <span className="text-sm font-bold uppercase hidden sm:inline">
-                {interfaceLang.substring(0, 2)}
+                {interfaceLang.split("-")[1] || interfaceLang.split("-")[0].toUpperCase()}
               </span>
             </button>
             {showLangMenu && (
@@ -98,7 +99,8 @@ const Header = () => {
                           : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
-                    {lang.flag} {lang.label}
+                    <LanguageFlagIcon code={lang.code} className="text-lg leading-none mr-2 align-middle" />
+                    {lang.label}
                   </button>
                 ))}
                 {isLoadingLanguages && (

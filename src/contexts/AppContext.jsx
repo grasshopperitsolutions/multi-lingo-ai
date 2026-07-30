@@ -9,6 +9,7 @@ import {
 } from "../services/authService";
 import { getUserProfile, updateDayStreak, updateUserProfile } from "../services/userService";
 import { getLanguages, getWritingSystems } from "../services/supportedLanguagesService";
+import { normalizeCode } from "../utils/languageCode";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
 import { getTranslations, clearTranslationsCache, fillMissingTranslations } from "../services/translationService";
@@ -88,7 +89,17 @@ export const AppProvider = ({ children }) => {
         getLanguages(),
         getWritingSystems(),
       ]);
-      setSupportedLanguages(langs);
+      // Defensive safety net: collapse any case- or region-variant duplicates
+      // that slipped into Firestore (e.g. "en" and "en-GB"), keeping the
+      // first occurrence returned by the query.
+      const seen = new Set();
+      const dedupedLangs = langs.filter((lang) => {
+        const key = normalizeCode(lang.code);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      setSupportedLanguages(dedupedLangs);
       setWritingSystems(writings);
     } catch (err) {
       showAlert("error", `Could not load supported languages: ${err.message}`);

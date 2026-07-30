@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ChevronDown } from "lucide-react";
 import PropTypes from "prop-types";
+import LanguageFlagIcon from "./LanguageFlagIcon";
 
 const NeoDropdown = ({
   options,
@@ -63,6 +64,9 @@ const NeoDropdown = ({
               className={isDarkMode ? "text-yellow-400" : "text-blue-600"}
             />
           )}
+          {selectedOption.flagCode && (
+            <LanguageFlagIcon code={selectedOption.flagCode} className="text-lg leading-none" />
+          )}
           <span className="uppercase text-sm tracking-tight">
             {selectedOption.label}
           </span>
@@ -95,7 +99,7 @@ const NeoDropdown = ({
                 }
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-4 py-2.5 font-bold uppercase text-sm tracking-tight transition-colors ${
+              className={`w-full flex items-center gap-2 text-left px-4 py-2.5 font-bold uppercase text-sm tracking-tight transition-colors ${
                 option.value === value
                   ? isDarkMode
                     ? "bg-yellow-400 text-slate-900"
@@ -105,6 +109,9 @@ const NeoDropdown = ({
                   : "hover:bg-slate-100 text-slate-900"
               }`}
             >
+              {option.flagCode && (
+                <LanguageFlagIcon code={option.flagCode} className="text-lg leading-none" />
+              )}
               {option.label}
             </button>
           ))}
@@ -119,6 +126,7 @@ NeoDropdown.propTypes = {
     PropTypes.shape({
       value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       label: PropTypes.string.isRequired,
+      flagCode: PropTypes.string,
     })
   ).isRequired,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),

@@ -12,6 +12,7 @@ import TranslatorPanel from "../components/TranslatorPanel";
 import DictionaryPanel from "../components/DictionaryPanel";
 import TooltipButton from "../components/TooltipButton";
 import MobileMenuDrawer from "../components/MobileMenuDrawer";
+import LanguageFlagIcon from "../components/LanguageFlagIcon";
 import { auth } from "../firebase";
 import { updateUserProfile } from "../services/userService";
 import {
@@ -36,7 +37,6 @@ import {
   ArrowLeft,
   Sun,
   Moon,
-  Globe,
   Menu,
   X,
 } from "lucide-react";
@@ -311,9 +311,9 @@ const DashboardPage = () => {
                     ? "bg-slate-700 border-blue-400 text-blue-400"
                     : "bg-blue-100 border-slate-900 text-blue-600 shadow-[2px_2px_0px_0px_#0f172a]"}`}
               >
-                <Globe size={20} />
+                <LanguageFlagIcon code={interfaceLang} className="text-lg leading-none" />
                 <span className="text-sm font-bold uppercase">
-                  {interfaceLang.substring(0, 2)}
+                  {interfaceLang.split("-")[1] || interfaceLang.split("-")[0].toUpperCase()}
                 </span>
               </button>
             </TooltipButton>
@@ -332,7 +332,8 @@ const DashboardPage = () => {
                         : isDarkMode ? "text-slate-300 hover:bg-slate-700" : "text-slate-700 hover:bg-slate-100"
                     }`}
                   >
-                    {lang.flag} {lang.label}
+                    <LanguageFlagIcon code={lang.code} className="text-lg leading-none mr-2 align-middle" />
+                    {lang.label}
                   </button>
                 ))}
                 {isLoadingLanguages && (

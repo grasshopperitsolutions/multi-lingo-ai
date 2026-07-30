@@ -7,6 +7,7 @@
 
 import { askAI } from "./aiService";
 import { seedLanguageTranslations } from "./translationService";
+import { normalizeCode } from "../utils/languageCode";
 import {
   queryCollection,
   createDocument,
@@ -138,6 +139,17 @@ export async function seedLanguage(code, name, token) {
   const canonicalCode = typeof returnedCode === "string" && returnedCode.trim()
     ? returnedCode.trim()
     : code.trim();
+
+  // Guard against creating a duplicate document for a language that already
+  // exists under a different casing or bare-vs-region-qualified code (e.g.
+  // AI returns "en-GB" while "en-gb" or bare "en" is already seeded).
+  const existingLanguages = await getLanguages(token);
+  const existingMatch = existingLanguages.find(
+    (lang) => normalizeCode(lang.code) === normalizeCode(canonicalCode)
+  );
+  if (existingMatch) {
+    return existingMatch;
+  }
 
   const defaultChars = Array.isArray(characters?.default)
     ? [...new Set(characters.default.map((c) => String(c).toLowerCase()))]
