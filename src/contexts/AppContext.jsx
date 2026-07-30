@@ -219,6 +219,7 @@ export const AppProvider = ({ children }) => {
   const loadTranslationsForLang = useCallback(async (lang, token) => {
     if (!lang) return;
 
+    console.info(`[AppContext] loadTranslationsForLang("${lang}") — starting (hasToken=${Boolean(token)})`);
     setIsLoadingTranslations(true);
     try {
       // Clear cache so we get fresh data
@@ -234,11 +235,21 @@ export const AppProvider = ({ children }) => {
       const i18nModule = await import("i18next");
       i18nModule.default.changeLanguage(lang);
 
-      // Check for missing translation keys and fill them (non-blocking)
+      // Check for missing/absent translations and fill or seed them
+      // (non-blocking). fillMissingTranslations() also handles the case
+      // where "lang" has no Firestore doc at all yet — it detects that and
+      // seeds the full document from en-US instead of patching one that
+      // doesn't exist.
       if (token && lang !== "en-US") {
-        fillMissingTranslations(lang, token).catch((err) =>
-          console.warn(`[AppContext] fillMissingTranslations failed for "${lang}": ${err.message}`)
-        );
+        fillMissingTranslations(lang, token)
+          .then((count) => {
+            if (count > 0) {
+              console.info(`[AppContext] loadTranslationsForLang("${lang}") — background fill/seed added ${count} key(s)`);
+            }
+          })
+          .catch((err) =>
+            console.warn(`[AppContext] fillMissingTranslations failed for "${lang}": ${err.message}`)
+          );
       }
     } catch (err) {
       console.error(`[AppContext] Failed to load translations for "${lang}": ${err.message}`);

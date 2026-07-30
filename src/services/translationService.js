@@ -9,6 +9,7 @@
 import { getDocument, createDocument, patchDocument, getTokenOrAnonymous } from "./firestoreService";
 import { askAI } from "./aiService";
 import { loadRemoteTranslations } from "../i18n";
+import { parseAIJSON } from "../utils/parseAIJSON";
 import enTranslation from "../locales/en/translation.json";
 
 // ---------------------------------------------------------------------------
@@ -99,6 +100,7 @@ function deepMergeClone(base, patch) {
 export async function getTranslations(locale, token) {
   // 1. In-memory cache
   if (_cache.has(locale)) {
+    console.info(`[translationService] getTranslations("${locale}") — cache hit`);
     return _cache.get(locale);
   }
 
@@ -107,9 +109,11 @@ export async function getTranslations(locale, token) {
     const authToken = token ?? (await getTokenOrAnonymous());
     const doc = await getDocument(LOCALES_COLLECTION, locale, authToken);
     if (doc?.data) {
+      console.info(`[translationService] getTranslations("${locale}") — loaded from Firestore`);
       _cache.set(locale, doc.data);
       return doc.data;
     }
+    console.warn(`[translationService] getTranslations("${locale}") — no Firestore doc found`);
   } catch (err) {
     console.error(`[translationService] Firestore fetch failed for "${locale}": ${err.message}`);
     throw err; // Let the caller handle the error (e.g. show "app unavailable")
@@ -117,7 +121,7 @@ export async function getTranslations(locale, token) {
 
   // 3. Fallback to local en-US
   if (locale !== "en-US") {
-    console.warn(`[translationService] No translations found for "${locale}" — falling back to en-US`);
+    console.warn(`[translationService] "${locale}" has no Firestore doc yet — falling back to local en-US until it's seeded`);
     return enTranslation;
   }
 
@@ -149,25 +153,42 @@ export async function fillMissingTranslations(locale, token) {
 
   // De-dupe concurrent calls for the same locale (a single render can
   // trigger several missing-key callbacks at once).
-  if (_fillInFlight.has(locale)) return _fillInFlight.get(locale);
+  if (_fillInFlight.has(locale)) {
+    console.info(`[translationService] fillMissingTranslations("${locale}") — already in flight, reusing`);
+    return _fillInFlight.get(locale);
+  }
 
   const run = async () => {
+    console.info(`[translationService] fillMissingTranslations("${locale}") — starting`);
+
     // 1. Get the canonical en-US translations
     let sourceData;
     try {
       const doc = await getDocument(LOCALES_COLLECTION, "en-US", token);
       sourceData = doc?.data ?? enTranslation;
-    } catch {
+    } catch (err) {
+      console.warn(`[translationService] fillMissingTranslations("${locale}") — failed to fetch en-US source, using local bundle: ${err.message}`);
       sourceData = enTranslation;
     }
 
-    // 2. Get the current locale translations
+    // 2. Get the current locale translations. getDocument() resolves to
+    // `null` (not a throw) on a 404, so a genuinely-missing locale doc is
+    // detected here explicitly — patchDocument() below requires the doc to
+    // already exist (Firestore .update()), so a missing doc must be routed
+    // to seedLanguageTranslations() (full create) instead, not filled.
     let localeData;
     try {
       const doc = await getDocument(LOCALES_COLLECTION, locale, token);
+      if (!doc) {
+        console.warn(`[translationService] fillMissingTranslations("${locale}") — no locale doc exists yet, seeding from en-US instead of patching`);
+        const seeded = await seedLanguageTranslations(locale, token);
+        const seededKeyCount = Object.keys(flattenToDotPaths(seeded)).length;
+        console.info(`[translationService] fillMissingTranslations("${locale}") — seeded ${seededKeyCount} keys via seedLanguageTranslations`);
+        return seededKeyCount;
+      }
       localeData = doc?.data ?? {};
-    } catch {
-      // Locale doesn't exist yet — nothing to fill
+    } catch (err) {
+      console.error(`[translationService] fillMissingTranslations("${locale}") — failed to fetch existing locale doc: ${err.message}`);
       return 0;
     }
 
@@ -175,7 +196,11 @@ export async function fillMissingTranslations(locale, token) {
     // inside an already-existing section (e.g. "settings.some_new_string")
     // is caught, not just whole new top-level sections.
     const missingTree = findMissingDeep(sourceData, localeData);
-    if (Object.keys(missingTree).length === 0) return 0;
+    if (Object.keys(missingTree).length === 0) {
+      console.info(`[translationService] fillMissingTranslations("${locale}") — up to date, nothing to fill`);
+      return 0;
+    }
+    console.info(`[translationService] fillMissingTranslations("${locale}") — found ${Object.keys(flattenToDotPaths(missingTree)).length} missing key(s), translating via AI`);
 
     // 4. Build a prompt to translate only what's missing
     const sourceJson = JSON.stringify(missingTree, null, 2);
@@ -198,12 +223,18 @@ CRITICAL RULES:
     const aiResponse = await askAI(
       token,
       prompt,
-      { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1 }
+      { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1, jsonMode: true }
     );
 
-    const translatedTree = typeof aiResponse?.text === "string"
-      ? JSON.parse(aiResponse.text)
-      : aiResponse;
+    let translatedTree;
+    try {
+      translatedTree = typeof aiResponse?.text === "string"
+        ? parseAIJSON(aiResponse.text)
+        : aiResponse;
+    } catch (err) {
+      console.error(`[translationService] fillMissingTranslations("${locale}") — failed to parse AI response as JSON: ${err.message}. Raw: ${String(aiResponse?.text).slice(0, 300)}`);
+      throw err;
+    }
 
     if (!translatedTree || typeof translatedTree !== "object") {
       throw new Error(
@@ -222,6 +253,7 @@ CRITICAL RULES:
     _cache.set(locale, mergedData);
     loadRemoteTranslations(locale, mergedData);
 
+    console.info(`[translationService] fillMissingTranslations("${locale}") — patched ${Object.keys(dotPatch).length} key(s)`);
     return Object.keys(dotPatch).length;
   };
 
@@ -252,13 +284,16 @@ export async function seedLanguageTranslations(locale, token) {
     throw new Error("[translationService] Firebase ID token is required for seeding");
   }
 
+  console.info(`[translationService] seedLanguageTranslations("${locale}") — starting`);
+
   // 1. Get the canonical en-US translations
   let sourceData;
   try {
     const doc = await getDocument(LOCALES_COLLECTION, "en-US", token);
     sourceData = doc?.data ?? enTranslation;
-  } catch {
+  } catch (err) {
     // Firestore unavailable — use local fallback
+    console.warn(`[translationService] seedLanguageTranslations("${locale}") — failed to fetch en-US source, using local bundle: ${err.message}`);
     sourceData = enTranslation;
   }
 
@@ -283,13 +318,19 @@ CRITICAL RULES:
   const aiResponse = await askAI(
     token,
     prompt,
-    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1 }
+    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1, jsonMode: true }
   );
 
   // The API returns the JSON string inside the \`text\` field
-  const translatedData = typeof aiResponse?.text === "string"
-    ? JSON.parse(aiResponse.text)
-    : aiResponse;
+  let translatedData;
+  try {
+    translatedData = typeof aiResponse?.text === "string"
+      ? parseAIJSON(aiResponse.text)
+      : aiResponse;
+  } catch (err) {
+    console.error(`[translationService] seedLanguageTranslations("${locale}") — failed to parse AI response as JSON: ${err.message}. Raw: ${String(aiResponse?.text).slice(0, 300)}`);
+    throw err;
+  }
 
   if (!translatedData || typeof translatedData !== "object") {
     throw new Error(
@@ -302,6 +343,8 @@ CRITICAL RULES:
 
   // Warm the cache
   _cache.set(locale, translatedData);
+
+  console.info(`[translationService] seedLanguageTranslations("${locale}") — created locale doc with ${Object.keys(flattenToDotPaths(translatedData)).length} key(s)`);
 
   return created?.data ?? translatedData;
 }

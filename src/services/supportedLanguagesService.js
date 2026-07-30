@@ -8,6 +8,7 @@
 import { askAI } from "./aiService";
 import { seedLanguageTranslations } from "./translationService";
 import { normalizeCode } from "../utils/languageCode";
+import { parseAIJSON } from "../utils/parseAIJSON";
 import {
   queryCollection,
   createDocument,
@@ -109,17 +110,26 @@ export async function seedLanguage(code, name, token) {
     throw new Error("[supportedLanguagesService] Firebase ID token is required for seeding");
   }
 
+  console.info(`[supportedLanguagesService] seedLanguage(code="${code}", name="${name}") — starting`);
+
   // 1. Ask AI to generate metadata + character sets
   const aiResponse = await askAI(
     token,
     SEED_PROMPT(code, name),
-    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.2 }
+    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.2, jsonMode: true }
   );
 
   // The API returns the JSON string inside the `text` field
-  const aiData = typeof aiResponse?.text === "string" ? JSON.parse(aiResponse.text) : aiResponse;
+  let aiData;
+  try {
+    aiData = typeof aiResponse?.text === "string" ? parseAIJSON(aiResponse.text) : aiResponse;
+  } catch (err) {
+    console.error(`[supportedLanguagesService] seedLanguage("${code}") — failed to parse AI response as JSON: ${err.message}. Raw: ${String(aiResponse?.text).slice(0, 300)}`);
+    throw err;
+  }
 
   if (!aiData?.code || !aiData?.characters) {
+    console.error(`[supportedLanguagesService] seedLanguage("${code}") — AI response missing required fields: ${JSON.stringify(aiData)}`);
     throw new Error(
       "[supportedLanguagesService] AI response missing required fields. Expected code and characters."
     );
@@ -148,6 +158,7 @@ export async function seedLanguage(code, name, token) {
     (lang) => normalizeCode(lang.code) === normalizeCode(canonicalCode)
   );
   if (existingMatch) {
+    console.info(`[supportedLanguagesService] seedLanguage("${code}") — "${canonicalCode}" normalizes to an existing language "${existingMatch.code}", reusing it instead of creating a duplicate`);
     return existingMatch;
   }
 
@@ -219,13 +230,16 @@ export async function seedLanguage(code, name, token) {
 
   // Use the canonical BCP-47 code as the document ID
   const created = await createDocument(LANGUAGES_COLLECTION, languageDoc, canonicalCode, token);
+  console.info(`[supportedLanguagesService] seedLanguage("${code}") — created language doc "${canonicalCode}"`);
 
   // 5. Seed UI translations for this language
   try {
     await seedLanguageTranslations(canonicalCode, token);
   } catch (translationErr) {
     console.warn(
-      `[supportedLanguagesService] Language "${canonicalCode}" created but UI translations failed: ${translationErr.message}`
+      `[supportedLanguagesService] Language "${canonicalCode}" created but UI translations failed: ${translationErr.message}. ` +
+      `The language is usable but will fall back to en-US strings until translations are seeded ` +
+      `(this retries automatically next time "${canonicalCode}" is selected as the interface language).`
     );
     // Non-fatal — the language is usable, just missing UI strings (falls back to en-US)
   }
