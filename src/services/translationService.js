@@ -316,14 +316,15 @@ CRITICAL RULES:
 - Preserve any {{placeholders}} or interpolation variables exactly as-is.
 - Return ONLY the translated JSON object — no markdown, no backticks, no commentary.`;
 
-  // 3. Ask AI. The full en-US source is ~34KB (~9k+ tokens); the SDK's
-  // default maxOutputTokens (1024) truncates the response mid-JSON well
-  // before the translated tree is complete, causing a JSON.parse failure
-  // downstream — this is the actual seeding bug for new locales.
+  // 3. Ask AI. The full en-US source is ~34KB; translated output can run
+  // close to that size too. The SDK's default maxOutputTokens (1024) badly
+  // truncated the response — even 8192 wasn't enough (confirmed live: cut
+  // off at ~29KB/34KB). Raised further with headroom for verbose target
+  // languages.
   const aiResponse = await askAI(
     token,
     prompt,
-    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1, jsonMode: true, maxOutputTokens: 8192 }
+    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1, jsonMode: true, maxOutputTokens: 16384 }
   );
 
   // The API returns the JSON string inside the \`text\` field
