@@ -16,7 +16,16 @@ i18n
       'en-US': { translation: enTranslation },
     },
     fallbackLng: 'en-US',
-    supportedLngs: ['en-US'],
+    // No supportedLngs allowlist — the app dynamically seeds an unbounded
+    // set of locales via AI (see supportedLanguagesService.seedLanguage).
+    // i18next's LanguageUtils caches supportedLngs once at init() and never
+    // re-reads it, so appending to it at runtime (as loadRemoteTranslations
+    // used to try) has no effect: every dynamically-added locale gets
+    // silently rejected from t()'s resolve hierarchy and falls back to
+    // en-US — translations fetch fine, i18n.language switches fine, but
+    // rendered text never changes. Leaving this unset avoids the whole
+    // class of bug, since any code passed to changeLanguage() already comes
+    // from a controlled source (the language picker / AI seeding flow).
     interpolation: {
       escapeValue: false,
     },
@@ -60,12 +69,7 @@ export function loadRemoteTranslations(locale, translations) {
   if (!locale || !translations) return;
 
   i18n.addResourceBundle(locale, 'translation', translations, true, true);
-
-  // Ensure the locale is in the supported list so i18next doesn't fall back
-  const current = i18n.options.supportedLngs ?? [];
-  if (!current.includes(locale)) {
-    i18n.options.supportedLngs = [...current, locale];
-  }
+  console.info(`[i18n] loadRemoteTranslations("${locale}") — registered resource bundle (${Object.keys(translations).length} top-level key(s))`);
 }
 
 export default i18n;

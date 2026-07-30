@@ -112,11 +112,13 @@ export async function seedLanguage(code, name, token) {
 
   console.info(`[supportedLanguagesService] seedLanguage(code="${code}", name="${name}") — starting`);
 
-  // 1. Ask AI to generate metadata + character sets
+  // 1. Ask AI to generate metadata + character sets. maxOutputTokens raised
+  // from the SDK default (1024) — some scripts (e.g. Chinese, Japanese)
+  // produce large "default"/"special" character arrays that can approach it.
   const aiResponse = await askAI(
     token,
     SEED_PROMPT(code, name),
-    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.2, jsonMode: true }
+    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.2, jsonMode: true, maxOutputTokens: 2048 }
   );
 
   // The API returns the JSON string inside the `text` field

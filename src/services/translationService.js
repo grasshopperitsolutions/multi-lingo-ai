@@ -219,11 +219,13 @@ CRITICAL RULES:
 - Preserve any {{placeholders}} or interpolation variables exactly as-is.
 - Return ONLY the translated JSON object — no markdown, no backticks, no commentary.`;
 
-    // 5. Ask AI
+    // 5. Ask AI. maxOutputTokens is raised well above the SDK default (1024)
+    // because even a "missing keys" patch can span several sections at once
+    // — 1024 was silently truncating the JSON response (see seedLanguageTranslations).
     const aiResponse = await askAI(
       token,
       prompt,
-      { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1, jsonMode: true }
+      { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1, jsonMode: true, maxOutputTokens: 4096 }
     );
 
     let translatedTree;
@@ -314,11 +316,14 @@ CRITICAL RULES:
 - Preserve any {{placeholders}} or interpolation variables exactly as-is.
 - Return ONLY the translated JSON object — no markdown, no backticks, no commentary.`;
 
-  // 3. Ask AI
+  // 3. Ask AI. The full en-US source is ~34KB (~9k+ tokens); the SDK's
+  // default maxOutputTokens (1024) truncates the response mid-JSON well
+  // before the translated tree is complete, causing a JSON.parse failure
+  // downstream — this is the actual seeding bug for new locales.
   const aiResponse = await askAI(
     token,
     prompt,
-    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1, jsonMode: true }
+    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1, jsonMode: true, maxOutputTokens: 8192 }
   );
 
   // The API returns the JSON string inside the \`text\` field
