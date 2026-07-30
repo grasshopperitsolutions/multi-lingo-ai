@@ -1,83 +1,74 @@
-import { lazy, Suspense, useState } from "react";
 import PropTypes from "prop-types";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BrainCircuit, Swords, NotebookPen, Search, EggFried, Link2, Footprints } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import ReportButton from "./ReportButton";
 import { Breadcrumb } from "./ui";
 
-// ── Lazy-loaded game components ───────────────────────────────────────────────
-const HangmanGame       = lazy(() => import("./HangmanGame"));
-const CrosswordsGame    = lazy(() => import("./CrosswordsGame"));
-const WordQuizGame      = lazy(() => import("./WordQuizGame"));
-const WordSearchGame    = lazy(() => import("./WordSearchGame"));
-const ScrambledWordGame = lazy(() => import("./ScrambledWordGame"));
-const WordLinkGame      = lazy(() => import("./WordLinkGame"));
-const WordLadderGame    = lazy(() => import("./WordLadderGame"));
-
 // ── Game Registry ─────────────────────────────────────────────────────────────
 const GAMES = [
   {
     id: "hangman",
+    route: "/dashboard/challenges/hangman",
     icon: Swords,
     color: "bg-rose-400",
     titleKey: "challenges.hangman",
     descKey: "challenges.hangman_desc",
-    component: HangmanGame,
     comingSoon: false,
   },
   {
     id: "scrambled_word",
+    route: "/dashboard/challenges/scrambled-word",
     icon: EggFried,
     color: "bg-yellow-400",
     titleKey: "challenges.scrambled_word",
     descKey: "challenges.scrambled_word_desc",
-    component: ScrambledWordGame,
     comingSoon: false,
   },
   {
     id: "word_search",
+    route: "/dashboard/challenges/word-search",
     icon: Search,
     color: "bg-purple-400",
     titleKey: "challenges.word_search",
     descKey: "challenges.word_search_desc",
-    component: WordSearchGame,
     comingSoon: false,
   },
   {
     id: "word_link",
+    route: "/dashboard/challenges/word-link",
     icon: Link2,
     color: "bg-indigo-400",
     titleKey: "challenges.word_link",
     descKey: "challenges.word_link_desc",
-    component: WordLinkGame,
     comingSoon: false,
   },
   {
     id: "word_ladder",
+    route: "/dashboard/challenges/word-ladder",
     icon: Footprints,
     color: "bg-orange-400",
     titleKey: "challenges.word_ladder",
     descKey: "challenges.word_ladder_desc",
-    component: WordLadderGame,
     comingSoon: false,
   },
   {
     id: "word_quiz",
+    route: "/dashboard/challenges/word-quiz",
     icon: NotebookPen,
     color: "bg-emerald-400",
     titleKey: "challenges.word_quiz",
     descKey: "challenges.word_quiz_desc",
-    component: WordQuizGame,
     comingSoon: true,
   },
   {
     id: "crosswords",
+    route: "/dashboard/challenges/crosswords",
     icon: BrainCircuit,
     color: "bg-blue-400",
     titleKey: "challenges.crosswords",
     descKey: "challenges.crosswords_desc",
-    component: CrosswordsGame,
     comingSoon: true,
   },
 ];
@@ -122,61 +113,17 @@ GameCard.propTypes = {
   comingSoonLabel: PropTypes.string,
 };
 
-const GameLoader = ({ isDarkMode }) => (
-  <div className={`flex items-center justify-center py-16 ${
-    isDarkMode ? 'text-slate-400' : 'text-slate-500'
-  }`}>
-    <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin border-current" />
-  </div>
-);
-GameLoader.propTypes = { isDarkMode: PropTypes.bool.isRequired };
-
 // ── ChallengesMenu (Challenge Hub) ────────────────────────────────────────────
-const ChallengesMenu = ({ isDarkMode, onBack }) => {
+const ChallengesMenu = ({ isDarkMode }) => {
   const { t } = useTranslation();
-  const [activeGame, setActiveGame] = useState(null);
+  const navigate = useNavigate();
 
-  const handleGameSelect = (gameId) => setActiveGame(gameId);
-  const handleBackToMenu = () => setActiveGame(null);
-
-  const activeGameDef = activeGame ? GAMES.find((g) => g.id === activeGame) : null;
-
-  // ── Active game view ──────────────────────────────────────────────────────
-  if (activeGameDef) {
-    const GameComponent = activeGameDef.component;
-    return (
-      <div className="flex flex-col gap-4">
-        <Breadcrumb
-          isDarkMode={isDarkMode}
-          accentColor="rose"
-          items={[
-            { label: t('common.back', 'Back'), onClick: onBack },
-            { label: t('challenges.title', 'Challenges'), onClick: handleBackToMenu },
-            { label: t(activeGameDef.titleKey) },
-          ]}
-        />
-        <div className="flex items-center justify-between gap-2">
-          <h1 className={`text-3xl sm:text-5xl font-black uppercase tracking-tighter leading-none ${
-            isDarkMode ? 'text-white' : 'text-slate-900'
-          }`}>
-            {t(activeGameDef.titleKey)}
-          </h1>
-          <ReportButton isDarkMode={isDarkMode} context={`ChallengesMenu-${activeGameDef.id}`} />
-        </div>
-        <Suspense fallback={<GameLoader isDarkMode={isDarkMode} />}>
-          <GameComponent isDarkMode={isDarkMode} onBack={handleBackToMenu} />
-        </Suspense>
-      </div>
-    );
-  }
-
-  // ── Menu grid ─────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4">
       <Breadcrumb
         isDarkMode={isDarkMode}
         accentColor="rose"
-        items={[{ label: t('common.back', 'Back'), onClick: onBack }]}
+        items={[{ label: t('common.back', 'Back'), onClick: () => navigate('/dashboard') }]}
       />
 
       {/* Page title + report flag */}
@@ -197,7 +144,7 @@ const ChallengesMenu = ({ isDarkMode, onBack }) => {
             description={t(game.descKey)}
             icon={game.icon}
             color={game.color}
-            onClick={() => handleGameSelect(game.id)}
+            onClick={() => navigate(game.route)}
             isDarkMode={isDarkMode}
             comingSoon={game.comingSoon}
             comingSoonLabel={t('challenges.coming_soon', 'Coming Soon')}
@@ -210,7 +157,6 @@ const ChallengesMenu = ({ isDarkMode, onBack }) => {
 
 ChallengesMenu.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
-  onBack:     PropTypes.func.isRequired,
 };
 
 export default ChallengesMenu;

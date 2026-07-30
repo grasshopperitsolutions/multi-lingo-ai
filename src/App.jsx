@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import PropTypes from "prop-types";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { useTierAccess } from "./hooks/useTierAccess";
 import Header from "./components/Header";
@@ -10,7 +10,6 @@ import LoginPage from "./pages/LoginPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import ContactPage from "./pages/ContactPage";
-import DashboardPage from "./pages/DashboardPage";
 import SettingsPage from "./pages/SettingsPage";
 import AdminPage from "./pages/AdminPage";
 import OnboardingPage from "./pages/OnboardingPage";
@@ -20,6 +19,36 @@ import SubscriptionCancelPage from "./pages/SubscriptionCancelPage";
 import AppUnavailablePage from "./pages/AppUnavailablePage";
 import AlertMessage from "./components/Alert";
 import GlobalCompassCursor from "./components/GlobalCompassCursor";
+import Loader from "./components/Loader";
+
+// ── /dashboard/* pages — route-level code splitting ──────────────────────────
+const DashboardLayout = lazy(() => import("./pages/dashboard/DashboardLayout"));
+const DashboardHomePage = lazy(() => import("./pages/dashboard/DashboardHomePage"));
+const TranslatorPage = lazy(() => import("./pages/dashboard/TranslatorPage"));
+const DictionaryPage = lazy(() => import("./pages/dashboard/DictionaryPage"));
+
+const ChallengesMenu = lazy(() => import("./components/ChallengesMenu"));
+const HangmanPage = lazy(() => import("./pages/dashboard/games/HangmanPage"));
+const ScrambledWordPage = lazy(() => import("./pages/dashboard/games/ScrambledWordPage"));
+const WordSearchPage = lazy(() => import("./pages/dashboard/games/WordSearchPage"));
+const WordLinkPage = lazy(() => import("./pages/dashboard/games/WordLinkPage"));
+const WordLadderPage = lazy(() => import("./pages/dashboard/games/WordLadderPage"));
+const WordQuizComingSoonPage = lazy(() => import("./pages/dashboard/games/WordQuizComingSoonPage"));
+const CrosswordsComingSoonPage = lazy(() => import("./pages/dashboard/games/CrosswordsComingSoonPage"));
+
+const ExamTrainingMenu = lazy(() => import("./components/ExamTrainingMenu"));
+const ListeningExercisePage = lazy(() => import("./pages/dashboard/exercises/ListeningExercisePage"));
+const ReadingExercisePage = lazy(() => import("./pages/dashboard/exercises/ReadingExercisePage"));
+const WritingExercisePage = lazy(() => import("./pages/dashboard/exercises/WritingExercisePage"));
+const FullExamExercisePage = lazy(() => import("./pages/dashboard/exercises/FullExamExercisePage"));
+
+const GrammarPage = lazy(() => import("./pages/dashboard/coming-soon/GrammarPage"));
+const AiTutorPage = lazy(() => import("./pages/dashboard/coming-soon/AiTutorPage"));
+const RealPersonTutorPage = lazy(() => import("./pages/dashboard/coming-soon/RealPersonTutorPage"));
+const VoicePracticePage = lazy(() => import("./pages/dashboard/coming-soon/VoicePracticePage"));
+const StoryGeneratorPage = lazy(() => import("./pages/dashboard/coming-soon/StoryGeneratorPage"));
+const HistoryCulturePage = lazy(() => import("./pages/dashboard/coming-soon/HistoryCulturePage"));
+const ProfessionalToolsPage = lazy(() => import("./pages/dashboard/coming-soon/ProfessionalToolsPage"));
 
 const PublicLayout = () => (
   <>
@@ -119,7 +148,45 @@ const AppLayout = () => {
           {/* App pages — no Header or Footer */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
-          <Route path="/dashboard" element={<RequireOnboarding><DashboardPage /></RequireOnboarding>} />
+          <Route
+            path="/dashboard"
+            element={
+              <RequireOnboarding>
+                <Suspense fallback={<Loader fullScreen isDarkMode={isDarkMode} />}>
+                  <DashboardLayout />
+                </Suspense>
+              </RequireOnboarding>
+            }
+          >
+            <Route index element={<DashboardHomePage />} />
+            <Route path="translator" element={<TranslatorPage />} />
+            <Route path="dictionary" element={<DictionaryPage />} />
+
+            <Route path="challenges" element={<ChallengesMenu isDarkMode={isDarkMode} />} />
+            <Route path="challenges/hangman" element={<HangmanPage />} />
+            <Route path="challenges/scrambled-word" element={<ScrambledWordPage />} />
+            <Route path="challenges/word-search" element={<WordSearchPage />} />
+            <Route path="challenges/word-link" element={<WordLinkPage />} />
+            <Route path="challenges/word-ladder" element={<WordLadderPage />} />
+            <Route path="challenges/word-quiz" element={<WordQuizComingSoonPage />} />
+            <Route path="challenges/crosswords" element={<CrosswordsComingSoonPage />} />
+
+            <Route path="exam-training" element={<ExamTrainingMenu isDarkMode={isDarkMode} />} />
+            <Route path="exam-training/listening" element={<ListeningExercisePage />} />
+            <Route path="exam-training/reading" element={<ReadingExercisePage />} />
+            <Route path="exam-training/writing" element={<WritingExercisePage />} />
+            <Route path="exam-training/full-exam" element={<FullExamExercisePage />} />
+
+            <Route path="grammar" element={<GrammarPage />} />
+            <Route path="ai-tutor" element={<AiTutorPage />} />
+            <Route path="real-person-tutor" element={<RealPersonTutorPage />} />
+            <Route path="voice-practice" element={<VoicePracticePage />} />
+            <Route path="story-generator" element={<StoryGeneratorPage />} />
+            <Route path="history-culture" element={<HistoryCulturePage />} />
+            <Route path="professional-tools" element={<ProfessionalToolsPage />} />
+
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Route>
           <Route path="/settings" element={<RequireOnboarding><SettingsPage /></RequireOnboarding>} />
           <Route path="/admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
           <Route path="/app-unavailable" element={<AppUnavailablePage />} />

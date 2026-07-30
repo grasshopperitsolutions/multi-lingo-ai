@@ -1,4 +1,3 @@
-import { lazy, Suspense, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -9,48 +8,42 @@ import StatusBadge from './StatusBadge';
 import ReportButton from './ReportButton';
 import { Breadcrumb } from './ui';
 
-// ── Lazy-loaded exercise components ───────────────────────────────────────────
-const ListeningExercise = lazy(() => import('./ListeningExercise'));
-const ReadingExercise    = lazy(() => import('./ReadingExercise'));
-const WritingExercise    = lazy(() => import('./WritingExercise'));
-const FullExamExercise   = lazy(() => import('./FullExamExercise'));
-
 // ── Exercise Registry ─────────────────────────────────────────────────────────
 const EXERCISES = [
   {
     id: 'listening',
+    route: '/dashboard/exam-training/listening',
     icon: Headphones,
     color: 'bg-sky-500',
     titleKey: 'exam.listening',
     descKey: 'exam.listening_desc',
-    component: ListeningExercise,
     comingSoon: false,
   },
   {
     id: 'reading',
+    route: '/dashboard/exam-training/reading',
     icon: BookOpen,
     color: 'bg-emerald-500',
     titleKey: 'exam.reading',
     descKey: 'exam.reading_desc',
-    component: ReadingExercise,
     comingSoon: false,
   },
   {
     id: 'writing',
+    route: '/dashboard/exam-training/writing',
     icon: PenLine,
     color: 'bg-teal-500',
     titleKey: 'exam.writing',
     descKey: 'exam.writing_desc',
-    component: WritingExercise,
     comingSoon: false,
   },
-  {    
+  {
     id: "full_exam",
+    route: '/dashboard/exam-training/full-exam',
     icon: ClipboardList,
     color: "bg-rose-400",
     titleKey: "exam.full_exam",
     descKey: "exam.full_exam_desc",
-    component: FullExamExercise,
     comingSoon: false,
   },
 ];
@@ -95,68 +88,31 @@ ExamCard.propTypes = {
   comingSoonLabel: PropTypes.string,
 };
 
-const ExerciseLoader = ({ isDarkMode }) => (
-  <div className={`flex items-center justify-center py-16 ${
-    isDarkMode ? 'text-slate-400' : 'text-slate-500'
-  }`}>
-    <div className="w-8 h-8 rounded-full border-4 border-t-transparent animate-spin border-current" />
-  </div>
-);
-ExerciseLoader.propTypes = { isDarkMode: PropTypes.bool.isRequired };
-
 // ── ExamTrainingMenu ──────────────────────────────────────────────────────────
-const ExamTrainingMenu = ({ isDarkMode, onBack }) => {
+const ExamTrainingMenu = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { showAlert } = useAppContext();
   const { isExplorer } = useTierAccess();
-  const [activeExercise, setActiveExercise] = useState(null);
 
-  const handleExerciseSelect = (id) => {
+  const handleExerciseSelect = (ex) => {
     // Lock Full Exam for Explorer users
-    if (id === 'full_exam' && isExplorer) {
+    if (ex.id === 'full_exam' && isExplorer) {
       showAlert('warning', t('subscription.errors.upgrade_required'), {
         label: t('pricing.upgrade'),
         onClick: () => navigate('/pricing'),
       });
       return;
     }
-    setActiveExercise(id);
+    navigate(ex.route);
   };
-  const handleBackToMenu = () => setActiveExercise(null);
 
-  const activeExerciseDef = activeExercise
-    ? EXERCISES.find((e) => e.id === activeExercise)
-    : null;
-
-  // ── Active exercise view ──────────────────────────────────────────────────
-  if (activeExerciseDef && !activeExerciseDef.comingSoon) {
-    const ExerciseComponent = activeExerciseDef.component;
-    return (
-      <div className="flex flex-col gap-4">
-        <Breadcrumb
-          isDarkMode={isDarkMode}
-          accentColor="teal"
-          items={[
-            { label: t('common.back', 'Back'), onClick: onBack },
-            { label: t('exam.training', 'Exam Training'), onClick: handleBackToMenu },
-            { label: t(activeExerciseDef.titleKey) },
-          ]}
-        />
-        <Suspense fallback={<ExerciseLoader isDarkMode={isDarkMode} />}>
-          <ExerciseComponent isDarkMode={isDarkMode} onBack={handleBackToMenu} />
-        </Suspense>
-      </div>
-    );
-  }
-
-  // ── Menu grid ─────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4">
       <Breadcrumb
         isDarkMode={isDarkMode}
         accentColor="teal"
-        items={[{ label: t('common.back', 'Back'), onClick: onBack }]}
+        items={[{ label: t('common.back', 'Back'), onClick: () => navigate('/dashboard') }]}
       />
 
       {/* Page title + report flag */}
@@ -179,7 +135,7 @@ const ExamTrainingMenu = ({ isDarkMode, onBack }) => {
               description={t(ex.descKey)}
               icon={isLocked ? Lock : ex.icon}
               color={ex.color}
-              onClick={() => !ex.comingSoon && !isLocked && handleExerciseSelect(ex.id)}
+              onClick={() => !ex.comingSoon && !isLocked && handleExerciseSelect(ex)}
               isDarkMode={isDarkMode}
               comingSoon={ex.comingSoon || isLocked}
               comingSoonLabel={isLocked ? t('pricing.upgrade') : t('challenges.coming_soon', 'Coming Soon')}
@@ -193,7 +149,6 @@ const ExamTrainingMenu = ({ isDarkMode, onBack }) => {
 
 ExamTrainingMenu.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
-  onBack:     PropTypes.func.isRequired,
 };
 
 export default ExamTrainingMenu;

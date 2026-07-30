@@ -10,7 +10,7 @@ import PropTypes from "prop-types";
 /**
  * MobileMenuDrawer
  *
- * Shared mobile drawer used in both Header (home page) and DashboardPage.
+ * Shared mobile drawer used in both Header (home page) and DashboardLayout.
  * Reads theme, language, and user state directly from AppContext.
  *
  * The parent owns:

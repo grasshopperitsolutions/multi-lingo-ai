@@ -1,0 +1,144 @@
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { useAppContext } from "../../contexts/AppContext";
+import FeatureCard from "../../components/FeatureCard";
+import {
+  Languages,
+  BookMarked,
+  PenLine,
+  BotMessageSquare,
+  UserRound,
+  Video,
+  BookOpen,
+  Landmark,
+  Briefcase,
+  Gamepad2,
+  GraduationCap,
+  Flame,
+  Star,
+  Trophy,
+  TrendingUp,
+} from "lucide-react";
+import PropTypes from "prop-types";
+
+// ── StatCard ────────────────────────────────────────────────────────────────
+const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
+  <div
+    className={`p-2.5 sm:p-6 rounded-xl sm:rounded-2xl border-4 flex flex-col gap-1.5 sm:gap-3 transition-all hover:-translate-y-1
+    ${
+      isDarkMode
+        ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
+        : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
+    }`}
+  >
+    <div className="flex items-center gap-2 sm:gap-3">
+      <div className={`w-7 h-7 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border-2 border-current flex items-center justify-center shrink-0 ${color}`}>
+        <Icon size={14} className="sm:hidden" />
+        <Icon size={22} className="hidden sm:block" />
+      </div>
+      <p className={`text-lg sm:text-3xl font-black tracking-tighter ${
+        isDarkMode ? "text-white" : "text-slate-900"
+      }`}>
+        {value}
+      </p>
+    </div>
+    <p className={`text-[9px] sm:text-xs font-black uppercase tracking-widest leading-tight ${
+      isDarkMode ? "text-slate-400" : "text-slate-500"
+    }`}>
+      {label}
+    </p>
+  </div>
+);
+
+StatCard.propTypes = {
+  icon: PropTypes.elementType.isRequired,
+  label: PropTypes.string.isRequired,
+  value: PropTypes.string.isRequired,
+  color: PropTypes.string.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+};
+
+// ── DashboardHomePage ────────────────────────────────────────────────────────
+const DashboardHomePage = () => {
+  const { isDarkMode, user, showAlert, supportedLanguages } = useAppContext();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const stats = [
+    { icon: Flame,      label: t("dashboard.day_streak"),      value: String(user?.dayStreak ?? 0),        color: "text-rose-500" },
+    { icon: TrendingUp, label: t("dashboard.highest_streak"),  value: String(user?.highestDayStreak ?? 0), color: "text-orange-500" },
+    { icon: Star,       label: t("dashboard.words"),           value: String(user?.wordsFound ?? 0),       color: "text-emerald-500" },
+    { icon: Trophy,     label: t("dashboard.awards"),          value: "0",                                  color: "text-yellow-500" },
+  ];
+
+  const features = [
+    { id: "challenges",       route: "/dashboard/challenges",          icon: Gamepad2,       title: t("dashboard.challenges"),        description: t("dashboard.challenges_desc"),        color: "text-yellow-500" },
+    {
+      id: "exam_training",
+      route: "/dashboard/exam-training",
+      icon: GraduationCap,
+      title: t("dashboard.exam_training"),
+      description: t("dashboard.exam_training_desc"),
+      color: "text-teal-500",
+      disabled: !supportedLanguages.some(lang => lang.code === user?.learningDialect && lang.examSupported),
+      disabledReason: t("dashboard.exam_not_available_for_language"),
+    },
+    { id: "translator",        route: "/dashboard/translator",         icon: Languages,        title: t("dashboard.translator"),        description: t("dashboard.translator_desc"),        color: "text-sky-500" },
+    { id: "dictionary",        route: "/dashboard/dictionary",         icon: BookMarked,       title: t("dashboard.dictionary"),        description: t("dashboard.dictionary_desc"),        color: "text-violet-500" },
+    { id: "grammar",           route: "/dashboard/grammar",            icon: PenLine,          title: t("dashboard.grammar"),           description: t("dashboard.grammar_desc"),           color: "text-amber-500",   statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "ai_tutor",          route: "/dashboard/ai-tutor",           icon: BotMessageSquare, title: t("dashboard.ai_tutor"),          description: t("dashboard.ai_tutor_desc"),          color: "text-blue-500",    statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "real_person_tutor", route: "/dashboard/real-person-tutor",  icon: UserRound,        title: t("dashboard.real_person_tutor"), description: t("dashboard.real_person_tutor_desc"), color: "text-emerald-500", statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "voice_practice",    route: "/dashboard/voice-practice",     icon: Video,            title: t("dashboard.voice_practice"),    description: t("dashboard.voice_practice_desc"),    color: "text-purple-500",  statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "story_generator",   route: "/dashboard/story-generator",    icon: BookOpen,         title: t("dashboard.story_generator"),   description: t("dashboard.story_generator_desc"),   color: "text-rose-500",    statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "history_culture",   route: "/dashboard/history-culture",    icon: Landmark,         title: t("dashboard.history_culture"),   description: t("dashboard.history_culture_desc"),   color: "text-orange-500",  statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "professional_tools",route: "/dashboard/professional-tools", icon: Briefcase,        title: t("dashboard.professional_tools"), description: t("dashboard.professional_tools_desc"), color: "text-indigo-500", statusBadgeLabel: t("dashboard.coming_soon") },
+  ];
+
+  const handleFeatureClick = (feature) => {
+    if (feature.disabled) {
+      showAlert("info", feature.disabledReason);
+      return;
+    }
+    navigate(feature.route);
+  };
+
+  return (
+    <>
+      {/* Stats Row */}
+      <section>
+        <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
+          isDarkMode ? "text-slate-400" : "text-slate-500"
+        }`}>{t("dashboard.your_progress")}</h2>
+        <div className="flex gap-3 overflow-x-auto py-2 px-0.5 sm:py-1 sm:grid sm:grid-cols-4 sm:gap-4 snap-x snap-mandatory">
+          {stats.map((s) => (
+            <div key={s.label} className="snap-start shrink-0 w-[calc(50%-8px)] min-w-[100px] sm:w-auto sm:min-w-0">
+              <StatCard {...s} isDarkMode={isDarkMode} />
+            </div>
+          ))}
+        </div>
+      </section>
+      <section>
+        <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${
+          isDarkMode ? "text-slate-400" : "text-slate-500"
+        }`}>{t("dashboard.what_you_can_do")}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {features.map((f) => (
+            <FeatureCard
+              key={f.title}
+              icon={f.icon}
+              title={f.title}
+              description={f.description}
+              color={f.color}
+              isDarkMode={isDarkMode}
+              onClick={() => handleFeatureClick(f)}
+              statusBadgeLabel={f.statusBadgeLabel}
+              disabled={f.disabled}
+            />
+          ))}
+        </div>
+      </section>
+    </>
+  );
+};
+
+export default DashboardHomePage;

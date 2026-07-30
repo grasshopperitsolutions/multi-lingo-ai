@@ -7,3 +7,5 @@ export { default as LevelBadge } from './LevelBadge';
 export { default as Breadcrumb } from './Breadcrumb';
 export { default as CollapsibleCard } from './CollapsibleCard';
 export { default as ExamScoreCard } from './ExamScoreCard';
+export { default as FeaturePageShell } from './FeaturePageShell';
+export { default as ComingSoonContent } from './ComingSoonContent';
