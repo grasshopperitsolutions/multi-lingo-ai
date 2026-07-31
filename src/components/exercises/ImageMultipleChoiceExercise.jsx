@@ -16,6 +16,7 @@
  *   level      {string}
  */
 import PropTypes from 'prop-types';
+import { getPrompt, renderTemplate } from '../../services/promptService';
 
 const ImageMultipleChoiceExercise = ({ imageUrl, imageAlt, questions, answers, onAnswer, isDarkMode }) => {
   return (
@@ -91,20 +92,11 @@ ImageMultipleChoiceExercise.defaultProps = {
  * Generate AI prompt for image-based multiple choice reading exercise
  * @param {string} level - CEFR level (A1, A2, B1, B2, C1, C2)
  * @param {string} targetLang - Target learning language (e.g., 'pt-PT', 'en-US')
- * @returns {string} AI prompt
+ * @returns {Promise<string>} AI prompt
  */
-ImageMultipleChoiceExercise.generatePrompt = (level, targetLang) => {
-  return [
-    `Generate an image-based multiple choice reading comprehension exercise in ${targetLang} for CEFR level ${level}.`,
-    `CRITICAL: All text content must be written entirely in ${targetLang}.`,
-    `Each question should describe a scenario or image context (e.g. a classroom, a market, a family dinner) that the student can visualise.`,
-    `Follow with 4-6 questions, each with 4 options. Only one correct answer per question.`,
-    `Return a JSON object with:`,
-    `  - "imageUrl": "" (empty string, images are handled by the platform)`,
-    `  - "imageAlt": a short alt text describing the image in ${targetLang}`,
-    `  - "questions": array of { id, text, options[], correctAnswer }`,
-    `Return ONLY valid JSON. No markdown, no explanation.`,
-  ].join('\n');
+ImageMultipleChoiceExercise.generatePrompt = async (level, targetLang) => {
+  const promptDoc = await getPrompt('image-multiple-choice-prompt');
+  return renderTemplate(promptDoc.template, { level, targetLang });
 };
 
 export default ImageMultipleChoiceExercise;

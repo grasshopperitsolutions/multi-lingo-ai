@@ -7,6 +7,7 @@
  */
 
 import { getDocument, createDocument, patchDocument, getTokenOrAnonymous } from "./firestoreService";
+import { getPrompt, renderTemplate } from "./promptService";
 import { askAI } from "./aiService";
 import { loadRemoteTranslations } from "../i18n";
 import { parseAIJSON } from "../utils/parseAIJSON";
@@ -203,21 +204,9 @@ export async function fillMissingTranslations(locale, token) {
     console.info(`[translationService] fillMissingTranslations("${locale}") — found ${Object.keys(flattenToDotPaths(missingTree)).length} missing key(s), translating via AI`);
 
     // 4. Build a prompt to translate only what's missing
-    const sourceJson = JSON.stringify(missingTree, null, 2);
-    const prompt = `You are a professional translator. Below is a JSON object containing new UI strings that need to be added to an existing ${locale} translation file.
-
-\`\`\`json
-${sourceJson}
-\`\`\`
-
-Translate ALL string values to the locale "${locale}".
-
-CRITICAL RULES:
-- Keep the exact same JSON structure and keys — do NOT change any keys.
-- Only translate the string VALUES, not the keys.
-- For arrays, translate each element.
-- Preserve any {{placeholders}} or interpolation variables exactly as-is.
-- Return ONLY the translated JSON object — no markdown, no backticks, no commentary.`;
+    const missingKeysJson = JSON.stringify(missingTree, null, 2);
+    const promptDoc = await getPrompt('translation-fill-missing-prompt');
+    const prompt = renderTemplate(promptDoc.template, { locale, missingKeysJson });
 
     // 5. Ask AI. maxOutputTokens is raised well above the SDK default (1024)
     // because even a "missing keys" patch can span several sections at once
@@ -301,20 +290,8 @@ export async function seedLanguageTranslations(locale, token) {
 
   // 2. Build the AI prompt
   const sourceJson = JSON.stringify(sourceData, null, 2);
-  const prompt = `You are a professional translator. Below is a JSON object containing all UI strings for an application in English (en-US).
-
-\`\`\`json
-${sourceJson}
-\`\`\`
-
-Translate ALL string values to the locale "${locale}".
-
-CRITICAL RULES:
-- Keep the exact same JSON structure and keys — do NOT change any keys.
-- Only translate the string VALUES, not the keys.
-- For arrays (like "home.marquee"), translate each element.
-- Preserve any {{placeholders}} or interpolation variables exactly as-is.
-- Return ONLY the translated JSON object — no markdown, no backticks, no commentary.`;
+  const promptDoc = await getPrompt('translation-seed-language-prompt');
+  const prompt = renderTemplate(promptDoc.template, { locale, sourceJson });
 
   // 3. Ask AI. The full en-US source is ~34KB; translated output can run
   // close to that size too. The SDK's default maxOutputTokens (1024) badly

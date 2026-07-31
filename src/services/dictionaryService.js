@@ -42,6 +42,7 @@
 
 import { parseAIJSON } from '../utils/parseAIJSON';
 import { askAI } from './aiService';
+import { getPrompt, renderTemplate } from './promptService';
 
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
@@ -72,23 +73,8 @@ export async function lookupWord({ token, word, interfaceLang, learningLang }) {
   if (!interfaceLang)     throw new Error('[dictionaryService] interfaceLang is required');
   if (!learningLang)      throw new Error('[dictionaryService] learningLang is required');
 
-  const prompt = [
-    `You are a multilingual dictionary assistant.`,
-    `Look up the following word or expression: "${word.trim()}"`,
-    ``,
-    `Return a JSON object with exactly two fields:`,
-    ``,
-    `- "definition": a short, clear, plain-language definition (1–2 sentences max).`,
-    `  Write the definition in this language (BCP-47): ${interfaceLang}.`,
-    ``,
-    `- "synonyms": an array of synonyms or closely related words/expressions.`,
-    `  Synonyms MUST be written in this language (BCP-47): ${learningLang}.`,
-    `  Do NOT translate synonyms into ${interfaceLang}.`,
-    `  Include as many as are genuinely relevant — do not invent synonyms if few exist.`,
-    `  Do NOT include the original word itself in the synonyms array.`,
-    ``,
-    `Do NOT add any explanation, notes, or extra fields outside the JSON.`,
-  ].join('\n');
+  const promptDoc = await getPrompt('dictionary-lookup-prompt');
+  const prompt = renderTemplate(promptDoc.template, { word: word.trim(), interfaceLang, learningLang });
 
   const data = await askAI(token, prompt, {
     provider:       'gemini',

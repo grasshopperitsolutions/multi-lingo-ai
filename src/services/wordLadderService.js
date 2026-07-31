@@ -1,5 +1,6 @@
 import { parseAIJSON } from '../utils/parseAIJSON';
 import { askAI } from './aiService';
+import { getPrompt, renderTemplate } from './promptService';
 
 const PROXY_URL       = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 const GEMINI_MODEL    = 'gemini-3.5-flash-lite';
@@ -88,20 +89,8 @@ export const getWordLadderPoolCount = async (token, userDialect, learningDialect
 // ---------------------------------------------------------------------------
 
 async function _generateFromAI({ token, userDialect, learningDialect }) {
-  const prompt = [
-    `You are generating a "Word Ladder" language-learning puzzle in ${learningDialect}.`,
-    ``,
-    `Rules:`,
-    `- Generate a chain of ${MIN_WORDS}–${MAX_WORDS} words, all the SAME length (4–6 letters preferred).`,
-    `- Each adjacent pair of words must differ by EXACTLY ONE letter.`,
-    `- Every word must be a real, standalone dictionary word in ${learningDialect}.`,
-    `- No proper nouns, no abbreviations, no vulgar words.`,
-    `- For each word, provide a SHORT clue/definition in ${userDialect} (max 8 words).`,
-    `- "words" array and "clues" array must have the same length.`,
-    `- "wordLength" must be the letter count of each word (they are all the same).`,
-    ``,
-    `Return JSON with keys: words (string[]), clues (string[]), wordLength (number).`,
-  ].join('\n');
+  const promptDoc = await getPrompt('word-ladder-generate-prompt');
+  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, minWords: MIN_WORDS, maxWords: MAX_WORDS });
 
   const data = await askAI(token, prompt, {
     provider:    'gemini',

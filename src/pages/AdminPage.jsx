@@ -4,7 +4,7 @@ import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "../hooks/useTierAccess";
 import Loader from "../components/Loader";
 import { CONFIG_SECTIONS, getConfigSectionDocs } from "../services/adminConfigService";
-import { getPrompts, seedMissingPrompts, updatePrompt } from "../services/adminPromptsService";
+import { getPrompts, updatePrompt } from "../services/promptService";
 import PromptsSection from "../components/admin/PromptsSection";
 import PromptEditModal from "../components/admin/PromptEditModal";
 import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
@@ -22,7 +22,6 @@ const AdminPage = () => {
   const [docsBySection, setDocsBySection] = useState({});
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
   const [error, setError] = useState(null);
-  const [isSeedingPrompts, setIsSeedingPrompts] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
 
@@ -43,22 +42,6 @@ const AdminPage = () => {
       setIsLoadingDocs(false);
     }
   }, []);
-
-  const handleSeedDefaults = useCallback(async () => {
-    setIsSeedingPrompts(true);
-    try {
-      const createdIds = await seedMissingPrompts(docsBySection.prompts ?? []);
-      if (createdIds.length > 0) {
-        showAlert("success", `Seeded ${createdIds.length} default prompt(s).`);
-        const docs = await getPrompts();
-        setDocsBySection((prev) => ({ ...prev, prompts: docs }));
-      }
-    } catch (err) {
-      showAlert("error", `Could not seed default prompts: ${err.message}`);
-    } finally {
-      setIsSeedingPrompts(false);
-    }
-  }, [docsBySection.prompts, showAlert]);
 
   const handleSavePrompt = useCallback(async (id, patch) => {
     setIsSavingPrompt(true);
@@ -162,8 +145,6 @@ const AdminPage = () => {
             isLoadingDocs={isLoadingDocs}
             error={error}
             onEditPrompt={setEditingPrompt}
-            onSeedDefaults={handleSeedDefaults}
-            isSeeding={isSeedingPrompts}
           />
         ) : (
           <>

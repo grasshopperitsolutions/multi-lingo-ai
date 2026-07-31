@@ -1,15 +1,20 @@
 /**
  * examPromptTemplates.js
  *
- * Central repository of level-specific AI prompt templates for exam exercise generation.
- * Each function returns a prompt string appropriate for the given CEFR level and exercise type.
+ * Builds level/type-specific AI prompts for exam exercise generation.
+ * The instructional copy itself lives in Firestore (appConfig/config/prompts,
+ * see promptService.js) — this file only computes the level/type-dependent
+ * *variables* (grammar rules, word counts, phrasing, labels) and renders them
+ * into the fetched template.
  *
  * Usage:
  *   import { getReadingPrompt, getListeningPrompt, getWritingPrompt } from '../services/examPromptTemplates';
  *
- *   const prompt = getReadingPrompt('A1', 'pt-PT', { type: 'true-false' });
- *   const prompt = getListeningPrompt('B1', 'pt-PT', { type: 'matching' });
+ *   const prompt = await getReadingPrompt('A1', 'pt-PT', { type: 'true-false' });
+ *   const prompt = await getListeningPrompt('B1', 'pt-PT', { type: 'matching' });
  */
+
+import { getPrompt, renderTemplate } from './promptService';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -107,195 +112,21 @@ function getExamPhrasing(type, level) {
  * @param {string} options.type - Exercise type: 'multiple-choice' | 'true-false' | 'matching' | 'best-title' | 'ordering' | 'cloze-options' | 'fill-blanks' | 'notice-sign'
  * @param {number} [options.questionCount=4]
  * @param {string} [options.topic] - Optional specific topic
- * @returns {string} The AI prompt
+ * @returns {Promise<string>} The AI prompt
  */
-export function getReadingPrompt(level, targetLang, { type = 'multiple-choice', questionCount = 4, topic } = {}) {
+export async function getReadingPrompt(level, targetLang, { type = 'multiple-choice', questionCount = 4, topic } = {}) {
   const passageLength = getPassageLength(level);
-  const grammar = getGrammarDescription(level);
-  const phrasing = getExamPhrasing(type, level);
+  const grammarDescription = getGrammarDescription(level);
+  const examPhrasing = getExamPhrasing(type, level);
   const extraItems = (level === 'A1' || level === 'A2') ? 2 : 3;
+  const topicLine = topic ? `Topic: ${topic}` : '';
 
-  const instructions = [];
-  instructions.push(`You are a Portuguese language examiner creating a READING exercise for CEFR level ${level} in ${targetLang}.`);
-  instructions.push(``);
-  instructions.push(`LEVEL ${level} CONSTRAINTS:`);
-  instructions.push(grammar);
-  instructions.push(`The reading passage should be approximately ${passageLength} words.`);
-  if (topic) instructions.push(`Topic: ${topic}`);
-  instructions.push(``);
+  const prompt = await getPrompt('exam-reading-prompt');
+  const variant = prompt.variants?.find((v) => v.key === type) ?? prompt.variants?.find((v) => v.key === 'multiple-choice');
 
-  // Exercise type specific instructions
-  switch (type) {
-    case 'multiple-choice':
-      instructions.push(`Exercise type: Multiple choice comprehension questions.`);
-      instructions.push(`Create a reading passage and ${questionCount} multiple-choice questions.`);
-      instructions.push(`Each question must have 3-4 options (A/B/C or A/B/C/D).`);
-      instructions.push(`Official phrasing: "${phrasing}"`);
-      instructions.push(``);
-      instructions.push(`Return ONLY a valid JSON object:`);
-      instructions.push(`{`);
-      instructions.push(`  "type": "multiple-choice",`);
-      instructions.push(`  "text": "<passage in ${targetLang}>",`);
-      instructions.push(`  "instructions": ["${phrasing}"],`);
-      instructions.push(`  "vocabulary": [`);
-      instructions.push(`    { "word": "<difficult word>", "definition": "<simple explanation in ${targetLang}>" }`);
-      instructions.push(`  ],`);
-      instructions.push(`  "questions": [`);
-      instructions.push(`    { "id": "r1", "text": "<question>", "options": ["A. ...", "B. ...", "C. ...", "D. ..."], "correctAnswer": "A. ..." }`);
-      instructions.push(`  ]`);
-      instructions.push(`}`);
-      break;
-
-    case 'true-false':
-      instructions.push(`Exercise type: True/False statements about the text.`);
-      instructions.push(`Create a reading passage and ${questionCount} statements.`);
-      instructions.push(`Some statements should be true (V) and some false (F), based on the text.`);
-      instructions.push(`Official phrasing: "${phrasing}"`);
-      instructions.push(``);
-      instructions.push(`Return ONLY a valid JSON object:`);
-      instructions.push(`{`);
-      instructions.push(`  "type": "true-false",`);
-      instructions.push(`  "text": "<passage in ${targetLang}>",`);
-      instructions.push(`  "instructions": ["${phrasing}"],`);
-      instructions.push(`  "vocabulary": [`);
-      instructions.push(`    { "word": "<difficult word>", "definition": "<simple explanation>" }`);
-      instructions.push(`  ],`);
-      instructions.push(`  "statements": [`);
-      instructions.push(`    { "id": "tf1", "text": "<statement>", "isTrue": true }`);
-      instructions.push(`  ],`);
-      instructions.push(`  "questions": [`);
-      instructions.push(`    { "id": "r1", "text": "<statement>", "options": ["Verdadeiro", "Falso"], "correctAnswer": "Verdadeiro" }`);
-      instructions.push(`  ]`);
-      instructions.push(`}`);
-      break;
-
-    case 'best-title':
-      instructions.push(`Exercise type: Select the best title for the text.`);
-      instructions.push(`Create a reading passage and ${questionCount} title options.`);
-      instructions.push(`Only one title should be correct/appropriate.`);
-      instructions.push(`Official phrasing: "${phrasing}"`);
-      instructions.push(``);
-      instructions.push(`Return ONLY a valid JSON object:`);
-      instructions.push(`{`);
-      instructions.push(`  "type": "best-title",`);
-      instructions.push(`  "text": "<passage in ${targetLang}>",`);
-      instructions.push(`  "instructions": ["${phrasing}"],`);
-      instructions.push(`  "vocabulary": [`);
-      instructions.push(`    { "word": "<word>", "definition": "<definition>" }`);
-      instructions.push(`  ],`);
-      instructions.push(`  "titles": [`);
-      instructions.push(`    { "id": "t1", "text": "<title 1>", "isCorrect": true },`);
-      instructions.push(`    { "id": "t2", "text": "<title 2>", "isCorrect": false }`);
-      instructions.push(`  ],`);
-      instructions.push(`  "questions": [`);
-      instructions.push(`    { "id": "r1", "text": "Qual é o melhor título para o texto?", "options": ["<title 1>", "<title 2>", "<title 3>", "<title 4>"], "correctAnswer": "<title 1>" }`);
-      instructions.push(`  ]`);
-      instructions.push(`}`);
-      break;
-
-    case 'ordering':
-      instructions.push(`Exercise type: Paragraph/sentence ordering.`);
-      instructions.push(`Create ${questionCount} paragraphs or sentences that form a coherent text when ordered correctly.`);
-      instructions.push(`Each item should be a complete sentence (10-40 words).`);
-      instructions.push(`CRITICAL: Do NOT include ordinal markers (first, second, then, finally...) inside the item text that would give away the correct position.`);
-      instructions.push(`Official phrasing: "${phrasing}"`);
-      instructions.push(``);
-      instructions.push(`Return ONLY a valid JSON object:`);
-      instructions.push(`{`);
-      instructions.push(`  "type": "ordering",`);
-      instructions.push(`  "instructions": ["${phrasing}"],`);
-      instructions.push(`  "items": [`);
-      instructions.push(`    { "id": "o1", "text": "<paragraph text>", "correctPosition": 1 }`);
-      instructions.push(`  ]`);
-      instructions.push(`}`);
-      break;
-
-    case 'cloze-options':
-      instructions.push(`Exercise type: Cloze with A/B/C/D options for each gap.`);
-      instructions.push(`Create a short passage in ${targetLang} with ${questionCount} gaps.`);
-      instructions.push(`In the passage, mark each gap with ___ (triple underscore).`);
-      instructions.push(`Each gap must have 3-4 options (A/B/C/D).`);
-      instructions.push(`Official phrasing: "${phrasing}"`);
-      instructions.push(``);
-      instructions.push(`Return ONLY a valid JSON object:`);
-      instructions.push(`{`);
-      instructions.push(`  "type": "cloze-options",`);
-      instructions.push(`  "instructions": ["${phrasing}"],`);
-      instructions.push(`  "passage": "<the passage in ${targetLang} with ___ marking each gap>",`);
-      instructions.push(`  "blanks": [`);
-      instructions.push(`    { "id": "c1", "position": 1, "options": ["opção A", "opção B", "opção C", "opção D"], "correctAnswer": "opção A" }`);
-      instructions.push(`  ]`);
-      instructions.push(`}`);
-      break;
-
-    case 'matching':
-      instructions.push(`Exercise type: Column A → Column B matching.`);
-      instructions.push(`Create ${questionCount} pairs of related items and ${extraItems} extra items for column B (distractors).`);
-      instructions.push(`Official phrasing: "${phrasing}"`);
-      instructions.push(`Há ${extraItems} opções a mais na coluna B.`);
-      instructions.push(``);
-      instructions.push(`Return ONLY a valid JSON object:`);
-      instructions.push(`{`);
-      instructions.push(`  "type": "matching",`);
-      instructions.push(`  "instructions": ["${phrasing}"],`);
-      instructions.push(`  "pairs": [`);
-      instructions.push(`    { "id": "m1", "itemA": "<column A text>", "itemB": "<column B correct match>" }`);
-      instructions.push(`  ],`);
-      instructions.push(`  "extraItems": ["<distractor 1>", "<distractor 2>"],`);
-      instructions.push(`  "showExample": true,`);
-      instructions.push(`  "example": { "itemA": "<sample column A>", "itemB": "<sample column B match>" }`);
-      instructions.push(`}`);
-      break;
-
-    case 'fill-blanks':
-      instructions.push(`Exercise type: Fill in the blanks from a word bank.`);
-      instructions.push(`Create a short passage in ${targetLang} with ${questionCount} gaps.`);
-      instructions.push(`In the passage, mark each gap with ___ (triple underscore).`);
-      instructions.push(`Provide a word bank with the correct answers plus 3-5 extra distractor words.`);
-      instructions.push(`Official phrasing: "${phrasing}"`);
-      instructions.push(``);
-      instructions.push(`Return ONLY a valid JSON object:`);
-      instructions.push(`{`);
-      instructions.push(`  "type": "fill-blanks",`);
-      instructions.push(`  "instructions": ["${phrasing}"],`);
-      instructions.push(`  "passage": "<the passage in ${targetLang} with ___ marking each gap>",`);
-      instructions.push(`  "wordBank": ["<correct word 1>", "<correct word 2>", "<distractor 1>", "<distractor 2>", ...],`);
-      instructions.push(`  "blanks": [`);
-      instructions.push(`    { "id": "fb1", "position": 1, "correctAnswer": "<correct word>" }`);
-      instructions.push(`  ]`);
-      instructions.push(`}`);
-      break;
-
-    case 'notice-sign':
-      instructions.push(`Exercise type: Reading public notices and signs.`);
-      instructions.push(`Create ${questionCount} realistic notices or signs that might appear in public places (schools, offices, streets, shops).`);
-      instructions.push(`For each notice, write a comprehension question with 3-4 multiple choice options.`);
-      instructions.push(`Official phrasing: "${phrasing}"`);
-      instructions.push(``);
-      instructions.push(`Return ONLY a valid JSON object:`);
-      instructions.push(`{`);
-      instructions.push(`  "type": "notice-sign",`);
-      instructions.push(`  "instructions": ["${phrasing}"],`);
-      instructions.push(`  "notices": [`);
-      instructions.push(`    { "id": "n1", "text": "<notice/sign text>", "question": "<comprehension question>", "options": ["A. ...", "B. ...", "C. ...", "D. ..."], "correctAnswer": "A. ..." }`);
-      instructions.push(`  ]`);
-      instructions.push(`}`);
-      break;
-
-    default:
-      // Fallback to multiple-choice
-      instructions.push(`Exercise type: Multiple choice.`);
-      instructions.push(`Create a reading passage and ${questionCount} questions.`);
-      instructions.push(`Return ONLY a valid JSON object with "text", "instructions", "vocabulary", and "questions" arrays.`);
-  }
-
-  instructions.push(``);
-  instructions.push(`Rules:`);
-  instructions.push(`- All text must be in ${targetLang}.`);
-  instructions.push(`- Do NOT include any text outside the JSON object.`);
-  instructions.push(`- The vocabulary array should contain 2-4 difficult words with their definitions in ${targetLang}.`);
-
-  return instructions.join('\n');
+  return renderTemplate(variant.template, {
+    level, targetLang, grammarDescription, passageLength, topicLine, questionCount, examPhrasing, extraItems,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -310,9 +141,9 @@ export function getReadingPrompt(level, targetLang, { type = 'multiple-choice', 
  * @param {object} options
  * @param {string} options.type - Exercise type: 'multiple-choice' | 'true-false' | 'fill-blanks' | 'matching'
  * @param {string} options.audioFormat - 'dialogue' | 'monologue' | 'phone-message' | 'announcement' | 'interview'
- * @returns {string} The AI prompt
+ * @returns {Promise<string>} The AI prompt
  */
-export function getListeningPrompt(level, targetLang, { type = 'multiple-choice', audioFormat = 'dialogue' } = {}) {
+export async function getListeningPrompt(level, targetLang, { type = 'multiple-choice', audioFormat = 'dialogue' } = {}) {
   const duration = getAudioDuration(level);
   const isBeginner = level === 'A1' || level === 'A2';
   const questionCount = isBeginner ? 3 : 5;
@@ -333,42 +164,24 @@ export function getListeningPrompt(level, targetLang, { type = 'multiple-choice'
     'interview': 'a semi-formal interview with questions and answers',
   };
 
-  const typeLabel = type === 'multiple-choice' ? 'multiple choice'
+  const audioFormatLabel = formatLabels[audioFormat] || 'a dialogue';
+  const toneDescription = toneDescriptions[audioFormat] || 'natural conversation';
+
+  const listeningTypeLabel = type === 'multiple-choice' ? 'multiple choice'
     : type === 'true-false' ? 'true/false'
     : 'fill in the blanks (select from a word bank)';
 
-  const commonFields = `Return a JSON object with:
-  - "transcript": the full audio script in ${targetLang}
-  - "tone": "${toneDescriptions[audioFormat] || 'natural conversation'}"
-  - "duration": ${duration}
-  - "instructions": array of strings`;
-
-  const fieldList = type === 'multiple-choice'
-    ? `${commonFields}
-  - "questions": array of { id, text, options[], correctAnswer }`
+  const listeningFieldList = type === 'multiple-choice'
+    ? `  - "questions": array of { id, text, options[], correctAnswer }`
     : type === 'true-false'
-      ? `${commonFields}
-  - "statements": array of { id, text, isTrue }
-  - "questions": array of { id, text, options[], correctAnswer }`
-      : `${commonFields}
-  - "passage": the same text as the transcript but with key words replaced by ___ (triple underscore)
-  - "wordBank": array of words in ${targetLang} (correct answers + plausible distractors)
-  - "blanks": array of { id, position, correctAnswer }`;
+      ? `  - "statements": array of { id, text, isTrue }\n  - "questions": array of { id, text, options[], correctAnswer }`
+      : `  - "passage": the same text as the transcript but with key words replaced by ___ (triple underscore)\n  - "wordBank": array of words in ${targetLang} (correct answers + plausible distractors)\n  - "blanks": array of { id, position, correctAnswer }`;
 
-  return [
-    `Generate a listening comprehension exercise in ${targetLang} for CEFR level ${level}.`,
-    `CRITICAL: All text content must be written entirely in ${targetLang}.`,
-    ``,
-    `Audio format: ${formatLabels[audioFormat] || 'a dialogue'}.`,
-    `Exercise type: ${typeLabel}.`,
-    `Create ${questionCount} items based on the transcript the student will hear.`,
-    ``,
-    `The "transcript" is the full script the student will listen to via TTS.`,
-    `The "tone" describes how the TTS should deliver the audio.`,
-    fieldList,
-    ``,
-    `Return ONLY valid JSON. No markdown, no explanation.`,
-  ].join('\n');
+  const prompt = await getPrompt('exam-listening-prompt');
+
+  return renderTemplate(prompt.template, {
+    targetLang, level, audioFormatLabel, listeningTypeLabel, questionCount, toneDescription, duration, listeningFieldList,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -383,11 +196,11 @@ export function getListeningPrompt(level, targetLang, { type = 'multiple-choice'
  * @param {object} options
  * @param {string} options.textType - 'email' | 'message' | 'story' | 'article' | 'opinion' | 'letter' | 'essay'
  * @param {string} [options.topic] - Optional specific topic
- * @returns {string} The AI prompt
+ * @returns {Promise<string>} The AI prompt
  */
-export function getWritingPrompt(level, targetLang, { textType = 'message', topic } = {}) {
+export async function getWritingPrompt(level, targetLang, { textType = 'message', topic } = {}) {
   const { min, max } = getWordCountRange(level);
-  const grammar = getGrammarDescription(level);
+  const grammarDescription = getGrammarDescription(level);
 
   const textTypeLabels = {
     'email': 'an email',
@@ -398,35 +211,14 @@ export function getWritingPrompt(level, targetLang, { textType = 'message', topi
     'letter': 'a formal/informal letter',
     'essay': 'an argumentative essay',
   };
+  const textTypeLabel = textTypeLabels[textType] || 'a text';
+  const topicLine = topic ? `Topic: ${topic}` : '';
 
-  const prompt = [
-    `You are a Portuguese language examiner creating a WRITING exercise for CEFR level ${level} in ${targetLang}.`,
-    `The exercise must be in European Portuguese (pt-PT).`,
-    ``,
-    `LEVEL ${level} CONSTRAINTS:`,
-    grammar,
-    ``,
-    `Text type: ${textTypeLabels[textType] || 'a text'}.`,
-    `The student must write between ${min} and ${max} words.`,
-    topic ? `Topic: ${topic}` : '',
-    ``,
-    `Return ONLY a valid JSON object:`,
-    `{`,
-    `  "type": "writing",`,
-    `  "prompt": "<the scenario/context in ${targetLang}>",`,
-    `  "instructions": ["<instruction 1>", "<instruction 2>", ...],`,
-    `  "minWords": ${min},`,
-    `  "maxWords": ${max}`,
-    `}`,
-    ``,
-    `Rules:`,
-    `- The prompt and instructions must be in European Portuguese (pt-PT).`,
-    `- Include 3-5 bullet-point instructions guiding what to include.`,
-    `- Make the scenario realistic and age-appropriate.`,
-    `- Do NOT include any text outside the JSON object.`,
-  ].filter(Boolean).join('\n');
+  const prompt = await getPrompt('exam-writing-prompt');
 
-  return prompt;
+  return renderTemplate(prompt.template, {
+    level, targetLang, grammarDescription, textTypeLabel, minWords: min, maxWords: max, topicLine,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -440,12 +232,12 @@ export function getWritingPrompt(level, targetLang, { textType = 'message', topi
  * @param {string} targetLang - Target language
  * @param {object} options
  * @param {string} options.type - 'conversation' | 'roleplay' | 'description' | 'opinion' | 'presentation'
- * @returns {string} The AI prompt
+ * @returns {Promise<string>} The AI prompt
  */
-export function getOralPrompt(level, targetLang, { type = 'conversation' } = {}) {
-  const grammar = getGrammarDescription(level);
-  const prepTime = { A1: 5, A2: 10, B1: 15, B2: 20, C1: 25, C2: 30 }[level] || 15;
-  const duration = { A1: 3, A2: 5, B1: 7, B2: 10, C1: 12, C2: 15 }[level] || 5;
+export async function getOralPrompt(level, targetLang, { type = 'conversation' } = {}) {
+  const grammarDescription = getGrammarDescription(level);
+  const prepTimeMinutes = { A1: 5, A2: 10, B1: 15, B2: 20, C1: 25, C2: 30 }[level] || 15;
+  const speakingTimeMinutes = { A1: 3, A2: 5, B1: 7, B2: 10, C1: 12, C2: 15 }[level] || 5;
 
   const typeLabels = {
     'conversation': 'a guided conversation with the examiner',
@@ -454,35 +246,11 @@ export function getOralPrompt(level, targetLang, { type = 'conversation' } = {})
     'opinion': 'an opinion discussion on a given topic',
     'presentation': 'a short presentation followed by questions',
   };
+  const oralTypeLabel = typeLabels[type] || 'a guided conversation';
 
-  const prompt = [
-    `You are a Portuguese language examiner creating an ORAL EXPRESSION exercise for CEFR level ${level} in ${targetLang}.`,
-    ``,
-    `LEVEL ${level} CONSTRAINTS:`,
-    grammar,
-    `Preparation time: ${prepTime} minutes.`,
-    `Speaking time: ${duration} minutes.`,
-    ``,
-    `Exercise type: ${typeLabels[type] || 'a guided conversation'}.`,
-    ``,
-    `Return ONLY a valid JSON object:`,
-    `{`,
-    `  "type": "oral",`,
-    `  "oralType": "${type}",`,
-    `  "prompt": "<the task description in ${targetLang}>",`,
-    `  "instructions": ["<instruction 1>", "<instruction 2>", ...],`,
-    `  "prepTimeMinutes": ${prepTime},`,
-    `  "speakingTimeMinutes": ${duration},`,
-    `  "topics": ["<topic 1>", "<topic 2>"],`,
-    `  "followUpQuestions": ["<question 1>", "<question 2>", "<question 3>"]`,
-    `}`,
-    ``,
-    `Rules:`,
-    `- All text must be in ${targetLang}.`,
-    `- The prompt should clearly describe the task.`,
-    `- Include 2-4 follow-up questions the examiner can ask.`,
-    `- Do NOT include any text outside the JSON object.`,
-  ].join('\n');
+  const prompt = await getPrompt('exam-oral-prompt');
 
-  return prompt;
+  return renderTemplate(prompt.template, {
+    level, targetLang, grammarDescription, prepTimeMinutes, speakingTimeMinutes, oralTypeLabel, oralType: type,
+  });
 }

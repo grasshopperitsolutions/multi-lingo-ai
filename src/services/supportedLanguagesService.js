@@ -7,6 +7,7 @@
 
 import { askAI } from "./aiService";
 import { seedLanguageTranslations } from "./translationService";
+import { getPrompt, renderTemplate } from "./promptService";
 import { normalizeCode } from "../utils/languageCode";
 import { parseAIJSON } from "../utils/parseAIJSON";
 import {
@@ -21,46 +22,6 @@ import {
 // ---------------------------------------------------------------------------
 const LANGUAGES_COLLECTION = "appConfig/config/languages";
 const WRITING_SYSTEMS_COLLECTION = "appConfig/config/writingSystems";
-
-// ---------------------------------------------------------------------------
-// Prompt for AI language generation
-// ---------------------------------------------------------------------------
-const SEED_PROMPT = (code, humanName) => `You are a linguistics assistant. The user wants to add a language to the system.
-
-User input: "${humanName}"
-Possible BCP-47 code hint: "${code}"
-
-Your job:
-1. Determine the most appropriate BCP-47 code for this language/dialect.
-   - If the hint looks like a valid BCP-47 code (e.g. "en-AU", "pt-BR", "ja-JP"), use it.
-   - If the hint is a description (e.g. "australia english", "african portuguese em angola"), derive the correct BCP-47 code yourself.
-   - If you cannot determine a precise code, use a sensible best guess (e.g. "en-AU" for Australian English).
-2. Generate metadata for that language.
-
-CRITICAL: The "code" field MUST be a valid BCP-47 language tag such as "en-AU", "pt-AO", "pt-BR", etc. Do NOT return a plain description like "australia english".
-
-Return ONLY a JSON object (no markdown, no backticks, no commentary) with exactly these fields:
-{
-  "code": "<the BCP-47 code you determined>",
-  "label": "Full language name in English (e.g. 'Portuguese (Portugal)')",
-  "flag": "Single emoji flag for the primary country where this language is spoken",
-  "examSupported": boolean (true only for Portuguese pt-PT and pt-BR, false for all others),
-  "status": "active",
-  "rtl": boolean (true for Arabic, Hebrew, Farsi, Urdu, etc.; false otherwise),
-  "characters": {
-    "default": ["array of all unique lowercase letters used in this language"],
-    "special": ["array of accented / diacritic characters commonly used (empty array if none)"]
-  }
-}
-
-Rules:
-- The code MUST be a valid BCP-47 code (language-region format like "en-AU", "pt-AO", etc.).
-- default and special arrays must be deduplicated.
-- default should contain at least 20 characters if the language uses a Latin-like script.
-- For non-Latin scripts (Cyrillic, Greek, Japanese, Korean, Chinese, etc.), include the relevant characters.
-- Do NOT include uppercase letters in default — only lowercase base characters.
-- Do NOT include digits, punctuation, or whitespace.
-- Return ONLY the JSON object.`;
 
 
 // ---------------------------------------------------------------------------
@@ -115,9 +76,11 @@ export async function seedLanguage(code, name, token) {
   // 1. Ask AI to generate metadata + character sets. maxOutputTokens raised
   // from the SDK default (1024) — some scripts (e.g. Chinese, Japanese)
   // produce large "default"/"special" character arrays that can approach it.
+  const promptDoc = await getPrompt('language-metadata-seed-prompt');
+  const seedPrompt = renderTemplate(promptDoc.template, { code, humanName: name });
   const aiResponse = await askAI(
     token,
-    SEED_PROMPT(code, name),
+    seedPrompt,
     { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.2, jsonMode: true, maxOutputTokens: 2048 }
   );
 

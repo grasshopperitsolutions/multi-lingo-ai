@@ -24,6 +24,7 @@
 // ---------------------------------------------------------------------------
 
 import { askAI } from './aiService';
+import { getPrompt, renderTemplate } from './promptService';
 
 /**
  * Current active Gemini TTS model.
@@ -212,21 +213,16 @@ export function stopSpeaking() {
  *
  * @param {string} text - The text to be read aloud (not modified)
  * @param {string} lang - BCP-47 locale, e.g. 'pt-PT', 'en-US'
- * @returns {string} Full instructional prompt for Gemini TTS
+ * @returns {Promise<string>} Full instructional prompt for Gemini TTS
  */
-function _buildTtsPrompt(text, lang) {
+async function _buildTtsPrompt(text, lang) {
   const meta = LOCALE_METADATA[lang] ?? {
     language: lang,
     region: 'the appropriate region',
   };
 
-  return (
-    `You are a native ${meta.language} speaker from ${meta.region}. ` +
-    `Please read the following text aloud in a clear and natural tone, ` +
-    `using the accent and pronunciation typical of ${meta.region}. ` +
-    `Do not translate, summarize, or modify the text in any way — read it exactly as written.` +
-    `\n\n${text}`
-  );
+  const promptDoc = await getPrompt('tts-build-prompt');
+  return renderTemplate(promptDoc.template, { language: meta.language, region: meta.region, text });
 }
 
 // ---------------------------------------------------------------------------
@@ -234,7 +230,8 @@ function _buildTtsPrompt(text, lang) {
 // ---------------------------------------------------------------------------
 
 async function _speakWithGemini(token, text, lang, onEnd, onError) {
-  const result = await askAI(token, _buildTtsPrompt(text, lang), {
+  const ttsPrompt = await _buildTtsPrompt(text, lang);
+  const result = await askAI(token, ttsPrompt, {
     provider:  'gemini',
     model:     GEMINI_TTS_MODEL,
     tts:       true,

@@ -1,5 +1,6 @@
 import { parseAIJSON } from '../utils/parseAIJSON';
 import { askAI } from './aiService';
+import { getPrompt, renderTemplate } from './promptService';
 
 const PROXY_URL       = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 const GEMINI_MODEL    = 'gemini-3.5-flash-lite';
@@ -86,26 +87,8 @@ export const getWordLinkPoolCount = async (token, userDialect, learningDialect) 
 // ---------------------------------------------------------------------------
 
 async function _generateFromAI({ token, userDialect, learningDialect }) {
-  const prompt = [
-    `You are generating a "Word Link" language-learning puzzle.`,
-    ``,
-    `The puzzle consists of:`,
-    `- A hidden THEME (2–5 words) describing a category, e.g. "Names of fruits"`,
-    `- Exactly 5 CLUE WORDS in ${learningDialect} that belong to that category,`,
-    `  ordered from hardest to easiest (last clue = most obvious giveaway)`,
-    `- ACCEPTED KEYWORDS: single words a learner could type to correctly guess the theme`,
-    ``,
-    `Rules:`,
-    `- All 5 clue words must be in ${learningDialect}`,
-    `- "theme" must be in ${userDialect}`,
-    `- "themeTranslation" must be the same theme expressed in ${learningDialect}`,
-    `- "keywords" must include the key noun(s) from the theme in BOTH ${userDialect} AND ${learningDialect},`,
-    `  including singular and plural forms of each`,
-    `  e.g. for "Names of fruits": ["fruit", "fruits", "fruta", "frutas"]`,
-    `- Clues must be genuine members of the theme category`,
-    `- First clue = least obvious, last clue = most obvious`,
-    `- Provide at least 4 accepted keywords (both languages, singular + plural)`,
-  ].join('\n');
+  const promptDoc = await getPrompt('word-link-generate-prompt');
+  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect });
 
   const data = await askAI(token, prompt, {
     provider:    'gemini',

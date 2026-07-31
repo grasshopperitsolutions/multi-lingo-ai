@@ -35,7 +35,7 @@ export async function generateListeningExercise({ token, level, targetLang, ques
     : exerciseTypes[Math.floor(Math.random() * exerciseTypes.length)];
 
   // Build prompt with targetLang
-  const prompt = getListeningPrompt(level, targetLang, { type, audioFormat });
+  const prompt = await getListeningPrompt(level, targetLang, { type, audioFormat });
 
   // Get JSON Schema for this exercise type
   const responseSchema = getResponseSchemaForType(type);

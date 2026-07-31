@@ -5,6 +5,7 @@
  * Uses getWritingPrompt from examPromptTemplates for level-appropriate prompts.
  */
 import { getWritingPrompt } from './examPromptTemplates';
+import { getPrompt, renderTemplate } from './promptService';
 import { parseAIJSON } from '../utils/parseAIJSON';
 import { askAI } from './aiService';
 
@@ -44,7 +45,7 @@ export async function generateWritingExercise({ token, level, targetLang }) {
 
   const textTypes = ['email', 'message', 'story', 'article', 'opinion', 'letter'];
   const textType = textTypes[Math.floor(Math.random() * textTypes.length)];
-  const promptStr = getWritingPrompt(level, targetLang, { textType });
+  const promptStr = await getWritingPrompt(level, targetLang, { textType });
   const { min, max } = WORD_COUNT_BOUNDS[level] ?? WORD_COUNT_BOUNDS.A1;
 
   const maxTokens = MAX_OUTPUT_TOKENS_GENERATION_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS_GENERATION;
@@ -83,65 +84,11 @@ export async function evaluateWriting({ token, level, targetLang, interfaceLang,
   const { min, max } = WORD_COUNT_BOUNDS[level] ?? WORD_COUNT_BOUNDS.A1;
   const feedbackLanguage = _resolveLanguageName(interfaceLang);
 
-  const prompt = [
-    `You are an expert language examiner evaluating a CEFR ${level} writing exercise in ${targetLang}.`,
-    `The student was asked to write in ${targetLang}.`,
-    ``,
-    `--- EXERCISE PROMPT ---`,
-    exercisePrompt,
-    `--- END EXERCISE PROMPT ---`,
-    ``,
-    `--- STUDENT TEXT ---`,
-    userText.trim(),
-    `--- END STUDENT TEXT ---`,
-    ``,
-    `Evaluate the student text using the following 5 parameters, each scored from 1 to 5:`,
-    ``,
-    `A. Tema, tipologia, informa\u00e7\u00e3o e coer\u00eancia (Theme, text type, information & coherence)`,
-    `   5: Fully follows task instructions, coherent, complete information.`,
-    `   3: Partially follows instructions, generally coherent with some gaps.`,
-    `   1: Insufficient task completion, very little intelligible content.`,
-    ``,
-    `B. Estrutura e coes\u00e3o (Structure & cohesion)`,
-    `   5: Well-defined structure, correct paragraphing, punctuation, cohesive devices, appropriate verb tenses.`,
-    `   3: Satisfactory structure with minor inconsistencies in cohesion and verb tense.`,
-    `   1: Very poor structure, breaks in cohesion, inconsistent verb tenses.`,
-    ``,
-    `C. Morfologia e sintaxe (Morphology & syntax)`,
-    `   5: Good command of sentence construction, agreement, word order. Uses complex structures.`,
-    `   3: Acceptable command with some errors in agreement, selection, inflection.`,
-    `   1: Poor command, serious errors throughout. No complex structures.`,
-    ``,
-    `D. Vocabul\u00e1rio (Vocabulary)`,
-    `   5: Adequate, diverse, appropriate vocabulary for the topic.`,
-    `   3: Adequate but limited vocabulary with occasional inadequacies.`,
-    `   1: Limited, redundant, often inappropriate vocabulary.`,
-    ``,
-    `E. Ortografia (Spelling)`,
-    `   5: Correct spelling or at most 1 error per 60 words.`,
-    `   3: Some spelling errors (~4 per 60 words).`,
-    `   1: Many spelling errors (more than 7 per 60 words).`,
-    ``,
-    `Important:`,
-    `- Scores may be intermediate values (e.g. 2, 4) when between levels.`,
-    `- Expected word count range: ${min}\u2013${max} words. Student wrote ${wordCount} words.`,
-    `- Do NOT apply the word count penalty yourself \u2014 it will be applied programmatically.`,
-    `- Write ALL feedback (the "feedback" fields and "generalFeedback") in ${feedbackLanguage}. This is mandatory.`,
-    `- Be specific and constructive in each parameter's feedback.`,
-    ``,
-    `Return ONLY a valid JSON object with this exact shape:`,
-    `{`,
-    `  "parameters": [`,
-    `    { "id": "A", "name": "Tema, tipologia, informa\u00e7\u00e3o e coer\u00eancia", "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback in ${feedbackLanguage}>" },`,
-    `    { "id": "B", "name": "Estrutura e coes\u00e3o",                      "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback in ${feedbackLanguage}>" },`,
-    `    { "id": "C", "name": "Morfologia e sintaxe",                    "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback in ${feedbackLanguage}>" },`,
-    `    { "id": "D", "name": "Vocabul\u00e1rio",                             "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback in ${feedbackLanguage}>" },`,
-    `    { "id": "E", "name": "Ortografia",                              "score": <1-5>, "maxScore": 5, "feedback": "<specific feedback in ${feedbackLanguage}>" }`,
-    `  ],`,
-    `  "generalFeedback": "<overall constructive feedback paragraph in ${feedbackLanguage}>"`,
-    `}`,
-    `Do NOT include any text outside the JSON object.`,
-  ].join('\n');
+  const promptDoc = await getPrompt('exam-writing-evaluation-prompt');
+  const prompt = renderTemplate(promptDoc.template, {
+    level, targetLang, exercisePrompt, userText: userText.trim(),
+    minWords: min, maxWords: max, wordCount, feedbackLanguage,
+  });
 
   const raw = await _callAskAI(token, prompt, MAX_OUTPUT_TOKENS_EVALUATION);
 

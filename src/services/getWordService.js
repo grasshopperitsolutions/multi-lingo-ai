@@ -97,6 +97,7 @@
 
 import { parseAIJSON } from '../utils/parseAIJSON';
 import { askAI } from './aiService';
+import { getPrompt, renderTemplate } from './promptService';
 
 const PROXY_URL    = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
@@ -357,19 +358,14 @@ async function _writeNewConcept(generated, learningDialect, token) {
  * translated word within that character limit.
  */
 async function _generateTranslation(sourceWord, { userDialect, learningDialect }, token, maxLength) {
-  const lengthConstraint = maxLength
+  const lengthConstraintLine = maxLength
     ? `The translated word MUST be ${maxLength} characters or fewer.`
     : '';
 
-  const data = await askAI(token, [
-    `You are a language learning assistant.`,
-    `Translate the English word "${sourceWord}" into ${learningDialect}.`,
-    lengthConstraint,
-    `Return a JSON object with:`,
-    `  - "word": the translated word in ${learningDialect}, lowercase, no extra spaces.`,
-    `  - "hint": one sentence in ${userDialect} describing the word without saying it, suitable for a guessing game.`,
-    `Return ONLY valid JSON. No markdown, no explanation.`,
-  ].filter(Boolean).join('\n'), {
+  const promptDoc = await getPrompt('get-word-translate-concept-prompt');
+  const prompt = renderTemplate(promptDoc.template, { sourceWord, learningDialect, userDialect, lengthConstraintLine });
+
+  const data = await askAI(token, prompt, {
     provider:    'gemini',
     model:       GEMINI_MODEL,
     temperature: 0.7,
@@ -396,13 +392,10 @@ async function _generateTranslation(sourceWord, { userDialect, learningDialect }
 }
 
 async function _generateHintForDialect(sourceWord, userDialect, token) {
-  const data = await askAI(token, [
-    `You are a language learning assistant.`,
-    `Write exactly one sentence in ${userDialect} that describes the word "${sourceWord}" without saying it.`,
-    `The sentence should be suitable as a hint in a word-guessing game.`,
-    `Return a JSON object with a single "hint" field.`,
-    `Return ONLY valid JSON. No markdown, no explanation.`,
-  ].join('\n'), {
+  const promptDoc = await getPrompt('get-word-generate-hint-prompt');
+  const prompt = renderTemplate(promptDoc.template, { userDialect, sourceWord });
+
+  const data = await askAI(token, prompt, {
     provider:    'gemini',
     model:       GEMINI_MODEL,
     temperature: 0.7,
@@ -425,25 +418,18 @@ async function _generateHintForDialect(sourceWord, userDialect, token) {
  * are constrained to that length in the prompt.
  */
 async function _generateNewConcept({ userDialect, learningDialect, knownWords, maxLength }, token) {
-  const avoidList = knownWords.length > 0
+  const avoidListLine = knownWords.length > 0
     ? `Do NOT use any of these (already in the database): ${knownWords.join(', ')}`
     : '';
 
-  const lengthConstraint = maxLength
+  const lengthConstraintLine = maxLength
     ? `Both the English word and the ${learningDialect} translation MUST be ${maxLength} characters or fewer.`
     : '';
 
-  const data = await askAI(token, [
-    `You are a language learning assistant.`,
-    `Generate exactly ONE common vocabulary word.`,
-    lengthConstraint,
-    `Return a JSON object with:`,
-    `  - "sourceWord": the English label for the concept, lowercase.`,
-    `  - "word": the translation in ${learningDialect}, lowercase.`,
-    `  - "hint": one sentence in ${userDialect} describing the word without saying it, suitable for a guessing game.`,
-    avoidList,
-    `Return ONLY valid JSON. No markdown, no explanation.`,
-  ].filter(Boolean).join('\n'), {
+  const promptDoc = await getPrompt('get-word-generate-new-concept-prompt');
+  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, lengthConstraintLine, avoidListLine });
+
+  const data = await askAI(token, prompt, {
     provider:    'gemini',
     model:       GEMINI_MODEL,
     temperature: 0.9,

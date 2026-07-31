@@ -134,7 +134,7 @@ export async function generateReadingExercise({ token, level, targetLang, questi
     : READING_EXERCISE_TYPES[Math.floor(Math.random() * READING_EXERCISE_TYPES.length)];
 
   // Step 2: Get type-specific prompt from getReadingPrompt
-  const prompt = getPromptForType(questionType, level, targetLang);
+  const prompt = await getPromptForType(questionType, level, targetLang);
 
   // Step 3: Get JSON Schema for this exercise type (improves Gemini output reliability)
   const responseSchema = getResponseSchemaForType(questionType);
@@ -181,9 +181,9 @@ export { checkReadingAnswers };
  * @param {string} type - Exercise type (e.g., 'multiple-choice')
  * @param {string} level - CEFR level
  * @param {string} targetLang - Target learning language
- * @returns {string} AI prompt
+ * @returns {Promise<string>} AI prompt
  */
-function getPromptForType(type, level, targetLang) {
+async function getPromptForType(type, level, targetLang) {
   const mappedType = TYPE_TO_PROMPT_MAP[type];
   if (!mappedType) {
     throw new Error(`[examReadingExerciseService] Unknown exercise type: ${type}`);

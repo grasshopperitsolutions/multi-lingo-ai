@@ -37,6 +37,7 @@
 // ---------------------------------------------------------------------------
 
 import { askAI } from './aiService';
+import { getPrompt, renderTemplate } from './promptService';
 
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
@@ -54,14 +55,8 @@ export async function translateText({ token, text, sourceLang, targetLang }) {
   if (!text?.trim()) throw new Error('[translatorService] text is required');
   if (!token)        throw new Error('[translatorService] token is required');
 
-  const prompt = [
-    `You are a professional translator.`,
-    `Translate the following text from ${sourceLang} to ${targetLang}.`,
-    `Return ONLY the translated text. No explanations, no notes, no punctuation changes unless necessary.`,
-    ``,
-    `Text to translate:`,
-    text.trim(),
-  ].join('\n');
+  const promptDoc = await getPrompt('translate-text-prompt');
+  const prompt = renderTemplate(promptDoc.template, { sourceLang, targetLang, text: text.trim() });
 
   const data = await askAI(token, prompt, {
     provider:    'gemini',
