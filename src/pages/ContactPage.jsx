@@ -12,9 +12,10 @@ import {
   ChevronUp,
 } from "lucide-react";
 import NeoDropdown from "../components/NeoDropdown";
+import SEOMeta from "../components/SEOMeta";
 
 const ContactPage = () => {
-  const { isDarkMode, showAlert } = useAppContext();
+  const { isDarkMode, showAlert, interfaceLang } = useAppContext();
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
@@ -80,7 +81,14 @@ const ContactPage = () => {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <>
+      <SEOMeta
+        title="Contact Us | Multi Lingo AI"
+        description="Get in touch with the Multi Lingo AI team — questions, feedback, or support for your AI-powered language learning journey."
+        path="/contact"
+        lang={interfaceLang}
+      />
+      <div className="max-w-5xl mx-auto px-4 py-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Contact Info */}
         <div className="space-y-8">
@@ -303,7 +311,8 @@ const ContactPage = () => {
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

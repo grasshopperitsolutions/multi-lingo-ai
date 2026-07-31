@@ -1,0 +1,29 @@
+# Multi Lingo AI
+
+> The first AI-powered platform that teaches you any language from any dialect you speak. AI-powered, human-supported.
+
+Multi Lingo AI is a language-learning web app focused on real, conversational language - not textbook phrases. It combines an AI tutor available 24/7 with optional live sessions from verified human tutors.
+
+## What it does
+
+- **Translator** - instant, context-aware translation between any two supported languages/dialects.
+- **Dictionary** - word lookups with definitions, examples, synonyms, and conjugations.
+- **Challenges** - mini-games (Hangman, Word Search, Scrambled Word, Word Link, Word Ladder) that reinforce vocabulary.
+- **Exam Training** - listening, reading, writing, and full-exam practice for official language certification.
+- **Live tutors** - scheduled sessions with verified native-speaker tutors, via the built-in Smart Scheduler.
+
+## Languages
+
+European and Brazilian Portuguese, US and UK English, Spanish (Spain & Mexico), French, and German - learners can start from any of these as their base language.
+
+## Pricing
+
+Free tier available (Explorer). Paid tiers unlock unlimited AI conversations and live tutor sessions. See https://multi-lingo.online/pricing for current plans.
+
+## Key pages
+
+- Home: https://multi-lingo.online/
+- Pricing: https://multi-lingo.online/pricing
+- Contact: https://multi-lingo.online/contact
+- Terms of Service: https://multi-lingo.online/terms
+- Privacy Policy: https://multi-lingo.online/privacy

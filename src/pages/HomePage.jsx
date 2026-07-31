@@ -14,6 +14,7 @@ import { useAppContext } from "../contexts/AppContext";
 import FeatureCard from "../components/FeatureCard";
 import RotatingReviews from "../components/RotatingReviews";
 import FaqItem from "../components/FaqItem";
+import FaqJsonLd from "../components/FaqJsonLd";
 
 const SUPPORTED_LANGUAGES = ['PT-PT', 'PT-BR', 'EN-US', 'EN-GB', 'ES-ES', 'ES-MX', 'FR-FR', 'DE-DE'];
 
@@ -365,6 +366,7 @@ const HomePage = () => {
 
       {/* FAQ SECTION */}
       <section className="max-w-4xl mx-auto px-4 py-16 relative z-10">
+        <FaqJsonLd faqs={faqs} />
         <div className="text-center mb-8">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tighter inline-block border-b-8 border-blue-400 pb-2">
             {t("home.faq_heading")}

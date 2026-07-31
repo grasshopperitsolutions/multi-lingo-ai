@@ -691,6 +691,7 @@
   "pricing": {
     "title": "Choose Your Plan",
     "subtitle": "Unlock the full power of AI-assisted language learning. Start free, upgrade when you need more.",
+    "plans_heading": "Plans",
     "monthly": "Monthly",
     "yearly": "Yearly",
     "per_month": "month",

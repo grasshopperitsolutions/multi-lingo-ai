@@ -7,6 +7,7 @@ import { PRICING, TIER_FEATURES, getYearlySavingsPercent } from "../config/prici
 import { auth } from "../firebase";
 import { CheckCircle, Star, Lock, ArrowRight } from "lucide-react";
 import PropTypes from "prop-types";
+import SEOMeta from "../components/SEOMeta";
 
 // ── FeatureRow ────────────────────────────────────────────────────────────────
 const FeatureRow = ({ feature, tier, isDarkMode, t }) => {
@@ -249,7 +250,7 @@ TierCard.propTypes = {
 
 // ── PricingPage ───────────────────────────────────────────────────────────────
 const PricingPage = () => {
-  const { isDarkMode, user, showAlert } = useAppContext();
+  const { isDarkMode, user, showAlert, interfaceLang } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [loadingPlan, setLoadingPlan] = useState(null);
@@ -308,46 +309,55 @@ const PricingPage = () => {
   ];
 
   return (
-    <main className="flex-1 pb-24">
-      {/* Header */}
-      <section className="max-w-5xl mx-auto px-4 pt-16 pb-12 text-center">
-        <h1
-          className={`text-4xl sm:text-5xl md:text-6xl font-black uppercase tracking-tighter mb-6 ${
-            isDarkMode ? "text-white" : "text-slate-900"
-          }`}
-        >
-          {t("pricing.title")}
-        </h1>
-        <p
-          className={`text-lg sm:text-xl font-bold max-w-2xl mx-auto ${
-            isDarkMode ? "text-slate-400" : "text-slate-500"
-          }`}
-        >
-          {t("pricing.subtitle")}
-        </p>
-      </section>
+    <>
+      <SEOMeta
+        title="Pricing | Multi Lingo AI"
+        description="Compare Multi Lingo AI plans — from a free Explorer tier to unlimited AI conversations and live tutor sessions. Find the plan that fits your language-learning goals."
+        path="/pricing"
+        lang={interfaceLang}
+      />
+      <main className="flex-1 pb-24">
+        {/* Header */}
+        <section className="max-w-5xl mx-auto px-4 pt-16 pb-12 text-center">
+          <h1
+            className={`text-4xl sm:text-5xl md:text-6xl font-black uppercase tracking-tighter mb-6 ${
+              isDarkMode ? "text-white" : "text-slate-900"
+            }`}
+          >
+            {t("pricing.title")}
+          </h1>
+          <p
+            className={`text-lg sm:text-xl font-bold max-w-2xl mx-auto ${
+              isDarkMode ? "text-slate-400" : "text-slate-500"
+            }`}
+          >
+            {t("pricing.subtitle")}
+          </p>
+        </section>
 
-      {/* Tier Cards */}
-      <section className="max-w-6xl mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-          {tiers.map((tier) => (
-            <TierCard
-              key={tier.key}
-              tierKey={tier.key}
-              tierLabel={tier.label}
-              price={tier.price}
-              features={tier.features}
-              isDarkMode={isDarkMode}
-              isCurrentTier={currentTier === tier.key}
-              isMostPopular={tier.isMostPopular}
-              onSelect={handleSelect}
-              loadingPlan={loadingPlan}
-              t={t}
-            />
-          ))}
-        </div>
-      </section>
-    </main>
+        {/* Tier Cards */}
+        <section className="max-w-6xl mx-auto px-4">
+          <h2 className="sr-only">{t("pricing.plans_heading")}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+            {tiers.map((tier) => (
+              <TierCard
+                key={tier.key}
+                tierKey={tier.key}
+                tierLabel={tier.label}
+                price={tier.price}
+                features={tier.features}
+                isDarkMode={isDarkMode}
+                isCurrentTier={currentTier === tier.key}
+                isMostPopular={tier.isMostPopular}
+                onSelect={handleSelect}
+                loadingPlan={loadingPlan}
+                t={t}
+              />
+            ))}
+          </div>
+        </section>
+      </main>
+    </>
   );
 };
 

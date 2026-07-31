@@ -20,6 +20,7 @@ import AppUnavailablePage from "./pages/AppUnavailablePage";
 import AlertMessage from "./components/Alert";
 import GlobalCompassCursor from "./components/GlobalCompassCursor";
 import Loader from "./components/Loader";
+import SEOMeta from "./components/SEOMeta";
 
 // ── /dashboard/* pages — route-level code splitting ──────────────────────────
 const DashboardLayout = lazy(() => import("./pages/dashboard/DashboardLayout"));
@@ -50,21 +51,32 @@ const StoryGeneratorPage = lazy(() => import("./pages/dashboard/coming-soon/Stor
 const HistoryCulturePage = lazy(() => import("./pages/dashboard/coming-soon/HistoryCulturePage"));
 const ProfessionalToolsPage = lazy(() => import("./pages/dashboard/coming-soon/ProfessionalToolsPage"));
 
-const PublicLayout = () => (
-  <>
-    <Header />
-    <Routes>
-      <Route path="/terms" element={<TermsPage />} />
-      <Route path="/privacy" element={<PrivacyPage />} />
-      <Route path="/contact" element={<ContactPage />} />
-      <Route path="/pricing" element={<PricingPage />} />
-      <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
-      <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
-      <Route path="/*" element={<HomePage />} />
-    </Routes>
-    <Footer />
-  </>
-);
+const PublicLayout = () => {
+  const { interfaceLang } = useAppContext();
+
+  return (
+    <>
+      {/* Sitewide default — overridden per-page by each page's own <SEOMeta> */}
+      <SEOMeta
+        title="Multi Lingo AI | Learn any language with AI"
+        description="The first AI powered platform that teaches you European Portuguese from any language or dialect you speak. Available in English, Portuguese, Spanish, French, and German. AI-powered, human-supported."
+        path="/"
+        lang={interfaceLang}
+      />
+      <Header />
+      <Routes>
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/subscription/success" element={<SubscriptionSuccessPage />} />
+        <Route path="/subscription/cancel" element={<SubscriptionCancelPage />} />
+        <Route path="/*" element={<HomePage />} />
+      </Routes>
+      <Footer />
+    </>
+  );
+};
 
 // Guard component that redirects to onboarding if learningDialect is not set
 const RequireOnboarding = ({ children }) => {

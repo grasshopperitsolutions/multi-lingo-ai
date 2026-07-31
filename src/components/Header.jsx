@@ -51,10 +51,11 @@ const Header = () => {
         </Link>
 
         {/* ── DESKTOP NAV (md+) ──────────────────────────────────────── */}
-        <div className="hidden md:flex items-center space-x-4">
+        <nav aria-label={t("nav.primary", "Primary")} className="hidden md:flex items-center space-x-4">
           {/* Theme Toggle */}
           <button
             onClick={() => setIsDarkMode(!isDarkMode)}
+            aria-label={isDarkMode ? t("nav.light_mode") : t("nav.dark_mode")}
             className={`p-3 rounded-full border-2 transition-transform hover:scale-110 active:scale-95
               ${isDarkMode ? "bg-slate-700 border-yellow-400" : "bg-yellow-400 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"}`}
           >
@@ -69,6 +70,7 @@ const Header = () => {
           <div className="relative">
             <button
               onClick={() => setShowLangMenu(!showLangMenu)}
+              aria-label={t("nav.language")}
               className={`p-3 rounded-full border-2 transition-transform hover:scale-110 active:scale-95 flex items-center gap-2
                 ${isDarkMode ? "bg-slate-700 border-blue-400 text-blue-400" : "bg-blue-100 border-slate-900 text-blue-600 shadow-[2px_2px_0px_0px_#0f172a]"}`}
             >
@@ -193,7 +195,7 @@ const Header = () => {
               </Link>
             </>
           )}
-        </div>
+        </nav>
 
         {/* ── MOBILE HAMBURGER BUTTON (< md) ──────────────────────────── */}
         <button

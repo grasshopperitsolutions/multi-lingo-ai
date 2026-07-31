@@ -23,10 +23,16 @@
       })();
     </script>
     
-    <!-- SEO Meta Tags -->
+    <!-- SEO Meta Tags — <title>/meta description/canonical/hreflang are also
+         updated per-route by <SEOMeta> (src/components/SEOMeta.jsx) via
+         react-helmet-async, for JS-executing crawlers (Googlebot) and the
+         browser tab. Open Graph / Twitter Card tags stay static and ARE NOT
+         duplicated by SEOMeta: social share scrapers (Facebook, X, LinkedIn,
+         WhatsApp, Slack, iMessage, etc.) never execute JavaScript, so these
+         tags are the only ones they will ever see — for any URL, since this
+         is a client-rendered SPA with no server-side rendering. -->
     <title>Multi Lingo AI | Learn any language with AI</title>
-    <meta name="description" content="The first AI powered platform that teaches you European Portuguese from any language or dialect you speak. Available in English, Portuguese, Spanish, French, and German. AI-powered, human-supported." />
-    
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://multi-lingo.online/" />
@@ -38,7 +44,7 @@
     <meta property="og:locale:alternate" content="es_ES" />
     <meta property="og:locale:alternate" content="fr_FR" />
     <meta property="og:locale:alternate" content="de_DE" />
-    
+
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://multi-lingo.online/" />

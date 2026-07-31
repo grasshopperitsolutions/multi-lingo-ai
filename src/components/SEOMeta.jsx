@@ -2,7 +2,7 @@ import { Helmet, HelmetProvider } from 'react-helmet-async';
 import PropTypes from "prop-types";
 
 const SEOMeta = ({ title, description, path = '', lang = 'en-US' }) => {
-  const baseUrl = 'https://grasshoppersolutions.online/multi-lingo-ai';
+  const baseUrl = 'https://multi-lingo.online';
 
   return (
     <Helmet>
@@ -20,11 +20,12 @@ const SEOMeta = ({ title, description, path = '', lang = 'en-US' }) => {
       <link rel="alternate" hrefLang="fr-FR"    href={`${baseUrl}${path}`} />
       <link rel="alternate" hrefLang="x-default" href={`${baseUrl}${path}`} />
 
-      {/* Open Graph */}
-      <meta property="og:title"       content={title} />
-      <meta property="og:description" content={description} />
-      <meta property="og:locale"      content={lang.replace('-', '_')} />
-      <meta property="og:url"         content={`${baseUrl}${path}`} />
+      {/* Open Graph and Twitter Card tags are intentionally NOT rendered
+          here — they live as static tags in index.html instead. Social
+          share scrapers (Facebook, X, LinkedIn, WhatsApp, Slack, etc.)
+          never execute JavaScript, so a Helmet-only version would never be
+          seen by them, and rendering it here alongside the static one would
+          just create duplicate tags with undefined precedence. */}
     </Helmet>
   );
 };

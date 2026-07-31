@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /settings
+Disallow: /onboarding
 
 Sitemap: https://multi-lingo.online/sitemap.xml

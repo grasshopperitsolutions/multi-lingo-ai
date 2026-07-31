@@ -1,10 +1,20 @@
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
+import { useAppContext } from "../contexts/AppContext";
+import SEOMeta from "../components/SEOMeta";
 
 const PrivacyPage = () => {
   const { t } = useTranslation();
+  const { interfaceLang } = useAppContext();
   return (
-    <div className="max-w-4xl mx-auto px-4 py-16">
+    <>
+      <SEOMeta
+        title="Privacy Policy | Multi Lingo AI"
+        description="Read the Privacy Policy for Multi Lingo AI — learn how we collect, use, and protect your data while you learn a language with AI."
+        path="/privacy"
+        lang={interfaceLang}
+      />
+      <div className="max-w-4xl mx-auto px-4 py-16">
       <h1 className="text-4xl font-bold mb-8">{t('privacy.title')}</h1>
 
       <div className="space-y-8">
@@ -56,7 +66,8 @@ const PrivacyPage = () => {
 
         <p className="text-sm opacity-70 mt-12">{t("privacy.last_updated")}</p>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
