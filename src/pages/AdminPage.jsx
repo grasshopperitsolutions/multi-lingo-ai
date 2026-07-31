@@ -4,12 +4,17 @@ import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "../hooks/useTierAccess";
 import Loader from "../components/Loader";
 import { CONFIG_SECTIONS, getConfigSectionDocs } from "../services/adminConfigService";
+import { getPrompts, seedMissingPrompts, updatePrompt } from "../services/adminPromptsService";
+import PromptsSection from "../components/admin/PromptsSection";
+import PromptEditModal from "../components/admin/PromptEditModal";
 import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
-// Read-only viewer for the appConfig/config/* Firestore subcollections.
+// Viewer/editor for the appConfig/config/* Firestore subcollections.
+// The "prompts" section gets a dedicated editor (PromptsSection/PromptEditModal);
+// every other section stays a read-only JSON dump.
 const AdminPage = () => {
-  const { isDarkMode, user, isLoadingUser } = useAppContext();
+  const { isDarkMode, user, isLoadingUser, showAlert } = useAppContext();
   const { isAdmin } = useTierAccess();
   const navigate = useNavigate();
 
@@ -17,14 +22,20 @@ const AdminPage = () => {
   const [docsBySection, setDocsBySection] = useState({});
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
   const [error, setError] = useState(null);
+  const [isSeedingPrompts, setIsSeedingPrompts] = useState(false);
+  const [editingPrompt, setEditingPrompt] = useState(null);
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
 
   const activeSection = CONFIG_SECTIONS.find((s) => s.id === activeSectionId);
+  const isPromptsSection = activeSectionId === "prompts";
 
   const loadSection = useCallback(async (section) => {
     setIsLoadingDocs(true);
     setError(null);
     try {
-      const docs = await getConfigSectionDocs(section.collection);
+      const docs = section.id === "prompts"
+        ? await getPrompts()
+        : await getConfigSectionDocs(section.collection);
       setDocsBySection((prev) => ({ ...prev, [section.id]: docs }));
     } catch (err) {
       setError(err.message);
@@ -32,6 +43,40 @@ const AdminPage = () => {
       setIsLoadingDocs(false);
     }
   }, []);
+
+  const handleSeedDefaults = useCallback(async () => {
+    setIsSeedingPrompts(true);
+    try {
+      const createdIds = await seedMissingPrompts(docsBySection.prompts ?? []);
+      if (createdIds.length > 0) {
+        showAlert("success", `Seeded ${createdIds.length} default prompt(s).`);
+        const docs = await getPrompts();
+        setDocsBySection((prev) => ({ ...prev, prompts: docs }));
+      }
+    } catch (err) {
+      showAlert("error", `Could not seed default prompts: ${err.message}`);
+    } finally {
+      setIsSeedingPrompts(false);
+    }
+  }, [docsBySection.prompts, showAlert]);
+
+  const handleSavePrompt = useCallback(async (id, patch) => {
+    setIsSavingPrompt(true);
+    try {
+      await updatePrompt(id, patch, {
+        updatedBy: user?.email ?? "unknown",
+        previousVersion: editingPrompt?.version ?? 1,
+      });
+      showAlert("success", "Prompt saved.");
+      setEditingPrompt(null);
+      const docs = await getPrompts();
+      setDocsBySection((prev) => ({ ...prev, prompts: docs }));
+    } catch (err) {
+      showAlert("error", `Could not save prompt: ${err.message}`);
+    } finally {
+      setIsSavingPrompt(false);
+    }
+  }, [editingPrompt, user, showAlert]);
 
   useEffect(() => {
     if (!isAdmin || docsBySection[activeSectionId]) return;
@@ -110,36 +155,60 @@ const AdminPage = () => {
           </span>
         </div>
 
-        {isLoadingDocs && <Loader message="Loading..." isDarkMode={isDarkMode} />}
+        {isPromptsSection ? (
+          <PromptsSection
+            prompts={docs}
+            isDarkMode={isDarkMode}
+            isLoadingDocs={isLoadingDocs}
+            error={error}
+            onEditPrompt={setEditingPrompt}
+            onSeedDefaults={handleSeedDefaults}
+            isSeeding={isSeedingPrompts}
+          />
+        ) : (
+          <>
+            {isLoadingDocs && <Loader message="Loading..." isDarkMode={isDarkMode} />}
 
-        {!isLoadingDocs && error && (
-          <p className="font-bold text-rose-500">{error}</p>
-        )}
+            {!isLoadingDocs && error && (
+              <p className="font-bold text-rose-500">{error}</p>
+            )}
 
-        {!isLoadingDocs && !error && docs.length === 0 && (
-          <p className={`font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-            No documents in this section yet.
-          </p>
-        )}
+            {!isLoadingDocs && !error && docs.length === 0 && (
+              <p className={`font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                No documents in this section yet.
+              </p>
+            )}
 
-        {!isLoadingDocs && !error && docs.length > 0 && (
-          <div className="flex flex-col gap-4">
-            {docs.map((doc, i) => (
-              <div
-                key={doc.id ?? i}
-                className={`p-4 rounded-xl border-2 ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-300 bg-slate-50"}`}
-              >
-                <p className={`mb-2 font-black text-sm ${isDarkMode ? "text-yellow-400" : "text-blue-600"}`}>
-                  {doc.id ?? `#${i}`}
-                </p>
-                <pre className={`text-xs whitespace-pre-wrap break-words font-mono ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
-                  {JSON.stringify(doc, null, 2)}
-                </pre>
+            {!isLoadingDocs && !error && docs.length > 0 && (
+              <div className="flex flex-col gap-4">
+                {docs.map((doc, i) => (
+                  <div
+                    key={doc.id ?? i}
+                    className={`p-4 rounded-xl border-2 ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-300 bg-slate-50"}`}
+                  >
+                    <p className={`mb-2 font-black text-sm ${isDarkMode ? "text-yellow-400" : "text-blue-600"}`}>
+                      {doc.id ?? `#${i}`}
+                    </p>
+                    <pre className={`text-xs whitespace-pre-wrap break-words font-mono ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
+                      {JSON.stringify(doc, null, 2)}
+                    </pre>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
+
+      {editingPrompt && (
+        <PromptEditModal
+          prompt={editingPrompt}
+          isDarkMode={isDarkMode}
+          isSaving={isSavingPrompt}
+          onSave={handleSavePrompt}
+          onClose={() => setEditingPrompt(null)}
+        />
+      )}
     </main>
   );
 };
