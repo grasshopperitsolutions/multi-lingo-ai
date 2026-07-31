@@ -365,9 +365,9 @@ async function _generateTranslation(sourceWord, { userDialect, learningDialect }
   const promptDoc = await getPrompt('get-word-translate-concept-prompt');
   const prompt = renderTemplate(promptDoc.template, { sourceWord, learningDialect, userDialect, lengthConstraintLine });
 
-  const data = await askAI(token, prompt, {
+  const providerParams = {
     provider:    'gemini',
-    model:       GEMINI_MODEL,
+    model:       promptDoc.model || GEMINI_MODEL,
     temperature: 0.7,
     jsonMode:    true,
     responseSchema: {
@@ -378,7 +378,10 @@ async function _generateTranslation(sourceWord, { userDialect, learningDialect }
       },
       required: ['word', 'hint'],
     },
-  });
+  };
+  if (promptDoc.maxTokens) providerParams.maxOutputTokens = promptDoc.maxTokens;
+
+  const data = await askAI(token, prompt, providerParams);
 
   const parsed = parseAIJSON(data?.text ?? '');
   if (!parsed?.word || !parsed?.hint)
@@ -395,9 +398,9 @@ async function _generateHintForDialect(sourceWord, userDialect, token) {
   const promptDoc = await getPrompt('get-word-generate-hint-prompt');
   const prompt = renderTemplate(promptDoc.template, { userDialect, sourceWord });
 
-  const data = await askAI(token, prompt, {
+  const providerParams = {
     provider:    'gemini',
-    model:       GEMINI_MODEL,
+    model:       promptDoc.model || GEMINI_MODEL,
     temperature: 0.7,
     jsonMode:    true,
     responseSchema: {
@@ -405,7 +408,10 @@ async function _generateHintForDialect(sourceWord, userDialect, token) {
       properties: { hint: { type: 'string' } },
       required:   ['hint'],
     },
-  });
+  };
+  if (promptDoc.maxTokens) providerParams.maxOutputTokens = promptDoc.maxTokens;
+
+  const data = await askAI(token, prompt, providerParams);
 
   const parsed = parseAIJSON(data?.text ?? '');
   if (!parsed?.hint) throw new Error('[getWordService] AI response missing hint');
@@ -429,9 +435,9 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords, m
   const promptDoc = await getPrompt('get-word-generate-new-concept-prompt');
   const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, lengthConstraintLine, avoidListLine });
 
-  const data = await askAI(token, prompt, {
+  const providerParams = {
     provider:    'gemini',
-    model:       GEMINI_MODEL,
+    model:       promptDoc.model || GEMINI_MODEL,
     temperature: 0.9,
     jsonMode:    true,
     responseSchema: {
@@ -443,7 +449,10 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords, m
       },
       required: ['sourceWord', 'word', 'hint'],
     },
-  });
+  };
+  if (promptDoc.maxTokens) providerParams.maxOutputTokens = promptDoc.maxTokens;
+
+  const data = await askAI(token, prompt, providerParams);
 
   const parsed = parseAIJSON(data?.text ?? '');
   if (!parsed?.sourceWord || !parsed?.word || !parsed?.hint)

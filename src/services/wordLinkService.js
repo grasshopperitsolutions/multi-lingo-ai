@@ -90,9 +90,9 @@ async function _generateFromAI({ token, userDialect, learningDialect }) {
   const promptDoc = await getPrompt('word-link-generate-prompt');
   const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect });
 
-  const data = await askAI(token, prompt, {
+  const providerParams = {
     provider:    'gemini',
-    model:       GEMINI_MODEL,
+    model:       promptDoc.model || GEMINI_MODEL,
     temperature: 0.9,
     jsonMode:    true,
     responseSchema: {
@@ -105,7 +105,10 @@ async function _generateFromAI({ token, userDialect, learningDialect }) {
       },
       required: ['theme', 'themeTranslation', 'clues', 'keywords'],
     },
-  });
+  };
+  if (promptDoc.maxTokens) providerParams.maxOutputTokens = promptDoc.maxTokens;
+
+  const data = await askAI(token, prompt, providerParams);
 
   const parsed = parseAIJSON(data?.text ?? '');
 

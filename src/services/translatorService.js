@@ -58,12 +58,15 @@ export async function translateText({ token, text, sourceLang, targetLang }) {
   const promptDoc = await getPrompt('translate-text-prompt');
   const prompt = renderTemplate(promptDoc.template, { sourceLang, targetLang, text: text.trim() });
 
-  const data = await askAI(token, prompt, {
+  const providerParams = {
     provider:    'gemini',
-    model:       GEMINI_MODEL,
+    model:       promptDoc.model || GEMINI_MODEL,
     temperature: 0.2,
     jsonMode:    false,
-  });
+  };
+  if (promptDoc.maxTokens) providerParams.maxOutputTokens = promptDoc.maxTokens;
+
+  const data = await askAI(token, prompt, providerParams);
 
   const translation = data?.text ?? '';
 

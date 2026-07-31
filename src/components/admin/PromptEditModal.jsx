@@ -20,7 +20,7 @@ const STATUS_OPTIONS = [
 
 const KNOWN_FIELDS = new Set([
   "id", "name", "description", "category", "status", "sourceFile", "sourceFunction",
-  "variables", "template", "variants", "version", "createdAt", "updatedAt", "updatedBy",
+  "variables", "template", "variants", "maxTokens", "model", "version", "createdAt", "updatedAt", "updatedBy",
 ]);
 
 const inputClasses = (isDarkMode) => `w-full px-4 py-2.5 rounded-xl border-2 font-semibold text-sm outline-none transition-colors ${
@@ -42,6 +42,8 @@ const PromptEditModal = ({ prompt, isDarkMode, isSaving, onSave, onClose }) => {
   const [variants, setVariants] = useState(
     Array.isArray(prompt.variants) ? prompt.variants.map((v) => ({ ...v })) : null
   );
+  const [maxTokens, setMaxTokens] = useState(prompt.maxTokens != null ? String(prompt.maxTokens) : "");
+  const [model, setModel] = useState(prompt.model ?? "");
   const [showConfirm, setShowConfirm] = useState(false);
   const [rawError, setRawError] = useState(null);
 
@@ -58,6 +60,11 @@ const PromptEditModal = ({ prompt, isDarkMode, isSaving, onSave, onClose }) => {
 
   const handleSaveClick = () => {
     setRawError(null);
+    const trimmedMaxTokens = maxTokens.trim();
+    if (trimmedMaxTokens && (!Number.isFinite(Number(trimmedMaxTokens)) || Number(trimmedMaxTokens) <= 0)) {
+      setRawError("Max Output Tokens must be a positive number.");
+      return;
+    }
     if (extraJson.trim()) {
       try {
         JSON.parse(extraJson);
@@ -76,6 +83,21 @@ const PromptEditModal = ({ prompt, isDarkMode, isSaving, onSave, onClose }) => {
     } else {
       patch.template = template;
     }
+
+    const trimmedMaxTokens = maxTokens.trim();
+    if (trimmedMaxTokens) {
+      patch.maxTokens = Number(trimmedMaxTokens);
+    } else if (prompt.maxTokens != null) {
+      patch.maxTokens = null; // explicit clear — revert to the service default
+    }
+
+    const trimmedModel = model.trim();
+    if (trimmedModel) {
+      patch.model = trimmedModel;
+    } else if (prompt.model != null) {
+      patch.model = null; // explicit clear — revert to the service default
+    }
+
     if (extraJson.trim()) {
       Object.assign(patch, JSON.parse(extraJson));
     }
@@ -127,6 +149,29 @@ const PromptEditModal = ({ prompt, isDarkMode, isSaving, onSave, onClose }) => {
           <div className="flex flex-col sm:flex-row gap-4">
             <NeoDropdown options={CATEGORY_OPTIONS} value={category} onChange={setCategory} isDarkMode={isDarkMode} label="Category" className="flex-1" />
             <NeoDropdown options={STATUS_OPTIONS} value={status} onChange={setStatus} isDarkMode={isDarkMode} label="Status" className="flex-1" />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <label className={labelClasses(isDarkMode)}>Max Output Tokens</label>
+              <input
+                type="number"
+                min="1"
+                className={inputClasses(isDarkMode)}
+                value={maxTokens}
+                onChange={(e) => setMaxTokens(e.target.value)}
+                placeholder="Leave blank to use the service default"
+              />
+            </div>
+            <div className="flex-1">
+              <label className={labelClasses(isDarkMode)}>AI Model</label>
+              <input
+                className={inputClasses(isDarkMode)}
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                placeholder="Leave blank to use the service default"
+              />
+            </div>
           </div>
 
           {Array.isArray(prompt.variables) && prompt.variables.length > 0 && (

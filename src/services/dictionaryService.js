@@ -76,13 +76,16 @@ export async function lookupWord({ token, word, interfaceLang, learningLang }) {
   const promptDoc = await getPrompt('dictionary-lookup-prompt');
   const prompt = renderTemplate(promptDoc.template, { word: word.trim(), interfaceLang, learningLang });
 
-  const data = await askAI(token, prompt, {
+  const providerParams = {
     provider:       'gemini',
-    model:          GEMINI_MODEL,
+    model:          promptDoc.model || GEMINI_MODEL,
     temperature:    0.2,
     jsonMode:       true,
     responseSchema: RESPONSE_SCHEMA,
-  });
+  };
+  if (promptDoc.maxTokens) providerParams.maxOutputTokens = promptDoc.maxTokens;
+
+  const data = await askAI(token, prompt, providerParams);
 
   const raw = data?.text ?? '';
 

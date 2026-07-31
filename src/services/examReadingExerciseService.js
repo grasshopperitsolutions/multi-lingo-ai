@@ -110,6 +110,7 @@ const TYPE_TO_PROMPT_MAP = {
 
 import { checkReadingAnswers } from './examUtils';
 import { getReadingPrompt } from './examPromptTemplates';
+import { getPrompt } from './promptService';
 import { parseAIJSON } from '../utils/parseAIJSON';
 import { askAI } from './aiService';
 
@@ -139,9 +140,13 @@ export async function generateReadingExercise({ token, level, targetLang, questi
   // Step 3: Get JSON Schema for this exercise type (improves Gemini output reliability)
   const responseSchema = getResponseSchemaForType(questionType);
 
-  // Step 4: Single AI call with schema
-  const maxTokens = MAX_OUTPUT_TOKENS_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS;
-  const raw = await _callAskAI(token, prompt, maxTokens, responseSchema);
+  // Step 4: Single AI call with schema. maxTokens/model can be overridden per-prompt
+  // from the admin editor (appConfig/config/prompts/exam-reading-prompt) — falls back
+  // to the existing level-scaled map / GEMINI_MODEL constant when unset.
+  const promptDoc = await getPrompt('exam-reading-prompt');
+  const maxTokens = promptDoc.maxTokens ?? (MAX_OUTPUT_TOKENS_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS);
+  const model = promptDoc.model || GEMINI_MODEL;
+  const raw = await _callAskAI(token, prompt, maxTokens, responseSchema, model);
 
   if (!raw) {
     console.error('[examReadingExerciseService] Empty response from AI');
@@ -521,10 +526,10 @@ questions = [{ id: 'bestTitle', text: 'Escolhe o melhor título', correctAnswer:
  * The responseSchema parameter constrains Gemini output to the exact structure,
  * significantly improving parse reliability compared to jsonMode alone.
  */
-async function _callAskAI(token, prompt, maxOutputTokens, responseSchema) {
+async function _callAskAI(token, prompt, maxOutputTokens, responseSchema, model = GEMINI_MODEL) {
   const providerParams = {
     provider: 'gemini',
-    model: GEMINI_MODEL,
+    model,
     temperature: 0.7,
     jsonMode: true,
     maxOutputTokens: maxOutputTokens,

@@ -81,7 +81,13 @@ export async function seedLanguage(code, name, token) {
   const aiResponse = await askAI(
     token,
     seedPrompt,
-    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.2, jsonMode: true, maxOutputTokens: 2048 }
+    {
+      provider: "gemini",
+      model: promptDoc.model || "gemini-3.5-flash-lite",
+      temperature: 0.2,
+      jsonMode: true,
+      maxOutputTokens: promptDoc.maxTokens ?? 2048,
+    }
   );
 
   // The API returns the JSON string inside the `text` field

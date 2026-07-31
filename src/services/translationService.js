@@ -214,7 +214,13 @@ export async function fillMissingTranslations(locale, token) {
     const aiResponse = await askAI(
       token,
       prompt,
-      { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1, jsonMode: true, maxOutputTokens: 4096 }
+      {
+        provider: "gemini",
+        model: promptDoc.model || "gemini-3.5-flash-lite",
+        temperature: 0.1,
+        jsonMode: true,
+        maxOutputTokens: promptDoc.maxTokens ?? 4096,
+      }
     );
 
     let translatedTree;
@@ -301,7 +307,13 @@ export async function seedLanguageTranslations(locale, token) {
   const aiResponse = await askAI(
     token,
     prompt,
-    { provider: "gemini", model: "gemini-3.5-flash-lite", temperature: 0.1, jsonMode: true, maxOutputTokens: 16384 }
+    {
+      provider: "gemini",
+      model: promptDoc.model || "gemini-3.5-flash-lite",
+      temperature: 0.1,
+      jsonMode: true,
+      maxOutputTokens: promptDoc.maxTokens ?? 16384,
+    }
   );
 
   // The API returns the JSON string inside the \`text\` field

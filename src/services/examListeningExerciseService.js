@@ -12,6 +12,7 @@
  */
 
 import { getListeningPrompt } from './examPromptTemplates';
+import { getPrompt } from './promptService';
 import { parseAIJSON } from '../utils/parseAIJSON';
 import { askAI } from './aiService';
 
@@ -40,8 +41,13 @@ export async function generateListeningExercise({ token, level, targetLang, ques
   // Get JSON Schema for this exercise type
   const responseSchema = getResponseSchemaForType(type);
 
-  const maxTokens = MAX_OUTPUT_TOKENS_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS;
-  const raw = await _callAskAI(token, prompt, maxTokens, responseSchema);
+  // maxTokens/model can be overridden per-prompt from the admin editor
+  // (appConfig/config/prompts/exam-listening-prompt) — falls back to the
+  // existing level-scaled map / GEMINI_MODEL constant when unset.
+  const promptDoc = await getPrompt('exam-listening-prompt');
+  const maxTokens = promptDoc.maxTokens ?? (MAX_OUTPUT_TOKENS_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS);
+  const model = promptDoc.model || GEMINI_MODEL;
+  const raw = await _callAskAI(token, prompt, maxTokens, responseSchema, model);
 
   if (!raw) {
     console.error('[examListeningExerciseService] Empty response from AI');
@@ -227,10 +233,10 @@ function getResponseSchemaForType(type) {
   }
 }
 
-async function _callAskAI(token, prompt, maxOutputTokens, responseSchema) {
+async function _callAskAI(token, prompt, maxOutputTokens, responseSchema, model = GEMINI_MODEL) {
   const providerParams = {
     provider: 'gemini',
-    model: GEMINI_MODEL,
+    model,
     temperature: 0.7,
     jsonMode: true,
     maxOutputTokens,
