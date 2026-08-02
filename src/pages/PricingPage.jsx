@@ -184,12 +184,17 @@ const TierCard = ({
               </div>
             )}
 
-            {/* 7-Day Trial Badge */}
-            <div className="flex items-center gap-2 mb-6">
-              <Star size={16} className="text-yellow-500" />
-              <span className="text-xs font-black uppercase tracking-widest text-yellow-500">
-                {t("pricing.try_free_days", { days: 7 })}
-              </span>
+            {/* 7-Day Trial Badge — Maestro only. Wrapper keeps card spacing
+                consistent with Voyager (no trial) even when empty. */}
+            <div className="mb-6">
+              {tierKey === "maestro" && (
+                <div className="flex items-center gap-2">
+                  <Star size={16} className="text-yellow-500" />
+                  <span className="text-xs font-black uppercase tracking-widest text-yellow-500">
+                    {t("pricing.try_free_days", { days: 7 })}
+                  </span>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -259,7 +264,10 @@ const PricingPage = () => {
 
   const handleSelect = async (plan, interval) => {
     if (!user) {
-      navigate("/login");
+      // Not logged in yet — carry the picked plan through to LoginPage,
+      // which resumes straight into Stripe Checkout after a successful
+      // login instead of just landing on /dashboard.
+      navigate("/login", { state: { plan, interval } });
       return;
     }
 

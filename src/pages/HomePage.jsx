@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   ArrowRight,
   Mic,
@@ -11,6 +12,9 @@ import {
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
+import { PRICING } from "../config/pricing";
+import { createCheckoutSession } from "../services/stripeService";
+import { auth } from "../firebase";
 import FeatureCard from "../components/FeatureCard";
 import RotatingReviews from "../components/RotatingReviews";
 import FaqItem from "../components/FaqItem";
@@ -36,9 +40,29 @@ const LANG_POSITIONS = [
 ];
 
 const HomePage = () => {
-  const { isDarkMode } = useAppContext();
+  const { isDarkMode, user, showAlert } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [redirectingPlan, setRedirectingPlan] = useState(null);
+
+  // Voyager/Maestro teaser buttons: go straight to checkout if already
+  // logged in, otherwise send the picked plan along to /login so it isn't
+  // lost — LoginPage resumes checkout for it after a successful sign-in.
+  const handleSelectPlan = async (plan) => {
+    const firebaseUser = auth?.currentUser;
+    if (!user || !firebaseUser) {
+      navigate("/login", { state: { plan, interval: "monthly" } });
+      return;
+    }
+    setRedirectingPlan(plan);
+    try {
+      const token = await firebaseUser.getIdToken();
+      await createCheckoutSession(token, plan, "monthly");
+    } catch (err) {
+      showAlert("error", err.message || t("common.error"));
+      setRedirectingPlan(null);
+    }
+  };
 
   const languagePills = t("home.language_pills", { returnObjects: true });
   const marqueeItems = t("home.marquee", { returnObjects: true });
@@ -330,15 +354,16 @@ const HomePage = () => {
             <h3 className={`text-2xl font-black uppercase mb-1 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
               Voyager
             </h3>
-            <p className="text-3xl font-black text-blue-600 mb-1">$4.99</p>
+            <p className="text-3xl font-black text-blue-600 mb-1">${PRICING.voyager.monthly.amount}</p>
             <p className={`text-xs font-bold uppercase tracking-wider mb-4 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
               /{t("pricing.per_month")}
             </p>
             <button
-              onClick={() => navigate('/login')}
-              className="w-full py-3 rounded-2xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95 bg-blue-600 border-slate-900 text-white shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-0.5"
+              onClick={() => handleSelectPlan('voyager')}
+              disabled={redirectingPlan === 'voyager'}
+              className="w-full py-3 rounded-2xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95 bg-blue-600 border-slate-900 text-white shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-0.5 disabled:opacity-60 disabled:pointer-events-none"
             >
-              {t("pricing.get_started")}
+              {redirectingPlan === 'voyager' ? t("pricing.redirecting") : t("pricing.get_started")}
             </button>
           </div>
 
@@ -350,15 +375,16 @@ const HomePage = () => {
             <h3 className={`text-2xl font-black uppercase mb-1 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
               Maestro
             </h3>
-            <p className="text-3xl font-black text-yellow-500 mb-1">$14.99</p>
+            <p className="text-3xl font-black text-yellow-500 mb-1">${PRICING.maestro.monthly.amount}</p>
             <p className={`text-xs font-bold uppercase tracking-wider mb-4 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
               /{t("pricing.per_month")}
             </p>
             <button
-              onClick={() => navigate('/login')}
-              className="w-full py-3 rounded-2xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95 bg-blue-600 border-slate-900 text-white shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-0.5"
+              onClick={() => handleSelectPlan('maestro')}
+              disabled={redirectingPlan === 'maestro'}
+              className="w-full py-3 rounded-2xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95 bg-blue-600 border-slate-900 text-white shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-0.5 disabled:opacity-60 disabled:pointer-events-none"
             >
-              {t("pricing.get_started")}
+              {redirectingPlan === 'maestro' ? t("pricing.redirecting") : t("pricing.get_started")}
             </button>
           </div>
         </div>

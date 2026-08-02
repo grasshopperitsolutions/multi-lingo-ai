@@ -17,6 +17,7 @@ export const CONFIG_SECTIONS = [
   { id: "languages", label: "Supported Languages", collection: "appConfig/config/languages" },
   { id: "writingSystems", label: "Writing Systems", collection: "appConfig/config/writingSystems" },
   { id: "prompts", label: "Prompts", collection: "appConfig/config/prompts" },
+  { id: "authProviders", label: "Login Providers", collection: "appConfig/config/authProviders" },
 ];
 
 /**

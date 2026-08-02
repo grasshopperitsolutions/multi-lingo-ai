@@ -5,8 +5,10 @@ import { useTierAccess } from "../hooks/useTierAccess";
 import Loader from "../components/Loader";
 import { CONFIG_SECTIONS, getConfigSectionDocs } from "../services/adminConfigService";
 import { getPrompts, updatePrompt } from "../services/promptService";
+import { getAuthProviders, setAuthProviderEnabled } from "../services/authProvidersService";
 import PromptsSection from "../components/admin/PromptsSection";
 import PromptEditModal from "../components/admin/PromptEditModal";
+import LoginProvidersSection from "../components/admin/LoginProvidersSection";
 import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
@@ -27,6 +29,7 @@ const AdminPage = () => {
 
   const activeSection = CONFIG_SECTIONS.find((s) => s.id === activeSectionId);
   const isPromptsSection = activeSectionId === "prompts";
+  const isAuthProvidersSection = activeSectionId === "authProviders";
 
   const loadSection = useCallback(async (section) => {
     setIsLoadingDocs(true);
@@ -34,7 +37,9 @@ const AdminPage = () => {
     try {
       const docs = section.id === "prompts"
         ? await getPrompts()
-        : await getConfigSectionDocs(section.collection);
+        : section.id === "authProviders"
+          ? await getAuthProviders()
+          : await getConfigSectionDocs(section.collection);
       setDocsBySection((prev) => ({ ...prev, [section.id]: docs }));
     } catch (err) {
       setError(err.message);
@@ -42,6 +47,17 @@ const AdminPage = () => {
       setIsLoadingDocs(false);
     }
   }, []);
+
+  const handleToggleProvider = useCallback(async (id, enabled) => {
+    try {
+      await setAuthProviderEnabled(id, enabled);
+      const updated = await getAuthProviders();
+      setDocsBySection((prev) => ({ ...prev, authProviders: updated }));
+      showAlert("success", `${id} sign-in ${enabled ? "enabled" : "disabled"}.`);
+    } catch (err) {
+      showAlert("error", `Could not update provider: ${err.message}`);
+    }
+  }, [showAlert]);
 
   const handleSavePrompt = useCallback(async (id, patch) => {
     setIsSavingPrompt(true);
@@ -145,6 +161,14 @@ const AdminPage = () => {
             isLoadingDocs={isLoadingDocs}
             error={error}
             onEditPrompt={setEditingPrompt}
+          />
+        ) : isAuthProvidersSection ? (
+          <LoginProvidersSection
+            providers={docsBySection.authProviders ?? {}}
+            isDarkMode={isDarkMode}
+            isLoadingDocs={isLoadingDocs}
+            error={error}
+            onToggle={handleToggleProvider}
           />
         ) : (
           <>

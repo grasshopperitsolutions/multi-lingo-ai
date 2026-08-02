@@ -259,7 +259,8 @@
     "terms": "Terms",
     "privacy": "Privacy Policy",
     "signing_in": "Signing in with {{provider}}…",
-    "back_home": "Back Home"
+    "back_home": "Back Home",
+    "provider_unavailable": "Sign-in unavailable — coming soon"
   },
   "contact": {
     "title": "Get in Touch",
