@@ -22,7 +22,7 @@ import Loader from "./Loader";
 const GAME_ID    = "word_search";
 const GRID_COLS  = 10;   // horizontal columns
 const GRID_ROWS  = 15;   // vertical rows
-const WORD_COUNT = 10;
+const WORD_COUNT = 20;
 // Words can be placed vertically up to GRID_ROWS letters long.
 // Horizontal words are still capped by GRID_COLS inside _placeWord.
 const MAX_LENGTH = GRID_ROWS;
