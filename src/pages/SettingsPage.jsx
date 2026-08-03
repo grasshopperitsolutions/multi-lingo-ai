@@ -9,7 +9,7 @@ import Loader from "../components/Loader";
 import Tooltip from "../components/Tooltip";
 import FloatingActionButton from "../components/FloatingActionButton";
 import ConfirmModal from "../components/ConfirmModal";
-import { openBillingPortal } from "../services/stripeService";
+import { openBillingPortal, changeSubscriptionPlan } from "../services/stripeService";
 import {
   ArrowLeft,
   User,
@@ -26,6 +26,8 @@ import {
   CreditCard,
   Star,
   ExternalLink,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
@@ -448,8 +450,28 @@ const SettingsPage = () => {
       navigate("/login", { replace: true });
     }
   }, [user, isLoadingUser, navigate]);
-  const { tier, isExplorer, isVoyager, isVip, isAdmin } = useTierAccess();
+  const { tier, isExplorer, isVoyager, isMaestro, isVip, isAdmin } = useTierAccess();
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  // 'voyager' | 'maestro' | null — which plan the confirm modal is offering to switch to
+  const [pendingPlanChange, setPendingPlanChange] = useState(null);
+  const [isChangingPlan, setIsChangingPlan] = useState(false);
+
+  const handleConfirmPlanChange = async () => {
+    const firebaseUser = auth?.currentUser;
+    if (!firebaseUser || !pendingPlanChange) return;
+    setIsChangingPlan(true);
+    try {
+      const token = await firebaseUser.getIdToken();
+      await changeSubscriptionPlan(token, pendingPlanChange);
+      await refreshUser();
+      showAlert("success", t("subscription.change_plan_success"));
+      setPendingPlanChange(null);
+    } catch (err) {
+      showAlert("error", err.message || t("common.error"));
+    } finally {
+      setIsChangingPlan(false);
+    }
+  };
 
   const [displayName,      setDisplayName]      = useState(user?.displayName || "");
   const [interfaceLang,    setInterfaceLang]    = useState(user?.interfaceLang || "en-US");
@@ -658,6 +680,28 @@ const SettingsPage = () => {
         />
       )}
 
+      {pendingPlanChange && (
+        <ConfirmModal
+          isDarkMode={isDarkMode}
+          title={t("subscription.change_plan_confirm_title")}
+          message={
+            pendingPlanChange === "maestro"
+              ? t("subscription.change_plan_confirm_message_upgrade")
+              : t("subscription.change_plan_confirm_message_downgrade")
+          }
+          confirmLabel={
+            pendingPlanChange === "maestro"
+              ? t("subscription.upgrade_to_maestro")
+              : t("subscription.downgrade_to_voyager")
+          }
+          confirmColor={pendingPlanChange === "maestro" ? "yellow" : "rose"}
+          icon={pendingPlanChange === "maestro" ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
+          isLoading={isChangingPlan}
+          onConfirm={handleConfirmPlanChange}
+          onCancel={() => !isChangingPlan && setPendingPlanChange(null)}
+        />
+      )}
+
       <FloatingActionButton
         onClick={handleSave}
         icon={<Save size={22} />}
@@ -861,34 +905,53 @@ const SettingsPage = () => {
                 </p>
               </div>
             ) : (
-              <button
-                onClick={async () => {
-                  setIsPortalLoading(true);
-                  try {
-                    const firebaseUser = auth?.currentUser;
-                    if (!firebaseUser) return;
-                    const token = await firebaseUser.getIdToken();
-                    await openBillingPortal(token);
-                  } catch {
-                    showAlert("error", t("common.error"));
-                  } finally {
-                    setIsPortalLoading(false);
-                  }
-                }}
-                disabled={isPortalLoading}
-                className={`w-full flex items-center justify-center gap-3 py-3 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95 ${
-                  isDarkMode
-                    ? "bg-slate-700 border-slate-600 text-white shadow-[4px_4px_0px_0px_#1e293b] hover:bg-slate-600"
-                    : "bg-white border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:bg-slate-100"
-                }`}
-              >
-                {isPortalLoading ? (
-                  <Loader2 size={18} className="animate-spin" />
-                ) : (
-                  <ExternalLink size={18} />
-                )}
-                {isPortalLoading ? t("common.loading") : t("subscription.manage")}
-              </button>
+              <>
+                <button
+                  onClick={() => setPendingPlanChange(isMaestro ? "voyager" : "maestro")}
+                  disabled={isPortalLoading || isChangingPlan}
+                  className={`w-full flex items-center justify-center gap-3 py-3 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95 ${
+                    isDarkMode
+                      ? "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#ca8a04] hover:-translate-y-0.5"
+                      : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:-translate-y-0.5"
+                  }`}
+                >
+                  {isMaestro ? <TrendingDown size={18} /> : <TrendingUp size={18} />}
+                  {isMaestro ? t("subscription.downgrade_to_voyager") : t("subscription.upgrade_to_maestro")}
+                </button>
+
+                <button
+                  onClick={async () => {
+                    setIsPortalLoading(true);
+                    try {
+                      const firebaseUser = auth?.currentUser;
+                      if (!firebaseUser) return;
+                      const token = await firebaseUser.getIdToken();
+                      await openBillingPortal(token);
+                    } catch {
+                      showAlert("error", t("common.error"));
+                    } finally {
+                      setIsPortalLoading(false);
+                    }
+                  }}
+                  disabled={isPortalLoading}
+                  className={`w-full flex items-center justify-center gap-3 py-3 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95 ${
+                    isDarkMode
+                      ? "bg-slate-700 border-slate-600 text-white shadow-[4px_4px_0px_0px_#1e293b] hover:bg-slate-600"
+                      : "bg-white border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a] hover:bg-slate-100"
+                  }`}
+                >
+                  {isPortalLoading ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <ExternalLink size={18} />
+                  )}
+                  {isPortalLoading ? t("common.loading") : t("subscription.manage")}
+                </button>
+
+                <p className={`text-xs font-bold text-center pt-1 ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
+                  {t("subscription.cancel_warning")}
+                </p>
+              </>
             )}
           </div>
         </div>
