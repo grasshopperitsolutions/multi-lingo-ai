@@ -160,6 +160,24 @@ const UsersSection = ({ users, isDarkMode, isLoadingDocs, error, currentUid, onS
                   </p>
                   <div className="flex flex-wrap items-center gap-2 mt-1">
                     <TierBadge tier={u.subscriptionTier || "explorer"} isDarkMode={isDarkMode} />
+                    {u.subscriptionStatus && (
+                      <span className={`px-2 py-0.5 rounded-full border-2 text-[10px] font-black uppercase tracking-widest ${
+                        u.subscriptionStatus === "active" || u.subscriptionStatus === "trialing"
+                          ? isDarkMode ? "border-emerald-700 text-emerald-300" : "border-emerald-300 text-emerald-700"
+                          : u.subscriptionStatus === "past_due"
+                            ? isDarkMode ? "border-rose-700 text-rose-300" : "border-rose-300 text-rose-700"
+                            : isDarkMode ? "border-slate-600 text-slate-400" : "border-slate-300 text-slate-500"
+                      }`}>
+                        {u.subscriptionStatus}
+                      </span>
+                    )}
+                    {u.cancelAtPeriodEnd && u.currentPeriodEnd && (
+                      <span className={`px-2 py-0.5 rounded-full border-2 text-[10px] font-black uppercase tracking-widest ${
+                        isDarkMode ? "border-amber-700 text-amber-300" : "border-amber-400 text-amber-700"
+                      }`}>
+                        Cancels {new Date(u.currentPeriodEnd * 1000).toLocaleDateString()}
+                      </span>
+                    )}
                     <span className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
                       Joined {formatDate(u.createdAt)}
                     </span>

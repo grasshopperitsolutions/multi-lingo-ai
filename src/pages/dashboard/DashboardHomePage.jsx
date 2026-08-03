@@ -18,6 +18,7 @@ import {
   Star,
   Trophy,
   TrendingUp,
+  Compass,
 } from "lucide-react";
 import PropTypes from "prop-types";
 
@@ -102,8 +103,29 @@ const DashboardHomePage = () => {
     navigate(feature.route);
   };
 
+  const isPaidTier = user?.subscriptionTier === "voyager" || user?.subscriptionTier === "maestro";
+  const isCanceling = isPaidTier && Boolean(user?.cancelAtPeriodEnd);
+
   return (
     <>
+      {/* Cancellation-scheduled notice — persists on every dashboard visit
+          until the period actually ends, not just right after canceling. */}
+      {isCanceling && (
+        <div className={`flex items-center gap-3 p-4 rounded-xl border-4 mb-6 ${
+          isDarkMode
+            ? "bg-slate-800 border-amber-700"
+            : "bg-amber-50 border-amber-400"
+        }`}>
+          <Compass size={20} className={isDarkMode ? "text-amber-400 shrink-0" : "text-amber-600 shrink-0"} />
+          <p className={`text-sm font-bold ${isDarkMode ? "text-amber-200" : "text-amber-800"}`}>
+            {t("subscription.cancel_scheduled_message", {
+              date: user.currentPeriodEnd ? new Date(user.currentPeriodEnd * 1000).toLocaleDateString() : "",
+              tier: user.subscriptionTier === "maestro" ? "Maestro" : "Voyager",
+            })}
+          </p>
+        </div>
+      )}
+
       {/* Stats Row */}
       <section>
         <h2 className={`text-xs font-black uppercase tracking-widest mb-4 ${

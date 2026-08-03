@@ -763,6 +763,26 @@ const SettingsPage = () => {
             </p>
           )}
 
+          {/* Cancellation-scheduled notice — persists on every visit until
+              the period actually ends, not just right after canceling. */}
+          {user?.cancelAtPeriodEnd && user?.currentPeriodEnd && !isExplorer && !isVip && !isAdmin && (
+            <div className={`p-4 rounded-xl border-4 mb-4 ${
+              isDarkMode
+                ? "bg-slate-900 border-amber-700"
+                : "bg-amber-50 border-amber-400"
+            }`}>
+              <p className={`font-black uppercase tracking-widest text-xs mb-1 ${isDarkMode ? "text-amber-300" : "text-amber-700"}`}>
+                {t("subscription.cancel_scheduled_title")}
+              </p>
+              <p className={`text-sm font-bold ${isDarkMode ? "text-amber-200" : "text-amber-800"}`}>
+                {t("subscription.cancel_scheduled_message", {
+                  date: new Date(user.currentPeriodEnd * 1000).toLocaleDateString(),
+                  tier: tier === "maestro" ? "Maestro" : "Voyager",
+                })}
+              </p>
+            </div>
+          )}
+
           {/* Past-due notice — only for paid tiers */}
           {user?.subscriptionStatus === "past_due" && !isVip && !isAdmin && (
             <div className={`p-4 rounded-xl border-4 mb-4 ${
