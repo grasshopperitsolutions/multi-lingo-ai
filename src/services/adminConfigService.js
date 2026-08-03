@@ -18,6 +18,7 @@ export const CONFIG_SECTIONS = [
   { id: "writingSystems", label: "Writing Systems", collection: "appConfig/config/writingSystems" },
   { id: "prompts", label: "Prompts", collection: "appConfig/config/prompts" },
   { id: "authProviders", label: "Login Providers", collection: "appConfig/config/authProviders" },
+  { id: "users", label: "Users", collection: "Firebase Auth + users/*" },
 ];
 
 /**

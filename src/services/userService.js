@@ -1,4 +1,5 @@
 import { requestUpload, uploadToGcs, deleteByPrefix } from './storageService';
+import { queryCollection } from './firestoreService';
 import { storagePaths } from '../config/storagePaths';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
@@ -50,6 +51,34 @@ export const updateUserProfile = async (token, uid, data) => {
 };
 
 /**
+ * Set a user's subscriptionTier — the field that doubles as their role
+ * (explorer/voyager/maestro/vip/admin, see tierLimits.js). Setting it on
+ * someone else's uid is admin-only (enforced by updateUserProfile's backend
+ * call); setting your own is blocked server-side regardless of role.
+ *
+ * @param {string} token
+ * @param {string} uid
+ * @param {'explorer'|'voyager'|'maestro'|'vip'|'admin'} subscriptionTier
+ */
+export const setUserTier = async (token, uid, subscriptionTier) => {
+  return updateUserProfile(token, uid, { subscriptionTier });
+};
+
+/**
+ * Fetch every user profile — admin-only (the backend requires the caller's
+ * own subscriptionTier to be 'admin' before running a query across the
+ * whole `users` collection). Powers the admin Users panel's list.
+ *
+ * @param {string} token - Firebase ID token of an admin user
+ * @returns {Promise<Array<object>>} Each entry has `uid` plus its Firestore fields
+ */
+export const listAllUserProfiles = async (token) => {
+  const result = await queryCollection('users', {}, { limit: 1000 }, token);
+  const documents = result?.documents ?? [];
+  return documents.map(({ id, ...rest }) => ({ uid: id, ...rest }));
+};
+
+/**
  * Upload a new profile image, replacing the existing one.
  *
  * Steps:
@@ -90,13 +119,24 @@ export const uploadProfileImage = async (token, uid, file) => {
   return publicUrl;
 };
 
-export const deleteAccount = async (token) => {
+/**
+ * Delete an account. Omit `targetUid` to delete your own account (the
+ * normal self-service flow). Pass `targetUid` to delete *another* user's
+ * account instead — the backend requires the caller to be an admin in
+ * that case. Powers both the account-settings delete button and the
+ * admin Users panel's delete action.
+ *
+ * @param {string} token
+ * @param {string} [targetUid]
+ */
+export const deleteAccount = async (token, targetUid) => {
   const response = await fetch(`${PROXY_URL}/api/auth`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
+    ...(targetUid ? { body: JSON.stringify({ uid: targetUid }) } : {}),
   });
   const json = await response.json();
   if (!response.ok) throw new Error(json?.error || json?.message || 'Failed to delete account');

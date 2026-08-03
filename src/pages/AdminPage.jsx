@@ -3,12 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "../hooks/useTierAccess";
 import Loader from "../components/Loader";
+import { auth } from "../firebase";
 import { CONFIG_SECTIONS, getConfigSectionDocs } from "../services/adminConfigService";
 import { getPrompts, updatePrompt } from "../services/promptService";
 import { getAuthProviders, setAuthProviderEnabled } from "../services/authProvidersService";
+import { listAllUserProfiles, setUserTier, deleteAccount } from "../services/userService";
 import PromptsSection from "../components/admin/PromptsSection";
 import PromptEditModal from "../components/admin/PromptEditModal";
 import LoginProvidersSection from "../components/admin/LoginProvidersSection";
+import UsersSection from "../components/admin/UsersSection";
 import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
@@ -30,6 +33,7 @@ const AdminPage = () => {
   const activeSection = CONFIG_SECTIONS.find((s) => s.id === activeSectionId);
   const isPromptsSection = activeSectionId === "prompts";
   const isAuthProvidersSection = activeSectionId === "authProviders";
+  const isUsersSection = activeSectionId === "users";
 
   const loadSection = useCallback(async (section) => {
     setIsLoadingDocs(true);
@@ -39,7 +43,9 @@ const AdminPage = () => {
         ? await getPrompts()
         : section.id === "authProviders"
           ? await getAuthProviders()
-          : await getConfigSectionDocs(section.collection);
+          : section.id === "users"
+            ? await listAllUserProfiles(await auth.currentUser.getIdToken())
+            : await getConfigSectionDocs(section.collection);
       setDocsBySection((prev) => ({ ...prev, [section.id]: docs }));
     } catch (err) {
       setError(err.message);
@@ -76,6 +82,30 @@ const AdminPage = () => {
       setIsSavingPrompt(false);
     }
   }, [editingPrompt, user, showAlert]);
+
+  const handleSetUserTier = useCallback(async (targetUid, tier) => {
+    try {
+      const token = await auth.currentUser.getIdToken();
+      await setUserTier(token, targetUid, tier);
+      showAlert("success", "User updated.");
+      const updated = await listAllUserProfiles(token);
+      setDocsBySection((prev) => ({ ...prev, users: updated }));
+    } catch (err) {
+      showAlert("error", `Could not update user: ${err.message}`);
+    }
+  }, [showAlert]);
+
+  const handleDeleteUser = useCallback(async (targetUid) => {
+    try {
+      const token = await auth.currentUser.getIdToken();
+      await deleteAccount(token, targetUid);
+      showAlert("success", "User deleted.");
+      const updated = await listAllUserProfiles(token);
+      setDocsBySection((prev) => ({ ...prev, users: updated }));
+    } catch (err) {
+      showAlert("error", `Could not delete user: ${err.message}`);
+    }
+  }, [showAlert]);
 
   useEffect(() => {
     if (!isAdmin || docsBySection[activeSectionId]) return;
@@ -169,6 +199,16 @@ const AdminPage = () => {
             isLoadingDocs={isLoadingDocs}
             error={error}
             onToggle={handleToggleProvider}
+          />
+        ) : isUsersSection ? (
+          <UsersSection
+            users={docs}
+            isDarkMode={isDarkMode}
+            isLoadingDocs={isLoadingDocs}
+            error={error}
+            currentUid={user?.uid}
+            onSetTier={handleSetUserTier}
+            onDeleteUser={handleDeleteUser}
           />
         ) : (
           <>
