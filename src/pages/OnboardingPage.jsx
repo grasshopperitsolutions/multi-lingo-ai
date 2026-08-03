@@ -117,7 +117,7 @@ const OnboardingPage = () => {
 
   const [step, setStep] = useState(0);
   const [learningDialect, setLearningDialect] = useState("");
-  const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "en-US");
+  const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "");
   const [interests, setInterests] = useState([]);
   const [isSeedingLanguage, setIsSeedingLanguage] = useState(false);
   const [isSeedingInterface, setIsSeedingInterface] = useState(false);
@@ -131,6 +131,28 @@ const OnboardingPage = () => {
       setShowOtherLearning(true);
     }
   }, [isLoadingLanguages, supportedLanguages.length]);
+
+  // Default interface language to UK English once the list loads, unless
+  // the account already carries a real match (e.g. registration's bare "en"
+  // doesn't count — it won't match any BCP-47 option here) or the user has
+  // opted into manual "Other" entry.
+  useEffect(() => {
+    if (isLoadingLanguages || supportedLanguages.length === 0 || showOtherInterface) return;
+    const hasMatch = supportedLanguages.some((l) => normalizeCode(l.code) === normalizeCode(interfaceLang));
+    if (hasMatch) return;
+    const uk = supportedLanguages.find((l) => normalizeCode(l.code) === normalizeCode('en-GB'));
+    setInterfaceLang((uk ?? supportedLanguages[0]).code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingLanguages, supportedLanguages, showOtherInterface]);
+
+  // Default learning language to Portugal Portuguese once the list loads,
+  // unless the user has already picked one or opted into "Other".
+  useEffect(() => {
+    if (isLoadingLanguages || supportedLanguages.length === 0 || showOtherLearning || learningDialect) return;
+    const pt = supportedLanguages.find((l) => normalizeCode(l.code) === normalizeCode('pt-PT'));
+    setLearningDialect((pt ?? supportedLanguages[0]).code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoadingLanguages, supportedLanguages, showOtherLearning]);
 
   const totalSteps = 3;
 

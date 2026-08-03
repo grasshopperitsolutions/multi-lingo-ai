@@ -1,4 +1,4 @@
-const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
+import { apiFetch } from './apiClient';
 
 /**
  * Create a Stripe Checkout Session and redirect the user to it.
@@ -9,26 +9,18 @@ const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.
  * @returns {Promise<void>} Redirects browser on success
  */
 export const createCheckoutSession = async (token, plan, interval) => {
-  const response = await fetch(`${PROXY_URL}/api/stripe`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
+  const data = await apiFetch(
+    '/api/stripe',
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: { action: 'checkout', plan, interval },
     },
-    body: JSON.stringify({
-      action: 'checkout',
-      plan,
-      interval,
-    }),
-  });
+    'Failed to create checkout session'
+  );
 
-  const json = await response.json();
-  if (!response.ok) {
-    throw new Error(json?.error || json?.message || 'Failed to create checkout session');
-  }
-
-  if (json?.url) {
-    window.location.href = json.url;
+  if (data?.url) {
+    window.location.href = data.url;
   } else {
     throw new Error('No checkout URL returned');
   }
@@ -41,24 +33,18 @@ export const createCheckoutSession = async (token, plan, interval) => {
  * @returns {Promise<void>} Redirects browser on success
  */
 export const openBillingPortal = async (token) => {
-  const response = await fetch(`${PROXY_URL}/api/stripe`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
+  const data = await apiFetch(
+    '/api/stripe',
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: { action: 'portal' },
     },
-    body: JSON.stringify({
-      action: 'portal',
-    }),
-  });
+    'Failed to open billing portal'
+  );
 
-  const json = await response.json();
-  if (!response.ok) {
-    throw new Error(json?.error || json?.message || 'Failed to open billing portal');
-  }
-
-  if (json?.url) {
-    window.location.href = json.url;
+  if (data?.url) {
+    window.location.href = data.url;
   } else {
     throw new Error('No portal URL returned');
   }
