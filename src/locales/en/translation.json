@@ -724,7 +724,6 @@
     "change_plan_confirm_title": "Change Your Plan?",
     "change_plan_confirm_message_upgrade": "You're switching to Maestro — unlimited AI calls, priority support, all of it. We'll prorate the difference on your next invoice.",
     "change_plan_confirm_message_downgrade": "You're switching to Voyager — you'll lose unlimited AI calls and priority support. We'll prorate the difference on your next invoice.",
-    "change_plan_success": "Plan updated!",
     "cancel_warning": "Heads up: canceling turns you back into a SIMPLE Explorer. No unlimited AI, no priority support — just the basics. Choose wisely...",
     "update_payment": "Update Payment",
     "past_due_message": "Your payment is past due. Please update your payment method to avoid service interruption.",
@@ -733,13 +732,21 @@
       "upgrade_required": "This feature is only available on Voyager and higher plans."
     },
     "success": {
-      "title": "Subscription Active!",
-      "message": "Your subscription has been activated successfully. You now have access to all your plan features.",
-      "redirecting": "Redirecting to dashboard in {{seconds}}s..."
+      "title_voyager": "Welcome to Voyager!",
+      "title_maestro": "Welcome to Maestro!",
+      "title_generic": "Thank You!",
+      "message_voyager": "You've unlocked 20 AI calls a day, Full Exam Mode, and more. Time to put them to work.",
+      "message_maestro": "You've unlocked unlimited AI calls, priority support, and everything Multi Lingo AI has to offer. Time to put it to work.",
+      "message_generic": "Your subscription is active. Give it a moment to sync, then dive in.",
+      "cta": "Start Your Language Journey"
     },
     "cancel": {
       "title": "Subscription Canceled",
       "message": "Your checkout was canceled. No changes were made to your account.",
+      "sorry_title": "We're Sorry to See You Go!",
+      "enjoy_explorer": "No hard feelings — enjoy being an Explorer! Come back anytime.",
+      "enjoy_voyager": "No hard feelings — you're still a Voyager, and that's pretty great too. Come back anytime.",
+      "enjoy_maestro": "No hard feelings — you're still a Maestro, so no complaints here. Come back anytime.",
       "back": "Back to Pricing"
     }
   },

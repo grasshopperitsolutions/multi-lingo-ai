@@ -1,12 +1,24 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
+import { useTierAccess } from "../hooks/useTierAccess";
 import { ArrowLeft } from "lucide-react";
+
+// Which "enjoy being a ___" line to show — reflects whatever tier the user
+// actually still has (abandoning an upgrade attempt doesn't change it),
+// not an assumption that everyone who lands here is on the free tier.
+const ENJOY_KEY_BY_TIER = {
+  voyager: "enjoy_voyager",
+  maestro: "enjoy_maestro",
+};
 
 const SubscriptionCancelPage = () => {
   const { isDarkMode } = useAppContext();
+  const { tier } = useTierAccess();
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  const enjoyKey = ENJOY_KEY_BY_TIER[tier] ?? "enjoy_explorer";
 
   return (
     <main className="flex-1 flex items-center justify-center px-4">
@@ -28,12 +40,28 @@ const SubscriptionCancelPage = () => {
           {t("subscription.cancel.title")}
         </h1>
         <p
-          className={`font-bold mb-8 ${
+          className={`font-bold mb-6 ${
             isDarkMode ? "text-slate-400" : "text-slate-500"
           }`}
         >
           {t("subscription.cancel.message")}
         </p>
+
+        <div
+          className={`p-4 rounded-xl border-4 mb-8 ${
+            isDarkMode
+              ? "bg-slate-900 border-slate-700"
+              : "bg-slate-50 border-slate-200"
+          }`}
+        >
+          <p className={`font-black uppercase tracking-wider text-sm mb-1 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
+            {t("subscription.cancel.sorry_title")}
+          </p>
+          <p className={`text-sm font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+            {t(`subscription.cancel.${enjoyKey}`)}
+          </p>
+        </div>
+
         <button
           onClick={() => navigate("/pricing")}
           className={`flex items-center justify-center gap-2 mx-auto px-8 py-4 rounded-2xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95 ${

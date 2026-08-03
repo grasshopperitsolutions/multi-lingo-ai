@@ -463,9 +463,10 @@ const SettingsPage = () => {
     try {
       const token = await firebaseUser.getIdToken();
       await changeSubscriptionPlan(token, pendingPlanChange);
-      await refreshUser();
-      showAlert("success", t("subscription.change_plan_success"));
       setPendingPlanChange(null);
+      // SubscriptionSuccessPage refreshes the user itself and shows
+      // tier-appropriate thank-you copy — no separate toast needed here.
+      navigate("/subscription/success");
     } catch (err) {
       showAlert("error", err.message || t("common.error"));
     } finally {
