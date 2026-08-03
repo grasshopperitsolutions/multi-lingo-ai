@@ -51,22 +51,30 @@ export const openBillingPortal = async (token) => {
 };
 
 /**
- * Switch an existing subscription to a different plan, keeping its current
- * billing interval (monthly stays monthly, yearly stays yearly). Stripe
- * prorates the difference on the next invoice — no redirect, resolves in-app.
+ * Open the Stripe Customer Portal, deep-linked straight to the confirmation
+ * screen for switching an existing subscription to a different plan.
+ * Requires "Update subscription" enabled in the Stripe Dashboard's Customer
+ * Portal settings — Stripe handles proration and payment there directly.
  *
  * @param {string} token - Firebase ID token
  * @param {'voyager'|'maestro'} plan - Target plan
- * @returns {Promise<{ tier: string, status: string }>}
+ * @param {'monthly'|'yearly'} interval - Billing interval
+ * @returns {Promise<void>} Redirects browser on success
  */
-export const changeSubscriptionPlan = async (token, plan) => {
-  return apiFetch(
+export const openPlanChangePortal = async (token, plan, interval) => {
+  const data = await apiFetch(
     '/api/stripe',
     {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
-      body: { action: 'change_plan', plan },
+      body: { action: 'portal_change_plan', plan, interval },
     },
-    'Failed to change subscription plan'
+    'Failed to open plan-change portal'
   );
+
+  if (data?.url) {
+    window.location.href = data.url;
+  } else {
+    throw new Error('No portal URL returned');
+  }
 };

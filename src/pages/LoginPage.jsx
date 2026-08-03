@@ -8,7 +8,8 @@ import Loader from "../components/Loader";
 import TooltipButton from "../components/TooltipButton";
 import { getTokenOrAnonymous } from "../services/firestoreService";
 import { getAuthProviders } from "../services/authProvidersService";
-import { createCheckoutSession } from "../services/stripeService";
+import { createCheckoutSession, openPlanChangePortal } from "../services/stripeService";
+import { getUserProfile } from "../services/userService";
 import { auth } from "../firebase";
 
 const PROVIDER_NAMES = {
@@ -61,8 +62,17 @@ const LoginPage = () => {
         try {
           const firebaseUser = auth?.currentUser;
           const token = await firebaseUser.getIdToken();
-          await createCheckoutSession(token, pendingPlan, pendingInterval);
-          return; // createCheckoutSession redirects the browser to Stripe
+          // This account may already be subscribed on another device — check
+          // before defaulting to Checkout, which would start a second,
+          // parallel subscription instead of switching the existing one.
+          const profile = await getUserProfile(token, firebaseUser.uid).catch(() => null);
+          const isExistingSubscriber = profile?.subscriptionTier === "voyager" || profile?.subscriptionTier === "maestro";
+          if (isExistingSubscriber) {
+            await openPlanChangePortal(token, pendingPlan, pendingInterval);
+          } else {
+            await createCheckoutSession(token, pendingPlan, pendingInterval);
+          }
+          return; // both redirect the browser to Stripe
         } catch (err) {
           showAlert("error", err.message || t("common.error"));
           navigate("/pricing");

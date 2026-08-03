@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
-import { createCheckoutSession } from "../services/stripeService";
+import { createCheckoutSession, openPlanChangePortal } from "../services/stripeService";
 import { PRICING, TIER_FEATURES, getYearlySavingsPercent } from "../config/pricing";
 import { auth } from "../firebase";
 import { CheckCircle, Star, Lock, ArrowRight } from "lucide-react";
@@ -285,7 +285,14 @@ const PricingPage = () => {
         return;
       }
       const token = await firebaseUser.getIdToken();
-      await createCheckoutSession(token, plan, interval);
+      const isExistingSubscriber = currentTier === "voyager" || currentTier === "maestro";
+      if (isExistingSubscriber) {
+        // Already paying for the other tier — deep-link into Stripe's own
+        // plan-change confirmation instead of starting a second subscription.
+        await openPlanChangePortal(token, plan, interval);
+      } else {
+        await createCheckoutSession(token, plan, interval);
+      }
     } catch (err) {
       showAlert("error", err.message || t("common.error"));
       setLoadingPlan(null);
