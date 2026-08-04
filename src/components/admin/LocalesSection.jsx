@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import {
   Languages,
@@ -7,17 +7,26 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  Search,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import Loader from "../Loader";
 import ConfirmModal from "../ConfirmModal";
 import { PrimaryButton, GhostButton, ErrorBanner } from "../ui";
+
+function matchesSearch(doc, term) {
+  if (!term) return true;
+  return String(doc.id ?? "").toLowerCase().includes(term.toLowerCase());
+}
 
 /**
  * LocalesSection — admin panel for the appConfig/config/locales Firestore
  * collection. Lets an admin force-retranslate-and-overwrite every known
  * language's UI strings from the current local en-US source in one batch
  * (sequential, one language at a time, to avoid concurrent AI calls), or
- * refresh a single language on demand.
+ * refresh a single language on demand. Each locale's translation JSON is
+ * large, so entries are collapsed by default and filterable by locale code.
  */
 const LocalesSection = ({ docs, isDarkMode, isLoadingDocs, error, onForceOverwrite, onRefreshLocale }) => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -26,8 +35,24 @@ const LocalesSection = ({ docs, isDarkMode, isLoadingDocs, error, onForceOverwri
   const [summary, setSummary] = useState(null);
   const [runError, setRunError] = useState(null);
   const [refreshingCode, setRefreshingCode] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
 
   const isBusy = isRunning || Boolean(refreshingCode);
+
+  const filteredDocs = useMemo(
+    () => docs.filter((d) => matchesSearch(d, searchTerm)),
+    [docs, searchTerm]
+  );
+
+  const toggleExpanded = (id) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // Warn the browser itself, not just the UI, if the admin tries to close or
   // navigate away while a translation sync is in flight — a closed tab
@@ -187,42 +212,102 @@ const LocalesSection = ({ docs, isDarkMode, isLoadingDocs, error, onForceOverwri
 
       {!isLoadingDocs && error && <p className="font-bold text-rose-500">{error}</p>}
 
+      {!isLoadingDocs && !error && docs.length > 0 && (
+        <>
+          <div className="relative">
+            <Search
+              size={16}
+              className={`absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
+            />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by locale code..."
+              className={`w-full pl-11 pr-4 py-2.5 rounded-xl border-2 font-semibold text-sm outline-none transition-colors ${
+                isDarkMode
+                  ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500 focus:border-blue-400"
+                  : "bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600"
+              }`}
+            />
+          </div>
+
+          <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+            {filteredDocs.length} of {docs.length} locale{docs.length === 1 ? "" : "s"}
+          </p>
+        </>
+      )}
+
       {!isLoadingDocs && !error && docs.length === 0 && (
         <p className={`font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
           No documents in this section yet.
         </p>
       )}
 
-      {!isLoadingDocs && !error && docs.length > 0 && (
+      {!isLoadingDocs && !error && docs.length > 0 && filteredDocs.length === 0 && (
+        <p className={`font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+          No locales match &quot;{searchTerm}&quot;.
+        </p>
+      )}
+
+      {!isLoadingDocs && !error && filteredDocs.length > 0 && (
         <div className="flex flex-col gap-4">
-          {docs.map((doc, i) => (
-            <div
-              key={doc.id ?? i}
-              className={`p-4 rounded-xl border-2 ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-300 bg-slate-50"}`}
-            >
-              <div className="flex items-center justify-between gap-3 mb-2">
-                <p className={`font-black text-sm ${isDarkMode ? "text-yellow-400" : "text-blue-600"}`}>
-                  {doc.id ?? `#${i}`}
-                </p>
-                <GhostButton
-                  onClick={() => handleRefreshSingle(doc.id)}
-                  disabled={isBusy}
-                  isDarkMode={isDarkMode}
-                  className="!px-3 !py-2 shrink-0"
+          {filteredDocs.map((doc, i) => {
+            const id = doc.id ?? `#${i}`;
+            const isExpanded = expandedIds.has(id);
+            return (
+              <div
+                key={id}
+                className={`rounded-xl border-2 ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-300 bg-slate-50"}`}
+              >
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => toggleExpanded(id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleExpanded(id);
+                    }
+                  }}
+                  aria-expanded={isExpanded}
+                  className="w-full flex items-center justify-between gap-3 p-4 text-left cursor-pointer"
                 >
-                  {refreshingCode === doc.id ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <RefreshCw size={14} />
-                  )}
-                  Overwrite
-                </GhostButton>
+                  <span className="flex items-center gap-2 min-w-0">
+                    {isExpanded ? (
+                      <ChevronDown size={16} className={`shrink-0 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`} />
+                    ) : (
+                      <ChevronRight size={16} className={`shrink-0 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`} />
+                    )}
+                    <span className={`font-black text-sm truncate ${isDarkMode ? "text-yellow-400" : "text-blue-600"}`}>
+                      {id}
+                    </span>
+                  </span>
+                  <GhostButton
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRefreshSingle(doc.id);
+                    }}
+                    disabled={isBusy}
+                    isDarkMode={isDarkMode}
+                    className="!px-3 !py-2 shrink-0"
+                  >
+                    {refreshingCode === doc.id ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <RefreshCw size={14} />
+                    )}
+                    Overwrite
+                  </GhostButton>
+                </div>
+                {isExpanded && (
+                  <pre className={`text-xs whitespace-pre-wrap break-words font-mono px-4 pb-4 ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
+                    {JSON.stringify(doc, null, 2)}
+                  </pre>
+                )}
               </div>
-              <pre className={`text-xs whitespace-pre-wrap break-words font-mono ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
-                {JSON.stringify(doc, null, 2)}
-              </pre>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
