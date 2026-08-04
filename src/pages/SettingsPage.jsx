@@ -31,7 +31,6 @@ import { useTierAccess } from "../hooks/useTierAccess";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
 import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
-import { INTEREST_CATEGORIES } from "../config/supportedLanguages";
 import { normalizeCode } from "../utils/languageCode";
 
 // ── Avatar Upload Widget ─────────────────────────────────────────────────────────
@@ -109,7 +108,7 @@ AvatarUpload.propTypes = {
 };
 
 // ── Interest Pills ────────────────────────────────────────────────────────────
-const InterestPills = ({ selected, onChange, isDarkMode, t }) => {
+const InterestPills = ({ categories, selected, onChange, isDarkMode, t }) => {
   const toggle = (value) => {
     onChange(
       selected.includes(value)
@@ -120,13 +119,13 @@ const InterestPills = ({ selected, onChange, isDarkMode, t }) => {
 
   return (
     <div className="flex flex-wrap gap-2" role="group" aria-label={t("settings.interests")}>
-      {INTEREST_CATEGORIES.map(({ value, labelKey }) => {
-        const isSelected = selected.includes(value);
+      {categories.map(({ id, label }) => {
+        const isSelected = selected.includes(id);
         return (
           <button
-            key={value}
+            key={id}
             type="button"
-            onClick={() => toggle(value)}
+            onClick={() => toggle(id)}
             aria-pressed={isSelected}
             className={`px-4 py-2 rounded-full border-2 font-black uppercase text-xs tracking-widest
               transition-all active:scale-95
@@ -139,7 +138,7 @@ const InterestPills = ({ selected, onChange, isDarkMode, t }) => {
                   : "bg-transparent border-slate-300 text-slate-500 hover:border-slate-900 hover:text-slate-900"
               }`}
           >
-            {t(labelKey)}
+            {t(`categories.${id}`, label)}
           </button>
         );
       })}
@@ -147,6 +146,10 @@ const InterestPills = ({ selected, onChange, isDarkMode, t }) => {
   );
 };
 InterestPills.propTypes = {
+  categories: PropTypes.arrayOf(PropTypes.shape({
+    id:    PropTypes.string.isRequired,
+    label: PropTypes.string,
+  })).isRequired,
   selected:   PropTypes.arrayOf(PropTypes.string).isRequired,
   onChange:   PropTypes.func.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
@@ -165,6 +168,8 @@ const SettingsForm = ({
   previewUrl, onFileSelect,
   supportedLanguages,
   isLoadingLanguages,
+  categories,
+  isLoadingCategories,
   showOtherInterface, setShowOtherInterface,
   showOtherLearning, setShowOtherLearning,
   isSeedingInterface, isSeedingLanguage,
@@ -351,12 +356,17 @@ const SettingsForm = ({
               ${ isDarkMode ? "text-slate-500" : "text-slate-400" }`}>
               {t("settings.interests_hint")}
             </p>
-            <InterestPills
-              selected={interests}
-              onChange={setInterests}
-              isDarkMode={isDarkMode}
-              t={t}
-            />
+            {isLoadingCategories && categories.length === 0 ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <InterestPills
+                categories={categories}
+                selected={interests}
+                onChange={setInterests}
+                isDarkMode={isDarkMode}
+                t={t}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -426,6 +436,11 @@ SettingsForm.propTypes = {
     flag:    PropTypes.string,
   })).isRequired,
   isLoadingLanguages:     PropTypes.bool.isRequired,
+  categories: PropTypes.arrayOf(PropTypes.shape({
+    id:    PropTypes.string.isRequired,
+    label: PropTypes.string,
+  })).isRequired,
+  isLoadingCategories:    PropTypes.bool.isRequired,
   showOtherInterface:     PropTypes.bool.isRequired,
   setShowOtherInterface:  PropTypes.func.isRequired,
   showOtherLearning:      PropTypes.bool.isRequired,
@@ -437,7 +452,7 @@ SettingsForm.propTypes = {
 
 // ── Settings Page ───────────────────────────────────────────────────────────────
 const SettingsPage = () => {
-  const { isDarkMode, setIsDarkMode, user, isLoadingUser, logoutUser, showAlert, refreshUser, changeLanguage, supportedLanguages, isLoadingLanguages, refreshSupportedLanguages } = useAppContext();
+  const { isDarkMode, setIsDarkMode, user, isLoadingUser, logoutUser, showAlert, refreshUser, changeLanguage, supportedLanguages, isLoadingLanguages, refreshSupportedLanguages, categories, isLoadingCategories } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -703,6 +718,8 @@ const SettingsPage = () => {
         onFileSelect={handleFileSelect}
         supportedLanguages={supportedLanguages}
         isLoadingLanguages={isLoadingLanguages}
+        categories={categories}
+        isLoadingCategories={isLoadingCategories}
         showOtherInterface={showOtherInterface}
         setShowOtherInterface={setShowOtherInterface}
         showOtherLearning={showOtherLearning}

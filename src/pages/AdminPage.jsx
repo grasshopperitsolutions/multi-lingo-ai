@@ -10,11 +10,14 @@ import { getAuthProviders, setAuthProviderEnabled } from "../services/authProvid
 import { listAllUserProfiles, setUserTier, deleteAccount } from "../services/userService";
 import { getLanguages } from "../services/supportedLanguagesService";
 import { forceOverwriteAllTranslations, seedLanguageTranslations } from "../services/translationService";
+import { createCategory, updateCategory, deleteCategory } from "../services/categoriesService";
 import PromptsSection from "../components/admin/PromptsSection";
 import PromptEditModal from "../components/admin/PromptEditModal";
 import LoginProvidersSection from "../components/admin/LoginProvidersSection";
 import UsersSection from "../components/admin/UsersSection";
 import LocalesSection from "../components/admin/LocalesSection";
+import CategoriesSection from "../components/admin/CategoriesSection";
+import CategoryEditModal from "../components/admin/CategoryEditModal";
 import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
@@ -32,12 +35,16 @@ const AdminPage = () => {
   const [error, setError] = useState(null);
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+  const [categoryModal, setCategoryModal] = useState(null); // null | { category: object|null }
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
   const activeSection = CONFIG_SECTIONS.find((s) => s.id === activeSectionId);
   const isPromptsSection = activeSectionId === "prompts";
   const isAuthProvidersSection = activeSectionId === "authProviders";
   const isUsersSection = activeSectionId === "users";
   const isLocalesSection = activeSectionId === "locales";
+  const isCategoriesSection = activeSectionId === "categories";
 
   const loadSection = useCallback(async (section) => {
     setIsLoadingDocs(true);
@@ -110,6 +117,44 @@ const AdminPage = () => {
       showAlert("error", `Could not delete user: ${err.message}`);
     }
   }, [showAlert]);
+
+  const refreshCategoriesDocs = useCallback(async () => {
+    const updated = await getConfigSectionDocs(
+      CONFIG_SECTIONS.find((s) => s.id === "categories").collection
+    );
+    setDocsBySection((prev) => ({ ...prev, categories: updated }));
+  }, []);
+
+  const handleSaveCategory = useCallback(async (id, data, isNew) => {
+    setIsSavingCategory(true);
+    try {
+      if (isNew) {
+        await createCategory(id, data);
+      } else {
+        await updateCategory(id, data);
+      }
+      showAlert("success", isNew ? "Category created." : "Category saved.");
+      setCategoryModal(null);
+      await refreshCategoriesDocs();
+    } catch (err) {
+      showAlert("error", `Could not save category: ${err.message}`);
+    } finally {
+      setIsSavingCategory(false);
+    }
+  }, [showAlert, refreshCategoriesDocs]);
+
+  const handleDeleteCategory = useCallback(async (id) => {
+    setIsDeletingCategory(true);
+    try {
+      await deleteCategory(id);
+      showAlert("success", "Category deleted.");
+      await refreshCategoriesDocs();
+    } catch (err) {
+      showAlert("error", `Could not delete category: ${err.message}`);
+    } finally {
+      setIsDeletingCategory(false);
+    }
+  }, [showAlert, refreshCategoriesDocs]);
 
   const refreshLocalesDocs = useCallback(async () => {
     const updated = await getConfigSectionDocs(
@@ -241,6 +286,17 @@ const AdminPage = () => {
             error={error}
             onEditPrompt={setEditingPrompt}
           />
+        ) : isCategoriesSection ? (
+          <CategoriesSection
+            categories={docs}
+            isDarkMode={isDarkMode}
+            isLoadingDocs={isLoadingDocs}
+            error={error}
+            isDeleting={isDeletingCategory}
+            onAddCategory={() => setCategoryModal({ category: null })}
+            onEditCategory={(category) => setCategoryModal({ category })}
+            onDeleteCategory={handleDeleteCategory}
+          />
         ) : isAuthProvidersSection ? (
           <LoginProvidersSection
             providers={docsBySection.authProviders ?? {}}
@@ -301,6 +357,16 @@ const AdminPage = () => {
           isSaving={isSavingPrompt}
           onSave={handleSavePrompt}
           onClose={() => setEditingPrompt(null)}
+        />
+      )}
+
+      {categoryModal && (
+        <CategoryEditModal
+          category={categoryModal.category}
+          isDarkMode={isDarkMode}
+          isSaving={isSavingCategory}
+          onSave={handleSaveCategory}
+          onClose={() => setCategoryModal(null)}
         />
       )}
     </main>

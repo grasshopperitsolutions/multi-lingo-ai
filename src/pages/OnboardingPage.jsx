@@ -8,7 +8,6 @@ import Loader from "../components/Loader";
 import { updateUserProfile } from "../services/userService";
 import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
-import { INTEREST_CATEGORIES } from "../config/supportedLanguages";
 import { normalizeCode } from "../utils/languageCode";
 import {
   ArrowRight,
@@ -19,7 +18,7 @@ import {
 } from "lucide-react";
 
 // ── Interest Pills (reused pattern from SettingsPage) ────────────────────
-const InterestPills = ({ selected, onChange, isDarkMode, t }) => {
+const InterestPills = ({ categories, selected, onChange, isDarkMode, t }) => {
   const toggle = (value) => {
     onChange(
       selected.includes(value)
@@ -30,13 +29,13 @@ const InterestPills = ({ selected, onChange, isDarkMode, t }) => {
 
   return (
     <div className="flex flex-wrap gap-2" role="group" aria-label={t("onboarding.step_interests")}>
-      {INTEREST_CATEGORIES.map(({ value, labelKey }) => {
-        const isSelected = selected.includes(value);
+      {categories.map(({ id, label }) => {
+        const isSelected = selected.includes(id);
         return (
           <button
-            key={value}
+            key={id}
             type="button"
-            onClick={() => toggle(value)}
+            onClick={() => toggle(id)}
             aria-pressed={isSelected}
             className={`px-4 py-2 rounded-full border-2 font-black uppercase text-xs tracking-widest
               transition-all active:scale-95
@@ -49,7 +48,7 @@ const InterestPills = ({ selected, onChange, isDarkMode, t }) => {
                   : "bg-transparent border-slate-300 text-slate-500 hover:border-slate-900 hover:text-slate-900"
               }`}
           >
-            {t(labelKey)}
+            {t(`categories.${id}`, label)}
           </button>
         );
       })}
@@ -58,6 +57,10 @@ const InterestPills = ({ selected, onChange, isDarkMode, t }) => {
 };
 
 InterestPills.propTypes = {
+  categories: PropTypes.arrayOf(PropTypes.shape({
+    id:    PropTypes.string.isRequired,
+    label: PropTypes.string,
+  })).isRequired,
   selected:   PropTypes.arrayOf(PropTypes.string).isRequired,
   onChange:   PropTypes.func.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
@@ -103,6 +106,9 @@ const OnboardingPage = () => {
     supportedLanguages,
     isLoadingLanguages,
     refreshSupportedLanguages,
+    // dynamic interest categories
+    categories,
+    isLoadingCategories,
   } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -454,12 +460,17 @@ const OnboardingPage = () => {
         <p className={`text-xs font-semibold mb-3 ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
           {t("onboarding.interests_hint")}
         </p>
-        <InterestPills
-          selected={interests}
-          onChange={setInterests}
-          isDarkMode={isDarkMode}
-          t={t}
-        />
+        {isLoadingCategories && categories.length === 0 ? (
+          <Loader2 size={18} className="animate-spin" />
+        ) : (
+          <InterestPills
+            categories={categories}
+            selected={interests}
+            onChange={setInterests}
+            isDarkMode={isDarkMode}
+            t={t}
+          />
+        )}
       </div>
 
       <div className="flex justify-between pt-4">

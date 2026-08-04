@@ -9,6 +9,7 @@ import {
 } from "../services/authService";
 import { getUserProfile, updateDayStreak, updateUserProfile } from "../services/userService";
 import { getLanguages, getWritingSystems } from "../services/supportedLanguagesService";
+import { getCategories } from "../services/categoriesService";
 import { normalizeCode } from "../utils/languageCode";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
@@ -67,6 +68,10 @@ export const AppProvider = ({ children }) => {
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
   const [isLoadingWritingSystems, setIsLoadingWritingSystems] = useState(false);
 
+  // ── Interest Categories state ──────────────────────────────────────────
+  const [categories, setCategories] = useState([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+
   // ── Full Exam session state ────────────────────────────────────────────
   const [examSession, setExamSession] = useState(null);
 
@@ -112,6 +117,27 @@ export const AppProvider = ({ children }) => {
   // Load languages on startup
   useEffect(() => {
     refreshSupportedLanguages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Fetch interest categories ────────────────────────────────────────
+  // Runs for guests too — getCategories() falls back to an anonymous
+  // Firebase session (getTokenOrAnonymous()) when nobody's signed in.
+  const refreshCategories = useCallback(async () => {
+    setIsLoadingCategories(true);
+    try {
+      const cats = await getCategories();
+      setCategories(cats);
+    } catch (err) {
+      showAlert("error", `Could not load interest categories: ${err.message}`);
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  }, [showAlert]);
+
+  // Load categories on startup
+  useEffect(() => {
+    refreshCategories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -545,6 +571,10 @@ export const AppProvider = ({ children }) => {
         isLoadingLanguages,
         isLoadingWritingSystems,
         refreshSupportedLanguages,
+        // Interest categories
+        categories,
+        isLoadingCategories,
+        refreshCategories,
         // Full Exam session
         examSession,
         setExamSession,

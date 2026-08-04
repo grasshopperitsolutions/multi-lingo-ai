@@ -750,6 +750,14 @@
     "placeholder": "Describe the issue in a few words…",
     "send": "Send via WhatsApp"
   },
+  "categories": {
+    "general": "General",
+    "food": "Food",
+    "travel": "Travel",
+    "sports": "Sports",
+    "tech": "Tech",
+    "nature": "Nature"
+  },
   "onboarding": {
     "welcome_title": "Welcome to MultiLingo!",
     "welcome_subtitle": "Let's set up your learning profile.",
