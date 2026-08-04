@@ -8,10 +8,13 @@ import { CONFIG_SECTIONS, getConfigSectionDocs } from "../services/adminConfigSe
 import { getPrompts, updatePrompt } from "../services/promptService";
 import { getAuthProviders, setAuthProviderEnabled } from "../services/authProvidersService";
 import { listAllUserProfiles, setUserTier, deleteAccount } from "../services/userService";
+import { getLanguages } from "../services/supportedLanguagesService";
+import { forceOverwriteAllTranslations, seedLanguageTranslations } from "../services/translationService";
 import PromptsSection from "../components/admin/PromptsSection";
 import PromptEditModal from "../components/admin/PromptEditModal";
 import LoginProvidersSection from "../components/admin/LoginProvidersSection";
 import UsersSection from "../components/admin/UsersSection";
+import LocalesSection from "../components/admin/LocalesSection";
 import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
@@ -34,6 +37,7 @@ const AdminPage = () => {
   const isPromptsSection = activeSectionId === "prompts";
   const isAuthProvidersSection = activeSectionId === "authProviders";
   const isUsersSection = activeSectionId === "users";
+  const isLocalesSection = activeSectionId === "locales";
 
   const loadSection = useCallback(async (section) => {
     setIsLoadingDocs(true);
@@ -106,6 +110,42 @@ const AdminPage = () => {
       showAlert("error", `Could not delete user: ${err.message}`);
     }
   }, [showAlert]);
+
+  const refreshLocalesDocs = useCallback(async () => {
+    const updated = await getConfigSectionDocs(
+      CONFIG_SECTIONS.find((s) => s.id === "locales").collection
+    );
+    setDocsBySection((prev) => ({ ...prev, locales: updated }));
+  }, []);
+
+  // Let a total failure (e.g. getLanguages() itself throwing) propagate up
+  // uncaught — LocalesSection's own handler catches it into its inline
+  // runError banner, so it isn't double-handled here too.
+  const handleForceOverwriteTranslations = useCallback(async (onProgress) => {
+    const token = await auth.currentUser.getIdToken();
+    const languages = await getLanguages(token);
+    const summary = await forceOverwriteAllTranslations(languages, token, { onProgress });
+    await refreshLocalesDocs();
+    if (summary.total === 0) {
+      showAlert("success", "No languages to process.");
+    } else if (summary.failed === 0) {
+      showAlert("success", `${summary.succeeded} of ${summary.total} languages overwritten.`);
+    } else {
+      showAlert("error", `${summary.succeeded} succeeded, ${summary.failed} failed. See details below.`);
+    }
+    return summary;
+  }, [showAlert, refreshLocalesDocs]);
+
+  const handleRefreshLocale = useCallback(async (code) => {
+    try {
+      const token = await auth.currentUser.getIdToken();
+      await seedLanguageTranslations(code, token);
+      await refreshLocalesDocs();
+      showAlert("success", `"${code}" translations refreshed.`);
+    } catch (err) {
+      showAlert("error", `Could not refresh "${code}": ${err.message}`);
+    }
+  }, [showAlert, refreshLocalesDocs]);
 
   useEffect(() => {
     if (!isAdmin || docsBySection[activeSectionId]) return;
@@ -184,7 +224,16 @@ const AdminPage = () => {
           </span>
         </div>
 
-        {isPromptsSection ? (
+        {isLocalesSection ? (
+          <LocalesSection
+            docs={docs}
+            isDarkMode={isDarkMode}
+            isLoadingDocs={isLoadingDocs}
+            error={error}
+            onForceOverwrite={handleForceOverwriteTranslations}
+            onRefreshLocale={handleRefreshLocale}
+          />
+        ) : isPromptsSection ? (
           <PromptsSection
             prompts={docs}
             isDarkMode={isDarkMode}

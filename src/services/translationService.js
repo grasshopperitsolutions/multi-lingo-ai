@@ -2,11 +2,13 @@
  * translationService.js
  *
  * Manages dynamic loading and seeding of UI translation strings from Firestore.
- * en-US is kept as a local fallback; all other locales are fetched from
- * Firestore and cached in memory.
+ * en-US is always the local bundled file (the canonical source — it ships
+ * with the deployed code and is never read from or written to Firestore).
+ * All other locales are AI-translated from that local en-US source and
+ * cached/persisted in Firestore.
  */
 
-import { getDocument, createDocument, patchDocument, getTokenOrAnonymous } from "./firestoreService";
+import { getDocument, createDocument, patchDocument, queryCollection, getTokenOrAnonymous } from "./firestoreService";
 import { getPrompt, renderTemplate } from "./promptService";
 import { askAI } from "./aiService";
 import { loadRemoteTranslations } from "../i18n";
@@ -90,15 +92,24 @@ function deepMergeClone(base, patch) {
 /**
  * Fetch UI translations for a given locale.
  *
- * 1. Checks the in-memory cache first.
- * 2. Falls back to Firestore.
- * 3. Falls back to the local en-US bundle if nothing else is available.
+ * 1. en-US always returns the local bundled file directly (canonical, no Firestore).
+ * 2. Other locales: checks the in-memory cache first.
+ * 3. Falls back to Firestore.
+ * 4. Falls back to the local en-US bundle if no Firestore doc exists yet.
  *
  * @param {string} locale - BCP-47 locale code, e.g. "pt-PT".
  * @param {string} token  - Firebase ID token.
  * @returns {Promise<object>} The translation key-value map.
  */
 export async function getTranslations(locale, token) {
+  // en-US is always the local bundled file — it ships with the deployed
+  // code, so it's the canonical source and can never drift from what's
+  // actually running. Never read it from Firestore (which is only ever
+  // seeded once and has no write path keeping it in sync).
+  if (locale === "en-US") {
+    return enTranslation;
+  }
+
   // 1. In-memory cache
   if (_cache.has(locale)) {
     console.info(`[translationService] getTranslations("${locale}") — cache hit`);
@@ -120,12 +131,9 @@ export async function getTranslations(locale, token) {
     throw err; // Let the caller handle the error (e.g. show "app unavailable")
   }
 
-  // 3. Fallback to local en-US
-  if (locale !== "en-US") {
-    console.warn(`[translationService] "${locale}" has no Firestore doc yet — falling back to local en-US until it's seeded`);
-    return enTranslation;
-  }
-
+  // 3. No Firestore doc yet for this (non-English) locale — fall back to
+  // the local en-US bundle until it's seeded.
+  console.warn(`[translationService] "${locale}" has no Firestore doc yet — falling back to local en-US until it's seeded`);
   return enTranslation;
 }
 
@@ -162,15 +170,10 @@ export async function fillMissingTranslations(locale, token) {
   const run = async () => {
     console.info(`[translationService] fillMissingTranslations("${locale}") — starting`);
 
-    // 1. Get the canonical en-US translations
-    let sourceData;
-    try {
-      const doc = await getDocument(LOCALES_COLLECTION, "en-US", token);
-      sourceData = doc?.data ?? enTranslation;
-    } catch (err) {
-      console.warn(`[translationService] fillMissingTranslations("${locale}") — failed to fetch en-US source, using local bundle: ${err.message}`);
-      sourceData = enTranslation;
-    }
+    // 1. The canonical en-US translations are always the local bundled
+    // file — never Firestore, which is only ever seeded once and has no
+    // write path keeping it in sync with the deployed code.
+    const sourceData = enTranslation;
 
     // 2. Get the current locale translations. getDocument() resolves to
     // `null` (not a throw) on a 404, so a genuinely-missing locale doc is
@@ -268,7 +271,7 @@ export async function fillMissingTranslations(locale, token) {
  * canonical en-US strings.
  *
  * Flow:
- * 1. Fetch en-US translations from Firestore (or use local fallback).
+ * 1. Use the local en-US bundle as the canonical source.
  * 2. Send the en-US JSON to AI with a translation prompt.
  * 3. Parse the AI response and persist to Firestore.
  *
@@ -283,16 +286,10 @@ export async function seedLanguageTranslations(locale, token) {
 
   console.info(`[translationService] seedLanguageTranslations("${locale}") — starting`);
 
-  // 1. Get the canonical en-US translations
-  let sourceData;
-  try {
-    const doc = await getDocument(LOCALES_COLLECTION, "en-US", token);
-    sourceData = doc?.data ?? enTranslation;
-  } catch (err) {
-    // Firestore unavailable — use local fallback
-    console.warn(`[translationService] seedLanguageTranslations("${locale}") — failed to fetch en-US source, using local bundle: ${err.message}`);
-    sourceData = enTranslation;
-  }
+  // 1. The canonical en-US translations are always the local bundled
+  // file — never Firestore, which is only ever seeded once and has no
+  // write path keeping it in sync with the deployed code.
+  const sourceData = enTranslation;
 
   // 2. Build the AI prompt
   const sourceJson = JSON.stringify(sourceData, null, 2);
@@ -342,4 +339,128 @@ export async function seedLanguageTranslations(locale, token) {
   console.info(`[translationService] seedLanguageTranslations("${locale}") — created locale doc with ${Object.keys(flattenToDotPaths(translatedData)).length} key(s)`);
 
   return created?.data ?? translatedData;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Re-translate the full local en-US source and hard-overwrite every given
+ * language's Firestore locale doc from scratch (admin "force resync" action).
+ *
+ * Unlike fillMissingTranslations() (incremental, presence-only diff), this
+ * always re-translates and replaces the entire document — the only way to
+ * propagate an edited (not just newly-added) English string into every
+ * other locale. Languages are processed strictly sequentially (never
+ * concurrently) to avoid hammering the AI backend with parallel requests;
+ * a failure on one language is caught and recorded, never aborting the
+ * batch.
+ *
+ * `languages` is passed in (not fetched here via getLanguages()) to avoid a
+ * circular import — supportedLanguagesService.js already imports
+ * seedLanguageTranslations from this file.
+ *
+ * @param {Array<{code: string, label?: string}>} languages - Supported languages (from getLanguages()).
+ * @param {string} token - Firebase ID token.
+ * @param {{ onProgress?: (update: object) => void }} [options]
+ * @returns {Promise<{ total: number, succeeded: number, failed: number, results: object[] }>}
+ */
+export async function forceOverwriteAllTranslations(languages, token, { onProgress } = {}) {
+  const targets = (languages ?? []).filter((lang) => lang.code !== "en-US");
+  const total = targets.length;
+
+  if (total === 0) {
+    console.info("[translationService] forceOverwriteAllTranslations — no languages to process");
+    return { total: 0, succeeded: 0, failed: 0, results: [] };
+  }
+
+  // Know upfront which locales already have a doc, so each result can be
+  // labeled "created" vs "overwritten" instead of a generic "success".
+  const existingResult = await queryCollection(LOCALES_COLLECTION, {}, {}, token);
+  const existingCodes = new Set((existingResult?.documents ?? []).map((d) => d.id));
+
+  // Seed the UI's initial "pending" state for every target before any async
+  // work starts, so the admin sees the full list immediately.
+  targets.forEach((lang, index) => {
+    onProgress?.({
+      code: lang.code,
+      label: lang.label ?? lang.code,
+      status: "pending",
+      resultType: null,
+      errorMessage: null,
+      index,
+      total,
+    });
+  });
+
+  const results = [];
+
+  for (let index = 0; index < targets.length; index++) {
+    const lang = targets[index];
+    const resultType = existingCodes.has(lang.code) ? "overwritten" : "created";
+
+    onProgress?.({
+      code: lang.code,
+      label: lang.label ?? lang.code,
+      status: "in-progress",
+      resultType,
+      errorMessage: null,
+      index,
+      total,
+    });
+
+    const startedAt = Date.now();
+    try {
+      await attemptSeedWithRetry(lang.code, token);
+      const item = {
+        code: lang.code,
+        label: lang.label ?? lang.code,
+        status: "success",
+        resultType,
+        errorMessage: null,
+        durationMs: Date.now() - startedAt,
+      };
+      results.push(item);
+      onProgress?.({ ...item, index, total });
+    } catch (err) {
+      console.error(`[translationService] forceOverwriteAllTranslations — "${lang.code}" failed: ${err.message}`);
+      const item = {
+        code: lang.code,
+        label: lang.label ?? lang.code,
+        status: "error",
+        resultType: null,
+        errorMessage: err.message,
+        durationMs: Date.now() - startedAt,
+      };
+      results.push(item);
+      onProgress?.({ ...item, index, total });
+      // Never rethrow — one bad language must not abort the batch.
+    }
+  }
+
+  const succeeded = results.filter((r) => r.status === "success").length;
+  const failed = results.filter((r) => r.status === "error").length;
+
+  console.info(`[translationService] forceOverwriteAllTranslations — done: ${succeeded} succeeded, ${failed} failed (of ${total})`);
+
+  return { total, succeeded, failed, results };
+}
+
+/**
+ * seedLanguageTranslations() once, retried once more after a short delay on
+ * failure — resilience against transient AI/network errors for this
+ * admin-triggered batch job. Kept local (not exported) and not layered onto
+ * seedLanguageTranslations() itself, since that function is also called by
+ * seedLanguage() and fillMissingTranslations() — changing its retry
+ * behavior would silently affect those unrelated call paths too.
+ */
+async function attemptSeedWithRetry(code, token) {
+  try {
+    return await seedLanguageTranslations(code, token);
+  } catch (err) {
+    console.warn(`[translationService] attemptSeedWithRetry("${code}") — first attempt failed, retrying once: ${err.message}`);
+    await sleep(1500);
+    return await seedLanguageTranslations(code, token);
+  }
 }
