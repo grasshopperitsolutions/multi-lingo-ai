@@ -296,11 +296,14 @@ export async function seedLanguageTranslations(locale, token) {
   const promptDoc = await getPrompt('translation-seed-language-prompt');
   const prompt = renderTemplate(promptDoc.template, { locale, sourceJson });
 
-  // 3. Ask AI. The full en-US source is ~34KB; translated output can run
-  // close to that size too. The SDK's default maxOutputTokens (1024) badly
-  // truncated the response — even 8192 wasn't enough (confirmed live: cut
-  // off at ~29KB/34KB). Raised further with headroom for verbose target
-  // languages.
+  // 3. Ask AI. The full en-US source is ~56KB; translated output can run
+  // close to that size (or larger for verbose target languages). Both
+  // gemini-3.5-flash and gemini-3.5-flash-lite officially support up to
+  // 65,536 output tokens (confirmed against ai.google.dev), so the default
+  // here is raised to that ceiling — the earlier 16384 cap was silently
+  // truncating full-document translations, not any real model limit. Passes
+  // a scoped 120s timeout (this call only, not the app-wide default) since a
+  // single 56KB round trip can run past ask-ai's normal timeout.
   const aiResponse = await askAI(
     token,
     prompt,
@@ -309,11 +312,12 @@ export async function seedLanguageTranslations(locale, token) {
       model: promptDoc.model || "gemini-3.5-flash-lite",
       temperature: 0.1,
       jsonMode: true,
-      maxOutputTokens: promptDoc.maxTokens ?? 16384,
-    }
+      maxOutputTokens: promptDoc.maxTokens ?? 65536,
+    },
+    { timeout: 120000 }
   );
 
-  // The API returns the JSON string inside the \`text\` field
+  // The API returns the JSON string inside the `text` field
   let translatedData;
   try {
     translatedData = typeof aiResponse?.text === "string"

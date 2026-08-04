@@ -37,7 +37,7 @@
 // ---------------------------------------------------------------------------
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
-const DEFAULT_TIMEOUT = 25000; // 25 seconds
+const DEFAULT_TIMEOUT = 25000; // 25 seconds (up to 120 seconds as per api limit)
 
 // ---------------------------------------------------------------------------
 // Public API
