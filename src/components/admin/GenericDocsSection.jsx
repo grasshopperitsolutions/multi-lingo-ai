@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import PropTypes from "prop-types";
+import { ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import Loader from "../Loader";
-import { SearchBar } from "../ui";
+import { GhostButton, SearchBar } from "../ui";
 
 function matchesSearch(doc, i, term) {
   if (!term) return true;
@@ -10,17 +11,29 @@ function matchesSearch(doc, i, term) {
 }
 
 /**
- * GenericDocsSection — read-only JSON-dump viewer for any appConfig/config/*
+ * GenericDocsSection — collapsible JSON viewer/editor for any appConfig/config/*
  * collection without a dedicated editor (currently Languages and Writing
- * Systems), filterable by a client-side text search over doc id + contents.
+ * Systems). Filterable by a client-side text search over doc id + contents;
+ * each entry expands to its full JSON and can be edited raw via
+ * GenericDocEditModal (see onEditDoc).
  */
-const GenericDocsSection = ({ docs, isDarkMode, isLoadingDocs, error }) => {
+const GenericDocsSection = ({ docs, isDarkMode, isLoadingDocs, error, onEditDoc }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
 
   const filteredDocs = useMemo(
     () => docs.filter((d, i) => matchesSearch(d, i, searchTerm)),
     [docs, searchTerm]
   );
+
+  const toggleExpanded = (id) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   return (
     <>
@@ -56,19 +69,57 @@ const GenericDocsSection = ({ docs, isDarkMode, isLoadingDocs, error }) => {
 
       {!isLoadingDocs && !error && filteredDocs.length > 0 && (
         <div className="flex flex-col gap-4">
-          {filteredDocs.map((doc, i) => (
-            <div
-              key={doc.id ?? i}
-              className={`p-4 rounded-xl border-2 ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-300 bg-slate-50"}`}
-            >
-              <p className={`mb-2 font-black text-sm ${isDarkMode ? "text-yellow-400" : "text-blue-600"}`}>
-                {doc.id ?? `#${i}`}
-              </p>
-              <pre className={`text-xs whitespace-pre-wrap break-words font-mono ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
-                {JSON.stringify(doc, null, 2)}
-              </pre>
-            </div>
-          ))}
+          {filteredDocs.map((doc, i) => {
+            const id = doc.id ?? `#${i}`;
+            const isExpanded = expandedIds.has(id);
+            return (
+              <div
+                key={id}
+                className={`rounded-xl border-2 ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-300 bg-slate-50"}`}
+              >
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => toggleExpanded(id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleExpanded(id);
+                    }
+                  }}
+                  aria-expanded={isExpanded}
+                  className="w-full flex items-center justify-between gap-3 p-4 text-left cursor-pointer"
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    {isExpanded ? (
+                      <ChevronDown size={16} className={`shrink-0 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`} />
+                    ) : (
+                      <ChevronRight size={16} className={`shrink-0 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`} />
+                    )}
+                    <span className={`font-black text-sm truncate ${isDarkMode ? "text-yellow-400" : "text-blue-600"}`}>
+                      {id}
+                    </span>
+                  </span>
+                  <GhostButton
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditDoc(doc);
+                    }}
+                    isDarkMode={isDarkMode}
+                    className="!px-3 !py-2 shrink-0"
+                  >
+                    <Pencil size={14} />
+                    Edit
+                  </GhostButton>
+                </div>
+                {isExpanded && (
+                  <pre className={`text-xs whitespace-pre-wrap break-words font-mono px-4 pb-4 ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
+                    {JSON.stringify(doc, null, 2)}
+                  </pre>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </>
@@ -80,6 +131,7 @@ GenericDocsSection.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
   isLoadingDocs: PropTypes.bool.isRequired,
   error: PropTypes.string,
+  onEditDoc: PropTypes.func.isRequired,
 };
 
 export default GenericDocsSection;

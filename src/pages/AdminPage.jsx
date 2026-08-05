@@ -5,6 +5,7 @@ import { useTierAccess } from "../hooks/useTierAccess";
 import Loader from "../components/Loader";
 import { auth } from "../firebase";
 import { CONFIG_SECTIONS, getConfigSectionDocs } from "../services/adminConfigService";
+import { updateDocument } from "../services/firestoreService";
 import { getPrompts, updatePrompt } from "../services/promptService";
 import { getAuthProviders, setAuthProviderEnabled } from "../services/authProvidersService";
 import { listAllUserProfiles, setUserTier, deleteAccount } from "../services/userService";
@@ -19,6 +20,7 @@ import LocalesSection from "../components/admin/LocalesSection";
 import CategoriesSection from "../components/admin/CategoriesSection";
 import CategoryEditModal from "../components/admin/CategoryEditModal";
 import GenericDocsSection from "../components/admin/GenericDocsSection";
+import GenericDocEditModal from "../components/admin/GenericDocEditModal";
 import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
@@ -39,6 +41,8 @@ const AdminPage = () => {
   const [categoryModal, setCategoryModal] = useState(null); // null | { category: object|null }
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+  const [editingGenericDoc, setEditingGenericDoc] = useState(null); // null | { doc, collection }
+  const [isSavingGenericDoc, setIsSavingGenericDoc] = useState(false);
 
   const activeSection = CONFIG_SECTIONS.find((s) => s.id === activeSectionId);
   const isPromptsSection = activeSectionId === "prompts";
@@ -156,6 +160,22 @@ const AdminPage = () => {
       setIsDeletingCategory(false);
     }
   }, [showAlert, refreshCategoriesDocs]);
+
+  const handleSaveGenericDoc = useCallback(async (docId, data) => {
+    setIsSavingGenericDoc(true);
+    try {
+      const { collection, sectionId } = editingGenericDoc;
+      await updateDocument(collection, docId, data);
+      showAlert("success", `${docId} saved.`);
+      setEditingGenericDoc(null);
+      const updated = await getConfigSectionDocs(collection);
+      setDocsBySection((prev) => ({ ...prev, [sectionId]: updated }));
+    } catch (err) {
+      showAlert("error", `Could not save document: ${err.message}`);
+    } finally {
+      setIsSavingGenericDoc(false);
+    }
+  }, [editingGenericDoc, showAlert]);
 
   const refreshLocalesDocs = useCallback(async () => {
     const updated = await getConfigSectionDocs(
@@ -323,9 +343,20 @@ const AdminPage = () => {
             isDarkMode={isDarkMode}
             isLoadingDocs={isLoadingDocs}
             error={error}
+            onEditDoc={(doc) => setEditingGenericDoc({ doc, collection: activeSection.collection, sectionId: activeSectionId })}
           />
         )}
       </div>
+
+      {editingGenericDoc && (
+        <GenericDocEditModal
+          doc={editingGenericDoc.doc}
+          isDarkMode={isDarkMode}
+          isSaving={isSavingGenericDoc}
+          onSave={handleSaveGenericDoc}
+          onClose={() => setEditingGenericDoc(null)}
+        />
+      )}
 
       {editingPrompt && (
         <PromptEditModal
