@@ -18,6 +18,7 @@ import UsersSection from "../components/admin/UsersSection";
 import LocalesSection from "../components/admin/LocalesSection";
 import CategoriesSection from "../components/admin/CategoriesSection";
 import CategoryEditModal from "../components/admin/CategoryEditModal";
+import GenericDocsSection from "../components/admin/GenericDocsSection";
 import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
@@ -316,37 +317,13 @@ const AdminPage = () => {
             onDeleteUser={handleDeleteUser}
           />
         ) : (
-          <>
-            {isLoadingDocs && <Loader message="Loading..." isDarkMode={isDarkMode} />}
-
-            {!isLoadingDocs && error && (
-              <p className="font-bold text-rose-500">{error}</p>
-            )}
-
-            {!isLoadingDocs && !error && docs.length === 0 && (
-              <p className={`font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-                No documents in this section yet.
-              </p>
-            )}
-
-            {!isLoadingDocs && !error && docs.length > 0 && (
-              <div className="flex flex-col gap-4">
-                {docs.map((doc, i) => (
-                  <div
-                    key={doc.id ?? i}
-                    className={`p-4 rounded-xl border-2 ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-300 bg-slate-50"}`}
-                  >
-                    <p className={`mb-2 font-black text-sm ${isDarkMode ? "text-yellow-400" : "text-blue-600"}`}>
-                      {doc.id ?? `#${i}`}
-                    </p>
-                    <pre className={`text-xs whitespace-pre-wrap break-words font-mono ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
-                      {JSON.stringify(doc, null, 2)}
-                    </pre>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
+          <GenericDocsSection
+            key={activeSectionId}
+            docs={docs}
+            isDarkMode={isDarkMode}
+            isLoadingDocs={isLoadingDocs}
+            error={error}
+          />
         )}
       </div>
 

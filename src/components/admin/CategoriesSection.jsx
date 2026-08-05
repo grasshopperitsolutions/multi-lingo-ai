@@ -1,9 +1,15 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import Loader from "../Loader";
 import ConfirmModal from "../ConfirmModal";
-import { GhostButton, PrimaryButton } from "../ui";
+import { GhostButton, PrimaryButton, SearchBar } from "../ui";
+
+function matchesSearch(category, term) {
+  if (!term) return true;
+  const haystack = [category.label, category.id].filter(Boolean).join(" ").toLowerCase();
+  return haystack.includes(term.toLowerCase());
+}
 
 /**
  * CategoriesSection — admin CRUD list for interest categories
@@ -11,6 +17,12 @@ import { GhostButton, PrimaryButton } from "../ui";
  */
 const CategoriesSection = ({ categories, isDarkMode, isLoadingDocs, error, isDeleting, onAddCategory, onEditCategory, onDeleteCategory }) => {
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredCategories = useMemo(
+    () => categories.filter((c) => matchesSearch(c, searchTerm)),
+    [categories, searchTerm]
+  );
 
   const handleConfirmDelete = async () => {
     await onDeleteCategory(pendingDelete.id);
@@ -30,15 +42,35 @@ const CategoriesSection = ({ categories, isDarkMode, isLoadingDocs, error, isDel
 
       {!isLoadingDocs && error && <p className="font-bold text-rose-500">{error}</p>}
 
+      {!isLoadingDocs && !error && categories.length > 0 && (
+        <>
+          <SearchBar
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Search by label or id..."
+            isDarkMode={isDarkMode}
+          />
+          <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+            {filteredCategories.length} of {categories.length} categor{categories.length === 1 ? "y" : "ies"}
+          </p>
+        </>
+      )}
+
       {!isLoadingDocs && !error && categories.length === 0 && (
         <p className={`font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
           No categories in Firestore yet.
         </p>
       )}
 
-      {!isLoadingDocs && !error && categories.length > 0 && (
+      {!isLoadingDocs && !error && categories.length > 0 && filteredCategories.length === 0 && (
+        <p className={`font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+          No categories match &quot;{searchTerm}&quot;.
+        </p>
+      )}
+
+      {!isLoadingDocs && !error && filteredCategories.length > 0 && (
         <div className="flex flex-col gap-3">
-          {categories.map((category) => (
+          {filteredCategories.map((category) => (
             <div
               key={category.id}
               className={`flex items-center justify-between gap-3 p-4 rounded-xl border-2 ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-300 bg-slate-50"}`}

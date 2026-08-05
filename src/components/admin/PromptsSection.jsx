@@ -1,7 +1,8 @@
+import { useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { Pencil, FileText } from "lucide-react";
 import Loader from "../Loader";
-import { GhostButton } from "../ui";
+import { GhostButton, SearchBar } from "../ui";
 
 const STATUS_STYLES = {
   active: { dark: "bg-emerald-900/40 text-emerald-300 border-emerald-700", light: "bg-emerald-50 text-emerald-700 border-emerald-300" },
@@ -32,12 +33,42 @@ function previewText(prompt) {
   return "";
 }
 
+function matchesSearch(prompt, term) {
+  if (!term) return true;
+  const haystack = [prompt.name, prompt.id, prompt.category, prompt.status, prompt.description, prompt.sourceFile, prompt.sourceFunction]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(term.toLowerCase());
+}
+
 const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPrompt }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredPrompts = useMemo(
+    () => prompts.filter((p) => matchesSearch(p, searchTerm)),
+    [prompts, searchTerm]
+  );
+
   return (
     <div className="flex flex-col gap-4">
       {isLoadingDocs && <Loader message="Loading prompts..." isDarkMode={isDarkMode} />}
 
       {!isLoadingDocs && error && <p className="font-bold text-rose-500">{error}</p>}
+
+      {!isLoadingDocs && !error && prompts.length > 0 && (
+        <>
+          <SearchBar
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Search by name, category, status, description..."
+            isDarkMode={isDarkMode}
+          />
+          <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+            {filteredPrompts.length} of {prompts.length} prompt{prompts.length === 1 ? "" : "s"}
+          </p>
+        </>
+      )}
 
       {!isLoadingDocs && !error && prompts.length === 0 && (
         <p className={`font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
@@ -45,9 +76,15 @@ const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPromp
         </p>
       )}
 
-      {!isLoadingDocs && !error && prompts.length > 0 && (
+      {!isLoadingDocs && !error && prompts.length > 0 && filteredPrompts.length === 0 && (
+        <p className={`font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+          No prompts match &quot;{searchTerm}&quot;.
+        </p>
+      )}
+
+      {!isLoadingDocs && !error && filteredPrompts.length > 0 && (
         <div className="flex flex-col gap-3">
-          {prompts.map((prompt) => (
+          {filteredPrompts.map((prompt) => (
             <div
               key={prompt.id}
               className={`p-4 rounded-xl border-2 ${isDarkMode ? "border-slate-700 bg-slate-900" : "border-slate-300 bg-slate-50"}`}

@@ -7,13 +7,12 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
-  Search,
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
 import Loader from "../Loader";
 import ConfirmModal from "../ConfirmModal";
-import { PrimaryButton, GhostButton, ErrorBanner } from "../ui";
+import { PrimaryButton, GhostButton, ErrorBanner, SearchBar } from "../ui";
 
 function matchesSearch(doc, term) {
   if (!term) return true;
@@ -214,23 +213,12 @@ const LocalesSection = ({ docs, isDarkMode, isLoadingDocs, error, onForceOverwri
 
       {!isLoadingDocs && !error && docs.length > 0 && (
         <>
-          <div className="relative">
-            <Search
-              size={16}
-              className={`absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
-            />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by locale code..."
-              className={`w-full pl-11 pr-4 py-2.5 rounded-xl border-2 font-semibold text-sm outline-none transition-colors ${
-                isDarkMode
-                  ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500 focus:border-blue-400"
-                  : "bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600"
-              }`}
-            />
-          </div>
+          <SearchBar
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Search by locale code..."
+            isDarkMode={isDarkMode}
+          />
 
           <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
             {filteredDocs.length} of {docs.length} locale{docs.length === 1 ? "" : "s"}

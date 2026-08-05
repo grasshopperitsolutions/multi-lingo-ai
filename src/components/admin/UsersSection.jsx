@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { Search, Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import Loader from "../Loader";
 import Avatar from "../Avatar";
 import NeoDropdown from "../NeoDropdown";
 import ConfirmModal from "../ConfirmModal";
-import { GhostButton } from "../ui";
+import { GhostButton, SearchBar } from "../ui";
 
 const TIER_OPTIONS = [
   { value: "explorer", label: "Explorer" },
@@ -62,13 +62,23 @@ function formatDate(value) {
  */
 const UsersSection = ({ users, isDarkMode, isLoadingDocs, error, currentUid, onSetTier, onDeleteUser }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTiers, setActiveTiers] = useState([]);
   const [savingUid, setSavingUid] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const toggleTierFilter = (tier) => {
+    setActiveTiers((prev) => (prev.includes(tier) ? prev.filter((t) => t !== tier) : [...prev, tier]));
+  };
+
   const filteredUsers = useMemo(
-    () => users.filter((u) => matchesSearch(u, searchTerm)),
-    [users, searchTerm]
+    () =>
+      users.filter(
+        (u) =>
+          matchesSearch(u, searchTerm) &&
+          (activeTiers.length === 0 || activeTiers.includes(u.subscriptionTier || "explorer"))
+      ),
+    [users, searchTerm, activeTiers]
   );
 
   const handleTierChange = async (uid, tier) => {
@@ -101,23 +111,15 @@ const UsersSection = ({ users, isDarkMode, isLoadingDocs, error, currentUid, onS
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative">
-        <Search
-          size={16}
-          className={`absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
-        />
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by name, email, uid..."
-          className={`w-full pl-11 pr-4 py-2.5 rounded-xl border-2 font-semibold text-sm outline-none transition-colors ${
-            isDarkMode
-              ? "bg-slate-700 border-slate-600 text-white placeholder-slate-500 focus:border-blue-400"
-              : "bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-600"
-          }`}
-        />
-      </div>
+      <SearchBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search by name, email, uid..."
+        filters={TIER_OPTIONS}
+        activeFilters={activeTiers}
+        onFilterToggle={toggleTierFilter}
+        isDarkMode={isDarkMode}
+      />
 
       <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
         {filteredUsers.length} of {users.length} user{users.length === 1 ? "" : "s"}
@@ -131,7 +133,7 @@ const UsersSection = ({ users, isDarkMode, isLoadingDocs, error, currentUid, onS
 
       {users.length > 0 && filteredUsers.length === 0 && (
         <p className={`font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-          No users match &quot;{searchTerm}&quot;.
+          {searchTerm ? <>No users match &quot;{searchTerm}&quot;.</> : "No users match the selected filters."}
         </p>
       )}
 
