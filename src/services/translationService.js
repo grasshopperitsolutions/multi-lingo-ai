@@ -96,7 +96,7 @@ function formatKeyList(keys, limit = 15) {
 // full ~56KB document) keeps every call well within the standard ask-ai
 // timeout on its own — no dependency on raising Vercel's maxDuration or
 // Fluid Compute being enabled.
-const CHUNK_SIZE_BUDGET_BYTES = 6000;
+const CHUNK_SIZE_BUDGET_BYTES = 10000;
 
 /**
  * Groups the top-level sections of `sourceData` into batches whose combined
