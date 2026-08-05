@@ -35,9 +35,10 @@ i18n
     saveMissing: true,
     saveMissingHandler: (lng, ns, key) => {
       if (_fillMissingFn && lng && lng !== 'en-US' && typeof key === 'string') {
+        console.info(`[i18n] missing key detected: locale="${lng}" ns="${ns}" key="${key}" — triggering fillMissingTranslations`);
         // Fire-and-forget — don't block the UI
         _fillMissingFn(lng).catch((err) =>
-          console.warn(`[i18n] saveMissingHandler failed for "${lng}": ${err.message}`)
+          console.warn(`[i18n] saveMissingHandler failed for "${lng}" (key="${key}"): ${err.message}`)
         );
       }
     },

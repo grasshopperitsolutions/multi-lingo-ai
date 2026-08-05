@@ -85,6 +85,50 @@ function deepMergeClone(base, patch) {
   return result;
 }
 
+/** Renders dot-path keys as a readable, length-capped list for log lines. */
+function formatKeyList(keys, limit = 15) {
+  if (keys.length <= limit) return keys.join(", ");
+  return `${keys.slice(0, limit).join(", ")}, +${keys.length - limit} more`;
+}
+
+// Per-chunk source size budget for seedLanguageTranslations(). Splitting the
+// translation into several smaller ask-ai calls (instead of one call for the
+// full ~56KB document) keeps every call well within the standard ask-ai
+// timeout on its own — no dependency on raising Vercel's maxDuration or
+// Fluid Compute being enabled.
+const CHUNK_SIZE_BUDGET_BYTES = 6000;
+
+/**
+ * Groups the top-level sections of `sourceData` into batches whose combined
+ * JSON size stays under CHUNK_SIZE_BUDGET_BYTES, so many small sections
+ * (nav, common, login, ...) get sent together in one AI call while a
+ * section that's already larger than the budget on its own (e.g. terms,
+ * privacy) becomes its own chunk rather than being split further. Order is
+ * preserved so chunking stays deterministic across runs.
+ *
+ * @param {object} sourceData
+ * @returns {object[]} Array of chunk objects, each a subset of sourceData's top-level keys.
+ */
+function splitIntoChunks(sourceData) {
+  const chunks = [];
+  let current = {};
+  let currentSize = 0;
+
+  for (const [key, value] of Object.entries(sourceData)) {
+    const size = JSON.stringify(value).length;
+    if (currentSize > 0 && currentSize + size > CHUNK_SIZE_BUDGET_BYTES) {
+      chunks.push(current);
+      current = {};
+      currentSize = 0;
+    }
+    current[key] = value;
+    currentSize += size;
+  }
+  if (Object.keys(current).length > 0) chunks.push(current);
+
+  return chunks;
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -204,7 +248,8 @@ export async function fillMissingTranslations(locale, token) {
       console.info(`[translationService] fillMissingTranslations("${locale}") — up to date, nothing to fill`);
       return 0;
     }
-    console.info(`[translationService] fillMissingTranslations("${locale}") — found ${Object.keys(flattenToDotPaths(missingTree)).length} missing key(s), translating via AI`);
+    const missingKeyNames = Object.keys(flattenToDotPaths(missingTree));
+    console.info(`[translationService] fillMissingTranslations("${locale}") — found ${missingKeyNames.length} missing key(s), translating via AI: ${formatKeyList(missingKeyNames)}`);
 
     // 4. Build a prompt to translate only what's missing
     const missingKeysJson = JSON.stringify(missingTree, null, 2);
@@ -245,7 +290,15 @@ export async function fillMissingTranslations(locale, token) {
     // 6. Persist only the new leaves — a surgical dot-notation patch, no
     // read-modify-write race on the full document.
     const dotPatch = flattenToDotPaths(translatedTree);
-    await patchDocument(LOCALES_COLLECTION, locale, dotPatch, token);
+    const patchKeyNames = Object.keys(dotPatch);
+    console.info(`[translationService] fillMissingTranslations("${locale}") — writing ${patchKeyNames.length} key(s) to Firestore: ${formatKeyList(patchKeyNames)}`);
+    try {
+      await patchDocument(LOCALES_COLLECTION, locale, dotPatch, token);
+    } catch (err) {
+      console.error(`[translationService] fillMissingTranslations("${locale}") — Firestore write FAILED for ${patchKeyNames.length} key(s) (${formatKeyList(patchKeyNames)}): ${err.message}`);
+      throw err;
+    }
+    console.info(`[translationService] fillMissingTranslations("${locale}") — Firestore write confirmed for ${patchKeyNames.length} key(s): ${formatKeyList(patchKeyNames)}`);
 
     // 7. Update cache and push the fill live into i18next so the
     // currently-open session reflects it immediately, no reload needed.
@@ -253,8 +306,7 @@ export async function fillMissingTranslations(locale, token) {
     _cache.set(locale, mergedData);
     loadRemoteTranslations(locale, mergedData);
 
-    console.info(`[translationService] fillMissingTranslations("${locale}") — patched ${Object.keys(dotPatch).length} key(s)`);
-    return Object.keys(dotPatch).length;
+    return patchKeyNames.length;
   };
 
   const promise = run();
@@ -272,8 +324,13 @@ export async function fillMissingTranslations(locale, token) {
  *
  * Flow:
  * 1. Use the local en-US bundle as the canonical source.
- * 2. Send the en-US JSON to AI with a translation prompt.
- * 3. Parse the AI response and persist to Firestore.
+ * 2. Split it into small chunks (splitIntoChunks) and translate each via a
+ *    separate ask-ai call — the full ~56KB source in one call kept running
+ *    past the standard ask-ai timeout regardless of Vercel duration/plan
+ *    settings, so several small calls replace the one big one.
+ * 3. Merge the translated chunks in memory and persist the full document to
+ *    Firestore in a single write (same "hard overwrite" semantics as before —
+ *    no partial doc is ever visible to readers).
  *
  * @param {string} locale - BCP-47 locale to seed, e.g. "pt-BR".
  * @param {string} token  - Firebase ID token.
@@ -291,50 +348,54 @@ export async function seedLanguageTranslations(locale, token) {
   // write path keeping it in sync with the deployed code.
   const sourceData = enTranslation;
 
-  // 2. Build the AI prompt
-  const sourceJson = JSON.stringify(sourceData, null, 2);
-  const promptDoc = await getPrompt('translation-seed-language-prompt');
-  const prompt = renderTemplate(promptDoc.template, { locale, sourceJson });
+  // 2. Translate in small chunks, one ask-ai call per chunk — same
+  // JSON-subtree-in/JSON-subtree-out prompt already used successfully by
+  // fillMissingTranslations for arbitrary subtrees.
+  const chunks = splitIntoChunks(sourceData);
+  const promptDoc = await getPrompt('translation-fill-missing-prompt');
 
-  // 3. Ask AI. The full en-US source is ~56KB; translated output can run
-  // close to that size (or larger for verbose target languages). Both
-  // gemini-3.5-flash and gemini-3.5-flash-lite officially support up to
-  // 65,536 output tokens (confirmed against ai.google.dev), so the default
-  // here is raised to that ceiling — the earlier 16384 cap was silently
-  // truncating full-document translations, not any real model limit. Passes
-  // a scoped 120s timeout (this call only, not the app-wide default) since a
-  // single 56KB round trip can run past ask-ai's normal timeout.
-  const aiResponse = await askAI(
-    token,
-    prompt,
-    {
-      provider: "gemini",
-      model: promptDoc.model || "gemini-3.5-flash-lite",
-      temperature: 0.1,
-      jsonMode: true,
-      maxOutputTokens: promptDoc.maxTokens ?? 65536,
-    },
-    { timeout: 120000 }
-  );
+  console.info(`[translationService] seedLanguageTranslations("${locale}") — translating in ${chunks.length} chunk(s)`);
 
-  // The API returns the JSON string inside the `text` field
-  let translatedData;
-  try {
-    translatedData = typeof aiResponse?.text === "string"
-      ? parseAIJSON(aiResponse.text)
-      : aiResponse;
-  } catch (err) {
-    console.error(`[translationService] seedLanguageTranslations("${locale}") — failed to parse AI response as JSON: ${err.message}. Raw: ${String(aiResponse?.text).slice(0, 300)}`);
-    throw err;
-  }
+  const translatedData = {};
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const missingKeysJson = JSON.stringify(chunk, null, 2);
+    const prompt = renderTemplate(promptDoc.template, { locale, missingKeysJson });
 
-  if (!translatedData || typeof translatedData !== "object") {
-    throw new Error(
-      "[translationService] AI response did not return a valid JSON object"
+    const aiResponse = await askAI(
+      token,
+      prompt,
+      {
+        provider: "gemini",
+        model: promptDoc.model || "gemini-3.5-flash-lite",
+        temperature: 0.1,
+        jsonMode: true,
+        maxOutputTokens: promptDoc.maxTokens ?? 8192,
+      }
     );
+
+    // The API returns the JSON string inside the `text` field
+    let translatedChunk;
+    try {
+      translatedChunk = typeof aiResponse?.text === "string"
+        ? parseAIJSON(aiResponse.text)
+        : aiResponse;
+    } catch (err) {
+      console.error(`[translationService] seedLanguageTranslations("${locale}") — failed to parse AI response for chunk ${i + 1}/${chunks.length}: ${err.message}. Raw: ${String(aiResponse?.text).slice(0, 300)}`);
+      throw err;
+    }
+
+    if (!translatedChunk || typeof translatedChunk !== "object") {
+      throw new Error(
+        `[translationService] AI response for chunk ${i + 1}/${chunks.length} did not return a valid JSON object`
+      );
+    }
+
+    Object.assign(translatedData, translatedChunk);
+    console.info(`[translationService] seedLanguageTranslations("${locale}") — chunk ${i + 1}/${chunks.length} done (${Object.keys(translatedChunk).length} section(s))`);
   }
 
-  // 4. Persist to Firestore
+  // 3. Persist to Firestore — one write of the fully-merged document.
   const created = await createDocument(LOCALES_COLLECTION, translatedData, locale, token);
 
   // Warm the cache
