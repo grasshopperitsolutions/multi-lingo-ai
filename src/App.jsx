@@ -42,7 +42,12 @@ const ReadingExercisePage = lazy(() => import("./pages/dashboard/exercises/Readi
 const WritingExercisePage = lazy(() => import("./pages/dashboard/exercises/WritingExercisePage"));
 const FullExamExercisePage = lazy(() => import("./pages/dashboard/exercises/FullExamExercisePage"));
 
-const GrammarPage = lazy(() => import("./pages/dashboard/coming-soon/GrammarPage"));
+const GrammarMenu = lazy(() => import("./components/GrammarMenu"));
+const GrammarStructuresPage = lazy(() => import("./pages/dashboard/grammar/GrammarStructuresPage"));
+const GrammarTipsPage = lazy(() => import("./pages/dashboard/grammar/GrammarTipsPage"));
+const GrammarAskPage = lazy(() => import("./pages/dashboard/grammar/GrammarAskPage"));
+const GrammarPracticeComingSoonPage = lazy(() => import("./pages/dashboard/grammar/GrammarPracticeComingSoonPage"));
+
 const AiTutorPage = lazy(() => import("./pages/dashboard/coming-soon/AiTutorPage"));
 const RealPersonTutorPage = lazy(() => import("./pages/dashboard/coming-soon/RealPersonTutorPage"));
 const VoicePracticePage = lazy(() => import("./pages/dashboard/coming-soon/VoicePracticePage"));
@@ -187,7 +192,11 @@ const AppLayout = () => {
             <Route path="exam-training/writing" element={<WritingExercisePage />} />
             <Route path="exam-training/full-exam" element={<FullExamExercisePage />} />
 
-            <Route path="grammar" element={<GrammarPage />} />
+            <Route path="grammar" element={<GrammarMenu isDarkMode={isDarkMode} />} />
+            <Route path="grammar/structures" element={<GrammarStructuresPage />} />
+            <Route path="grammar/tips" element={<GrammarTipsPage />} />
+            <Route path="grammar/ask" element={<GrammarAskPage />} />
+            <Route path="grammar/practice" element={<GrammarPracticeComingSoonPage />} />
             <Route path="ai-tutor" element={<AiTutorPage />} />
             <Route path="real-person-tutor" element={<RealPersonTutorPage />} />
             <Route path="voice-practice" element={<VoicePracticePage />} />

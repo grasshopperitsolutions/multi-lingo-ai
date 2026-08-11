@@ -22,6 +22,17 @@ import CategoryEditModal from "../components/admin/CategoryEditModal";
 import GenericDocsSection from "../components/admin/GenericDocsSection";
 import GenericDocEditModal from "../components/admin/GenericDocEditModal";
 import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
+// TEMPORARY — grammar corpus seeding. Remove this import, the handler and the
+// <GrammarSeedSection> below once the corpus is in Firestore.
+import GrammarSeedSection from "../components/admin/GrammarSeedSection";
+import { seedGrammarCorpus } from "../services/grammarService";
+import {
+  GRAMMAR_TOPICS,
+  GRAMMAR_TOPIC_CONTENT,
+  GRAMMAR_TIPS,
+  SEED_TARGET_LANG,
+  SEED_EXPLANATION_LOCALE,
+} from "../data/grammarSeed.ptPT";
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
 // Viewer/editor for the appConfig/config/* Firestore subcollections.
@@ -43,6 +54,10 @@ const AdminPage = () => {
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
   const [editingGenericDoc, setEditingGenericDoc] = useState(null); // null | { doc, collection }
   const [isSavingGenericDoc, setIsSavingGenericDoc] = useState(false);
+  // TEMPORARY — grammar corpus seeding.
+  const [isSeedingGrammar, setIsSeedingGrammar] = useState(false);
+  const [grammarProgress, setGrammarProgress] = useState(null);
+  const [grammarSummary, setGrammarSummary] = useState(null);
 
   const activeSection = CONFIG_SECTIONS.find((s) => s.id === activeSectionId);
   const isPromptsSection = activeSectionId === "prompts";
@@ -98,6 +113,34 @@ const AdminPage = () => {
       setIsSavingPrompt(false);
     }
   }, [editingPrompt, user, showAlert]);
+
+  // TEMPORARY — grammar corpus seeding. Writes only what isn't already there,
+  // so re-running after a partial failure resumes rather than duplicating.
+  const handleSeedGrammar = useCallback(async () => {
+    setIsSeedingGrammar(true);
+    setGrammarSummary(null);
+    setGrammarProgress("Starting…");
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const result = await seedGrammarCorpus({
+        token,
+        targetLang: SEED_TARGET_LANG,
+        explanationLocale: SEED_EXPLANATION_LOCALE,
+        topics: GRAMMAR_TOPICS,
+        topicContent: GRAMMAR_TOPIC_CONTENT,
+        tips: GRAMMAR_TIPS,
+        onProgress: (msg) => setGrammarProgress(msg),
+      });
+      setGrammarSummary(result);
+      setGrammarProgress(null);
+      showAlert("success", "Grammar corpus seeded.");
+    } catch (err) {
+      setGrammarProgress(null);
+      showAlert("error", `Could not seed grammar: ${err.message}`);
+    } finally {
+      setIsSeedingGrammar(false);
+    }
+  }, [showAlert]);
 
   const handleSetUserTier = useCallback(async (targetUid, tier) => {
     try {
@@ -254,6 +297,15 @@ const AdminPage = () => {
         <ShieldCheck size={32} />
         App Config
       </h1>
+
+      {/* TEMPORARY — remove with the grammar seeding feature. */}
+      <GrammarSeedSection
+        isDarkMode={isDarkMode}
+        onSeed={handleSeedGrammar}
+        isSeeding={isSeedingGrammar}
+        progress={grammarProgress}
+        summary={grammarSummary}
+      />
 
       <div className="flex flex-wrap gap-3 mb-6">
         {CONFIG_SECTIONS.map((section) => (

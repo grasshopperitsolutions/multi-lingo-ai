@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../contexts/AppContext";
+import { isGrammarSupported } from "../../config/grammarSupport";
 import FeatureCard from "../../components/FeatureCard";
 import {
   Languages,
@@ -86,7 +87,18 @@ const DashboardHomePage = () => {
     },
     { id: "translator",        route: "/dashboard/translator",         icon: Languages,        title: t("dashboard.translator"),        description: t("dashboard.translator_desc"),        color: "text-sky-500" },
     { id: "dictionary",        route: "/dashboard/dictionary",         icon: BookMarked,       title: t("dashboard.dictionary"),        description: t("dashboard.dictionary_desc"),        color: "text-violet-500" },
-    { id: "grammar",           route: "/dashboard/grammar",            icon: PenLine,          title: t("dashboard.grammar"),           description: t("dashboard.grammar_desc"),           color: "text-amber-500",   statusBadgeLabel: t("dashboard.coming_soon") },
+    {
+      id: "grammar",
+      route: "/dashboard/grammar",
+      icon: PenLine,
+      title: t("dashboard.grammar"),
+      description: t("dashboard.grammar_desc"),
+      color: "text-amber-500",
+      // Grammar ships with hand-written pt-PT material only — see
+      // src/config/grammarSupport.js for why it isn't offered per-language yet.
+      disabled: !isGrammarSupported(user?.learningDialect),
+      disabledReason: t("grammar.not_available_for_language"),
+    },
     { id: "ai_tutor",          route: "/dashboard/ai-tutor",           icon: BotMessageSquare, title: t("dashboard.ai_tutor"),          description: t("dashboard.ai_tutor_desc"),          color: "text-blue-500",    statusBadgeLabel: t("dashboard.coming_soon") },
     { id: "real_person_tutor", route: "/dashboard/real-person-tutor",  icon: UserRound,        title: t("dashboard.real_person_tutor"), description: t("dashboard.real_person_tutor_desc"), color: "text-emerald-500", statusBadgeLabel: t("dashboard.coming_soon") },
     { id: "voice_practice",    route: "/dashboard/voice-practice",     icon: Video,            title: t("dashboard.voice_practice"),    description: t("dashboard.voice_practice_desc"),    color: "text-purple-500",  statusBadgeLabel: t("dashboard.coming_soon") },
