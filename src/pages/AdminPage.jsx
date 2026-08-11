@@ -5,11 +5,8 @@ import { useTierAccess } from "../hooks/useTierAccess";
 import Loader from "../components/Loader";
 import { auth } from "../firebase";
 import { CONFIG_SECTIONS, getConfigSectionDocs } from "../services/adminConfigService";
-import { createDocument, updateDocument } from "../services/firestoreService";
-import { getPrompts, updatePrompt, clearPromptsCache, PROMPTS_COLLECTION } from "../services/promptService";
-// TEMPORARY — see the "Seed New Prompts" banner in PromptsSection.jsx.
-// Remove this import and handleSeedPrompts below once seeding has run.
-import { PROMPT_SEEDS } from "../data/promptSeeds";
+import { updateDocument } from "../services/firestoreService";
+import { getPrompts, updatePrompt } from "../services/promptService";
 import { getAuthProviders, setAuthProviderEnabled } from "../services/authProvidersService";
 import { listAllUserProfiles, setUserTier, deleteAccount } from "../services/userService";
 import { getLanguages } from "../services/supportedLanguagesService";
@@ -41,8 +38,6 @@ const AdminPage = () => {
   const [error, setError] = useState(null);
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
-  // TEMPORARY — see the "Seed New Prompts" banner in PromptsSection.jsx.
-  const [isSeedingPrompts, setIsSeedingPrompts] = useState(false);
   const [categoryModal, setCategoryModal] = useState(null); // null | { category: object|null }
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
@@ -103,45 +98,6 @@ const AdminPage = () => {
       setIsSavingPrompt(false);
     }
   }, [editingPrompt, user, showAlert]);
-
-  // TEMPORARY — see the "Seed New Prompts" banner in PromptsSection.jsx.
-  // Writes any src/data/promptSeeds.js entry whose id isn't already in
-  // Firestore; existing prompts are never touched, so re-running after a
-  // hand edit is always safe. Remove this handler, the import above, and
-  // the onSeedPrompts/isSeedingPrompts props below once seeding has run.
-  const handleSeedPrompts = useCallback(async () => {
-    setIsSeedingPrompts(true);
-    try {
-      const existing = await getPrompts({ forceRefresh: true });
-      const existingIds = new Set(existing.map((p) => p.id));
-      const toCreate = PROMPT_SEEDS.filter((seed) => !existingIds.has(seed.id));
-
-      const token = await auth.currentUser.getIdToken();
-      const now = new Date().toISOString();
-      for (const seed of toCreate) {
-        const { id, ...data } = seed;
-        await createDocument(PROMPTS_COLLECTION, {
-          ...data,
-          version: 1,
-          createdAt: now,
-          updatedAt: now,
-          updatedBy: user?.email ?? "unknown",
-        }, id, token);
-      }
-
-      clearPromptsCache();
-      const docs = await getPrompts();
-      setDocsBySection((prev) => ({ ...prev, prompts: docs }));
-      showAlert(
-        "success",
-        `Seeded prompts: created ${toCreate.length}, skipped ${PROMPT_SEEDS.length - toCreate.length} (already present).`
-      );
-    } catch (err) {
-      showAlert("error", `Could not seed prompts: ${err.message}`);
-    } finally {
-      setIsSeedingPrompts(false);
-    }
-  }, [user, showAlert]);
 
   const handleSetUserTier = useCallback(async (targetUid, tier) => {
     try {
@@ -350,8 +306,6 @@ const AdminPage = () => {
             isLoadingDocs={isLoadingDocs}
             error={error}
             onEditPrompt={setEditingPrompt}
-            onSeedPrompts={handleSeedPrompts}
-            isSeedingPrompts={isSeedingPrompts}
           />
         ) : isCategoriesSection ? (
           <CategoriesSection

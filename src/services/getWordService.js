@@ -18,8 +18,9 @@
  *     senseKey: string | null     // e.g. "animal", "sports_equipment"
  *     pos: string | null          // "noun", "verb", "adjective" …
  *     normalizedKey: string       // lowercase/stripped, e.g. "bat"
- *     topics: string[]            // interest-category slugs this word was themed on;
- *                                 // absent on everything created before interests existed
+ *     topicIds: string[]          // interest-category IDs (appConfig/config/categories doc IDs)
+ *                                 // this word belongs to; a word can belong to several.
+ *                                 // Absent on anything created before interests existed.
  *     status: string              // "draft" | "ready" | "blocked"
  *     createdAt: Timestamp
  *     updatedAt: Timestamp
@@ -54,7 +55,7 @@
  *   1. Query wordPool where status == "ready", limit 200.
  *   2. Filter client-side: if maxLength provided, keep only concepts whose
  *      normalizedKey length is <= maxLength.
- *   3. If preferTopics is non-empty, sort concepts whose `topics` intersect it
+ *   3. If preferTopics is non-empty, sort concepts whose `topicIds` intersect it
  *      to the front. This is a preference, not a filter — everything else stays
  *      in the list behind them, so the pool never shrinks and a user can never
  *      be pushed into an AI call they wouldn't otherwise have made.
@@ -82,7 +83,8 @@
 
 /**
  * @typedef {Object} InterestTopic
- * @property {string} slug  - Interest category slug, stored in the concept's `topics`
+ * @property {string} id    - Interest category ID (an appConfig/config/categories doc ID),
+ *                            as stored in the concept's `topicIds`
  * @property {string} label - Human-readable label, used to theme the AI prompt
  */
 
@@ -241,8 +243,9 @@ export async function getWord({
  * Filtering instead would shrink the pool, exhaust it sooner, and push users
  * into extra AI calls — the opposite of what a cache is for.
  *
- * Concepts written before interests existed have no `topics` field and simply
- * never match, which is why this is a no-op on a cold pool.
+ * A concept may carry several `topicIds`; matching any one of the user's
+ * interests is enough. Concepts written before interests existed have no
+ * `topicIds` at all and simply never match.
  *
  * @param {Array<object>} concepts
  * @param {InterestTopic[]} preferTopics
@@ -251,13 +254,13 @@ export async function getWord({
 function _sortByPreferredTopics(concepts, preferTopics) {
   if (!preferTopics?.length) return concepts;
 
-  const wanted = new Set(preferTopics.map((t) => t.slug));
+  const wanted = new Set(preferTopics.map((t) => t.id));
   const matched = [];
   const rest    = [];
 
   for (const concept of concepts) {
-    const topics = Array.isArray(concept.topics) ? concept.topics : [];
-    (topics.some((t) => wanted.has(t)) ? matched : rest).push(concept);
+    const topicIds = Array.isArray(concept.topicIds) ? concept.topicIds : [];
+    (topicIds.some((id) => wanted.has(id)) ? matched : rest).push(concept);
   }
 
   return [...matched, ...rest];
@@ -394,9 +397,11 @@ async function _writeNewConcept(generated, learningDialect, token, topic = null)
         senseKey:      null,
         pos:           null,
         normalizedKey: generated.sourceWord.toLowerCase().trim(),
-        // Tag with the interest this word was actually themed on, so
-        // _sortByPreferredTopics can surface it to users who share it.
-        topics:        topic ? [topic.slug] : [],
+        // Interest categories this word belongs to, so _sortByPreferredTopics
+        // can surface it to users who share them. An array because a word can
+        // belong to several; generation themes on one, but these are curated
+        // by hand afterwards.
+        topicIds:      topic ? [topic.id] : [],
         status:        'ready',
         createdAt:     now,
         updatedAt:     now,
@@ -499,13 +504,15 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords, m
     ? `Both the English word and the ${learningDialect} translation MUST be ${maxLength} characters or fewer.`
     : '';
 
-  // Rendered into an {{interests}} placeholder. renderTemplate() leaves
-  // unknown placeholders untouched, so passing this before the template in
-  // Firestore mentions it is a no-op rather than a breakage.
-  const interests = topic?.label ?? '';
+  // A whole sentence or nothing at all, like the two lines above — the
+  // template drops {{interestsLine}} in mid-prompt, so an empty string has to
+  // leave a grammatical prompt behind when the user has no interests set.
+  const interestsLine = topic
+    ? `Choose a word related to the subject "${topic.label}" when a suitable one exists.`
+    : '';
 
   const promptDoc = await getPrompt('get-word-generate-new-concept-prompt');
-  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, lengthConstraintLine, avoidListLine, interests });
+  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, lengthConstraintLine, avoidListLine, interestsLine });
 
   const providerParams = {
     provider:    'gemini',

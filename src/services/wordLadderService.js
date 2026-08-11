@@ -30,11 +30,11 @@ export { MAX_STRIKES };
  * @param {string}   params.userDialect      - BCP-47 interface language (e.g. 'en-US')
  * @param {string}   params.learningDialect  - BCP-47 learning language (e.g. 'pt-PT')
  * @param {string[]} params.seenPuzzleIds    - Already-seen puzzle IDs from seenWordLadderPuzzleIds
- * @param {Array<{slug: string, label: string}>} [params.topics] - User interests used to theme a
+ * @param {Array<{id: string, label: string}>} [params.topics] - User interests used to theme a
  *                                              newly generated puzzle. The generated puzzle is
- *                                              tagged with the chosen slug so it can be preferred
- *                                              later; reading the cached pool by topic is not
- *                                              wired up yet (see getWordService for that pattern).
+ *                                              tagged with the chosen category ID so it can be
+ *                                              preferred later; reading the cached pool by topic
+ *                                              is not wired up yet (see getWordService for that).
  * @returns {Promise<{ puzzleId: string, words: string[], clues: string[], wordLength: number }>}
  */
 export const fetchWordLadderPuzzle = async ({ token, userDialect, learningDialect, seenPuzzleIds = [], topics = [] }) => {
@@ -99,12 +99,15 @@ export const getWordLadderPoolCount = async (token, userDialect, learningDialect
 // ---------------------------------------------------------------------------
 
 async function _generateFromAI({ token, userDialect, learningDialect, topic }) {
-  // Rendered into an {{interests}} placeholder. renderTemplate() leaves unknown
-  // placeholders untouched, so this is inert until the template mentions it.
-  const interests = topic?.label ?? '';
+  // A whole sentence or nothing at all — the template drops {{interestsLine}}
+  // in mid-prompt, so an empty string has to leave a grammatical prompt behind
+  // when the user has no interests set.
+  const interestsLine = topic
+    ? `Theme the words and clues around the subject "${topic.label}" where possible.`
+    : '';
 
   const promptDoc = await getPrompt('word-ladder-generate-prompt');
-  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, minWords: MIN_WORDS, maxWords: MAX_WORDS, interests });
+  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, minWords: MIN_WORDS, maxWords: MAX_WORDS, interestsLine });
 
   const providerParams = {
     provider:    'gemini',
@@ -190,8 +193,10 @@ async function _cachePuzzle({ token, puzzle, userDialect, learningDialect, topic
         words:      puzzle.words,
         clues:      puzzle.clues,
         wordLength: puzzle.wordLength,
-        // Interest this puzzle was themed on, for future topic-aware reads.
-        topics:     topic ? [topic.slug] : [],
+        // Interest categories this puzzle belongs to (appConfig/config/categories
+        // doc IDs), for future topic-aware reads. An array — a puzzle can belong
+        // to several even though generation themes on one.
+        topicIds:   topic ? [topic.id] : [],
       },
     }),
   });
