@@ -101,7 +101,18 @@ const TOPIC_CONTENT_SCHEMA = {
         properties: {
           caption: { type: 'string' },
           headers: { type: 'array', items: { type: 'string' } },
-          rows: { type: 'array', items: { type: 'array', items: { type: 'string' } } },
+          // Firestore rejects an array directly containing another array, so
+          // each row is wrapped in an object rather than being a bare
+          // string[] — this is the shape the seed data, the sanitizer, and
+          // GrammarTable.jsx all agree on.
+          rows: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: { cells: { type: 'array', items: { type: 'string' } } },
+              required: ['cells'],
+            },
+          },
         },
         required: ['headers', 'rows'],
       },
@@ -564,9 +575,17 @@ function _sanitizeExamples(examples) {
 }
 
 /**
- * Keep only rectangular tables. The renderer maps headers to cells positionally,
- * so a row with the wrong cell count would silently misalign the data — worse
- * than not showing the table at all.
+ * Keep only rectangular tables, with each row wrapped as { cells: [...] }.
+ *
+ * The wrapper exists because Firestore rejects an array that directly
+ * contains another array — a bare string[][] would fail to write. The
+ * `responseSchema` sent to the model already asks for this shape, but a row
+ * still arriving as a bare array is tolerated here and normalised, in case
+ * the model drifts from the schema.
+ *
+ * Rectangularity matters too: the renderer maps headers to cells
+ * positionally, so a row with the wrong cell count would silently misalign
+ * the data — worse than not showing the table at all.
  */
 function _sanitizeTables(tables) {
   if (!Array.isArray(tables)) return [];
@@ -576,8 +595,9 @@ function _sanitizeTables(tables) {
       caption: String(t.caption ?? ''),
       headers: t.headers.map(String),
       rows: t.rows
-        .filter((r) => Array.isArray(r) && r.length === t.headers.length)
-        .map((r) => r.map(String)),
+        .map((r) => (Array.isArray(r) ? r : r?.cells))
+        .filter((cells) => Array.isArray(cells) && cells.length === t.headers.length)
+        .map((cells) => ({ cells: cells.map(String) })),
     }))
     .filter((t) => t.rows.length > 0);
 }

@@ -5,9 +5,12 @@ import PropTypes from "prop-types";
  *
  * Conjugation / declension tables for the grammar library.
  *
- * Rows are assumed rectangular — grammarService._sanitizeTables drops any row
- * whose cell count doesn't match the headers, precisely so this renderer can
- * map cells to columns positionally without misaligning the data.
+ * Each row is { cells: string[] } rather than a bare array — Firestore
+ * rejects an array that directly contains another array, so the wrapper is
+ * how table rows survive being written at all. Rows are also assumed
+ * rectangular: grammarService._sanitizeTables drops any row whose cell count
+ * doesn't match the headers, precisely so this renderer can map cells to
+ * columns positionally without misaligning the data.
  *
  * The wrapper scrolls horizontally on its own: a five-column verb table has to
  * stay readable on a phone without the whole page scrolling sideways.
@@ -54,7 +57,7 @@ const GrammarTable = ({ caption, headers, rows, isDarkMode }) => {
                     : isDarkMode ? "bg-slate-800/60" : "bg-slate-50"
                 }
               >
-                {row.map((cell, cellIndex) => (
+                {row.cells.map((cell, cellIndex) => (
                   <td
                     key={cellIndex}
                     className={`px-3 py-2 text-sm whitespace-nowrap ${
@@ -78,7 +81,7 @@ const GrammarTable = ({ caption, headers, rows, isDarkMode }) => {
 GrammarTable.propTypes = {
   caption: PropTypes.string,
   headers: PropTypes.arrayOf(PropTypes.string),
-  rows: PropTypes.arrayOf(PropTypes.arrayOf(PropTypes.string)),
+  rows: PropTypes.arrayOf(PropTypes.shape({ cells: PropTypes.arrayOf(PropTypes.string) })),
   isDarkMode: PropTypes.bool.isRequired,
 };
 
