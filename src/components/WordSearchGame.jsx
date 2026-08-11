@@ -11,6 +11,7 @@ import {
   resetAllSeenWords,
 } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
+import { useInterestTopics } from "../hooks/useInterestTopics";
 import { buildGrid, checkSelection } from "../utils/wordSearchUtils";
 import ChallengeSidebar from "./ChallengeSidebar";
 import Loader from "./Loader";
@@ -140,6 +141,7 @@ WordListPanel.propTypes = {
 const WordSearchGame = ({ isDarkMode }) => {
   const { t }    = useTranslation();
   const { user, showAlert } = useAppContext();
+  const { topics, preferTopics } = useInterestTopics();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
@@ -228,13 +230,15 @@ const WordSearchGame = ({ isDarkMode }) => {
         learningDialect,
         seenConceptIds:  combinedSeen,
         maxLength:       MAX_LENGTH,
+        topics,
+        preferTopics,
       });
       results.push(result);
       fetchedThisSession.push(result);
     }
 
     return { results, progress: prog };
-  }, [user, learningDialect, interfaceLang, t]);
+  }, [user, learningDialect, interfaceLang, t, topics, preferTopics]);
 
   const applyWords = useCallback((results, prog) => {
     const wordEntries = results.map((r) => ({

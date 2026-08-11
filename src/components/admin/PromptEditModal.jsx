@@ -11,6 +11,8 @@ const CATEGORY_OPTIONS = [
   { value: "dictionary", label: "Dictionary" },
   { value: "vocabulary-games", label: "Vocabulary Games" },
   { value: "audio", label: "Audio" },
+  { value: "grammar", label: "Grammar" },
+  { value: "stories", label: "Stories" },
 ];
 
 const STATUS_OPTIONS = [

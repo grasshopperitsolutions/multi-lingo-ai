@@ -10,6 +10,7 @@ import {
   markWordLadderPuzzleSeen,
 } from "../services/userService";
 import { fetchWordLadderPuzzle, getWordLadderPoolCount, MAX_STRIKES } from "../services/wordLadderService";
+import { useInterestTopics } from "../hooks/useInterestTopics";
 import ChallengeSidebar from "./ChallengeSidebar";
 import Loader from "./Loader";
 import { sanitizeAIError } from "../utils/errorUtils";
@@ -147,6 +148,7 @@ StrikeIndicator.propTypes = {
 const WordLadderGame = ({ isDarkMode }) => {
   const { t }    = useTranslation();
   const { user } = useAppContext();
+  const { topics } = useInterestTopics();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
@@ -215,6 +217,7 @@ const WordLadderGame = ({ isDarkMode }) => {
         userDialect:    interfaceLang,
         learningDialect,
         seenPuzzleIds:  seenIds,
+        topics,
       });
 
       setPuzzleId(puzzle.puzzleId);
@@ -238,7 +241,7 @@ const WordLadderGame = ({ isDarkMode }) => {
       setLoading(false);
       setIsLoadingStats(false);
     }
-  }, [user, interfaceLang, learningDialect, t]);
+  }, [user, interfaceLang, learningDialect, t, topics]);
 
   useEffect(() => {
     loadPuzzle();

@@ -30,9 +30,14 @@ export { MAX_STRIKES };
  * @param {string}   params.userDialect      - BCP-47 interface language (e.g. 'en-US')
  * @param {string}   params.learningDialect  - BCP-47 learning language (e.g. 'pt-PT')
  * @param {string[]} params.seenPuzzleIds    - Already-seen puzzle IDs from seenWordLadderPuzzleIds
+ * @param {Array<{slug: string, label: string}>} [params.topics] - User interests used to theme a
+ *                                              newly generated puzzle. The generated puzzle is
+ *                                              tagged with the chosen slug so it can be preferred
+ *                                              later; reading the cached pool by topic is not
+ *                                              wired up yet (see getWordService for that pattern).
  * @returns {Promise<{ puzzleId: string, words: string[], clues: string[], wordLength: number }>}
  */
-export const fetchWordLadderPuzzle = async ({ token, userDialect, learningDialect, seenPuzzleIds = [] }) => {
+export const fetchWordLadderPuzzle = async ({ token, userDialect, learningDialect, seenPuzzleIds = [], topics = [] }) => {
   const seenSet = new Set(seenPuzzleIds);
 
   // ── Step 1: try to find an unseen cached puzzle ──────────────────────────
@@ -53,12 +58,17 @@ export const fetchWordLadderPuzzle = async ({ token, userDialect, learningDialec
   }
 
   // ── Step 2: generate via AI ──────────────────────────────────────────────
-  const puzzle = await _generateFromAI({ token, userDialect, learningDialect });
+  // One interest, not all of them: a puzzle has a single theme, so picking one
+  // keeps the `topics` tag an accurate record of what it was built from.
+  const chosenTopic = topics.length > 0
+    ? topics[Math.floor(Math.random() * topics.length)]
+    : null;
+  const puzzle = await _generateFromAI({ token, userDialect, learningDialect, topic: chosenTopic });
 
   // ── Step 3: cache silently (fire-and-forget) ─────────────────────────────
   let puzzleId = `ai_${Date.now()}`;
   try {
-    const savedId = await _cachePuzzle({ token, puzzle, userDialect, learningDialect });
+    const savedId = await _cachePuzzle({ token, puzzle, userDialect, learningDialect, topic: chosenTopic });
     if (savedId) puzzleId = savedId;
   } catch (err) {
     console.warn('[wordLadderService] Cache write failed (non-fatal):', err);
@@ -88,9 +98,13 @@ export const getWordLadderPoolCount = async (token, userDialect, learningDialect
 // Private — AI generation
 // ---------------------------------------------------------------------------
 
-async function _generateFromAI({ token, userDialect, learningDialect }) {
+async function _generateFromAI({ token, userDialect, learningDialect, topic }) {
+  // Rendered into an {{interests}} placeholder. renderTemplate() leaves unknown
+  // placeholders untouched, so this is inert until the template mentions it.
+  const interests = topic?.label ?? '';
+
   const promptDoc = await getPrompt('word-ladder-generate-prompt');
-  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, minWords: MIN_WORDS, maxWords: MAX_WORDS });
+  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, minWords: MIN_WORDS, maxWords: MAX_WORDS, interests });
 
   const providerParams = {
     provider:    'gemini',
@@ -164,7 +178,7 @@ async function _fetchCachedPuzzles(token, userDialect, learningDialect) {
   return json?.data?.documents ?? [];
 }
 
-async function _cachePuzzle({ token, puzzle, userDialect, learningDialect }) {
+async function _cachePuzzle({ token, puzzle, userDialect, learningDialect, topic = null }) {
   const res = await fetch(`${PROXY_URL}/api/firestore`, {
     method:  'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -176,6 +190,8 @@ async function _cachePuzzle({ token, puzzle, userDialect, learningDialect }) {
         words:      puzzle.words,
         clues:      puzzle.clues,
         wordLength: puzzle.wordLength,
+        // Interest this puzzle was themed on, for future topic-aware reads.
+        topics:     topic ? [topic.slug] : [],
       },
     }),
   });

@@ -11,6 +11,7 @@ import {
   resetAllSeenWords,
 } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
+import { useInterestTopics } from "../hooks/useInterestTopics";
 import ChallengeSidebar from "./ChallengeSidebar";
 import TooltipButton from "./TooltipButton";
 import Loader from "./Loader";
@@ -124,6 +125,7 @@ LetterTile.propTypes = {
 const ScrambledWordGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const { user, showAlert } = useAppContext();
+  const { topics, preferTopics } = useInterestTopics();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
@@ -233,10 +235,12 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       userDialect: interfaceLang,
       learningDialect,
       seenConceptIds: seenIds,
+      topics,
+      preferTopics,
     });
 
     return { word: result.word.toUpperCase(), hint: result.hint, conceptId: result.conceptId, progress: prog };
-  }, [user, learningDialect, interfaceLang, t]);
+  }, [user, learningDialect, interfaceLang, t, topics, preferTopics]);
 
   const applyWordData = useCallback(
     (data) => {

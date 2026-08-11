@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { Pencil, FileText } from "lucide-react";
+import { Pencil, FileText, Sparkles } from "lucide-react";
 import Loader from "../Loader";
-import { GhostButton, SearchBar } from "../ui";
+import { GhostButton, PrimaryButton, SearchBar } from "../ui";
 
 const STATUS_STYLES = {
   active: { dark: "bg-emerald-900/40 text-emerald-300 border-emerald-700", light: "bg-emerald-50 text-emerald-700 border-emerald-300" },
@@ -42,7 +42,7 @@ function matchesSearch(prompt, term) {
   return haystack.includes(term.toLowerCase());
 }
 
-const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPrompt }) => {
+const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPrompt, onSeedPrompts, isSeedingPrompts }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredPrompts = useMemo(
@@ -52,6 +52,22 @@ const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPromp
 
   return (
     <div className="flex flex-col gap-4">
+      {/* TEMPORARY — remove this button (and onSeedPrompts in AdminPage.jsx)
+          once src/data/promptSeeds.js has been seeded into Firestore. */}
+      {onSeedPrompts && (
+        <div className={`flex items-center justify-between gap-3 p-4 rounded-xl border-2 border-dashed ${
+          isDarkMode ? "border-amber-700 bg-amber-900/20" : "border-amber-400 bg-amber-50"
+        }`}>
+          <p className={`text-xs font-bold ${isDarkMode ? "text-amber-300" : "text-amber-700"}`}>
+            Temporary: writes any prompt from src/data/promptSeeds.js whose ID isn&apos;t already in Firestore. Existing prompts are never overwritten.
+          </p>
+          <PrimaryButton onClick={onSeedPrompts} disabled={isSeedingPrompts} loading={isSeedingPrompts} isDarkMode={isDarkMode} color="amber" className="!px-4 !py-2 shrink-0">
+            <Sparkles size={16} />
+            Seed New Prompts
+          </PrimaryButton>
+        </div>
+      )}
+
       {isLoadingDocs && <Loader message="Loading prompts..." isDarkMode={isDarkMode} />}
 
       {!isLoadingDocs && error && <p className="font-bold text-rose-500">{error}</p>}
@@ -137,6 +153,10 @@ PromptsSection.propTypes = {
   isLoadingDocs: PropTypes.bool.isRequired,
   error: PropTypes.string,
   onEditPrompt: PropTypes.func.isRequired,
+  // TEMPORARY — see the seeding banner above. Optional so this component
+  // doesn't break once the seeding call sites are removed.
+  onSeedPrompts: PropTypes.func,
+  isSeedingPrompts: PropTypes.bool,
 };
 
 export default PromptsSection;

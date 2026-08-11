@@ -18,6 +18,8 @@
  *     senseKey: string | null     // e.g. "animal", "sports_equipment"
  *     pos: string | null          // "noun", "verb", "adjective" …
  *     normalizedKey: string       // lowercase/stripped, e.g. "bat"
+ *     topics: string[]            // interest-category slugs this word was themed on;
+ *                                 // absent on everything created before interests existed
  *     status: string              // "draft" | "ready" | "blocked"
  *     createdAt: Timestamp
  *     updatedAt: Timestamp
@@ -52,7 +54,11 @@
  *   1. Query wordPool where status == "ready", limit 200.
  *   2. Filter client-side: if maxLength provided, keep only concepts whose
  *      normalizedKey length is <= maxLength.
- *   3. Find the first concept whose ID is not in seenConceptIds.
+ *   3. If preferTopics is non-empty, sort concepts whose `topics` intersect it
+ *      to the front. This is a preference, not a filter — everything else stays
+ *      in the list behind them, so the pool never shrinks and a user can never
+ *      be pushed into an AI call they wouldn't otherwise have made.
+ *   4. Find the first concept whose ID is not in seenConceptIds.
  *
  *   BRANCH A — Unseen concept found:
  *     a. Fetch translations/{learningDialect} for that concept.
@@ -75,12 +81,24 @@
 // ---------------------------------------------------------------------------
 
 /**
+ * @typedef {Object} InterestTopic
+ * @property {string} slug  - Interest category slug, stored in the concept's `topics`
+ * @property {string} label - Human-readable label, used to theme the AI prompt
+ */
+
+/**
  * @typedef {Object} GetWordParams
  * @property {string}   token            - Firebase ID token
  * @property {string}   userDialect      - BCP-47 native language, e.g. 'en-US'
  * @property {string}   learningDialect  - BCP-47 target language, e.g. 'pt-PT'
  * @property {string[]} seenConceptIds   - Already-seen concept IDs for this game
  * @property {number}   [maxLength]      - Optional max character length for the translated word
+ * @property {InterestTopic[]} [topics]  - Themes a newly generated word. Free — it rides
+ *                                         along on a call that was happening anyway — so
+ *                                         this is passed for every tier.
+ * @property {InterestTopic[]} [preferTopics] - Reorders the cached pool to surface matching
+ *                                         words first. Empty for Explorer: see
+ *                                         useInterestTopics() for why the tiers differ.
  */
 
 /**
@@ -122,7 +140,15 @@ const POOL_LIMIT   = 200;
  * @param {GetWordParams} params
  * @returns {Promise<WordResult>}
  */
-export async function getWord({ token, userDialect, learningDialect, seenConceptIds, maxLength }) {
+export async function getWord({
+  token,
+  userDialect,
+  learningDialect,
+  seenConceptIds,
+  maxLength,
+  topics = [],
+  preferTopics = [],
+}) {
   const seenSet = new Set(seenConceptIds ?? []);
 
   const allConcepts = await _fetchReadyConcepts(token);
@@ -130,9 +156,11 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
   // Client-side filter: exclude concepts whose source word is too long.
   // This is a fast pre-filter; the translated word length is checked separately
   // after fetching the translation (it may differ from the English source).
-  const concepts = (maxLength != null)
+  const lengthFiltered = (maxLength != null)
     ? allConcepts.filter((c) => (c.normalizedKey ?? c.sourceWord ?? '').length <= maxLength)
     : allConcepts;
+
+  const concepts = _sortByPreferredTopics(lengthFiltered, preferTopics);
 
   // Walk unseen concepts in order, skipping any whose translation is too long.
   for (const concept of concepts) {
@@ -183,13 +211,19 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
 
   // Pool exhausted for this user (all qualifying concepts seen) —
   // ask AI to generate a brand-new concept with the length constraint.
+  // One interest is picked rather than all of them: the AI produces a single
+  // word, so theming it on one subject lets us tag the new concept with
+  // exactly the topic it was built from instead of guessing.
   const knownWords = allConcepts.map((c) => c.normalizedKey);
+  const chosenTopic = topics.length > 0
+    ? topics[Math.floor(Math.random() * topics.length)]
+    : null;
   const generated  = await _generateNewConcept(
-    { userDialect, learningDialect, knownWords, maxLength },
+    { userDialect, learningDialect, knownWords, maxLength, topic: chosenTopic },
     token
   );
 
-  const conceptId = await _writeNewConcept(generated, learningDialect, token);
+  const conceptId = await _writeNewConcept(generated, learningDialect, token, chosenTopic);
 
   return {
     word:      generated.word,
@@ -197,6 +231,36 @@ export async function getWord({ token, userDialect, learningDialect, seenConcept
     conceptId,
     source:    'ai',
   };
+}
+
+/**
+ * Move concepts matching the user's interests to the front of the pool.
+ *
+ * A *preference*, not a filter: unmatched concepts keep their relative order
+ * behind the matched ones, so the walk still has the whole pool available.
+ * Filtering instead would shrink the pool, exhaust it sooner, and push users
+ * into extra AI calls — the opposite of what a cache is for.
+ *
+ * Concepts written before interests existed have no `topics` field and simply
+ * never match, which is why this is a no-op on a cold pool.
+ *
+ * @param {Array<object>} concepts
+ * @param {InterestTopic[]} preferTopics
+ * @returns {Array<object>} A new array; the input is not mutated.
+ */
+function _sortByPreferredTopics(concepts, preferTopics) {
+  if (!preferTopics?.length) return concepts;
+
+  const wanted = new Set(preferTopics.map((t) => t.slug));
+  const matched = [];
+  const rest    = [];
+
+  for (const concept of concepts) {
+    const topics = Array.isArray(concept.topics) ? concept.topics : [];
+    (topics.some((t) => wanted.has(t)) ? matched : rest).push(concept);
+  }
+
+  return [...matched, ...rest];
 }
 
 /**
@@ -316,7 +380,7 @@ async function _patchHint(conceptId, learningLocale, hintLocale, hintText, token
   if (!response.ok) throw new Error(json?.error || json?.message || 'Failed to patch hint');
 }
 
-async function _writeNewConcept(generated, learningDialect, token) {
+async function _writeNewConcept(generated, learningDialect, token, topic = null) {
   const now = new Date().toISOString();
 
   const conceptResponse = await fetch(`${PROXY_URL}/api/firestore`, {
@@ -330,6 +394,9 @@ async function _writeNewConcept(generated, learningDialect, token) {
         senseKey:      null,
         pos:           null,
         normalizedKey: generated.sourceWord.toLowerCase().trim(),
+        // Tag with the interest this word was actually themed on, so
+        // _sortByPreferredTopics can surface it to users who share it.
+        topics:        topic ? [topic.slug] : [],
         status:        'ready',
         createdAt:     now,
         updatedAt:     now,
@@ -423,7 +490,7 @@ async function _generateHintForDialect(sourceWord, userDialect, token) {
  * When maxLength is provided, both the English source word and translated word
  * are constrained to that length in the prompt.
  */
-async function _generateNewConcept({ userDialect, learningDialect, knownWords, maxLength }, token) {
+async function _generateNewConcept({ userDialect, learningDialect, knownWords, maxLength, topic }, token) {
   const avoidListLine = knownWords.length > 0
     ? `Do NOT use any of these (already in the database): ${knownWords.join(', ')}`
     : '';
@@ -432,8 +499,13 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords, m
     ? `Both the English word and the ${learningDialect} translation MUST be ${maxLength} characters or fewer.`
     : '';
 
+  // Rendered into an {{interests}} placeholder. renderTemplate() leaves
+  // unknown placeholders untouched, so passing this before the template in
+  // Firestore mentions it is a no-op rather than a breakage.
+  const interests = topic?.label ?? '';
+
   const promptDoc = await getPrompt('get-word-generate-new-concept-prompt');
-  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, lengthConstraintLine, avoidListLine });
+  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, lengthConstraintLine, avoidListLine, interests });
 
   const providerParams = {
     provider:    'gemini',
