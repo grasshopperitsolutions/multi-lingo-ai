@@ -97,7 +97,9 @@ const GrammarAskPage = () => {
         userText,
         targetLang,
         explanationLocale: interfaceLang,
-        level: user?.level ?? "A2",
+        // There's no per-user CEFR level stored on the profile (only per-exercise
+        // level pickers exist); A2 is a plain default, not a fallback for a real field.
+        level: "A2",
         topicKeys,
       });
       setAnswer(result);

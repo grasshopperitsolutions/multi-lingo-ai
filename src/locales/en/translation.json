@@ -921,6 +921,14 @@
       "time-telling": "Telling the time"
     }
   },
+  "story": {
+    "get_story": "Get a story",
+    "new_story": "New story",
+    "loading": "Writing your story...",
+    "empty_state": "Pick a level and get a short story to read and listen to.",
+    "translating": "Translating...",
+    "translation_unavailable": "Translation isn't available right now — showing the original only."
+  },
   "session": {
     "expired_title": "Session Expired",
     "expired_message": "Your session has expired. Please sign in again to continue.",

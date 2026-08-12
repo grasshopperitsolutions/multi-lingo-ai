@@ -37,8 +37,10 @@ export function getWordCountRange(level) {
 
 /**
  * Get level-appropriate grammar structures description.
+ * Exported for reuse by other prompt-building services (e.g. storyService)
+ * that need the same level-to-grammar-constraints mapping.
  */
-function getGrammarDescription(level) {
+export function getGrammarDescription(level) {
   const descriptions = {
     A1: 'Use only presente do indicativo (simple present), basic vocabulary (colours, numbers, family, food, daily objects), short simple sentences. No past or future tenses.',
     A2: 'Mainly presente do indicativo with some pretérito perfeito simples (simple past). Basic connectors (e, mas, porque). Concrete vocabulary about routines, weather, clothes, school, etc.',

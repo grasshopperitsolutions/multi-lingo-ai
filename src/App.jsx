@@ -51,7 +51,7 @@ const GrammarPracticeComingSoonPage = lazy(() => import("./pages/dashboard/gramm
 const AiTutorPage = lazy(() => import("./pages/dashboard/coming-soon/AiTutorPage"));
 const RealPersonTutorPage = lazy(() => import("./pages/dashboard/coming-soon/RealPersonTutorPage"));
 const VoicePracticePage = lazy(() => import("./pages/dashboard/coming-soon/VoicePracticePage"));
-const StoryGeneratorPage = lazy(() => import("./pages/dashboard/coming-soon/StoryGeneratorPage"));
+const StoryGeneratorPage = lazy(() => import("./pages/dashboard/StoryGeneratorPage"));
 const HistoryCulturePage = lazy(() => import("./pages/dashboard/coming-soon/HistoryCulturePage"));
 const ProfessionalToolsPage = lazy(() => import("./pages/dashboard/coming-soon/ProfessionalToolsPage"));
 
