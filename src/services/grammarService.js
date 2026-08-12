@@ -144,18 +144,6 @@ const ASK_SCHEMA = {
 };
 
 // ---------------------------------------------------------------------------
-// IDs
-// ---------------------------------------------------------------------------
-
-/**
- * Topic document IDs are derived, not random, so seeding twice cannot create
- * duplicates and a topic can be fetched without a query.
- */
-export function buildTopicId(targetLang, key) {
-  return `${targetLang}__${key}`;
-}
-
-// ---------------------------------------------------------------------------
 // Topics
 // ---------------------------------------------------------------------------
 
@@ -282,11 +270,24 @@ export async function seedTopicContent({ token, topic, explanationLocale }) {
 // ---------------------------------------------------------------------------
 
 /**
- * List tips for a target language, written in the reader's language.
+ * List tips for a target language, written for the reader's language.
  *
- * Filtered by explanationLocale rather than falling back to another language:
- * a French learner shown English tips would be worse than an empty state with
- * a "generate one" button next to it.
+ * targetLang (the grammar being described, e.g. pt-PT vs pt-BR) stays an exact
+ * match — different countries genuinely have different tips.
+ *
+ * explanationLocale (the reader's interface language) matches on its 2-letter
+ * language prefix instead: "en-GB" and "en-US" are both just "reads English",
+ * and a tip authored for one is equally usable for the other. Region variants
+ * of the *reader's* language are the same content; region variants of the
+ * *target* language are not.
+ *
+ * The prefix filter runs client-side rather than as a Firestore range query
+ * (explanationLocale >= prefix AND < prefix+'') so it can sit alongside
+ * the existing equality filters without risking a missing-composite-index
+ * error in production — mixing an inequality with several equality filters
+ * needs an index Firestore won't create automatically. The pool this fetches
+ * is small (tens of tips per target language), so filtering after the fetch
+ * costs nothing worth optimising away.
  *
  * @param {{ token: string, targetLang: string, explanationLocale: string, category?: string }} params
  * @returns {Promise<Array<object>>}
@@ -295,11 +296,19 @@ export async function getTips({ token, targetLang, explanationLocale, category }
   if (!token) throw new Error('[grammarService] token is required');
   if (!targetLang) throw new Error('[grammarService] targetLang is required');
 
-  const filters = { targetLang, explanationLocale, status: 'ready' };
+  const filters = { targetLang, status: 'ready' };
   if (category) filters.category = category;
 
   const result = await queryCollection(TIPS_COLLECTION, filters, {}, token);
-  return result?.documents ?? [];
+  const docs = result?.documents ?? [];
+
+  const wantedPrefix = _languagePrefix(explanationLocale);
+  return docs.filter((tip) => _languagePrefix(tip.explanationLocale) === wantedPrefix);
+}
+
+/** "en-GB" -> "en"; "en" -> "en". Lower-cased so casing differences don't split a language into two buckets. */
+function _languagePrefix(locale) {
+  return String(locale ?? '').split('-')[0].toLowerCase();
 }
 
 /**
@@ -429,129 +438,12 @@ export async function askGrammar({
 }
 
 // ---------------------------------------------------------------------------
-// Seeding (used by the temporary admin seeder)
-// ---------------------------------------------------------------------------
-
-/**
- * Write the hand-written corpus into Firestore, skipping anything already
- * present. Idempotent by construction: topic IDs are derived from
- * targetLang + key, and tip IDs from targetLang + locale + slug.
- *
- * @param {object} params
- * @param {string} params.token
- * @param {string} params.targetLang
- * @param {string} params.explanationLocale
- * @param {Array}  params.topics
- * @param {object} params.topicContent  - keyed by topic key
- * @param {Array}  params.tips
- * @param {(msg: string) => void} [params.onProgress]
- * @returns {Promise<{ topicsCreated, topicsSkipped, contentCreated, contentSkipped, tipsCreated, tipsSkipped }>}
- */
-export async function seedGrammarCorpus({
-  token,
-  targetLang,
-  explanationLocale,
-  topics,
-  topicContent,
-  tips,
-  onProgress,
-}) {
-  const summary = {
-    topicsCreated: 0,
-    topicsSkipped: 0,
-    contentCreated: 0,
-    contentSkipped: 0,
-    tipsCreated: 0,
-    tipsSkipped: 0,
-  };
-
-  const now = new Date().toISOString();
-
-  for (const topic of topics) {
-    const topicId = buildTopicId(targetLang, topic.key);
-
-    const existingTopic = await _getDocumentOrNull(TOPICS_COLLECTION, topicId, token);
-    if (existingTopic) {
-      summary.topicsSkipped += 1;
-    } else {
-      await createDocument(TOPICS_COLLECTION, {
-        key: topic.key,
-        family: topic.family,
-        targetLang,
-        order: topic.order ?? 0,
-        status: 'ready',
-        source: 'seed',
-        verified: true,
-        createdAt: now,
-        updatedAt: now,
-      }, topicId, token);
-      summary.topicsCreated += 1;
-    }
-
-    const content = topicContent[topic.key];
-    if (!content) {
-      onProgress?.(`${topic.key}: no content in the seed file, skipped`);
-      continue;
-    }
-
-    const contentCollection = `${TOPICS_COLLECTION}/${topicId}/content`;
-    const existingContent = await _getDocumentOrNull(contentCollection, explanationLocale, token);
-    if (existingContent) {
-      summary.contentSkipped += 1;
-    } else {
-      await createDocument(contentCollection, {
-        locale: explanationLocale,
-        title: content.title,
-        summary: content.summary,
-        explanation: content.explanation,
-        tables: content.tables ?? [],
-        examples: content.examples ?? [],
-        pitfalls: content.pitfalls ?? [],
-        source: 'seed',
-        verified: true,
-        createdAt: now,
-        updatedAt: now,
-      }, explanationLocale, token);
-      summary.contentCreated += 1;
-    }
-
-    onProgress?.(`${topic.key} done`);
-  }
-
-  for (const tip of tips) {
-    const tipId = `${targetLang}__${explanationLocale}__${tip.slug}`;
-    const existingTip = await _getDocumentOrNull(TIPS_COLLECTION, tipId, token);
-    if (existingTip) {
-      summary.tipsSkipped += 1;
-      continue;
-    }
-    await createDocument(TIPS_COLLECTION, {
-      targetLang,
-      explanationLocale,
-      category: tip.category,
-      title: tip.title,
-      body: tip.body,
-      examples: tip.examples ?? [],
-      source: 'seed',
-      verified: true,
-      status: 'ready',
-      createdAt: now,
-      updatedAt: now,
-    }, tipId, token);
-    summary.tipsCreated += 1;
-    onProgress?.(`tip: ${tip.title}`);
-  }
-
-  return summary;
-}
-
-// ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
 
 /**
- * getDocument throws on a missing document; seeding and cache-first reads both
- * need "not there yet" to be a normal answer rather than an error.
+ * getDocument throws on a missing document; cache-first reads need "not there
+ * yet" to be a normal answer rather than an error.
  */
 async function _getDocumentOrNull(collection, id, token) {
   try {

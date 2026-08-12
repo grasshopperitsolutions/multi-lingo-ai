@@ -18,9 +18,11 @@ import { FeaturePageShell, Card, ErrorBanner, PrimaryButton } from "../../../com
  * mnemonics — seeded from hand-written material and extendable on demand by
  * the "ask AI for a new tip" button.
  *
- * Tips are filtered by the reader's interface language rather than falling
- * back to another one: an empty state with a generate button beats a wall of
- * English text for someone reading in French.
+ * Tips are matched to the reader's interface language by its 2-letter prefix
+ * (see grammarService.getTips) — an "en-GB" reader sees tips written for
+ * "en-US" and vice versa, since region variants of the reader's own language
+ * are the same content. The grammar being described (targetLang) still has
+ * to match exactly: different countries' Portuguese genuinely differ.
  */
 const GrammarTipsPage = () => {
   const { isDarkMode, user, interfaceLang, showAlert } = useAppContext();
