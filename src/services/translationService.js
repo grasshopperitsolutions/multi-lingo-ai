@@ -259,6 +259,15 @@ export async function fillMissingTranslations(locale, token) {
     // 5. Ask AI. maxOutputTokens is raised well above the SDK default (1024)
     // because even a "missing keys" patch can span several sections at once
     // — 1024 was silently truncating the JSON response (see seedLanguageTranslations).
+    //
+    // NOTE: deliberately no `responseSchema` here, unlike every other AI call
+    // in the app. The expected shape is whatever key tree happens to be
+    // missing, which differs on every call, so there is no static schema to
+    // declare. Generating one from missingTree would work for a small patch
+    // but not for seedLanguageTranslations, which sends chunks of the entire
+    // locale file and would produce a schema large enough to risk Gemini's
+    // complexity limits. Consequently `translation-fill-missing-prompt` is the
+    // one prompt that must KEEP its explicit "return only JSON" instructions.
     const aiResponse = await askAI(
       token,
       prompt,

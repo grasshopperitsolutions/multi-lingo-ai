@@ -54,7 +54,7 @@ export async function generateWritingExercise({ token, level, targetLang }) {
   const writingPromptDoc = await getPrompt('exam-writing-prompt');
   const maxTokens = writingPromptDoc.maxTokens ?? (MAX_OUTPUT_TOKENS_GENERATION_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS_GENERATION);
   const model = writingPromptDoc.model || GEMINI_MODEL;
-  const raw = await _callAskAI(token, promptStr, maxTokens, model);
+  const raw = await _callAskAI(token, promptStr, maxTokens, model, WRITING_EXERCISE_SCHEMA);
 
   if (!raw) {
     console.error('[examWritingExerciseService] Empty response from AI (generation)');
@@ -97,7 +97,7 @@ export async function evaluateWriting({ token, level, targetLang, interfaceLang,
 
   const evalMaxTokens = promptDoc.maxTokens ?? MAX_OUTPUT_TOKENS_EVALUATION;
   const evalModel = promptDoc.model || GEMINI_MODEL;
-  const raw = await _callAskAI(token, prompt, evalMaxTokens, evalModel);
+  const raw = await _callAskAI(token, prompt, evalMaxTokens, evalModel, WRITING_EVALUATION_SCHEMA);
 
   if (!raw) {
     console.error('[examWritingExerciseService] Empty response from AI (evaluation)');
@@ -125,14 +125,61 @@ export async function evaluateWriting({ token, level, targetLang, interfaceLang,
   };
 }
 
-async function _callAskAI(token, prompt, maxOutputTokens, model = GEMINI_MODEL) {
-  const data = await askAI(token, prompt, {
+/**
+ * Response shapes, enforced by the Gemini API rather than requested in prose.
+ * Passing `responseSchema` alongside `responseMimeType: 'application/json'`
+ * constrains generation to exactly this structure, so a malformed or
+ * fenced response can't reach parseAIJSON in the first place.
+ */
+const WRITING_EXERCISE_SCHEMA = {
+  type: 'object',
+  properties: {
+    prompt: { type: 'string', description: 'The writing task, in the target language.' },
+    instructions: { type: 'array', items: { type: 'string' } },
+    minWords: { type: 'number' },
+    maxWords: { type: 'number' },
+  },
+  required: ['prompt', 'instructions'],
+};
+
+/**
+ * evaluateWriting rejects anything that isn't exactly 5 parameters, so the
+ * schema pins that count rather than leaving it to the prompt.
+ */
+const WRITING_EVALUATION_SCHEMA = {
+  type: 'object',
+  properties: {
+    parameters: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          score: { type: 'number' },
+          maxScore: { type: 'number' },
+          feedback: { type: 'string' },
+        },
+        required: ['name', 'score', 'feedback'],
+      },
+      minItems: 5,
+      maxItems: 5,
+    },
+    generalFeedback: { type: 'string' },
+  },
+  required: ['parameters'],
+};
+
+async function _callAskAI(token, prompt, maxOutputTokens, model = GEMINI_MODEL, responseSchema) {
+  const providerParams = {
     provider: 'gemini',
     model,
     temperature: 0.7,
     jsonMode: true,
     maxOutputTokens,
-  });
+  };
+  if (responseSchema) providerParams.responseSchema = responseSchema;
+
+  const data = await askAI(token, prompt, providerParams);
   return data?.text ?? '';
 }
 

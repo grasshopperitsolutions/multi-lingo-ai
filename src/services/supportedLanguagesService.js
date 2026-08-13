@@ -23,6 +23,32 @@ import {
 const LANGUAGES_COLLECTION = "appConfig/config/languages";
 const WRITING_SYSTEMS_COLLECTION = "appConfig/config/writingSystems";
 
+/**
+ * Shape for the language-metadata seed call, passed to Gemini as
+ * `responseSchema` so the structure is guaranteed by the API instead of
+ * requested in the prompt text.
+ */
+const LANGUAGE_SEED_SCHEMA = {
+  type: "object",
+  properties: {
+    code: { type: "string", description: "Canonical BCP-47 code, e.g. pt-PT." },
+    label: { type: "string", description: "Human-readable language name." },
+    flag: { type: "string", description: "Flag emoji or ISO region code." },
+    examSupported: { type: "boolean" },
+    status: { type: "string" },
+    rtl: { type: "boolean", description: "True for right-to-left scripts." },
+    characters: {
+      type: "object",
+      properties: {
+        default: { type: "array", items: { type: "string" } },
+        special: { type: "array", items: { type: "string" } },
+      },
+      required: ["default", "special"],
+    },
+  },
+  required: ["code", "characters"],
+};
+
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -86,6 +112,11 @@ export async function seedLanguage(code, name, token) {
       model: promptDoc.model || "gemini-3.5-flash-lite",
       temperature: 0.2,
       jsonMode: true,
+      // Enforced by the API rather than asked for in the prompt. `code` and
+      // `characters` are required here because the parse below rejects a
+      // response missing either — better to constrain generation than to
+      // discover the gap after spending the call.
+      responseSchema: LANGUAGE_SEED_SCHEMA,
       maxOutputTokens: promptDoc.maxTokens ?? 2048,
     }
   );

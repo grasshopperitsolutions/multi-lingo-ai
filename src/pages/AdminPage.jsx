@@ -5,8 +5,8 @@ import { useTierAccess } from "../hooks/useTierAccess";
 import Loader from "../components/Loader";
 import { auth } from "../firebase";
 import { CONFIG_SECTIONS, getConfigSectionDocs } from "../services/adminConfigService";
-import { createDocument, updateDocument } from "../services/firestoreService";
-import { getPrompts, updatePrompt, clearPromptsCache, PROMPTS_COLLECTION } from "../services/promptService";
+import { updateDocument } from "../services/firestoreService";
+import { getPrompts, updatePrompt } from "../services/promptService";
 import { getAuthProviders, setAuthProviderEnabled } from "../services/authProvidersService";
 import { listAllUserProfiles, setUserTier, deleteAccount } from "../services/userService";
 import { getLanguages } from "../services/supportedLanguagesService";
@@ -22,10 +22,6 @@ import CategoryEditModal from "../components/admin/CategoryEditModal";
 import GenericDocsSection from "../components/admin/GenericDocsSection";
 import GenericDocEditModal from "../components/admin/GenericDocEditModal";
 import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
-// TEMPORARY — prompt seeding. Remove this import, the handler and the
-// <PromptSeedSection> below once the prompts are in Firestore.
-import PromptSeedSection from "../components/admin/PromptSeedSection";
-import { PROMPT_SEEDS } from "../data/promptSeeds";
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
 // Viewer/editor for the appConfig/config/* Firestore subcollections.
@@ -48,8 +44,6 @@ const AdminPage = () => {
   const [editingGenericDoc, setEditingGenericDoc] = useState(null); // null | { doc, collection }
   const [isSavingGenericDoc, setIsSavingGenericDoc] = useState(false);
   // TEMPORARY — prompt seeding.
-  const [isSeedingPrompts, setIsSeedingPrompts] = useState(false);
-  const [promptSeedSummary, setPromptSeedSummary] = useState(null);
 
   const activeSection = CONFIG_SECTIONS.find((s) => s.id === activeSectionId);
   const isPromptsSection = activeSectionId === "prompts";
@@ -105,41 +99,6 @@ const AdminPage = () => {
       setIsSavingPrompt(false);
     }
   }, [editingPrompt, user, showAlert]);
-
-  // TEMPORARY — prompt seeding. Creates only prompts whose ID isn't already
-  // present, so a hand-tuned template can never be overwritten by a re-run.
-  const handleSeedPrompts = useCallback(async () => {
-    setIsSeedingPrompts(true);
-    setPromptSeedSummary(null);
-    try {
-      const existing = await getPrompts({ forceRefresh: true });
-      const existingIds = new Set(existing.map((p) => p.id));
-      const toCreate = PROMPT_SEEDS.filter((seed) => !existingIds.has(seed.id));
-
-      const token = await auth.currentUser.getIdToken();
-      const now = new Date().toISOString();
-      for (const seed of toCreate) {
-        const { id, ...data } = seed;
-        await createDocument(PROMPTS_COLLECTION, {
-          ...data,
-          version: 1,
-          createdAt: now,
-          updatedAt: now,
-          updatedBy: user?.email ?? "unknown",
-        }, id, token);
-      }
-
-      clearPromptsCache();
-      const docs = await getPrompts();
-      setDocsBySection((prev) => ({ ...prev, prompts: docs }));
-      setPromptSeedSummary({ created: toCreate.length, skipped: PROMPT_SEEDS.length - toCreate.length });
-      showAlert("success", "Prompts seeded.");
-    } catch (err) {
-      showAlert("error", `Could not seed prompts: ${err.message}`);
-    } finally {
-      setIsSeedingPrompts(false);
-    }
-  }, [user, showAlert]);
 
   const handleSetUserTier = useCallback(async (targetUid, tier) => {
     try {
@@ -296,14 +255,6 @@ const AdminPage = () => {
         <ShieldCheck size={32} />
         App Config
       </h1>
-
-      {/* TEMPORARY — remove with the prompt seeding feature. */}
-      <PromptSeedSection
-        isDarkMode={isDarkMode}
-        onSeed={handleSeedPrompts}
-        isSeeding={isSeedingPrompts}
-        summary={promptSeedSummary}
-      />
 
       <div className="flex flex-wrap gap-3 mb-6">
         {CONFIG_SECTIONS.map((section) => (

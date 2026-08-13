@@ -32,7 +32,12 @@ const GrammarStructuresPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoadingTopics, setIsLoadingTopics] = useState(true);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
-  const [error, setError] = useState(null);
+  // Two independent errors on purpose. Failing to load one topic's explanation
+  // says nothing about the library itself, so it must not disable browsing or
+  // searching the list — the library is reference material the user should be
+  // able to open and search at any time.
+  const [listError, setListError] = useState(null);
+  const [contentError, setContentError] = useState(null);
 
   const targetLang = user?.learningDialect;
   const supported = isGrammarSupported(targetLang);
@@ -50,7 +55,7 @@ const GrammarStructuresPage = () => {
         const list = await getTopics({ token: user.token, targetLang });
         if (!cancelled) setTopics(list);
       } catch (err) {
-        if (!cancelled) setError(err.message);
+        if (!cancelled) setListError(err.message);
       } finally {
         if (!cancelled) setIsLoadingTopics(false);
       }
@@ -65,7 +70,7 @@ const GrammarStructuresPage = () => {
     setContent(null);
     setContentLocale(null);
     setIsLoadingContent(true);
-    setError(null);
+    setContentError(null);
 
     try {
       const result = await getTopicContent({
@@ -80,11 +85,20 @@ const GrammarStructuresPage = () => {
         showAlert("info", t("grammar.content_fallback_locale", { locale: result.locale }));
       }
     } catch (err) {
-      setError(err.message);
+      setContentError(err.message);
     } finally {
       setIsLoadingContent(false);
     }
   }, [user, interfaceLang, showAlert, t]);
+
+  // Returning to the library clears the per-topic state, so a topic that
+  // failed to load can't leave an error banner sitting over the list.
+  const handleBackToList = useCallback(() => {
+    setSelectedTopic(null);
+    setContent(null);
+    setContentLocale(null);
+    setContentError(null);
+  }, []);
 
   const breadcrumbItems = [
     { label: t("common.back", "Back"), onClick: () => navigate("/dashboard") },
@@ -109,14 +123,14 @@ const GrammarStructuresPage = () => {
   if (selectedTopic) {
     return (
       <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems}>
-        <GhostButton onClick={() => setSelectedTopic(null)} isDarkMode={isDarkMode} className="self-start">
+        <GhostButton onClick={handleBackToList} isDarkMode={isDarkMode} className="self-start">
           <ArrowLeft size={16} />
           {t("grammar.all_topics")}
         </GhostButton>
 
         {isLoadingContent && <Loader message={t("grammar.loading_topic")} isDarkMode={isDarkMode} />}
 
-        {!isLoadingContent && error && <ErrorBanner error={error} isDarkMode={isDarkMode} />}
+        {!isLoadingContent && contentError && <ErrorBanner error={contentError} isDarkMode={isDarkMode} />}
 
         {!isLoadingContent && content && (
           <div className="flex flex-col gap-4">
@@ -229,9 +243,9 @@ const GrammarStructuresPage = () => {
     <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems}>
       {isLoadingTopics && <Loader message={t("grammar.loading_topics")} isDarkMode={isDarkMode} />}
 
-      {!isLoadingTopics && error && <ErrorBanner error={error} isDarkMode={isDarkMode} />}
+      {!isLoadingTopics && listError && <ErrorBanner error={listError} isDarkMode={isDarkMode} />}
 
-      {!isLoadingTopics && !error && topics.length === 0 && (
+      {!isLoadingTopics && !listError && topics.length === 0 && (
         <Card isDarkMode={isDarkMode}>
           <p className={`font-bold ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
             {t("grammar.no_topics")}
@@ -239,7 +253,7 @@ const GrammarStructuresPage = () => {
         </Card>
       )}
 
-      {!isLoadingTopics && !error && topics.length > 0 && (
+      {!isLoadingTopics && topics.length > 0 && (
         <SearchBar
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
@@ -248,7 +262,7 @@ const GrammarStructuresPage = () => {
         />
       )}
 
-      {!isLoadingTopics && !error && topics.length > 0 && visibleTopics.length === 0 && (
+      {!isLoadingTopics && topics.length > 0 && visibleTopics.length === 0 && (
         <Card isDarkMode={isDarkMode}>
           <p className={`font-bold ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
             {t("grammar.no_search_results")}
