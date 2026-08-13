@@ -376,6 +376,12 @@ export const AppProvider = ({ children }) => {
       // Seen exercise IDs — tracked per type for exam training features
       const seenExerciseIds = profile?.seenExerciseIds ?? { reading: [], listening: [], writing: [] };
 
+      // Seen stories and History & Culture facts — own top-level fields,
+      // hydrated here so neither feature needs a second profile read just to
+      // know what's already been shown.
+      const seenStoryIds = profile?.seenStoryIds ?? [];
+      const seenHistoryFactsIds = profile?.seenHistoryFactsIds ?? [];
+
       setUser((prev) => ({
         ...prev,
         // displayName: Firestore → auth provider → keep previous
@@ -402,6 +408,8 @@ export const AppProvider = ({ children }) => {
         highestDayStreak,
         wordsFound,
         seenExerciseIds,
+        seenStoryIds,
+        seenHistoryFactsIds,
       }));
     } catch (err) {
       showAlert("error", `Could not load your profile: ${err.message}`);

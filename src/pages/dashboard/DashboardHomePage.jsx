@@ -13,6 +13,8 @@ import {
   BookOpen,
   Landmark,
   Briefcase,
+  UtensilsCrossed,
+  RadioTower,
   Gamepad2,
   GraduationCap,
   Flame,
@@ -103,8 +105,10 @@ const DashboardHomePage = () => {
     { id: "real_person_tutor", route: "/dashboard/real-person-tutor",  icon: UserRound,        title: t("dashboard.real_person_tutor"), description: t("dashboard.real_person_tutor_desc"), color: "text-emerald-500", statusBadgeLabel: t("dashboard.coming_soon") },
     { id: "voice_practice",    route: "/dashboard/voice-practice",     icon: Video,            title: t("dashboard.voice_practice"),    description: t("dashboard.voice_practice_desc"),    color: "text-purple-500",  statusBadgeLabel: t("dashboard.coming_soon") },
     { id: "story_generator",   route: "/dashboard/story-generator",    icon: BookOpen,         title: t("dashboard.story_generator"),   description: t("dashboard.story_generator_desc"),   color: "text-rose-500" },
-    { id: "history_culture",   route: "/dashboard/history-culture",    icon: Landmark,         title: t("dashboard.history_culture"),   description: t("dashboard.history_culture_desc"),   color: "text-orange-500",  statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "history_culture",   route: "/dashboard/history-culture",    icon: Landmark,         title: t("dashboard.history_culture"),   description: t("dashboard.history_culture_desc"),   color: "text-orange-500" },
     { id: "professional_tools",route: "/dashboard/professional-tools", icon: Briefcase,        title: t("dashboard.professional_tools"), description: t("dashboard.professional_tools_desc"), color: "text-indigo-500", statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "food",              route: "/dashboard/food",               icon: UtensilsCrossed,  title: t("dashboard.food"),              description: t("dashboard.food_desc"),              color: "text-lime-500",    statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "radio_tv",          route: "/dashboard/radio-tv",           icon: RadioTower,       title: t("dashboard.radio_tv"),          description: t("dashboard.radio_tv_desc"),          color: "text-cyan-500",    statusBadgeLabel: t("dashboard.coming_soon") },
   ];
 
   const handleFeatureClick = (feature) => {

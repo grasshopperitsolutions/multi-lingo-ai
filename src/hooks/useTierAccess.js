@@ -14,6 +14,7 @@ import { TIER_LIMITS } from "../config/tierLimits";
  *   isMaestro: boolean,
  *   isVip: boolean,
  *   isAdmin: boolean,
+ *   hasUnlimitedAI: boolean,
  *   hasActiveSubscription: boolean,
  * }}
  */
@@ -34,6 +35,12 @@ export const useTierAccess = () => {
   const isVip = tier === "vip";
   const isAdmin = tier === "admin";
 
+  // Gates features that let a user aim an AI call at whatever they type
+  // (custom story topics, specific history questions) rather than drawing from
+  // the shared cache. Derived from the daily limit rather than listing tiers,
+  // so a new unlimited tier is covered automatically.
+  const hasUnlimitedAI = limits.aiCallsPerDay === Infinity;
+
   // VIP and Admin bypass payment checks entirely
   const hasActiveSubscription =
     isVip || isAdmin ||
@@ -50,6 +57,7 @@ export const useTierAccess = () => {
     isMaestro,
     isVip,
     isAdmin,
+    hasUnlimitedAI,
     hasActiveSubscription,
   };
 };

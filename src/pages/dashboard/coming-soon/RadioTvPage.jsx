@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Landmark } from "lucide-react";
+import { RadioTower } from "lucide-react";
 import { useAppContext } from "../../../contexts/AppContext";
 import { FeaturePageShell, ComingSoonContent } from "../../../components/ui";
 
-const HistoryCulturePage = () => {
+const RadioTvPage = () => {
   const { isDarkMode } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -12,17 +12,17 @@ const HistoryCulturePage = () => {
   return (
     <FeaturePageShell
       isDarkMode={isDarkMode}
-      breadcrumbItems={[{ label: t("dashboard.back", "Back"), onClick: () => navigate("/dashboard") }]}
+      breadcrumbItems={[{ label: t("common.back", "Back"), onClick: () => navigate("/dashboard") }]}
     >
       <ComingSoonContent
-        icon={Landmark}
-        title={t("dashboard.history_culture")}
-        description={t("dashboard.history_culture_desc")}
-        color="text-orange-500"
+        icon={RadioTower}
+        title={t("dashboard.radio_tv")}
+        description={t("dashboard.radio_tv_desc")}
+        color="text-cyan-500"
         isDarkMode={isDarkMode}
       />
     </FeaturePageShell>
   );
 };
 
-export default HistoryCulturePage;
+export default RadioTvPage;

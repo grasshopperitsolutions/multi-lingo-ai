@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -7,11 +7,12 @@ import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { useInterestTopics } from "../hooks/useInterestTopics";
 import { useTts } from "../hooks/useTts";
-import { getStory, getStoryTranslation } from "../services/storyService";
-import { markExerciseSeen } from "../services/userService";
+import { getStory, getStoryTranslation, getStoryPoolStatus } from "../services/storyService";
+import { markStorySeen } from "../services/userService";
 import { tokenizeWords } from "../utils/tokenizeWords";
 import Loader from "./Loader";
 import NeoDropdown from "./NeoDropdown";
+import CustomRequestInput from "./CustomRequestInput";
 import WordLookupSheet from "./WordLookupSheet";
 import { FeaturePageShell, Card, ErrorBanner, PrimaryButton, LevelBadge } from "./ui";
 
@@ -37,6 +38,8 @@ const StoryReader = ({ isDarkMode }) => {
   const navigate = useNavigate();
 
   const [level, setLevel] = useState("A1");
+  const [description, setDescription] = useState("");
+  const [cacheExhausted, setCacheExhausted] = useState(false);
   const [story, setStory] = useState(null);
   const [translation, setTranslation] = useState(null);
   const [isLoadingStory, setIsLoadingStory] = useState(false);
@@ -47,6 +50,25 @@ const StoryReader = ({ isDarkMode }) => {
 
   const targetLang = user?.learningDialect;
   const showBilingual = !!story && interfaceLang !== story.targetLang;
+
+  // Cheap, AI-free read: tells CustomRequestInput whether this reader has run
+  // out of cached stories, which is what unlocks the box for limited tiers.
+  // Re-runs on level change because the pool is per level.
+  useEffect(() => {
+    if (!user?.token || !targetLang) return;
+    let cancelled = false;
+
+    getStoryPoolStatus({
+      token: user.token,
+      level,
+      targetLang,
+      seenStoryIds: user?.seenStoryIds ?? [],
+    })
+      .then((status) => { if (!cancelled) setCacheExhausted(status.exhausted); })
+      .catch(() => { /* leaving the box locked on failure is the safe default */ });
+
+    return () => { cancelled = true; };
+  }, [user, targetLang, level]);
 
   const handleGetStory = async () => {
     if (!canUseAI) {
@@ -63,20 +85,19 @@ const StoryReader = ({ isDarkMode }) => {
     setTranslationError(null);
 
     try {
-      const seenStoryIds = user?.seenExerciseIds?.story ?? [];
-      const result = await getStory({ token: user.token, level, targetLang, interests: topics, seenStoryIds });
+      const seenStoryIds = user?.seenStoryIds ?? [];
+      const result = await getStory({
+        token: user.token, level, targetLang, interests: topics, seenStoryIds, description,
+      });
       setStory(result);
 
       // Fire-and-forget from the reader's point of view — a failure here
       // shouldn't block having just gotten a story.
-      markExerciseSeen(user.token, user.uid, "story", result.storyId, seenStoryIds)
+      markStorySeen(user.token, user.uid, result.storyId, seenStoryIds)
         .then(() => {
           setUser((prev) => ({
             ...prev,
-            seenExerciseIds: {
-              ...prev.seenExerciseIds,
-              story: [...new Set([...seenStoryIds, result.storyId])],
-            },
+            seenStoryIds: [...new Set([...seenStoryIds, result.storyId])],
           }));
         })
         .catch(() => { /* seen-tracking is best-effort; a repeat story later is a minor inconvenience, not a failure */ });
@@ -112,25 +133,36 @@ const StoryReader = ({ isDarkMode }) => {
       reportContext="StoryReader"
       breadcrumbItems={[{ label: t("common.back", "Back"), onClick: () => navigate("/dashboard") }]}
     >
-      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-        <NeoDropdown
-          options={CEFR_LEVELS}
-          value={level}
-          onChange={setLevel}
-          isDarkMode={isDarkMode}
-          label={t("exam.sidebar.level", "Level")}
-          className="flex-1"
-        />
-        <PrimaryButton
-          onClick={handleGetStory}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+          <NeoDropdown
+            options={CEFR_LEVELS}
+            value={level}
+            onChange={setLevel}
+            isDarkMode={isDarkMode}
+            label={t("exam.sidebar.level", "Level")}
+            className="flex-1"
+          />
+          <PrimaryButton
+            onClick={handleGetStory}
+            disabled={isLoadingStory}
+            loading={isLoadingStory}
+            isDarkMode={isDarkMode}
+            color="sky"
+          >
+            <BookOpen size={16} />
+            {story ? t("story.new_story") : t("story.get_story")}
+          </PrimaryButton>
+        </div>
+
+        <CustomRequestInput
+          value={description}
+          onChange={setDescription}
+          placeholder={t("story.description_placeholder")}
+          cacheExhausted={cacheExhausted}
           disabled={isLoadingStory}
-          loading={isLoadingStory}
           isDarkMode={isDarkMode}
-          color="sky"
-        >
-          <BookOpen size={16} />
-          {story ? t("story.new_story") : t("story.get_story")}
-        </PrimaryButton>
+        />
       </div>
 
       {isLoadingStory && <Loader message={t("story.loading")} isDarkMode={isDarkMode} />}

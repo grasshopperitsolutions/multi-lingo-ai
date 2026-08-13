@@ -526,7 +526,11 @@
     "exam_training": "Exam Training",
     "exam_training_desc": "Prepare for official language certification exams.",
     "professional_tools": "Professional Tools",
-    "professional_tools_desc": "Create CVs, resumes, emails and professional documents in the language you're learning with a formal or casual tone."
+    "professional_tools_desc": "Create CVs, resumes, emails and professional documents in the language you're learning with a formal or casual tone.",
+    "food": "Food",
+    "food_desc": "Discover local dishes and their stories, find restaurants that suit you, and cook authentic recipes.",
+    "radio_tv": "Radio & TV",
+    "radio_tv_desc": "Listen to local radio and watch TV stations from the country you're learning about."
   },
   "exam": {
     "title": "Exam Training",
@@ -845,6 +849,8 @@
     "examples": "Examples",
     "pitfalls": "Common mistakes",
     "listen": "Listen",
+    "search_placeholder": "Search grammar topics...",
+    "no_search_results": "No topics match your search.",
     "loading_topics": "Loading topics...",
     "loading_topic": "Loading explanation...",
     "no_topics": "No grammar topics have been added yet.",
@@ -927,7 +933,19 @@
     "loading": "Writing your story...",
     "empty_state": "Pick a level and get a short story to read and listen to.",
     "translating": "Translating...",
-    "translation_unavailable": "Translation isn't available right now — showing the original only."
+    "translation_unavailable": "Translation isn't available right now — showing the original only.",
+    "description_placeholder": "Or describe what the story should be about..."
+  },
+  "history_culture": {
+    "discover": "Discover something",
+    "discover_another": "Discover another",
+    "loading": "Finding something interesting...",
+    "empty_state": "Discover something about the history and culture behind the language you're learning.",
+    "description_placeholder": "Or ask about something specific (e.g. fado, the 1755 earthquake)..."
+  },
+  "custom_request": {
+    "locked": "Want to ask for something specific? Upgrade to request your own topics.",
+    "unlocked_by_exhaustion": "You've seen everything saved so far — describe what you'd like next."
   },
   "session": {
     "expired_title": "Session Expired",

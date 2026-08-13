@@ -79,6 +79,27 @@ function _storySchema(paragraphCount) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Report how much of the pool this reader hasn't seen yet.
+ *
+ * Read-only and AI-free — it exists so the UI can tell whether the cache is
+ * exhausted, which is what unlocks the custom-description input for tiers that
+ * don't otherwise get it.
+ *
+ * @param {{ token: string, level: string, targetLang: string, seenStoryIds?: string[] }} params
+ * @returns {Promise<{ total: number, unseen: number, exhausted: boolean }>}
+ */
+export async function getStoryPoolStatus({ token, level, targetLang, seenStoryIds = [] }) {
+  if (!token) throw new Error('[storyService] token is required');
+  if (!level) throw new Error('[storyService] level is required');
+  if (!targetLang) throw new Error('[storyService] targetLang is required');
+
+  const pool = await _fetchReadyStories(token, { level, targetLang });
+  const seen = new Set(seenStoryIds);
+  const unseen = pool.filter((s) => !seen.has(s.id)).length;
+  return { total: pool.length, unseen, exhausted: unseen === 0 };
+}
+
+/**
  * Fetch the next unseen story, or generate one if the pool is exhausted.
  *
  * Pool order is left as-is — interests theme a story only at the moment it's
@@ -86,21 +107,36 @@ function _storySchema(paragraphCount) {
  * don't reorder the cached pool. See useInterestTopics for why reordering a
  * shared pool has a real AI-economics cost that theming doesn't.
  *
+ * A `description` bypasses the pool entirely and generates to order. Whether a
+ * given user is allowed to do that is a tier decision made by the caller (see
+ * useTierAccess().hasUnlimitedAI) — this service just honours the request.
+ *
  * @param {object} params
  * @param {string} params.token
  * @param {string} params.level        - CEFR level
  * @param {string} params.targetLang   - language the story is written in
  * @param {Array<{id: string, label: string}>} [params.interests] - from useInterestTopics().topics
  * @param {string[]} [params.seenStoryIds]
+ * @param {string} [params.description] - custom topic; skips the cache when set
  * @returns {Promise<{ storyId: string, level: string, targetLang: string, title: string, paragraphs: string[], source: 'db'|'ai' }>}
  */
-export async function getStory({ token, level, targetLang, interests = [], seenStoryIds = [] }) {
+export async function getStory({ token, level, targetLang, interests = [], seenStoryIds = [], description = '' }) {
   if (!token) throw new Error('[storyService] token is required');
   if (!level) throw new Error('[storyService] level is required');
   if (!targetLang) throw new Error('[storyService] targetLang is required');
 
   const seenSet = new Set(seenStoryIds);
   const pool = await _fetchReadyStories(token, { level, targetLang });
+
+  // A custom description is a specific request — go straight to generation.
+  // The result still lands in the shared pool, so it isn't wasted on one reader.
+  if (description.trim()) {
+    return _generateStory({
+      token, level, targetLang, interests,
+      existingTitles: pool.map((s) => s.title),
+      description: description.trim(),
+    });
+  }
 
   for (const story of pool) {
     if (seenSet.has(story.id)) continue;
@@ -197,13 +233,14 @@ export async function getStoryTranslation({ token, storyId, sourceLang, sourceTi
 // Generation
 // ---------------------------------------------------------------------------
 
-async function _generateStory({ token, level, targetLang, interests, existingTitles }) {
+async function _generateStory({ token, level, targetLang, interests, existingTitles, description = '' }) {
   const paragraphCount = PARAGRAPH_COUNT_BY_LEVEL[level] ?? DEFAULT_PARAGRAPH_COUNT;
   const grammarDescription = getGrammarDescription(level);
-  // The prompt invites theming around several interests at once ("these
-  // interests... where it fits naturally") rather than picking one, unlike
-  // the single-topic sentence pattern used for word/puzzle generation.
-  const interestsLine = interests.map((t) => t.label).join(', ');
+  // An explicit description wins over interests: the reader asked for
+  // something specific, so interests would only dilute it.
+  const interestsLine = description
+    ? description
+    : interests.map((t) => t.label).join(', ');
   const avoidTitles = existingTitles.filter(Boolean).join('; ') || '(none yet)';
 
   const promptDoc = await getPrompt('story-generate-prompt');
@@ -238,7 +275,9 @@ async function _generateStory({ token, level, targetLang, interests, existingTit
   const written = await createDocument(STORIES_COLLECTION, {
     level,
     targetLang,
-    topicIds: interests.map((t) => t.id),
+    // Only tag with interests when interests actually shaped the story — a
+    // description-driven story isn't about those topics.
+    topicIds: description ? [] : interests.map((t) => t.id),
     title,
     status: 'ready',
     aiGenerated: true,

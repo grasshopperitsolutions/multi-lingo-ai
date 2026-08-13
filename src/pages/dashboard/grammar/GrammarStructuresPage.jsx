@@ -8,7 +8,7 @@ import { getTopics, getTopicContent } from "../../../services/grammarService";
 import GrammarExampleList from "../../../components/GrammarExampleList";
 import GrammarTable from "../../../components/GrammarTable";
 import Loader from "../../../components/Loader";
-import { FeaturePageShell, Card, ErrorBanner, GhostButton } from "../../../components/ui";
+import { FeaturePageShell, Card, ErrorBanner, GhostButton, SearchBar } from "../../../components/ui";
 
 /**
  * GrammarStructuresPage
@@ -29,6 +29,7 @@ const GrammarStructuresPage = () => {
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [content, setContent] = useState(null);
   const [contentLocale, setContentLocale] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isLoadingTopics, setIsLoadingTopics] = useState(true);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [error, setError] = useState(null);
@@ -202,7 +203,24 @@ const GrammarStructuresPage = () => {
   }
 
   // ── List view, grouped by family ───────────────────────────────────────────
-  const families = topics.reduce((acc, topic) => {
+  // Match against what the user can actually see (the translated topic and
+  // family names) as well as the raw key, so searching "verb" finds the family
+  // and searching "estar" finds ser-estar regardless of interface language.
+  const term = searchTerm.trim().toLowerCase();
+  const visibleTopics = term
+    ? topics.filter((topic) =>
+        [
+          t(`grammar.topic.${topic.key}`, topic.key.replace(/-/g, " ")),
+          t(`grammar.family.${topic.family}`, topic.family),
+          topic.key.replace(/-/g, " "),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(term)
+      )
+    : topics;
+
+  const families = visibleTopics.reduce((acc, topic) => {
     (acc[topic.family] ??= []).push(topic);
     return acc;
   }, {});
@@ -221,7 +239,24 @@ const GrammarStructuresPage = () => {
         </Card>
       )}
 
-      {!isLoadingTopics && topics.length > 0 && (
+      {!isLoadingTopics && !error && topics.length > 0 && (
+        <SearchBar
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder={t("grammar.search_placeholder")}
+          isDarkMode={isDarkMode}
+        />
+      )}
+
+      {!isLoadingTopics && !error && topics.length > 0 && visibleTopics.length === 0 && (
+        <Card isDarkMode={isDarkMode}>
+          <p className={`font-bold ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+            {t("grammar.no_search_results")}
+          </p>
+        </Card>
+      )}
+
+      {!isLoadingTopics && visibleTopics.length > 0 && (
         <div className="flex flex-col gap-6">
           {Object.entries(families).map(([family, familyTopics]) => (
             <section key={family}>

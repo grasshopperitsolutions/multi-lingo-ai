@@ -288,6 +288,104 @@ export const resetSeenWordLadderPuzzles = async (token, uid) => {
 };
 
 // ---------------------------------------------------------------------------
+// Story Generator seen stories — stored on users/{uid}.seenStoryIds
+// Dedicated field, matching seenConceptIds / seenWordLadderPuzzleIds, rather
+// than a key inside seenExerciseIds: a story isn't an exam exercise, and
+// keeping it separate means resetting exam progress can't wipe reading history.
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the list of seen story IDs for a user.
+ * Reads users/{uid}.seenStoryIds — returns [] if not yet set.
+ *
+ * @param {string} token
+ * @param {string} uid
+ * @returns {Promise<string[]>}
+ */
+export const getSeenStoryIds = async (token, uid) => {
+  const profile = await getUserProfile(token, uid);
+  return profile?.seenStoryIds ?? [];
+};
+
+/**
+ * Append a storyId to users/{uid}.seenStoryIds.
+ * Safe to call concurrently — uses a Set to deduplicate.
+ *
+ * @param {string}   token
+ * @param {string}   uid
+ * @param {string}   storyId
+ * @param {string[]} currentSeenIds - current value, passed in to avoid an extra read
+ */
+export const markStorySeen = async (token, uid, storyId, currentSeenIds = []) => {
+  const updated = [...new Set([...currentSeenIds, storyId])];
+  await updateUserProfile(token, uid, { seenStoryIds: updated });
+};
+
+/**
+ * Clear all seen story IDs.
+ * Resets users/{uid}.seenStoryIds to [].
+ * Only affects the Story Generator — does not touch any other seen-tracking field.
+ *
+ * @param {string} token
+ * @param {string} uid
+ */
+export const resetSeenStories = async (token, uid) => {
+  await updateUserProfile(token, uid, {
+    seenStoryIds: [],
+    seenStoriesResetAt: new Date().toISOString(),
+  });
+};
+
+// ---------------------------------------------------------------------------
+// History & Culture seen facts — stored on users/{uid}.seenHistoryFactsIds
+// Dedicated field, matching seenConceptIds / seenWordLadderPuzzleIds, rather
+// than a key inside seenExerciseIds: a history fact isn't an exam exercise,
+// and keeping it separate means resetting exam progress can't wipe it.
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the list of seen History & Culture fact IDs for a user.
+ * Reads users/{uid}.seenHistoryFactsIds — returns [] if not yet set.
+ *
+ * @param {string} token
+ * @param {string} uid
+ * @returns {Promise<string[]>}
+ */
+export const getSeenHistoryFactsIds = async (token, uid) => {
+  const profile = await getUserProfile(token, uid);
+  return profile?.seenHistoryFactsIds ?? [];
+};
+
+/**
+ * Append a factId to users/{uid}.seenHistoryFactsIds.
+ * Safe to call concurrently — uses a Set to deduplicate.
+ *
+ * @param {string}   token
+ * @param {string}   uid
+ * @param {string}   factId
+ * @param {string[]} currentSeenIds - current value, passed in to avoid an extra read
+ */
+export const markHistoryFactSeen = async (token, uid, factId, currentSeenIds = []) => {
+  const updated = [...new Set([...currentSeenIds, factId])];
+  await updateUserProfile(token, uid, { seenHistoryFactsIds: updated });
+};
+
+/**
+ * Clear all seen History & Culture fact IDs.
+ * Resets users/{uid}.seenHistoryFactsIds to [].
+ * Only affects History & Culture — does not touch any other seen-tracking field.
+ *
+ * @param {string} token
+ * @param {string} uid
+ */
+export const resetSeenHistoryFacts = async (token, uid) => {
+  await updateUserProfile(token, uid, {
+    seenHistoryFactsIds: [],
+    seenHistoryFactsResetAt: new Date().toISOString(),
+  });
+};
+
+// ---------------------------------------------------------------------------
 // Seen exercise IDs — stored on users/{uid}.seenExerciseIds
 // Tracks which exam exercises the user has already been shown, split by type.
 // Structure: { reading: string[], listening: string[], writing: string[] }

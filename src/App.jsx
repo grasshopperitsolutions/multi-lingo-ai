@@ -52,8 +52,10 @@ const AiTutorPage = lazy(() => import("./pages/dashboard/coming-soon/AiTutorPage
 const RealPersonTutorPage = lazy(() => import("./pages/dashboard/coming-soon/RealPersonTutorPage"));
 const VoicePracticePage = lazy(() => import("./pages/dashboard/coming-soon/VoicePracticePage"));
 const StoryGeneratorPage = lazy(() => import("./pages/dashboard/StoryGeneratorPage"));
-const HistoryCulturePage = lazy(() => import("./pages/dashboard/coming-soon/HistoryCulturePage"));
+const HistoryCulturePage = lazy(() => import("./pages/dashboard/HistoryCulturePage"));
 const ProfessionalToolsPage = lazy(() => import("./pages/dashboard/coming-soon/ProfessionalToolsPage"));
+const FoodPage = lazy(() => import("./pages/dashboard/coming-soon/FoodPage"));
+const RadioTvPage = lazy(() => import("./pages/dashboard/coming-soon/RadioTvPage"));
 
 const PublicLayout = () => {
   const { interfaceLang } = useAppContext();
@@ -203,6 +205,8 @@ const AppLayout = () => {
             <Route path="story-generator" element={<StoryGeneratorPage />} />
             <Route path="history-culture" element={<HistoryCulturePage />} />
             <Route path="professional-tools" element={<ProfessionalToolsPage />} />
+            <Route path="food" element={<FoodPage />} />
+            <Route path="radio-tv" element={<RadioTvPage />} />
 
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
