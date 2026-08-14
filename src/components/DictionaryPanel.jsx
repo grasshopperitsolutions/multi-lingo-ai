@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { Copy, Trash2, Search, Volume2, Turtle, Pause, Square } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
-import { lookupWord, WORD_TYPES } from '../services/dictionaryService';
+import { lookupWord, WORD_TYPES, MAX_WORD_TYPES } from '../services/dictionaryService';
 import { useTts } from '../hooks/useTts';
 import TooltipButton from './TooltipButton';
 import ReportButton from './ReportButton';
@@ -160,10 +160,13 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
 
   const hasResult = !isLoading && !error && entries.length > 0;
 
+  // Deselecting is always allowed; selecting stops at MAX_WORD_TYPES.
   const toggleWordType = (type) => {
-    setWordTypes((prev) =>
-      prev.includes(type) ? prev.filter((v) => v !== type) : [...prev, type]
-    );
+    setWordTypes((prev) => {
+      if (prev.includes(type)) return prev.filter((v) => v !== type);
+      if (prev.length >= MAX_WORD_TYPES) return prev;
+      return [...prev, type];
+    });
   };
 
   const handleClear = () => {
@@ -322,13 +325,19 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
         <div className="flex flex-wrap gap-2" role="group" aria-label={t('dictionary.word_type_filter')}>
           {WORD_TYPES.map((type) => {
             const isSelected = wordTypes.includes(type);
+            // At the cap, unpicked pills go inert — disabled rather than
+            // silently ignoring the click.
+            const isBlocked = !isSelected && wordTypes.length >= MAX_WORD_TYPES;
             return (
               <button
                 key={type}
                 type="button"
                 onClick={() => toggleWordType(type)}
                 aria-pressed={isSelected}
+                disabled={isBlocked}
                 className={`px-3 py-1.5 rounded-full border-2 text-xs font-black uppercase tracking-widest transition-all active:scale-95 ${
+                  isBlocked ? 'opacity-40 cursor-not-allowed active:scale-100' : ''
+                } ${
                   isSelected
                     ? isDarkMode
                       ? 'bg-violet-500 border-violet-400 text-white'
@@ -346,7 +355,9 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
         <p className={`mt-2 text-xs font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
           {wordTypes.length === 0
             ? t('dictionary.word_type_hint_none')
-            : t('dictionary.word_type_hint_selected', { count: wordTypes.length })}
+            : wordTypes.length >= MAX_WORD_TYPES
+              ? t('dictionary.word_type_hint_max', { max: MAX_WORD_TYPES })
+              : t('dictionary.word_type_hint_selected', { count: wordTypes.length })}
         </p>
       </div>
 

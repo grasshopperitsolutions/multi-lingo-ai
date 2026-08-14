@@ -29,8 +29,8 @@
  * @property {string} interfaceLang  - BCP-47 locale for the definition, e.g. 'en-US'
  * @property {string} learningLang   - BCP-47 locale for the synonyms, e.g. 'pt-PT'
  * @property {string[]} [wordTypes]  - Grammatical categories to define the word as.
- *                                     Empty = let the model pick the single most
- *                                     common sense. See WORD_TYPES.
+ *                                     Empty = every available category; the model
+ *                                     returns one entry per category. See WORD_TYPES.
  */
 
 /**
@@ -42,8 +42,9 @@
 
 /**
  * @typedef {Object} LookupResult
- * @property {LookupEntry[]} entries - One per requested word type, or a single
- *                                     entry when no types were requested.
+ * @property {LookupEntry[]} entries - One per resolved grammatical category, or
+ *                                     one per available category when none were
+ *                                     selected.
  */
 
 // ---------------------------------------------------------------------------
@@ -76,31 +77,58 @@ export const WORD_TYPES = [
 ];
 
 /**
+ * Always requested, whether or not the user picked it.
+ *
+ * A word's local/idiomatic sense is the one a learner is most likely to be
+ * hunting for and the one a model is most likely to skip: looking up the
+ * pt-PT "fixe" returns the literal adjective unless something forces the
+ * colloquial reading to be considered. Asking for it every time costs one
+ * extra entry; the model answers that no local expression exists when that's
+ * the case.
+ */
+const ALWAYS_REQUESTED_TYPE = 'expression';
+
+/**
+ * Ceiling on how many categories a user may tick.
+ *
+ * No real word functions as all ten, so the upper range is only ever reached
+ * by accident — and each extra category is another definition the model has to
+ * write. Exported so the UI enforces the same number the service does rather
+ * than the two drifting apart.
+ *
+ * Note this counts the user's own picks; ALWAYS_REQUESTED_TYPE is appended on
+ * top, so the prompt can list at most MAX_WORD_TYPES + 1.
+ */
+export const MAX_WORD_TYPES = 5;
+
+/**
  * Build the response schema for a lookup.
  *
- * When the user has toggled specific types, the enum is narrowed to exactly
- * those and the array length is pinned to their count — so the model cannot
- * return a category that wasn't asked for, nor skip one that was. With no
- * selection the enum opens to every type and exactly one entry comes back,
- * letting the model pick the word's most common sense.
+ * `types` is what the prompt explicitly lists. On top of those the model
+ * always adds one entry for the word's most common category, which is why the
+ * enum stays open to every category (that entry could be any of them) and the
+ * upper bound is one more than the listed count.
  *
- * @param {string[]} types - selected word types; empty means "you choose, just one"
+ * The lower bound is `types.length`, so every explicitly listed category comes
+ * back even when it doesn't apply — that's what lets the UI show "not used as
+ * a verb" for a pill the user deliberately ticked.
+ *
+ * @param {string[]} types - grammatical categories named in the prompt
  */
 function buildResponseSchema(types) {
-  const count = types.length > 0 ? types.length : 1;
   return {
     type: 'object',
     properties: {
       entries: {
         type: 'array',
-        minItems: count,
-        maxItems: count,
+        minItems: types.length,
+        maxItems: types.length + 1,
         items: {
           type: 'object',
           properties: {
             wordType: {
               type: 'string',
-              enum: types.length > 0 ? types : WORD_TYPES,
+              enum: WORD_TYPES,
               description: 'The grammatical category this definition describes.',
             },
             definition: { type: 'string' },
@@ -132,22 +160,28 @@ export async function lookupWord({ token, word, interfaceLang, learningLang, wor
   if (!interfaceLang)     throw new Error('[dictionaryService] interfaceLang is required');
   if (!learningLang)      throw new Error('[dictionaryService] learningLang is required');
 
-  // Ignore anything not in the known set — a stale pill from an older build
-  // would otherwise end up in the schema enum and break the call.
-  const types = wordTypes.filter((tp) => WORD_TYPES.includes(tp));
-
-  // Rendered like lengthConstraintLine elsewhere: a whole sentence, or nothing
-  // at all, so the template reads correctly either way.
-  const wordTypeLine = types.length > 0
-    ? `Return one entry for each of these grammatical categories, in this order: ${types.join(', ')}. If the word does not genuinely function as one of them, still return that entry and say so plainly in its definition rather than inventing a meaning.`
-    : 'Return exactly one entry, for the word\'s most common grammatical category.';
+  // Resolve the categories the prompt will name. Only keep known types — a
+  // stale pill from an older build would otherwise reach the schema and break
+  // the call. `expression` is appended unconditionally (see
+  // ALWAYS_REQUESTED_TYPE), so with nothing selected the list is just that one
+  // and the response stays at the word's most common sense plus its local
+  // expression — never the full ten. The prompt template owns all the wording
+  // around this list; only the raw list is injected.
+  // Truncated here as well as in the UI: the cap protects the response size,
+  // so it can't depend on a caller having enforced it.
+  const requested = wordTypes
+    .filter((tp) => WORD_TYPES.includes(tp))
+    .slice(0, MAX_WORD_TYPES);
+  const types = [...new Set([...requested, ALWAYS_REQUESTED_TYPE])];
 
   const promptDoc = await getPrompt('dictionary-lookup-prompt');
   const prompt = renderTemplate(promptDoc.template, {
     word: word.trim(),
+    // The template injects this as plain text in a grammatical-category list
+    // ("noun, verb, ..."), so it's joined into a human-readable string here.
+    wordTypes: types.join(', '),
     interfaceLang,
     learningLang,
-    wordTypeLine,
   });
 
   const providerParams = {
@@ -172,6 +206,7 @@ export async function lookupWord({ token, word, interfaceLang, learningLang, wor
     throw new Error('[dictionaryService] Could not parse AI response as JSON');
   }
 
+  const seenTypes = new Set();
   const entries = (Array.isArray(parsed?.entries) ? parsed.entries : [])
     .map((e) => ({
       wordType: WORD_TYPES.includes(e?.wordType) ? e.wordType : 'other',
@@ -180,7 +215,11 @@ export async function lookupWord({ token, word, interfaceLang, learningLang, wor
         ? e.synonyms.map((s) => String(s).trim()).filter(Boolean)
         : [],
     }))
-    .filter((e) => e.definition);
+    .filter((e) => e.definition)
+    // The most-common-sense entry can land on a category that was also listed
+    // explicitly, so the same wordType can come back twice. Keep the first and
+    // drop the repeat rather than rendering the word twice as a noun.
+    .filter((e) => !seenTypes.has(e.wordType) && seenTypes.add(e.wordType));
 
   if (entries.length === 0) throw new Error('[dictionaryService] No definition returned');
 
