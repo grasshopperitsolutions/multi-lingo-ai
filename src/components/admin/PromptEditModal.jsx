@@ -5,15 +5,40 @@ import NeoDropdown from "../NeoDropdown";
 import ConfirmModal from "../ConfirmModal";
 import { PrimaryButton, GhostButton } from "../ui";
 
-const CATEGORY_OPTIONS = [
-  { value: "exams", label: "Exams" },
-  { value: "translation", label: "Translation" },
-  { value: "dictionary", label: "Dictionary" },
-  { value: "vocabulary-games", label: "Vocabulary Games" },
-  { value: "audio", label: "Audio" },
-  { value: "grammar", label: "Grammar" },
-  { value: "stories", label: "Stories" },
-];
+/** "vocabulary-games" -> "Vocabulary Games" */
+function toLabel(value) {
+  return value
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+/**
+ * Category options, inferred entirely from the prompts that exist — there is
+ * no hardcoded list to drift out of date. A category introduced by a newly
+ * seeded prompt appears here on its own; one that no longer exists disappears.
+ *
+ * The prompt's own category is unioned in as a safeguard. It will normally
+ * already be in `inUse` (the prompt is one of the loaded ones), but if the
+ * list were ever stale or still loading, omitting it would leave the dropdown
+ * defaulted to some other value and silently rewrite the category on save.
+ *
+ * Consequence worth knowing: a brand-new category can't be invented from this
+ * dropdown. That suits the current workflow, where prompts are created by a
+ * seeder with the category set in code, and the category is then selectable
+ * here from the moment the prompt exists.
+ */
+function buildCategoryOptions(inUse, current) {
+  const values = [...new Set([...inUse, current].filter(Boolean))].sort();
+  const options = values.map((value) => ({ value, label: toLabel(value) }));
+
+  // An uncategorised prompt needs a real option representing that state,
+  // otherwise the dropdown would display the first category while the value is
+  // still empty — looking as though a category were already chosen.
+  if (!current) options.unshift({ value: "", label: "— none —" });
+
+  return options;
+}
 
 const STATUS_OPTIONS = [
   { value: "active", label: "Active" },
@@ -35,10 +60,13 @@ const labelClasses = (isDarkMode) => `block text-xs font-black uppercase trackin
   isDarkMode ? "text-slate-400" : "text-slate-500"
 }`;
 
-const PromptEditModal = ({ prompt, isDarkMode, isSaving, onSave, onClose }) => {
+const PromptEditModal = ({ prompt, categoriesInUse, isDarkMode, isSaving, onSave, onClose }) => {
   const [name, setName] = useState(prompt.name ?? "");
   const [description, setDescription] = useState(prompt.description ?? "");
-  const [category, setCategory] = useState(prompt.category ?? "exams");
+  // No invented default — `category` is written on every save, so defaulting to
+  // a real category here would stamp one onto an uncategorised prompt just by
+  // opening and saving it.
+  const [category, setCategory] = useState(prompt.category ?? "");
   const [status, setStatus] = useState(prompt.status ?? "active");
   const [template, setTemplate] = useState(prompt.template ?? "");
   const [variants, setVariants] = useState(
@@ -48,6 +76,11 @@ const PromptEditModal = ({ prompt, isDarkMode, isSaving, onSave, onClose }) => {
   const [model, setModel] = useState(prompt.model ?? "");
   const [showConfirm, setShowConfirm] = useState(false);
   const [rawError, setRawError] = useState(null);
+
+  const categoryOptions = useMemo(
+    () => buildCategoryOptions(categoriesInUse ?? [], prompt.category),
+    [categoriesInUse, prompt.category]
+  );
 
   // Derived from the template being edited, not from the stored `variables`
   // field — that field was hand-maintained and went stale the moment a
@@ -162,7 +195,7 @@ const PromptEditModal = ({ prompt, isDarkMode, isSaving, onSave, onClose }) => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            <NeoDropdown options={CATEGORY_OPTIONS} value={category} onChange={setCategory} isDarkMode={isDarkMode} label="Category" className="flex-1" />
+            <NeoDropdown options={categoryOptions} value={category} onChange={setCategory} isDarkMode={isDarkMode} label="Category" className="flex-1" />
             <NeoDropdown options={STATUS_OPTIONS} value={status} onChange={setStatus} isDarkMode={isDarkMode} label="Status" className="flex-1" />
           </div>
 
@@ -281,6 +314,8 @@ const PromptEditModal = ({ prompt, isDarkMode, isSaving, onSave, onClose }) => {
 
 PromptEditModal.propTypes = {
   prompt: PropTypes.object.isRequired,
+  /** Categories currently used by the loaded prompts; unioned into the dropdown. */
+  categoriesInUse: PropTypes.arrayOf(PropTypes.string),
   isDarkMode: PropTypes.bool.isRequired,
   isSaving: PropTypes.bool.isRequired,
   onSave: PropTypes.func.isRequired,

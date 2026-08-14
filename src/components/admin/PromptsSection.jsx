@@ -44,10 +44,38 @@ function matchesSearch(prompt, term) {
 
 const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPrompt }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategories, setActiveCategories] = useState([]);
 
+  // Derived from the prompts actually loaded rather than a hardcoded list, so
+  // a category introduced by a new prompt shows up on its own and one that no
+  // longer exists stops offering an empty filter.
+  const categoryFilters = useMemo(() => {
+    const counts = new Map();
+    for (const p of prompts) {
+      const c = p.category || "(uncategorised)";
+      counts.set(c, (counts.get(c) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([value, count]) => ({ value, label: `${value} (${count})` }));
+  }, [prompts]);
+
+  const toggleCategory = (value) => {
+    setActiveCategories((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+    );
+  };
+
+  // Chips are OR'd against each other, then AND'ed with the text search.
   const filteredPrompts = useMemo(
-    () => prompts.filter((p) => matchesSearch(p, searchTerm)),
-    [prompts, searchTerm]
+    () =>
+      prompts.filter((p) => {
+        const category = p.category || "(uncategorised)";
+        const matchesCategory =
+          activeCategories.length === 0 || activeCategories.includes(category);
+        return matchesCategory && matchesSearch(p, searchTerm);
+      }),
+    [prompts, searchTerm, activeCategories]
   );
 
   return (
@@ -62,11 +90,27 @@ const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPromp
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
             searchPlaceholder="Search by name, category, status, description..."
+            filters={categoryFilters}
+            activeFilters={activeCategories}
+            onFilterToggle={toggleCategory}
             isDarkMode={isDarkMode}
           />
-          <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-            {filteredPrompts.length} of {prompts.length} prompt{prompts.length === 1 ? "" : "s"}
-          </p>
+          <div className="flex items-center gap-3">
+            <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              {filteredPrompts.length} of {prompts.length} prompt{prompts.length === 1 ? "" : "s"}
+            </p>
+            {activeCategories.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveCategories([])}
+                className={`text-xs font-black uppercase tracking-widest underline transition-colors ${
+                  isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </>
       )}
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "../hooks/useTierAccess";
@@ -44,6 +44,13 @@ const AdminPage = () => {
   const [editingGenericDoc, setEditingGenericDoc] = useState(null); // null | { doc, collection }
   const [isSavingGenericDoc, setIsSavingGenericDoc] = useState(false);
   // TEMPORARY — prompt seeding.
+
+  // Categories actually in use, so the edit modal's dropdown reflects reality
+  // instead of a hardcoded list that drifts as new prompts are added.
+  const promptCategoriesInUse = useMemo(
+    () => [...new Set((docsBySection.prompts ?? []).map((p) => p.category).filter(Boolean))],
+    [docsBySection.prompts]
+  );
 
   const activeSection = CONFIG_SECTIONS.find((s) => s.id === activeSectionId);
   const isPromptsSection = activeSectionId === "prompts";
@@ -362,6 +369,7 @@ const AdminPage = () => {
       {editingPrompt && (
         <PromptEditModal
           prompt={editingPrompt}
+          categoriesInUse={promptCategoriesInUse}
           isDarkMode={isDarkMode}
           isSaving={isSavingPrompt}
           onSave={handleSavePrompt}
