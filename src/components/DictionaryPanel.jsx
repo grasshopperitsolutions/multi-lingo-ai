@@ -403,13 +403,18 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
                 <div
                   key={`${entry.wordType}-${i}`}
                   className={
-                    // Only separate senses when there's more than one to tell apart.
+                    // Only separate senses with a divider when there's more
+                    // than one to tell apart.
                     entries.length > 1
                       ? `pt-3 ${i > 0 ? `border-t-2 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}` : ''}`
                       : ''
                   }
                 >
-                  {entries.length > 1 && (
+                  {/* Always surface the grammatical category the model returned.
+                      Even for a single entry the model chooses the type (most
+                      common sense) when no type pills are selected, so it should
+                      always be shown when present. */}
+                  {entry.wordType && (
                     <span className={`inline-block mb-2 px-2.5 py-1 rounded-full border-2 text-[10px] font-black uppercase tracking-widest ${
                       isDarkMode
                         ? 'bg-violet-900/40 border-violet-700 text-violet-300'
