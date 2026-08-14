@@ -669,7 +669,22 @@
     "keyboard_hint": "Tip: Press Ctrl+Enter (or \u2318+Enter) to look up",
     "definition": "Definition",
     "synonyms": "Synonyms",
-    "error_failed": "Lookup failed. Please try again."
+    "error_failed": "Lookup failed. Please try again.",
+    "word_type_filter": "Define as",
+    "word_type_hint_none": "Nothing selected — you'll get the word's most common meaning.",
+    "word_type_hint_selected": "You'll get {{count}} definitions, one per selection.",
+    "word_type": {
+      "noun": "Noun",
+      "verb": "Verb",
+      "adjective": "Adjective",
+      "adverb": "Adverb",
+      "expression": "Expression",
+      "pronoun": "Pronoun",
+      "preposition": "Preposition",
+      "conjunction": "Conjunction",
+      "interjection": "Interjection",
+      "other": "Other"
+    }
   },
   "challenges": {
     "title": "Challenge Hub",

@@ -41,8 +41,11 @@ const WordLookupSheet = ({ word, targetLang, isDarkMode, onClose }) => {
     setError(null);
     setResult(null);
 
+    // No wordTypes: this is a quick tap-to-glance while reading, so the single
+    // most common sense is what's wanted. The full Dictionary page is where
+    // you narrow by grammatical category.
     lookupWord({ token: user?.token, word: activeWord, interfaceLang, learningLang: targetLang })
-      .then((data) => { if (!cancelled) setResult(data); })
+      .then((data) => { if (!cancelled) setResult(data.entries[0] ?? null); })
       .catch((err) => { if (!cancelled) setError(err.message); })
       .finally(() => { if (!cancelled) setIsLoading(false); });
 
@@ -116,6 +119,18 @@ const WordLookupSheet = ({ word, targetLang, isDarkMode, onClose }) => {
 
           {!isLoading && !error && result && (
             <>
+              {/* Which sense of the word this is. The full Dictionary page lets
+                  you request several categories at once; here the model picks
+                  the most common one, so showing which it chose matters. */}
+              {result.wordType && (
+                <span className={`inline-block mb-2 px-2.5 py-1 rounded-full border-2 text-[10px] font-black uppercase tracking-widest ${
+                  isDarkMode
+                    ? "bg-violet-900/40 border-violet-700 text-violet-300"
+                    : "bg-violet-50 border-violet-300 text-violet-700"
+                }`}>
+                  {t(`dictionary.word_type.${result.wordType}`, result.wordType)}
+                </span>
+              )}
               <p className={`text-sm ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
                 {result.definition}
               </p>

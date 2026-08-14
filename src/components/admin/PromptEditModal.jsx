@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import { X, Save, Tag } from "lucide-react";
 import NeoDropdown from "../NeoDropdown";
@@ -48,6 +48,19 @@ const PromptEditModal = ({ prompt, isDarkMode, isSaving, onSave, onClose }) => {
   const [model, setModel] = useState(prompt.model ?? "");
   const [showConfirm, setShowConfirm] = useState(false);
   const [rawError, setRawError] = useState(null);
+
+  // Derived from the template being edited, not from the stored `variables`
+  // field — that field was hand-maintained and went stale the moment a
+  // template changed. Recomputing here means the pills always match the text
+  // on screen, updating live as you type.
+  const usedVariables = useMemo(() => {
+    const sources = variants ? variants.map((v) => v.template ?? "") : [template];
+    const found = new Set();
+    for (const text of sources) {
+      for (const m of String(text).matchAll(/\{\{(\w+)\}\}/g)) found.add(m[1]);
+    }
+    return [...found].sort();
+  }, [template, variants]);
 
   const extraKeys = Object.keys(prompt).filter((k) => !KNOWN_FIELDS.has(k));
   const [extraJson, setExtraJson] = useState(
@@ -176,19 +189,20 @@ const PromptEditModal = ({ prompt, isDarkMode, isSaving, onSave, onClose }) => {
             </div>
           </div>
 
-          {Array.isArray(prompt.variables) && prompt.variables.length > 0 && (
+          {usedVariables.length > 0 && (
             <div>
-              <label className={labelClasses(isDarkMode)}>Variables (informational)</label>
+              <label className={labelClasses(isDarkMode)}>
+                Variables (detected in template)
+              </label>
               <div className="flex flex-wrap gap-2">
-                {prompt.variables.map((v) => (
+                {usedVariables.map((name) => (
                   <span
-                    key={v.name}
-                    title={v.description}
+                    key={name}
                     className={`px-2.5 py-1 rounded-full border-2 text-xs font-bold font-mono ${
                       isDarkMode ? "bg-slate-700 border-slate-600 text-slate-300" : "bg-slate-100 border-slate-300 text-slate-600"
                     }`}
                   >
-                    {`{{${v.name}}}`}
+                    {`{{${name}}}`}
                   </span>
                 ))}
               </div>

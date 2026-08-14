@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { Copy, Trash2, Search, Volume2, Turtle, Pause, Square } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
-import { lookupWord } from '../services/dictionaryService';
+import { lookupWord, WORD_TYPES } from '../services/dictionaryService';
 import { useTts } from '../hooks/useTts';
 import TooltipButton from './TooltipButton';
 import ReportButton from './ReportButton';
@@ -151,32 +151,42 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
   const resolvedInterfaceLang = interfaceLang ?? 'en-US';
 
   const [inputText,    setInputText]    = useState(initialQuery ?? '');
-  const [definition,   setDefinition]   = useState('');
-  const [synonyms,     setSynonyms]     = useState([]);
+  const [entries,      setEntries]      = useState([]);
+  const [wordTypes,    setWordTypes]    = useState([]);
   const [isLoading,    setIsLoading]    = useState(false);
   const [error,        setError]        = useState(null);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [lookedUpWord, setLookedUpWord] = useState('');
 
-  const hasResult = !isLoading && !error && definition;
+  const hasResult = !isLoading && !error && entries.length > 0;
+
+  const toggleWordType = (type) => {
+    setWordTypes((prev) =>
+      prev.includes(type) ? prev.filter((v) => v !== type) : [...prev, type]
+    );
+  };
 
   const handleClear = () => {
     stopTts();
     setInputText('');
-    setDefinition('');
-    setSynonyms([]);
+    setEntries([]);
     setError(null);
     setLookedUpWord('');
   };
 
+  // Copies every returned sense, labelled — copying only the first would
+  // silently drop the others when several types were requested.
   const handleCopy = useCallback(async () => {
-    if (!definition) return;
+    if (entries.length === 0) return;
+    const text = entries.length === 1
+      ? entries[0].definition
+      : entries.map((e) => `${t(`dictionary.word_type.${e.wordType}`, e.wordType)}: ${e.definition}`).join('\n\n');
     try {
-      await navigator.clipboard.writeText(definition);
+      await navigator.clipboard.writeText(text);
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 2000);
     } catch { /* clipboard API unavailable */ }
-  }, [definition]);
+  }, [entries, t]);
 
   const handleLookup = useCallback(async (wordOverride) => {
     const word = (wordOverride ?? inputText).trim();
@@ -185,8 +195,7 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
     stopTts();
     setIsLoading(true);
     setError(null);
-    setDefinition('');
-    setSynonyms([]);
+    setEntries([]);
     setLookedUpWord(word);
     try {
       const result = await lookupWord({
@@ -194,16 +203,16 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
         word,
         interfaceLang: resolvedInterfaceLang,
         learningLang,
+        wordTypes,
       });
-      setDefinition(result.definition);
-      setSynonyms(result.synonyms);
+      setEntries(result.entries);
     } catch (err) {
       setError(err.message ?? t('dictionary.error_failed'));
     } finally {
       setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputText, user, resolvedInterfaceLang, learningLang, t]);
+  }, [inputText, user, resolvedInterfaceLang, learningLang, wordTypes, t]);
 
   useEffect(() => {
     const performInitialLookup = async () => {
@@ -213,18 +222,18 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
         stopTts();
         setIsLoading(true);
         setError(null);
-        setDefinition('');
-        setSynonyms([]);
+        setEntries([]);
         setLookedUpWord(word);
         try {
+          // Deliberately no wordTypes here: this is the deep-link path from the
+          // translator, where the user hasn't had a chance to pick pills yet.
           const result = await lookupWord({
             token: user?.token,
             word,
             interfaceLang: resolvedInterfaceLang,
             learningLang,
           });
-          setDefinition(result.definition);
-          setSynonyms(result.synonyms);
+          setEntries(result.entries);
         } catch (err) {
           setError(err.message ?? t('dictionary.error_failed'));
         } finally {
@@ -306,6 +315,41 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
         </div>
       </div>
 
+      {/* Word-type pills — optional. None selected means the model returns the
+          word's single most common sense, which is the original behaviour. */}
+      <div className="mt-3">
+        <p className={sectionLabel}>{t('dictionary.word_type_filter')}</p>
+        <div className="flex flex-wrap gap-2" role="group" aria-label={t('dictionary.word_type_filter')}>
+          {WORD_TYPES.map((type) => {
+            const isSelected = wordTypes.includes(type);
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => toggleWordType(type)}
+                aria-pressed={isSelected}
+                className={`px-3 py-1.5 rounded-full border-2 text-xs font-black uppercase tracking-widest transition-all active:scale-95 ${
+                  isSelected
+                    ? isDarkMode
+                      ? 'bg-violet-500 border-violet-400 text-white'
+                      : 'bg-violet-500 border-violet-600 text-white'
+                    : isDarkMode
+                      ? 'bg-transparent border-slate-600 text-slate-400 hover:border-slate-400 hover:text-slate-200'
+                      : 'bg-transparent border-slate-300 text-slate-500 hover:border-slate-900 hover:text-slate-900'
+                }`}
+              >
+                {t(`dictionary.word_type.${type}`, type)}
+              </button>
+            );
+          })}
+        </div>
+        <p className={`mt-2 text-xs font-bold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+          {wordTypes.length === 0
+            ? t('dictionary.word_type_hint_none')
+            : t('dictionary.word_type_hint_selected', { count: wordTypes.length })}
+        </p>
+      </div>
+
       {/* Look Up button */}
       <div className="flex justify-end mt-2">
         <button
@@ -355,29 +399,59 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
               }`}>
                 {lookedUpWord}
               </h3>
-              <div>
-                <p className={sectionLabel}>{t('dictionary.definition')}</p>
-                <p className={`text-base font-bold leading-relaxed ${
-                  isDarkMode ? 'text-white' : 'text-slate-900'
-                }`}>
-                  {definition}
-                </p>
-              </div>
-              {synonyms.length > 0 && (
-                <div>
-                  <p className={sectionLabel}>{t('dictionary.synonyms')}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {synonyms.map((syn) => (
-                      <SynonymChip key={syn} word={syn} isDarkMode={isDarkMode} onClick={handleLookup} />
-                    ))}
+              {entries.map((entry, i) => (
+                <div
+                  key={`${entry.wordType}-${i}`}
+                  className={
+                    // Only separate senses when there's more than one to tell apart.
+                    entries.length > 1
+                      ? `pt-3 ${i > 0 ? `border-t-2 ${isDarkMode ? 'border-slate-700' : 'border-slate-100'}` : ''}`
+                      : ''
+                  }
+                >
+                  {entries.length > 1 && (
+                    <span className={`inline-block mb-2 px-2.5 py-1 rounded-full border-2 text-[10px] font-black uppercase tracking-widest ${
+                      isDarkMode
+                        ? 'bg-violet-900/40 border-violet-700 text-violet-300'
+                        : 'bg-violet-50 border-violet-300 text-violet-700'
+                    }`}>
+                      {t(`dictionary.word_type.${entry.wordType}`, entry.wordType)}
+                    </span>
+                  )}
+
+                  <p className={sectionLabel}>{t('dictionary.definition')}</p>
+                  <p className={`text-base font-bold leading-relaxed ${
+                    isDarkMode ? 'text-white' : 'text-slate-900'
+                  }`}>
+                    {entry.definition}
+                  </p>
+
+                  {entry.synonyms.length > 0 && (
+                    <div className="mt-3">
+                      <p className={sectionLabel}>{t('dictionary.synonyms')}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {entry.synonyms.map((syn) => (
+                          <SynonymChip key={syn} word={syn} isDarkMode={isDarkMode} onClick={handleLookup} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-2">
+                    <TtsControls
+                      {...ttsProps}
+                      ttsKey={`dictionary-definition-${i}`}
+                      text={entry.definition}
+                      lang={resolvedInterfaceLang}
+                    />
                   </div>
                 </div>
-              )}
+              ))}
+
               <div className={`flex items-center gap-2 pt-2 border-t-2 ${
                 isDarkMode ? 'border-slate-700' : 'border-slate-100'
               }`}>
-                <TtsControls {...ttsProps} ttsKey="dictionary-definition" text={definition} lang={resolvedInterfaceLang} />
-                <IconButton onClick={handleCopy} label={copyFeedback ? t('translator.copied') : t('translator.copy')} disabled={!definition} isDarkMode={isDarkMode}><Copy size={16} /></IconButton>
+                <IconButton onClick={handleCopy} label={copyFeedback ? t('translator.copied') : t('translator.copy')} disabled={entries.length === 0} isDarkMode={isDarkMode}><Copy size={16} /></IconButton>
                 {copyFeedback && (
                   <span className={`text-xs font-black uppercase tracking-widest ${
                     isDarkMode ? 'text-violet-400' : 'text-violet-600'
