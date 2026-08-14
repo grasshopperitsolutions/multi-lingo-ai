@@ -1,9 +1,11 @@
-# .github/workflows/deploy.yml
+# .github/workflows/deploy-prod.yml
 name: Deploy static content to Pages
 
 on:
-  push:
-    branches: ["master"] # or your default branch
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
@@ -18,6 +20,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
