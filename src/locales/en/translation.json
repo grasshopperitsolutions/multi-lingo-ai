@@ -671,8 +671,8 @@
     "synonyms": "Synonyms",
     "error_failed": "Lookup failed. Please try again.",
     "word_type_filter": "Define as",
-    "word_type_hint_none": "Nothing selected — you'll get the word's most common meaning, plus any local expression.",
-    "word_type_hint_selected": "You'll get your {{count}} selected, plus the most common meaning and any local expression.",
+    "word_type_hint_none": "Nothing selected — you'll get the word's most common meaning.",
+    "word_type_hint_selected": "You'll get your {{count}} selected, plus the most common meaning.",
     "word_type_hint_max": "That's the maximum of {{max}}. Unpick one to choose a different category.",
     "word_type": {
       "noun": "Noun",

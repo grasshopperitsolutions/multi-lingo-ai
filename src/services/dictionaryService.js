@@ -77,41 +77,28 @@ export const WORD_TYPES = [
 ];
 
 /**
- * Always requested, whether or not the user picked it.
- *
- * A word's local/idiomatic sense is the one a learner is most likely to be
- * hunting for and the one a model is most likely to skip: looking up the
- * pt-PT "fixe" returns the literal adjective unless something forces the
- * colloquial reading to be considered. Asking for it every time costs one
- * extra entry; the model answers that no local expression exists when that's
- * the case.
- */
-const ALWAYS_REQUESTED_TYPE = 'expression';
-
-/**
  * Ceiling on how many categories a user may tick.
  *
  * No real word functions as all ten, so the upper range is only ever reached
  * by accident — and each extra category is another definition the model has to
  * write. Exported so the UI enforces the same number the service does rather
  * than the two drifting apart.
- *
- * Note this counts the user's own picks; ALWAYS_REQUESTED_TYPE is appended on
- * top, so the prompt can list at most MAX_WORD_TYPES + 1.
  */
 export const MAX_WORD_TYPES = 5;
 
 /**
  * Build the response schema for a lookup.
  *
- * `types` is what the prompt explicitly lists. On top of those the model
- * always adds one entry for the word's most common category, which is why the
- * enum stays open to every category (that entry could be any of them) and the
- * upper bound is one more than the listed count.
+ * `types` is what the prompt explicitly lists — exactly the user's ticked
+ * pills, possibly none. On top of those the prompt asks for one entry for the
+ * word's most common category, which is why the enum stays open to every
+ * category (that entry could be any of them) and the upper bound is one more
+ * than the listed count.
  *
  * The lower bound is `types.length`, so every explicitly listed category comes
  * back even when it doesn't apply — that's what lets the UI show "not used as
- * a verb" for a pill the user deliberately ticked.
+ * a verb" for a pill the user deliberately ticked. With nothing ticked the
+ * bounds are 0-1, i.e. just the most common sense.
  *
  * @param {string[]} types - grammatical categories named in the prompt
  */
@@ -160,19 +147,17 @@ export async function lookupWord({ token, word, interfaceLang, learningLang, wor
   if (!interfaceLang)     throw new Error('[dictionaryService] interfaceLang is required');
   if (!learningLang)      throw new Error('[dictionaryService] learningLang is required');
 
-  // Resolve the categories the prompt will name. Only keep known types — a
-  // stale pill from an older build would otherwise reach the schema and break
-  // the call. `expression` is appended unconditionally (see
-  // ALWAYS_REQUESTED_TYPE), so with nothing selected the list is just that one
-  // and the response stays at the word's most common sense plus its local
-  // expression — never the full ten. The prompt template owns all the wording
-  // around this list; only the raw list is injected.
-  // Truncated here as well as in the UI: the cap protects the response size,
-  // so it can't depend on a caller having enforced it.
-  const requested = wordTypes
+  // Exactly what the user ticked, nothing added. Only known types survive — a
+  // stale pill from an older build would otherwise reach the schema. Truncated
+  // here as well as in the UI, since the cap protects the response size and
+  // can't depend on a caller having enforced it.
+  //
+  // An empty list is a valid state: the prompt then falls through to asking
+  // only for the word's most common sense. The template owns all the wording,
+  // including how it phrases an empty list — only the raw list is injected.
+  const types = wordTypes
     .filter((tp) => WORD_TYPES.includes(tp))
     .slice(0, MAX_WORD_TYPES);
-  const types = [...new Set([...requested, ALWAYS_REQUESTED_TYPE])];
 
   const promptDoc = await getPrompt('dictionary-lookup-prompt');
   const prompt = renderTemplate(promptDoc.template, {
