@@ -15,6 +15,7 @@ import {
   Briefcase,
   UtensilsCrossed,
   RadioTower,
+  Plane,
   Gamepad2,
   GraduationCap,
   Flame,
@@ -109,6 +110,7 @@ const DashboardHomePage = () => {
     { id: "professional_tools",route: "/dashboard/professional-tools", icon: Briefcase,        title: t("dashboard.professional_tools"), description: t("dashboard.professional_tools_desc"), color: "text-indigo-500", statusBadgeLabel: t("dashboard.coming_soon") },
     { id: "food",              route: "/dashboard/food",               icon: UtensilsCrossed,  title: t("dashboard.food"),              description: t("dashboard.food_desc"),              color: "text-lime-500",    statusBadgeLabel: t("dashboard.coming_soon") },
     { id: "radio_tv",          route: "/dashboard/radio-tv",           icon: RadioTower,       title: t("dashboard.radio_tv"),          description: t("dashboard.radio_tv_desc"),          color: "text-cyan-500",    statusBadgeLabel: t("dashboard.coming_soon") },
+    { id: "plan_trip",         route: "/dashboard/plan-trip",          icon: Plane,            title: t("dashboard.plan_trip"),         description: t("dashboard.plan_trip_desc"),         color: "text-pink-500",    statusBadgeLabel: t("dashboard.coming_soon") },
   ];
 
   const handleFeatureClick = (feature) => {

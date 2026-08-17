@@ -530,7 +530,9 @@
     "food": "Food",
     "food_desc": "Discover local dishes and their stories, find restaurants that suit you, and cook authentic recipes.",
     "radio_tv": "Radio & TV",
-    "radio_tv_desc": "Listen to local radio and watch TV stations from the country you're learning about."
+    "radio_tv_desc": "Listen to local radio and watch TV stations from the country you're learning about.",
+    "plan_trip": "Plan Your Trip",
+    "plan_trip_desc": "Plan a trip to the country you're learning about, with places to visit and the language you'll need."
   },
   "exam": {
     "title": "Exam Training",

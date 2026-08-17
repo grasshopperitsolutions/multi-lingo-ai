@@ -56,6 +56,7 @@ const HistoryCulturePage = lazy(() => import("./pages/dashboard/HistoryCulturePa
 const ProfessionalToolsPage = lazy(() => import("./pages/dashboard/coming-soon/ProfessionalToolsPage"));
 const FoodPage = lazy(() => import("./pages/dashboard/coming-soon/FoodPage"));
 const RadioTvPage = lazy(() => import("./pages/dashboard/coming-soon/RadioTvPage"));
+const PlanTripPage = lazy(() => import("./pages/dashboard/coming-soon/PlanTripPage"));
 
 const PublicLayout = () => {
   const { interfaceLang } = useAppContext();
@@ -207,6 +208,7 @@ const AppLayout = () => {
             <Route path="professional-tools" element={<ProfessionalToolsPage />} />
             <Route path="food" element={<FoodPage />} />
             <Route path="radio-tv" element={<RadioTvPage />} />
+            <Route path="plan-trip" element={<PlanTripPage />} />
 
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
