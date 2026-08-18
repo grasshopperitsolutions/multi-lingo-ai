@@ -91,42 +91,82 @@ function formatKeyList(keys, limit = 15) {
   return `${keys.slice(0, limit).join(", ")}, +${keys.length - limit} more`;
 }
 
-// Per-chunk source size budget for seedLanguageTranslations(). Splitting the
-// translation into several smaller ask-ai calls (instead of one call for the
-// full ~56KB document) keeps every call well within the standard ask-ai
-// timeout on its own — no dependency on raising Vercel's maxDuration or
-// Fluid Compute being enabled.
-const CHUNK_SIZE_BUDGET_BYTES = 12000;
+// Per-chunk source size budget for splitIntoChunks(), measured as compact
+// (non-pretty-printed) JSON — the same form actually sent in the ask-ai
+// prompt. Kept well under the backend's hard MAX_PROMPT_LENGTH = 8000 cap
+// (see multi-lingo-ai-api/api/ask-ai.ts) to leave headroom for the prompt
+// template text wrapped around the JSON, which this file doesn't control
+// (it's admin-edited in Firestore). Splitting into several smaller ask-ai
+// calls (instead of one call for the full ~56KB document) also keeps every
+// call well within the standard ask-ai timeout on its own — no dependency
+// on raising Vercel's maxDuration or Fluid Compute being enabled.
+const CHUNK_SIZE_BUDGET_BYTES = 6000;
 
 /**
- * Groups the top-level sections of `sourceData` into batches whose combined
- * JSON size stays under CHUNK_SIZE_BUDGET_BYTES, so many small sections
- * (nav, common, login, ...) get sent together in one AI call while a
- * section that's already larger than the budget on its own (e.g. terms,
- * privacy) becomes its own chunk rather than being split further. Order is
- * preserved so chunking stays deterministic across runs.
+ * Walks `node` collecting { path, value, size } leaves for chunking. A
+ * top-level section is normally kept whole, but one already bigger than
+ * `budget` on its own (e.g. "home", "terms", "privacy" — each over 8KB
+ * compact) is recursed into and split at its own child keys instead, so no
+ * single oversized section can ever blow the chunk budget by itself.
+ */
+function collectChunkEntries(node, budget, pathPrefix = []) {
+  const entries = [];
+  for (const [key, value] of Object.entries(node)) {
+    const path = [...pathPrefix, key];
+    const size = JSON.stringify(value).length;
+    if (size > budget && isPlainObject(value)) {
+      entries.push(...collectChunkEntries(value, budget, path));
+    } else {
+      entries.push({ path, value, size });
+    }
+  }
+  return entries;
+}
+
+/** Sets a possibly-nested `path` (array of keys) on `obj`, creating intermediate objects as needed. */
+function setPath(obj, path, value) {
+  let node = obj;
+  for (let i = 0; i < path.length - 1; i++) {
+    const key = path[i];
+    if (!isPlainObject(node[key])) node[key] = {};
+    node = node[key];
+  }
+  node[path[path.length - 1]] = value;
+  return obj;
+}
+
+/**
+ * Groups `sourceData`'s leaves into batches whose combined compact-JSON size
+ * stays under CHUNK_SIZE_BUDGET_BYTES, recursing into any section that's
+ * larger than the budget on its own rather than sending it oversized (see
+ * collectChunkEntries). Order is preserved so chunking stays deterministic
+ * across runs. Because a large section can now be split across chunks,
+ * chunks must be reassembled with a deep merge, not Object.assign.
  *
  * @param {object} sourceData
- * @returns {object[]} Array of chunk objects, each a subset of sourceData's top-level keys.
+ * @param {number} [budget]
+ * @returns {object[]} Array of chunk objects, each a (possibly partial) nested subset of sourceData.
  */
-function splitIntoChunks(sourceData) {
+function splitIntoChunks(sourceData, budget = CHUNK_SIZE_BUDGET_BYTES) {
+  const entries = collectChunkEntries(sourceData, budget);
   const chunks = [];
-  let current = {};
+  let current = [];
   let currentSize = 0;
 
-  for (const [key, value] of Object.entries(sourceData)) {
-    const size = JSON.stringify(value).length;
-    if (currentSize > 0 && currentSize + size > CHUNK_SIZE_BUDGET_BYTES) {
+  for (const entry of entries) {
+    if (currentSize > 0 && currentSize + entry.size > budget) {
       chunks.push(current);
-      current = {};
+      current = [];
       currentSize = 0;
     }
-    current[key] = value;
-    currentSize += size;
+    current.push(entry);
+    currentSize += entry.size;
   }
-  if (Object.keys(current).length > 0) chunks.push(current);
+  if (current.length > 0) chunks.push(current);
 
-  return chunks;
+  return chunks.map((chunkEntries) =>
+    chunkEntries.reduce((acc, { path, value }) => setPath(acc, path, value), {})
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -251,49 +291,71 @@ export async function fillMissingTranslations(locale, token) {
     const missingKeyNames = Object.keys(flattenToDotPaths(missingTree));
     console.info(`[translationService] fillMissingTranslations("${locale}") — found ${missingKeyNames.length} missing key(s), translating via AI: ${formatKeyList(missingKeyNames)}`);
 
-    // 4. Build a prompt to translate only what's missing
-    const missingKeysJson = JSON.stringify(missingTree, null, 2);
+    // 4. Chunk the missing-key tree the same way seedLanguageTranslations
+    // chunks the full document — a patch can itself span many/large
+    // sections (e.g. after a big copy rewrite adds dozens of new keys at
+    // once) and would otherwise risk the backend's 8000-char prompt cap.
     const promptDoc = await getPrompt('translation-fill-missing-prompt');
-    const prompt = renderTemplate(promptDoc.template, { locale, missingKeysJson });
+    const chunks = splitIntoChunks(missingTree);
 
-    // 5. Ask AI. maxOutputTokens is raised well above the SDK default (1024)
-    // because even a "missing keys" patch can span several sections at once
-    // — 1024 was silently truncating the JSON response (see seedLanguageTranslations).
-    //
-    // NOTE: deliberately no `responseSchema` here, unlike every other AI call
-    // in the app. The expected shape is whatever key tree happens to be
-    // missing, which differs on every call, so there is no static schema to
-    // declare. Generating one from missingTree would work for a small patch
-    // but not for seedLanguageTranslations, which sends chunks of the entire
-    // locale file and would produce a schema large enough to risk Gemini's
-    // complexity limits. Consequently `translation-fill-missing-prompt` is the
-    // one prompt that must KEEP its explicit "return only JSON" instructions.
-    const aiResponse = await askAI(
-      token,
-      prompt,
-      {
-        provider: "gemini",
-        model: promptDoc.model || "gemini-3.5-flash-lite",
-        temperature: 0.1,
-        jsonMode: true,
-        maxOutputTokens: promptDoc.maxTokens ?? 4096,
+    let translatedTree = {};
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      // Compact JSON: matches the size splitIntoChunks budgeted against.
+      const missingKeysJson = JSON.stringify(chunk);
+      const prompt = renderTemplate(promptDoc.template, { locale, missingKeysJson });
+
+      // Guard against the backend's hard MAX_PROMPT_LENGTH = 8000 cap
+      // (multi-lingo-ai-api/api/ask-ai.ts) — the prompt template is
+      // admin-edited in Firestore, so its length isn't guaranteed.
+      if (prompt.length > 7800) {
+        throw new Error(
+          `[translationService] fillMissingTranslations("${locale}") — chunk ${i + 1}/${chunks.length} prompt is ${prompt.length} chars, too close to the backend's 8000-char cap. Shrink CHUNK_SIZE_BUDGET_BYTES or the translation-fill-missing-prompt template.`
+        );
       }
-    );
 
-    let translatedTree;
-    try {
-      translatedTree = typeof aiResponse?.text === "string"
-        ? parseAIJSON(aiResponse.text)
-        : aiResponse;
-    } catch (err) {
-      console.error(`[translationService] fillMissingTranslations("${locale}") — failed to parse AI response as JSON: ${err.message}. Raw: ${String(aiResponse?.text).slice(0, 300)}`);
-      throw err;
-    }
-
-    if (!translatedTree || typeof translatedTree !== "object") {
-      throw new Error(
-        "[translationService] AI response did not return a valid JSON object"
+      // 5. Ask AI. maxOutputTokens is raised well above the SDK default
+      // (1024) because even one chunk can span several sections at once —
+      // 1024 was silently truncating the JSON response.
+      //
+      // NOTE: deliberately no `responseSchema` here, unlike every other AI
+      // call in the app. The expected shape is whatever key tree happens to
+      // be missing, which differs on every call, so there is no static
+      // schema to declare. Generating one from missingTree would work for a
+      // small patch but not for a large chunk, which would produce a schema
+      // large enough to risk Gemini's complexity limits. Consequently
+      // `translation-fill-missing-prompt` is the one prompt that must KEEP
+      // its explicit "return only JSON" instructions.
+      const aiResponse = await askAI(
+        token,
+        prompt,
+        {
+          provider: "gemini",
+          model: promptDoc.model || "gemini-3.5-flash-lite",
+          temperature: 0.1,
+          jsonMode: true,
+          maxOutputTokens: promptDoc.maxTokens ?? 4096,
+        }
       );
+
+      let translatedChunk;
+      try {
+        translatedChunk = typeof aiResponse?.text === "string"
+          ? parseAIJSON(aiResponse.text)
+          : aiResponse;
+      } catch (err) {
+        console.error(`[translationService] fillMissingTranslations("${locale}") — failed to parse AI response for chunk ${i + 1}/${chunks.length}: ${err.message}. Raw: ${String(aiResponse?.text).slice(0, 300)}`);
+        throw err;
+      }
+
+      if (!translatedChunk || typeof translatedChunk !== "object") {
+        throw new Error(
+          `[translationService] AI response for chunk ${i + 1}/${chunks.length} did not return a valid JSON object`
+        );
+      }
+
+      translatedTree = deepMergeClone(translatedTree, translatedChunk);
+      console.info(`[translationService] fillMissingTranslations("${locale}") — chunk ${i + 1}/${chunks.length} done (${Object.keys(translatedChunk).length} section(s))`);
     }
 
     // 6. Persist only the new leaves — a surgical dot-notation patch, no
@@ -365,11 +427,24 @@ export async function seedLanguageTranslations(locale, token) {
 
   console.info(`[translationService] seedLanguageTranslations("${locale}") — translating in ${chunks.length} chunk(s)`);
 
-  const translatedData = {};
+  let translatedData = {};
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
-    const missingKeysJson = JSON.stringify(chunk, null, 2);
+    // Compact (not pretty-printed) JSON: matches the size splitIntoChunks
+    // budgeted against, and saves ~15-20% of characters over indent:2 for free.
+    const missingKeysJson = JSON.stringify(chunk);
     const prompt = renderTemplate(promptDoc.template, { locale, missingKeysJson });
+
+    // Guard against the backend's hard MAX_PROMPT_LENGTH = 8000 cap
+    // (multi-lingo-ai-api/api/ask-ai.ts) — fail with a clear message instead
+    // of letting the backend reject it with a generic 400. Should not
+    // trigger given CHUNK_SIZE_BUDGET_BYTES's margin, but the prompt
+    // template is admin-edited in Firestore, so its length isn't guaranteed.
+    if (prompt.length > 7800) {
+      throw new Error(
+        `[translationService] seedLanguageTranslations("${locale}") — chunk ${i + 1}/${chunks.length} prompt is ${prompt.length} chars, too close to the backend's 8000-char cap. Shrink CHUNK_SIZE_BUDGET_BYTES or the translation-fill-missing-prompt template.`
+      );
+    }
 
     const aiResponse = await askAI(
       token,
@@ -400,7 +475,10 @@ export async function seedLanguageTranslations(locale, token) {
       );
     }
 
-    Object.assign(translatedData, translatedChunk);
+    // Deep merge, not Object.assign — a large section (e.g. "home") can now
+    // be split across multiple chunks, so a shallow assign would let a later
+    // chunk's partial "home" silently wipe out an earlier chunk's.
+    translatedData = deepMergeClone(translatedData, translatedChunk);
     console.info(`[translationService] seedLanguageTranslations("${locale}") — chunk ${i + 1}/${chunks.length} done (${Object.keys(translatedChunk).length} section(s))`);
   }
 
