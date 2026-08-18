@@ -1,19 +1,10 @@
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { useAppContext } from "../contexts/AppContext";
-import SEOMeta from "../components/SEOMeta";
 
 const TermsPage = () => {
   const { t } = useTranslation();
-  const { interfaceLang } = useAppContext();
   return (
     <>
-      <SEOMeta
-        title="Terms of Service | Multi Lingo AI"
-        description="Read the Terms of Service for Multi Lingo AI, the AI-powered platform for learning any language from any dialect you speak."
-        path="/terms"
-        lang={interfaceLang}
-      />
       <div className="max-w-4xl mx-auto px-4 py-16">
         <h1 className="text-4xl font-bold mb-8">{t("terms.title")}</h1>
 

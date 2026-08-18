@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../contexts/AppContext";
 import { useTierAccess } from "../../hooks/useTierAccess";
@@ -45,6 +44,20 @@ const DashboardLayout = () => {
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
+  // Logged-in-only content — keep it out of search results. This previously
+  // went through react-helmet-async, which silently never reached the DOM, so
+  // the tag was never actually applied. robots.txt already disallows
+  // /dashboard, but the meta is kept as a second line of defence for any
+  // crawler that reaches the route without honouring robots.txt.
+  // Must run before the early return below, so it isn't a conditional hook.
+  useEffect(() => {
+    const meta = document.createElement("meta");
+    meta.name = "robots";
+    meta.content = "noindex, nofollow";
+    document.head.appendChild(meta);
+    return () => meta.remove();
+  }, []);
+
   if (!user) {
     return (
       <Loader
@@ -87,11 +100,6 @@ const DashboardLayout = () => {
 
   return (
     <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-10 space-y-10">
-      {/* Logged-in-only content — keep out of search results */}
-      <Helmet>
-        <meta name="robots" content="noindex, nofollow" />
-      </Helmet>
-
       {/* ── DASHBOARD HEADER ROW ──────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3">
 

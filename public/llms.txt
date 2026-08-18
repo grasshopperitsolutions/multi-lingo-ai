@@ -1,24 +1,34 @@
 # Multi Lingo AI
 
-> The first AI-powered platform that teaches you any language from any dialect you speak. AI-powered, human-supported.
+> A language practice companion, not another course. Slang, grammar and stories you'll actually use — alongside your teacher, class or app.
 
-Multi Lingo AI is a language-learning web app focused on real, conversational language - not textbook phrases. It combines an AI tutor available 24/7 with optional live sessions from verified human tutors.
+Multi Lingo AI is a web app for *practicing* a language you're already learning somewhere else. It does not teach a syllabus and has no course structure: it's built for short, repeatable practice sessions between lessons, and for the real-life language other tools skip — slang, local expressions, and everyday situations.
+
+Written and built by a working multi-language tutor and long-time backpacker. The grammar material is hand-written from real lessons rather than generated wholesale.
 
 ## What it does
 
-- **Translator** - instant, context-aware translation between any two supported languages/dialects.
-- **Dictionary** - word lookups with definitions, examples, synonyms, and conjugations.
-- **Challenges** - mini-games (Hangman, Word Search, Scrambled Word, Word Link, Word Ladder) that reinforce vocabulary.
-- **Exam Training** - listening, reading, writing, and full-exam practice for official language certification.
-- **Live tutors** - scheduled sessions with verified native-speaker tutors, via the built-in Smart Scheduler.
+- **Grammar library** - hand-written explanations, verb and pronoun tables, pronunciation rules, and the mistakes learners actually make. Includes an "ask AI about grammar" tool and a tips collection.
+- **Dictionary** - word and expression lookups. Definitions in the language you speak, synonyms in the language you're practicing, with local and slang senses. You can narrow a lookup to specific grammatical categories.
+- **Stories** - short AI-written stories at your CEFR level, shown side by side in both languages, with per-paragraph audio and tap-any-word lookups.
+- **History & Culture** - short pieces about the country behind the language you're practicing, read in your own language.
+- **Translator** - context-aware translation between supported languages and dialects.
+- **Challenges** - word games (Hangman, Word Search, Scrambled Word, Word Link, Word Ladder).
+- **Exam Training** - listening, reading, writing and full-exam practice, for languages where exam support is enabled.
+
+## Not available yet
+
+These are listed on the site as "coming soon" and are NOT currently usable: AI Tutor (conversation), Voice Practice, sessions with human tutors, Professional Tools, Food, Radio & TV, and Plan Your Trip. There is no scheduler and no way to book a live tutor today.
 
 ## Languages
 
-European and Brazilian Portuguese, US and UK English, Spanish (Spain & Mexico), French, and German - learners can start from any of these as their base language.
+Interface and explanations work from any of the supported languages, so learners are not required to think in English. Supported interface and target languages include European and Brazilian Portuguese, US and UK English, Spanish (Spain & Mexico), French, and German.
+
+Depth varies by language: Portuguese, English and Spanish have the most hand-checked material. The Grammar library is currently European Portuguese only.
 
 ## Pricing
 
-Free tier available (Explorer). Paid tiers unlock unlimited AI conversations and live tutor sessions. See https://multi-lingo.online/pricing for current plans.
+Free tier (Explorer) with a daily cap on AI-powered features. Paid tiers raise or remove that cap; all tiers have the same feature set. See https://multi-lingo.online/pricing for current plans.
 
 ## Key pages
 

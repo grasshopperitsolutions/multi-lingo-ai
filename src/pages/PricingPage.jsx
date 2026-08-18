@@ -5,13 +5,18 @@ import { useAppContext } from "../contexts/AppContext";
 import { createCheckoutSession, openPlanChangePortal } from "../services/stripeService";
 import { PRICING, TIER_FEATURES, getYearlySavingsPercent } from "../config/pricing";
 import { auth } from "../firebase";
-import { CheckCircle, Star, Lock, ArrowRight } from "lucide-react";
+import { CheckCircle, Star, Lock, Clock, ArrowRight } from "lucide-react";
 import PropTypes from "prop-types";
-import SEOMeta from "../components/SEOMeta";
 
 // ── FeatureRow ────────────────────────────────────────────────────────────────
 const FeatureRow = ({ feature, tier, isDarkMode, t }) => {
-  const included = feature.value === true || typeof feature.value === "number" || feature.value === "Unlimited";
+  // Three states, not two. A coming-soon feature is neither included (it can't
+  // be used yet) nor excluded (it isn't withheld by the plan), so it gets its
+  // own icon and badge instead of being struck through like a locked one.
+  const comingSoon = feature.comingSoon === true;
+  const included =
+    !comingSoon &&
+    (feature.value === true || typeof feature.value === "number" || feature.value === "Unlimited");
   const label =
     feature.key === "ai_calls"
       ? t("pricing.features.ai_calls", {
@@ -22,7 +27,9 @@ const FeatureRow = ({ feature, tier, isDarkMode, t }) => {
 
   return (
     <div className="flex items-center gap-2 py-2">
-      {included ? (
+      {comingSoon ? (
+        <Clock size={14} className="text-amber-500 shrink-0" />
+      ) : included ? (
         <CheckCircle
           size={16}
           className={tier === "explorer" ? "text-emerald-400" : "text-emerald-500"}
@@ -39,10 +46,21 @@ const FeatureRow = ({ feature, tier, isDarkMode, t }) => {
             : isDarkMode
               ? "text-slate-500"
               : "text-slate-400"
-        } ${!included ? "line-through opacity-60" : ""}`}
+        } ${!included && !comingSoon ? "line-through opacity-60" : ""}`}
       >
         {label}
       </span>
+      {comingSoon && (
+        <span
+          className={`shrink-0 px-1.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${
+            isDarkMode
+              ? "border-amber-600 text-amber-400"
+              : "border-amber-400 text-amber-700"
+          }`}
+        >
+          {t("pricing.badge_coming_soon")}
+        </span>
+      )}
     </div>
   );
 };
@@ -255,7 +273,7 @@ TierCard.propTypes = {
 
 // ── PricingPage ───────────────────────────────────────────────────────────────
 const PricingPage = () => {
-  const { isDarkMode, user, showAlert, interfaceLang } = useAppContext();
+  const { isDarkMode, user, showAlert } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [loadingPlan, setLoadingPlan] = useState(null);
@@ -325,12 +343,6 @@ const PricingPage = () => {
 
   return (
     <>
-      <SEOMeta
-        title="Pricing | Multi Lingo AI"
-        description="Compare Multi Lingo AI plans — from a free Explorer tier to unlimited AI conversations and live tutor sessions. Find the plan that fits your language-learning goals."
-        path="/pricing"
-        lang={interfaceLang}
-      />
       <main className="flex-1 pb-24">
         {/* Header */}
         <section className="max-w-5xl mx-auto px-4 pt-16 pb-12 text-center">

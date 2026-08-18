@@ -15,52 +15,66 @@ export const PRICING = {
 
 /**
  * Features available per tier for the pricing page comparison.
+ *
+ * A row can be in one of three states, which the pricing page renders
+ * differently:
+ *   value: true / a number   — included (a number also shows the daily cap)
+ *   value: false             — not on this plan
+ *   comingSoon: true         — will be on this plan, not built yet
+ *
+ * The coming-soon rows are listed deliberately: those features are advertised
+ * as "coming soon" on the dashboard, so hiding them here would make the plans
+ * look thinner than they are, while marking them as included would overstate
+ * what you get today.
  */
+
+/** Shared by every paid-equivalent tier (maestro, vip, admin). */
+const UNLIMITED_FEATURES = [
+  { key: 'ai_calls', value: 'Unlimited', raw: Infinity },
+  { key: 'grammar', value: true },
+  { key: 'stories', value: true },
+  { key: 'history_culture', value: true },
+  { key: 'translator', value: true },
+  { key: 'dictionary', value: true },
+  { key: 'challenges', value: true },
+  { key: 'full_exam', value: true },
+  { key: 'priority_support', value: true },
+  { key: 'ai_tutor', comingSoon: true },
+  { key: 'voice_practice', comingSoon: true },
+];
+
 export const TIER_FEATURES = {
   explorer: [
     { key: 'ai_calls', value: 3, suffix: '/day' },
+    { key: 'grammar', value: true },
+    { key: 'stories', value: true },
+    { key: 'history_culture', value: true },
     { key: 'translator', value: true },
     { key: 'dictionary', value: true },
     { key: 'challenges', value: true },
     { key: 'full_exam', value: false },
     { key: 'priority_support', value: false },
+    { key: 'ai_tutor', comingSoon: true },
+    { key: 'voice_practice', comingSoon: true },
   ],
   voyager: [
     { key: 'ai_calls', value: 20, suffix: '/day' },
+    { key: 'grammar', value: true },
+    { key: 'stories', value: true },
+    { key: 'history_culture', value: true },
     { key: 'translator', value: true },
     { key: 'dictionary', value: true },
     { key: 'challenges', value: true },
     { key: 'full_exam', value: true },
     { key: 'priority_support', value: false },
+    { key: 'ai_tutor', comingSoon: true },
+    { key: 'voice_practice', comingSoon: true },
   ],
-  maestro: [
-    { key: 'ai_calls', value: 'Unlimited', raw: Infinity },
-    { key: 'translator', value: true },
-    { key: 'dictionary', value: true },
-    { key: 'challenges', value: true },
-    { key: 'full_exam', value: true },
-    { key: 'priority_support', value: true },
-  ],
-  // ── Hidden tier: VIP (same features as Maestro, no payment) ──────────
+  maestro: UNLIMITED_FEATURES,
+  // ── Hidden tiers: VIP and Admin (same features as Maestro, no payment) ──
   // Not shown on the pricing page — assigned manually via Firestore.
-  vip: [
-    { key: 'ai_calls', value: 'Unlimited', raw: Infinity },
-    { key: 'translator', value: true },
-    { key: 'dictionary', value: true },
-    { key: 'challenges', value: true },
-    { key: 'full_exam', value: true },
-    { key: 'priority_support', value: true },
-  ],
-  // ── Hidden tier: Admin (same features as Maestro, no payment) ────────
-  // Not shown on the pricing page — assigned manually via Firestore.
-  admin: [
-    { key: 'ai_calls', value: 'Unlimited', raw: Infinity },
-    { key: 'translator', value: true },
-    { key: 'dictionary', value: true },
-    { key: 'challenges', value: true },
-    { key: 'full_exam', value: true },
-    { key: 'priority_support', value: true },
-  ],
+  vip: UNLIMITED_FEATURES,
+  admin: UNLIMITED_FEATURES,
 };
 
 /**

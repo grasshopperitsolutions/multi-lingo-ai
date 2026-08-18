@@ -1,10 +1,12 @@
 import { useState } from "react";
 import {
   ArrowRight,
-  Mic,
   MessageSquare,
-  Calendar,
-  Users,
+  BookMarked,
+  BookOpen,
+  Gamepad2,
+  Check,
+  X,
   Globe,
   Play,
   CheckCircle,
@@ -16,9 +18,7 @@ import { PRICING } from "../config/pricing";
 import { createCheckoutSession } from "../services/stripeService";
 import { auth } from "../firebase";
 import FeatureCard from "../components/FeatureCard";
-import RotatingReviews from "../components/RotatingReviews";
 import FaqItem from "../components/FaqItem";
-import FaqJsonLd from "../components/FaqJsonLd";
 
 const SUPPORTED_LANGUAGES = ['PT-PT', 'PT-BR', 'EN-US', 'EN-GB', 'ES-ES', 'ES-MX', 'FR-FR', 'DE-DE'];
 
@@ -66,7 +66,8 @@ const HomePage = () => {
 
   const languagePills = t("home.language_pills", { returnObjects: true });
   const marqueeItems = t("home.marquee", { returnObjects: true });
-  const reviews = t("home.reviews", { returnObjects: true });
+  const whatItIs = t("home.what_it_is", { returnObjects: true });
+  const whatItIsnt = t("home.what_it_isnt", { returnObjects: true });
   const faqs = t("home.faqs", { returnObjects: true });
 
   return (
@@ -240,48 +241,135 @@ const HomePage = () => {
       {/* Features Grid */}
       <section className="max-w-7xl mx-auto px-4 py-16 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Only shipped features are listed here. The previous strip
+              advertised a voice tutor, a scheduler and human sessions, none of
+              which exist yet — "more on the way" below covers those honestly. */}
           <FeatureCard
             isDarkMode={isDarkMode}
-            icon={Mic}
-            title={t("home.features.voice_tutor")}
+            icon={BookMarked}
+            title={t("home.features.grammar")}
+            description={t("home.features.grammar_desc")}
             delay="0s"
-            color="bg-yellow-400 text-slate-900"
+            color="bg-amber-400 text-slate-900"
           />
           <FeatureCard
             isDarkMode={isDarkMode}
             icon={MessageSquare}
-            title={t("home.features.urban_dictionary")}
+            title={t("home.features.dictionary")}
+            description={t("home.features.dictionary_desc")}
             delay="0.2s"
-            color="bg-blue-400 text-slate-900"
+            color="bg-violet-400 text-slate-900"
           />
           <FeatureCard
             isDarkMode={isDarkMode}
-            icon={Calendar}
-            title={t("home.features.smart_scheduler")}
+            icon={BookOpen}
+            title={t("home.features.stories")}
+            description={t("home.features.stories_desc")}
             delay="0.4s"
-            color="bg-pink-400 text-slate-900"
+            color="bg-sky-400 text-slate-900"
           />
           <FeatureCard
             isDarkMode={isDarkMode}
-            icon={Users}
-            title={t("home.features.human_sessions")}
+            icon={Gamepad2}
+            title={t("home.features.games")}
+            description={t("home.features.games_desc")}
             delay="0.6s"
             color="bg-emerald-400 text-slate-900"
           />
         </div>
+
+        <p className="text-center mt-8 font-bold opacity-70">
+          {t("home.features.more")}
+        </p>
       </section>
 
-      {/* Wall of Love - Reviews Section */}
-      <section className="w-full px-4 py-20 relative z-10">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tighter inline-block border-b-8 border-pink-400 pb-2">
-            {t("home.wall_of_love_heading")}
-          </h2>
+      {/* What this is / what it isn't */}
+      <section className="max-w-5xl mx-auto px-4 py-16 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div
+            className={`p-8 rounded-[2rem] border-4 ${
+              isDarkMode
+                ? "bg-slate-800 border-emerald-700 shadow-[8px_8px_0px_0px_#1e293b]"
+                : "bg-emerald-50 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a]"
+            }`}
+          >
+            <h3 className={`text-2xl font-black uppercase tracking-tighter mb-4 ${
+              isDarkMode ? "text-emerald-400" : "text-emerald-700"
+            }`}>
+              {t("home.what_it_is_heading")}
+            </h3>
+            <ul className="flex flex-col gap-3">
+              {(Array.isArray(whatItIs) ? whatItIs : []).map((line, i) => (
+                <li key={i} className="flex items-start gap-3 font-semibold">
+                  <Check size={20} className={`shrink-0 mt-0.5 ${isDarkMode ? "text-emerald-400" : "text-emerald-600"}`} />
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div
+            className={`p-8 rounded-[2rem] border-4 ${
+              isDarkMode
+                ? "bg-slate-800 border-slate-700 shadow-[8px_8px_0px_0px_#1e293b]"
+                : "bg-white border-slate-900 shadow-[8px_8px_0px_0px_#0f172a]"
+            }`}
+          >
+            <h3 className={`text-2xl font-black uppercase tracking-tighter mb-4 ${
+              isDarkMode ? "text-slate-400" : "text-slate-500"
+            }`}>
+              {t("home.what_it_isnt_heading")}
+            </h3>
+            <ul className="flex flex-col gap-3">
+              {(Array.isArray(whatItIsnt) ? whatItIsnt : []).map((line, i) => (
+                <li key={i} className="flex items-start gap-3 font-semibold opacity-70">
+                  <X size={20} className="shrink-0 mt-0.5" />
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-        {Array.isArray(reviews) && reviews.length > 0 && (
-          <RotatingReviews reviews={reviews} />
-        )}
       </section>
+
+      {/* Who made this — carries the credibility the hidden reviews used to */}
+      <section className="max-w-3xl mx-auto px-4 py-16 relative z-10">
+        <div
+          className={`p-8 md:p-12 rounded-[2rem] border-4 text-center ${
+            isDarkMode
+              ? "bg-slate-800 border-slate-700 shadow-[8px_8px_0px_0px_#1e293b]"
+              : "bg-white border-slate-900 shadow-[8px_8px_0px_0px_#0f172a]"
+          }`}
+        >
+          <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tighter mb-4">
+            {t("home.who_made_this_heading")}
+          </h2>
+          <p className="text-lg font-semibold leading-relaxed opacity-90">
+            {t("home.who_made_this_body")}
+          </p>
+        </div>
+      </section>
+
+      {/* TODO — "Wall of Love" reviews section removed pending a decision on
+          how it fits the practice-companion positioning.
+
+          The 28 reviews are all testimonials for Nuno's own tutoring rather
+          than for the app, which reads as a category mismatch on a software
+          landing page — but becomes strong social proof if reframed (e.g.
+          "From Nuno's students") next to the "Who made this" section above.
+
+          Nothing was deleted: home.reviews and home.wall_of_love_heading are
+          still in translation.json, and src/components/RotatingReviews.jsx is
+          untouched. To restore, re-add here:
+
+            <section className="w-full px-4 py-20 relative z-10">
+              <div className="text-center mb-16">
+                <h2 className="...">{t("home.wall_of_love_heading")}</h2>
+              </div>
+              <RotatingReviews reviews={t("home.reviews", { returnObjects: true })} />
+            </section>
+
+          plus the RotatingReviews import. */}
 
       {/* Dynamic Language Demo */}
       <section className="max-w-5xl mx-auto px-4 py-16">
@@ -392,7 +480,6 @@ const HomePage = () => {
 
       {/* FAQ SECTION */}
       <section className="max-w-4xl mx-auto px-4 py-16 relative z-10">
-        <FaqJsonLd faqs={faqs} />
         <div className="text-center mb-8">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tighter inline-block border-b-8 border-blue-400 pb-2">
             {t("home.faq_heading")}

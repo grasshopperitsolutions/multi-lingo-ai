@@ -19,6 +19,18 @@
     "pricing": "Pricing",
     "brand": "Multi Lingo AI"
   },
+  "seo": {
+    "home_title": "Multi Lingo AI | Practice any language, for real life",
+    "home_description": "A language practice companion, not another course. Slang, grammar and stories you'll actually use — alongside your teacher, class or app. Deepest support for Portuguese, English and Spanish.",
+    "pricing_title": "Pricing | Multi Lingo AI",
+    "pricing_description": "Compare Multi Lingo AI plans. Every plan has the same practice tools — what changes is how much you can practice each day. Free tier available.",
+    "contact_title": "Contact | Multi Lingo AI",
+    "contact_description": "Questions, feedback or support for Multi Lingo AI — the language practice companion built by a working tutor.",
+    "terms_title": "Terms of Service | Multi Lingo AI",
+    "terms_description": "Terms of Service for Multi Lingo AI, the language practice companion for learners of any language.",
+    "privacy_title": "Privacy Policy | Multi Lingo AI",
+    "privacy_description": "Privacy Policy for Multi Lingo AI — how your data is collected, used and protected while you practice a language."
+  },
   "common": {
     "loading": "Loading...",
     "cancel": "Cancel",
@@ -40,27 +52,48 @@
     "close": "Close"
   },
   "home": {
-    "badge": "THE AI REVOLUTION IS HERE",
-    "hero_line1": "Ask AI",
-    "hero_highlight": "Everything",
-    "hero_line2": "about any language",
-    "subtitle": "The first platform that teaches you any language from any dialect you speak. AI-powered, human-supported.",
-    "cta_start": "Start Learning Now",
+    "badge": "Built by a working language tutor",
+    "hero_line1": "Practice",
+    "hero_highlight": "for real life",
+    "hero_line2": "between your lessons",
+    "subtitle": "Your teacher gives you the rules. Your app gives you the streak. We give you the practice — the slang, the expressions and the words you'll actually need out there.",
+    "cta_start": "Start practicing",
     "marquee": [
-      "LEARN ANY LANGUAGE FAST",
-      "NO BORING GRAMMAR",
-      "AI POWERED",
-      "NATIVE SLANG"
+      "PRACTICE EVERY DAY",
+      "REAL SLANG, NOT TEXTBOOK",
+      "BETWEEN YOUR LESSONS",
+      "FOR REAL LIFE"
     ],
     "features": {
-      "voice_tutor": "24/7 AI Voice Tutor",
-      "urban_dictionary": "Urban Dictionary",
-      "smart_scheduler": "Smart Scheduler",
-      "human_sessions": "Human Tutor Sessions"
+      "grammar": "Grammar Library",
+      "grammar_desc": "Written by a real teacher, not generated. Verb tables, pronunciation rules and the mistakes learners actually make.",
+      "dictionary": "Slang & Dictionary",
+      "dictionary_desc": "Look up any word and get the local meaning — defined in your language, with synonyms in the one you're practicing.",
+      "stories": "Stories to Read & Hear",
+      "stories_desc": "Short stories at your level, side by side in both languages. Tap any word, hear any paragraph.",
+      "games": "Practice Games",
+      "games_desc": "Five word games that turn five spare minutes into real reps.",
+      "more": "More on the way — voice practice, food and travel, radio and TV."
     },
+    "what_it_is_heading": "What this is",
+    "what_it_is": [
+      "Practice between your lessons",
+      "Real slang and local expressions",
+      "Reps, whenever you have five minutes",
+      "Built by someone who teaches this every week"
+    ],
+    "what_it_isnt_heading": "What it isn't",
+    "what_it_isnt": [
+      "A course or a syllabus",
+      "A replacement for your teacher",
+      "A streak you have to protect",
+      "A generic AI wrapper"
+    ],
+    "who_made_this_heading": "Who made this",
+    "who_made_this_body": "Written and built by a working multi-language tutor and long-time backpacker. The grammar explanations come straight out of real lessons. The slang comes from actually needing it.",
     "universal_input": {
-      "title": "The Universal Input",
-      "subtitle": "Learning from Irish? Irish Gaelic? Mandarin? Just type it. Our AI bridges the gap."
+      "title": "Start from the language you already speak",
+      "subtitle": "Most apps assume you think in English. This one doesn't. Tell it what you speak — Thai, Gaelic, Aussie slang — and everything gets explained from there."
     },
     "language_pills": [
       "Gaelic ➜ FR",
@@ -207,18 +240,18 @@
         "quote": "Today I had my first class with Nuno, it was very pleasant, he has a lot of patience. He gave me a very funny homework assignment."
       }
     ],
-    "how_it_works_heading": "How it Works",
-    "how_it_works_step1_title": "Pick Your Lingo",
-    "how_it_works_step1_desc": "Speak English, Thai, or Aussie slang? We start from where YOU are.",
-    "how_it_works_step2_title": "Ask The AI",
-    "how_it_works_step2_desc": "No rigid lessons. Ask how to order a coffee or greet locals naturally.",
-    "how_it_works_step3_title": "Master Slang",
-    "how_it_works_step3_desc": "Download custom cheat sheets and practice with our 24/7 voice tutor.",
+    "how_it_works_heading": "How you'd use it",
+    "how_it_works_step1_title": "Bring what didn't stick",
+    "how_it_works_step1_desc": "A word from your lesson, a rule you keep getting wrong, something you overheard on a trip.",
+    "how_it_works_step2_title": "Practice it your way",
+    "how_it_works_step2_desc": "Look it up, drill it, read it inside a story, or hear it spoken. Five minutes counts.",
+    "how_it_works_step3_title": "Use it out there",
+    "how_it_works_step3_desc": "Show up to your next lesson — or your next trip — having actually used the thing.",
     "cta_watch_demo": "Watch Demo",
     "faq_heading": "Got Questions?",
-    "final_cta_heading": "Ready to ditch the textbooks?",
-    "final_cta_subtitle": "Join thousands of learners mastering real-world languages today.",
-    "final_cta_button": "Get Started Free",
+    "final_cta_heading": "Your next lesson is days away.",
+    "final_cta_subtitle": "Keep the language warm until then. Free to start, no card needed.",
+    "final_cta_button": "Start practicing free",
     "faqs": [
       {
         "question": "Are multiple languages supported?",
@@ -229,16 +262,28 @@
         "answer": "Nope! Multi Lingo AI is powered by an engine that translates and explains concepts using ANY starting language or dialect you provide."
       },
       {
-        "question": "Can I talk to a real human?",
-        "answer": "Yes! While our AI tutor is available 24/7, you can easily schedule live sessions with verified human tutors through our Smart Scheduler."
+        "question": "Do I need a teacher to use this?",
+        "answer": "No — plenty of people use it on its own. But it's built assuming you might have a teacher, a class, or another app, and it's designed to sit alongside them rather than compete."
+      },
+      {
+        "question": "Does this replace my language app?",
+        "answer": "No. Those are good at structure and streaks. This is for the gaps they leave: the slang, the local expressions, and the thing your teacher explained that didn't quite stick."
+      },
+      {
+        "question": "Why isn't there a course or a syllabus?",
+        "answer": "That's deliberate. Your teacher or your app owns the path you're on. This owns the practice — short sessions you can do whenever, in whatever order you need."
       },
       {
         "question": "What makes Multi Lingo AI different?",
-        "answer": "We focus on real, conversational languages with authentic slang and expressions. No textbook language here—just practical, everyday communication."
+        "answer": "It's written by a working language tutor rather than generated wholesale. The grammar library comes from real lessons, and the focus is on language people actually use — slang, expressions and everyday situations, not textbook phrasing."
+      },
+      {
+        "question": "Can I talk to a real human?",
+        "answer": "Not yet. Live sessions with verified tutors are planned, but they aren't available today — everything on the site right now is self-serve practice."
       },
       {
         "question": "How much does it cost?",
-        "answer": "We offer flexible pricing plans starting with a free tier. Premium plans unlock unlimited AI conversations and live tutor sessions."
+        "answer": "There's a free tier you can use indefinitely, with a daily limit on AI-powered features. Paid plans raise or remove that limit. See the pricing page for current plans."
       },
       {
         "question": "Can I try it for free?",
@@ -305,7 +350,7 @@
     }
   },
   "footer": {
-    "tagline": "AI-powered language learning for everyone.",
+    "tagline": "Language practice for real life. Built by a working tutor.",
     "links": "Links",
     "legal": "Legal",
     "terms": "Terms of Service",
@@ -788,7 +833,7 @@
     "step_interface": "What's your preferred interface language?",
     "step_language": "What language are you learning?",
     "step_interests": "Pick your interests",
-    "interests_hint": "We'll use these to personalise your content.",
+    "interests_hint": "We'll use these to personalize your content.",
     "finish": "Start Learning!",
     "next": "Next",
     "back": "Back",
@@ -798,7 +843,9 @@
   },
   "pricing": {
     "title": "Choose Your Plan",
-    "subtitle": "Unlock the full power of AI-assisted language learning. Start free, upgrade when you need more.",
+    "subtitle": "Every plan has the same features. What changes is how much you can practice each day. Start free, upgrade when you outgrow it.",
+    "badge_coming_soon": "Coming soon",
+    "badge_limited": "Limited on this plan",
     "plans_heading": "Plans",
     "monthly": "Monthly",
     "yearly": "Yearly",
@@ -814,11 +861,16 @@
     "try_free_days": "Try free for {{days}} days",
     "features": {
       "ai_calls": "{{count}} AI calls{{suffix}}",
+      "grammar": "Grammar Library",
+      "stories": "Stories & Audio",
+      "history_culture": "History & Culture",
       "translator": "AI Translator",
       "dictionary": "Advanced Dictionary",
       "challenges": "Challenges & Games",
       "full_exam": "Full Exam Mode",
-      "priority_support": "Priority Support"
+      "priority_support": "Priority Support",
+      "ai_tutor": "AI Tutor",
+      "voice_practice": "Voice Practice"
     }
   },
   "subscription": {

@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { useTierAccess } from "./hooks/useTierAccess";
+import { usePublicPageTitle } from "./hooks/usePublicPageTitle";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import HomePage from "./pages/HomePage";
@@ -19,7 +20,6 @@ import AppUnavailablePage from "./pages/AppUnavailablePage";
 import AlertMessage from "./components/Alert";
 import GlobalCompassCursor from "./components/GlobalCompassCursor";
 import Loader from "./components/Loader";
-import SEOMeta from "./components/SEOMeta";
 
 // ── /dashboard/* pages — route-level code splitting ──────────────────────────
 const DashboardLayout = lazy(() => import("./pages/dashboard/DashboardLayout"));
@@ -59,17 +59,12 @@ const RadioTvPage = lazy(() => import("./pages/dashboard/coming-soon/RadioTvPage
 const PlanTripPage = lazy(() => import("./pages/dashboard/coming-soon/PlanTripPage"));
 
 const PublicLayout = () => {
-  const { interfaceLang } = useAppContext();
+  // Head tags come from the static HTML generated at build time; this only
+  // keeps the tab title in step during client-side navigation.
+  usePublicPageTitle();
 
   return (
     <>
-      {/* Sitewide default — overridden per-page by each page's own <SEOMeta> */}
-      <SEOMeta
-        title="Multi Lingo AI | Learn any language with AI"
-        description="The first AI powered platform that teaches you European Portuguese from any language or dialect you speak. Available in English, Portuguese, Spanish, French, and German. AI-powered, human-supported."
-        path="/"
-        lang={interfaceLang}
-      />
       <Header />
       <Routes>
         <Route path="/terms" element={<TermsPage />} />
