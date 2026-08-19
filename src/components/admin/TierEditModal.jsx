@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import { X, Save, Layers } from "lucide-react";
 import ConfirmModal from "../ConfirmModal";
 import { PrimaryButton, GhostButton } from "../ui";
-import { FEATURES_BY_GROUP, FEATURE_KEYS, RELEASED_FEATURE_KEYS } from "../../config/features";
 
 const inputClasses = (isDarkMode) => `w-full px-4 py-2.5 rounded-xl border-2 font-semibold text-sm outline-none transition-colors ${
   isDarkMode
@@ -26,7 +25,7 @@ const labelClasses = (isDarkMode) => `block text-xs font-black uppercase trackin
  * Leaving the AI calls field blank means unlimited — Firestore has no Infinity,
  * so it is persisted as null.
  */
-const TierEditModal = ({ tier, isDarkMode, isSaving, onSave, onClose }) => {
+const TierEditModal = ({ tier, allFeatures, isDarkMode, isSaving, onSave, onClose }) => {
   const [label, setLabel] = useState(tier.label ?? "");
   const [order, setOrder] = useState(tier.order != null ? String(tier.order) : "");
   const [isFree, setIsFree] = useState(Boolean(tier.isFree));
@@ -39,6 +38,7 @@ const TierEditModal = ({ tier, isDarkMode, isSaving, onSave, onClose }) => {
   const [validationError, setValidationError] = useState(null);
 
   const isAdminTier = tier.id === "admin";
+  const allKeys = allFeatures.map((f) => f.id);
 
   const toggleFeature = (key) => {
     setFeatures((prev) => {
@@ -159,11 +159,10 @@ const TierEditModal = ({ tier, isDarkMode, isSaving, onSave, onClose }) => {
           <div>
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
               <span className={labelClasses(isDarkMode) + " !mb-0"}>
-                Feature access ({features.size} of {FEATURE_KEYS.length})
+                Feature access ({features.size} of {allKeys.length})
               </span>
               <div className="flex gap-2">
-                <GhostButton onClick={() => setAll(FEATURE_KEYS)} isDarkMode={isDarkMode} className="!px-3 !py-1 !text-xs">All</GhostButton>
-                <GhostButton onClick={() => setAll(RELEASED_FEATURE_KEYS)} isDarkMode={isDarkMode} className="!px-3 !py-1 !text-xs">Released only</GhostButton>
+                <GhostButton onClick={() => setAll(allKeys)} isDarkMode={isDarkMode} className="!px-3 !py-1 !text-xs">All</GhostButton>
                 <GhostButton onClick={() => setAll([])} isDarkMode={isDarkMode} className="!px-3 !py-1 !text-xs">None</GhostButton>
               </div>
             </div>
@@ -174,37 +173,28 @@ const TierEditModal = ({ tier, isDarkMode, isSaving, onSave, onClose }) => {
               </p>
             )}
 
-            <div className="flex flex-col gap-4">
-              {FEATURES_BY_GROUP.map((group) => (
-                <div key={group.id}>
-                  <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
-                    {group.label}
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                    {group.features.map((feature) => (
-                      <label
-                        key={feature.key}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 text-sm font-semibold cursor-pointer transition-colors ${
-                          features.has(feature.key)
-                            ? isDarkMode
-                              ? "bg-blue-900/40 border-blue-500 text-blue-200"
-                              : "bg-blue-50 border-blue-500 text-blue-900"
-                            : isDarkMode
-                              ? "border-slate-600 text-slate-400 hover:bg-slate-700/50"
-                              : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={features.has(feature.key)}
-                          onChange={() => toggleFeature(feature.key)}
-                          className="w-4 h-4 shrink-0"
-                        />
-                        <span className="truncate">{feature.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {allFeatures.map((feature) => (
+                <label
+                  key={feature.id}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 text-sm font-semibold cursor-pointer transition-colors ${
+                    features.has(feature.id)
+                      ? isDarkMode
+                        ? "bg-blue-900/40 border-blue-500 text-blue-200"
+                        : "bg-blue-50 border-blue-500 text-blue-900"
+                      : isDarkMode
+                        ? "border-slate-600 text-slate-400 hover:bg-slate-700/50"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={features.has(feature.id)}
+                    onChange={() => toggleFeature(feature.id)}
+                    className="w-4 h-4 shrink-0"
+                  />
+                  <span className="truncate">{feature.label}</span>
+                </label>
               ))}
             </div>
           </div>
@@ -237,6 +227,9 @@ const TierEditModal = ({ tier, isDarkMode, isSaving, onSave, onClose }) => {
 };
 
 TierEditModal.propTypes = {
+  allFeatures: PropTypes.arrayOf(
+    PropTypes.shape({ id: PropTypes.string.isRequired, label: PropTypes.string })
+  ),
   tier: PropTypes.shape({
     id: PropTypes.string.isRequired,
     label: PropTypes.string,
@@ -253,6 +246,7 @@ TierEditModal.propTypes = {
 };
 
 TierEditModal.defaultProps = {
+  allFeatures: [],
   isSaving: false,
 };
 

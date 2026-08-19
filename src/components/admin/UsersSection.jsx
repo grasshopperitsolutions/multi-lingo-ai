@@ -57,7 +57,8 @@ function formatDate(value) {
  * UsersSection — admin list of every Firebase Auth user (merged with their
  * users/{uid} Firestore profile), filterable by a client-side text search
  * over the already-fetched list. Lets an admin change a user's
- * subscriptionTier (which doubles as their role — see tierLimits.js) or
+ * subscriptionTier (which doubles as their role — see the Tiers & Features
+ * section, backed by appConfig/config/tiersConfig) or
  * permanently delete their account.
  */
 const UsersSection = ({ users, isDarkMode, isLoadingDocs, error, currentUid, onSetTier, onDeleteUser }) => {

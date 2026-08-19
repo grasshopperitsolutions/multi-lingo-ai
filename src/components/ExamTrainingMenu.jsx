@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../contexts/AppContext';
 import { useTierAccess } from '../hooks/useTierAccess';
+import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from '../utils/featureAccess';
 import { Headphones, BookOpen, PenLine, ClipboardList, Lock } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import ReportButton from './ReportButton';
@@ -18,7 +18,6 @@ const EXERCISES = [
     color: 'bg-sky-500',
     titleKey: 'exam.listening',
     descKey: 'exam.listening_desc',
-    comingSoon: false,
   },
   {
     id: 'reading',
@@ -28,7 +27,6 @@ const EXERCISES = [
     color: 'bg-emerald-500',
     titleKey: 'exam.reading',
     descKey: 'exam.reading_desc',
-    comingSoon: false,
   },
   {
     id: 'writing',
@@ -38,7 +36,6 @@ const EXERCISES = [
     color: 'bg-teal-500',
     titleKey: 'exam.writing',
     descKey: 'exam.writing_desc',
-    comingSoon: false,
   },
   {
     id: "full_exam",
@@ -48,17 +45,16 @@ const EXERCISES = [
     color: "bg-rose-400",
     titleKey: "exam.full_exam",
     descKey: "exam.full_exam_desc",
-    comingSoon: false,
   },
 ];
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-const ExamCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, comingSoon, comingSoonLabel }) => (
+const ExamCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel }) => (
   <button
     onClick={onClick}
-    disabled={comingSoon}
+    disabled={locked}
     className={`relative flex items-center gap-4 p-4 sm:p-5 rounded-2xl border-4 text-left transition-all ${
-      comingSoon
+      locked
         ? 'opacity-60 cursor-not-allowed'
         : 'hover:-translate-y-1 active:scale-95'
     } ${
@@ -67,7 +63,7 @@ const ExamCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, 
         : 'bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]'
     }`}
   >
-    {comingSoon && <StatusBadge label={comingSoonLabel} />}
+    {badgeLabel && <StatusBadge label={badgeLabel} />}
     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-4 border-slate-900 flex items-center justify-center shrink-0 ${color}`}>
       <Icon size={20} className="text-slate-900" />
     </div>
@@ -88,27 +84,38 @@ ExamCard.propTypes = {
   color:           PropTypes.string.isRequired,
   onClick:         PropTypes.func.isRequired,
   isDarkMode:      PropTypes.bool.isRequired,
-  comingSoon:      PropTypes.bool,
-  comingSoonLabel: PropTypes.string,
+  locked:          PropTypes.bool,
+  badgeLabel:      PropTypes.string,
 };
 
 // ── ExamTrainingMenu ──────────────────────────────────────────────────────────
 const ExamTrainingMenu = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { showAlert } = useAppContext();
-  const { canAccess } = useTierAccess();
+  const { featureStatus, isReady } = useTierAccess();
+
+  // Access comes from appConfig/config/tiersConfig (Admin > Tiers & Features),
+  // so locking or releasing an exercise is a config change, not a code change.
+  const exerciseCards = isReady
+    ? EXERCISES.map((ex) => {
+        const status = featureStatus(ex.featureKey);
+        const badge = getStatusBadge(status);
+        return {
+          ...ex,
+          status,
+          badgeLabel: badge && t(badge.key, badge.fallback),
+          locked:
+            status !== FEATURE_STATUS.AVAILABLE && !PURCHASABLE_STATUSES.includes(status),
+        };
+      })
+    : [];
 
   const handleExerciseSelect = (ex) => {
-    // Access comes from appConfig/config/tiersConfig (Admin > Tiers & Features),
-    // so locking or releasing an exercise is a config change, not a code change.
-    if (!canAccess(ex.featureKey)) {
-      showAlert('warning', t('subscription.errors.upgrade_required'), {
-        label: t('pricing.upgrade'),
-        onClick: () => navigate('/pricing'),
-      });
+    if (PURCHASABLE_STATUSES.includes(ex.status)) {
+      navigate('/pricing');
       return;
     }
+    if (ex.locked) return;
     navigate(ex.route);
   };
 
@@ -131,22 +138,19 @@ const ExamTrainingMenu = ({ isDarkMode }) => {
       </div>
 
       <div className="grid grid-cols-1 gap-3 mt-2">
-        {EXERCISES.map((ex) => {
-          const isLocked = !canAccess(ex.featureKey);
-          return (
-            <ExamCard
-              key={ex.id}
-              title={t(ex.titleKey)}
-              description={t(ex.descKey)}
-              icon={isLocked ? Lock : ex.icon}
-              color={ex.color}
-              onClick={() => !ex.comingSoon && !isLocked && handleExerciseSelect(ex)}
-              isDarkMode={isDarkMode}
-              comingSoon={ex.comingSoon || isLocked}
-              comingSoonLabel={isLocked ? t('pricing.upgrade') : t('challenges.coming_soon', 'Coming Soon')}
-            />
-          );
-        })}
+        {exerciseCards.map((ex) => (
+          <ExamCard
+            key={ex.id}
+            title={t(ex.titleKey)}
+            description={t(ex.descKey)}
+            icon={ex.status === FEATURE_STATUS.AVAILABLE ? ex.icon : Lock}
+            color={ex.color}
+            onClick={() => handleExerciseSelect(ex)}
+            isDarkMode={isDarkMode}
+            locked={ex.locked}
+            badgeLabel={ex.badgeLabel}
+          />
+        ))}
       </div>
     </div>
   );

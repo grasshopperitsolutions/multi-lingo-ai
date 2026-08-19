@@ -1,64 +1,59 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import { createCheckoutSession, openPlanChangePortal } from "../services/stripeService";
-import { PRICING, TIER_FEATURES, getYearlySavingsPercent } from "../config/pricing";
+import { PRICING, getYearlySavingsPercent } from "../config/pricing";
+import { FEATURE_STATUS, getFeatureStatus } from "../utils/featureAccess";
 import { auth } from "../firebase";
-import { CheckCircle, Star, Lock, Clock, ArrowRight } from "lucide-react";
+import { CheckCircle, Star, Lock, Clock, ArrowRight, ChevronDown } from "lucide-react";
 import PropTypes from "prop-types";
 
+// ── Rows shown before the list collapses ──────────────────────────────────────
+const COLLAPSED_ROW_COUNT = 7;
+
+// The cheapest paid plan carries the "most popular" flag. Read from the tier's
+// own display order so renaming or reordering plans in the Admin page doesn't
+// need a code change here.
+const MOST_POPULAR_ORDER = 2;
+
 // ── FeatureRow ────────────────────────────────────────────────────────────────
-const FeatureRow = ({ feature, tier, isDarkMode, t }) => {
-  // Three states, not two. A coming-soon feature is neither included (it can't
-  // be used yet) nor excluded (it isn't withheld by the plan), so it gets its
-  // own icon and badge instead of being struck through like a locked one.
-  const comingSoon = feature.comingSoon === true;
-  const included =
-    !comingSoon &&
-    (feature.value === true || typeof feature.value === "number" || feature.value === "Unlimited");
-  const label =
-    feature.key === "ai_calls"
-      ? t("pricing.features.ai_calls", {
-          count: feature.raw === Infinity ? "Unlimited" : feature.value,
-          suffix: feature.suffix || "",
-        })
-      : t(`pricing.features.${feature.key}`);
+const FeatureRow = ({ label, status, isDarkMode, t }) => {
+  // Four states, not two. A feature that isn't built yet is neither included
+  // (it can't be used) nor withheld by the plan (nothing is being sold), so it
+  // gets its own icon and badge rather than being struck through like a
+  // genuinely locked one.
+  const included = status === FEATURE_STATUS.AVAILABLE;
+  const unreleased =
+    status === FEATURE_STATUS.COMING_SOON || status === FEATURE_STATUS.INCOMING;
 
   return (
     <div className="flex items-center gap-2 py-2">
-      {comingSoon ? (
+      {unreleased ? (
         <Clock size={14} className="text-amber-500 shrink-0" />
       ) : included ? (
-        <CheckCircle
-          size={16}
-          className={tier === "explorer" ? "text-emerald-400" : "text-emerald-500"}
-        />
+        <CheckCircle size={16} className="text-emerald-500 shrink-0" />
       ) : (
-        <Lock size={14} className="text-slate-400" />
+        <Lock size={14} className="text-slate-400 shrink-0" />
       )}
       <span
         className={`text-xs font-bold uppercase tracking-wider ${
           included
-            ? isDarkMode
-              ? "text-slate-300"
-              : "text-slate-700"
-            : isDarkMode
-              ? "text-slate-500"
-              : "text-slate-400"
-        } ${!included && !comingSoon ? "line-through opacity-60" : ""}`}
+            ? isDarkMode ? "text-slate-300" : "text-slate-700"
+            : isDarkMode ? "text-slate-500" : "text-slate-400"
+        } ${!included && !unreleased ? "line-through opacity-60" : ""}`}
       >
         {label}
       </span>
-      {comingSoon && (
+      {unreleased && (
         <span
           className={`shrink-0 px-1.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${
-            isDarkMode
-              ? "border-amber-600 text-amber-400"
-              : "border-amber-400 text-amber-700"
+            isDarkMode ? "border-amber-600 text-amber-400" : "border-amber-400 text-amber-700"
           }`}
         >
-          {t("pricing.badge_coming_soon")}
+          {status === FEATURE_STATUS.INCOMING
+            ? t("features.incoming", "Incoming")
+            : t("pricing.badge_coming_soon")}
         </span>
       )}
     </div>
@@ -66,8 +61,27 @@ const FeatureRow = ({ feature, tier, isDarkMode, t }) => {
 };
 
 FeatureRow.propTypes = {
-  feature: PropTypes.object.isRequired,
-  tier: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+  status: PropTypes.string.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+  t: PropTypes.func.isRequired,
+};
+
+// ── AiCallsRow — the allowance, which is a limit rather than a feature ────────
+const AiCallsRow = ({ aiCallsPerDay, isDarkMode, t }) => (
+  <div className="flex items-center gap-2 py-2">
+    <CheckCircle size={16} className="text-emerald-500 shrink-0" />
+    <span className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
+      {t("pricing.features.ai_calls", {
+        count: aiCallsPerDay === Infinity ? t("pricing.unlimited", "Unlimited") : aiCallsPerDay,
+        suffix: aiCallsPerDay === Infinity ? "" : t("pricing.per_day_suffix", "/day"),
+      })}
+    </span>
+  </div>
+);
+
+AiCallsRow.propTypes = {
+  aiCallsPerDay: PropTypes.number.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
   t: PropTypes.func.isRequired,
 };
@@ -77,7 +91,8 @@ const TierCard = ({
   tierKey,
   tierLabel,
   price,
-  features,
+  rows,
+  aiCallsPerDay,
   isDarkMode,
   isCurrentTier,
   isMostPopular,
@@ -86,7 +101,10 @@ const TierCard = ({
   t,
 }) => {
   const [isYearly, setIsYearly] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const currentPrice = price ? (isYearly ? price.yearly : price.monthly) : null;
+  const visibleRows = expanded ? rows : rows.slice(0, COLLAPSED_ROW_COUNT);
+  const hiddenCount = Math.max(0, rows.length - COLLAPSED_ROW_COUNT);
   const isFree = tierKey === "explorer";
   const isLoading = loadingPlan === `${tierKey}-${currentPrice?.interval ?? "monthly"}`;
 
@@ -241,17 +259,36 @@ const TierCard = ({
           {!isCurrentTier && !isLoading && <ArrowRight size={16} />}
         </button>
 
-        {/* Feature List */}
+        {/* Feature List — every feature is listed, but the tail is collapsed so
+            the cards stay comparable at a glance. */}
         <div className="flex-1 space-y-1">
-          {features.map((feat, idx) => (
+          <AiCallsRow aiCallsPerDay={aiCallsPerDay} isDarkMode={isDarkMode} t={t} />
+
+          {visibleRows.map((row) => (
             <FeatureRow
-              key={idx}
-              feature={feat}
-              tier={tierKey}
+              key={row.id}
+              label={row.label}
+              status={row.status}
               isDarkMode={isDarkMode}
               t={t}
             />
           ))}
+
+          {hiddenCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setExpanded((prev) => !prev)}
+              aria-expanded={expanded}
+              className={`mt-2 flex items-center gap-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
+                isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              <ChevronDown size={14} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+              {expanded
+                ? t("pricing.show_less", "Show less")
+                : t("pricing.show_all_features", "Show all {{count}} features", { count: rows.length })}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -262,7 +299,8 @@ TierCard.propTypes = {
   tierKey: PropTypes.string.isRequired,
   tierLabel: PropTypes.string.isRequired,
   price: PropTypes.object,
-  features: PropTypes.array.isRequired,
+  rows: PropTypes.array.isRequired,
+  aiCallsPerDay: PropTypes.number.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
   isCurrentTier: PropTypes.bool.isRequired,
   isMostPopular: PropTypes.bool.isRequired,
@@ -273,7 +311,7 @@ TierCard.propTypes = {
 
 // ── PricingPage ───────────────────────────────────────────────────────────────
 const PricingPage = () => {
-  const { isDarkMode, user, showAlert } = useAppContext();
+  const { isDarkMode, user, showAlert, tiersConfig, features: featureRegistry } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [loadingPlan, setLoadingPlan] = useState(null);
@@ -317,29 +355,31 @@ const PricingPage = () => {
     }
   };
 
-  const tiers = [
-    {
-      key: "explorer",
-      label: "Explorer",
-      price: null,
-      features: TIER_FEATURES.explorer,
-      isMostPopular: false,
-    },
-    {
-      key: "voyager",
-      label: "Voyager",
-      price: PRICING.voyager,
-      features: TIER_FEATURES.voyager,
-      isMostPopular: true,
-    },
-    {
-      key: "maestro",
-      label: "Maestro",
-      price: PRICING.maestro,
-      features: TIER_FEATURES.maestro,
-      isMostPopular: false,
-    },
-  ];
+  // Plans and their contents come straight from appConfig/config/tiersConfig
+  // and appConfig/config/features, so this page can't drift from what the app
+  // actually grants. Hidden tiers (VIP, Admin) are excluded by definition.
+  const tiers = useMemo(() => {
+    if (!tiersConfig || !featureRegistry) return [];
+
+    return Object.values(tiersConfig)
+      .filter((tier) => !tier.hidden)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((tier) => ({
+        key: tier.id,
+        label: tier.label,
+        price: PRICING[tier.id] ?? null,
+        aiCallsPerDay: tier.aiCallsPerDay,
+        // Voyager is the recommended plan: the cheapest paid one.
+        isMostPopular: !tier.isFree && tier.order === MOST_POPULAR_ORDER,
+        rows: featureRegistry.map((feature) => ({
+          id: feature.id,
+          // The user-facing name comes from the translation key stored on the
+          // feature; the admin label is the fallback when none is set.
+          label: feature.labelKey ? t(feature.labelKey, feature.label) : feature.label,
+          status: getFeatureStatus(feature.id, tier.id, tiersConfig),
+        })),
+      }));
+  }, [tiersConfig, featureRegistry, t]);
 
   return (
     <>
@@ -372,7 +412,8 @@ const PricingPage = () => {
                 tierKey={tier.key}
                 tierLabel={tier.label}
                 price={tier.price}
-                features={tier.features}
+                rows={tier.rows}
+                aiCallsPerDay={tier.aiCallsPerDay}
                 isDarkMode={isDarkMode}
                 isCurrentTier={currentTier === tier.key}
                 isMostPopular={tier.isMostPopular}

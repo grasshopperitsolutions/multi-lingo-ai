@@ -11,7 +11,7 @@ import { getUserProfile, updateDayStreak, updateUserProfile } from "../services/
 import { getLanguages, getWritingSystems } from "../services/supportedLanguagesService";
 import { getCategories } from "../services/categoriesService";
 import { getTiersConfig } from "../services/tiersConfigService";
-import { TIER_LIMITS, TIER_IDS } from "../config/tierLimits";
+import { getFeatures } from "../services/featuresService";
 import { normalizeCode } from "../utils/languageCode";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
@@ -75,13 +75,12 @@ export const AppProvider = ({ children }) => {
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
 
   // ── Tier limits & feature access state ─────────────────────────────────
-  // Seeded from the code defaults so useTierAccess never sees an empty object
-  // during the first render — an empty config would read as "no features" and
-  // briefly lock the UI for everyone.
-  const [tiersConfig, setTiersConfig] = useState(() =>
-    Object.fromEntries(TIER_IDS.map((id) => [id, { id, ...TIER_LIMITS[id] }]))
-  );
-  const [isLoadingTiers, setIsLoadingTiers] = useState(false);
+  // Both null until the Firestore config loads. useTierAccess reports
+  // isReady:false meanwhile so callers hold instead of acting on values they
+  // don't have yet.
+  const [tiersConfig, setTiersConfig] = useState(null);
+  const [features, setFeatures] = useState(null);
+  const [isLoadingTiers, setIsLoadingTiers] = useState(true);
 
   // ── Full Exam session state ────────────────────────────────────────────
   const [examSession, setExamSession] = useState(null);
@@ -148,16 +147,22 @@ export const AppProvider = ({ children }) => {
 
   // ── Fetch tier limits & feature access ───────────────────────────────
   // Runs for guests too — gating decisions are needed before sign-in, and
-  // getTiersConfig() falls back to an anonymous session. It never throws;
-  // on failure it returns the code defaults rather than locking the app.
+  // getTiersConfig() falls back to an anonymous session. The config is
+  // required: without it the app can't tell what anyone is allowed to do, so a
+  // failure goes to /app-unavailable like a failed translation load.
   const refreshTiersConfig = useCallback(async () => {
     setIsLoadingTiers(true);
     try {
-      setTiersConfig(await getTiersConfig());
+      const [tiers, featureDocs] = await Promise.all([getTiersConfig(), getFeatures()]);
+      setTiersConfig(tiers);
+      setFeatures(featureDocs);
+    } catch (err) {
+      console.error(`[AppContext] Failed to load tier/feature config: ${err.message}`);
+      navigate("/app-unavailable", { replace: true });
     } finally {
       setIsLoadingTiers(false);
     }
-  }, []);
+  }, [navigate]);
 
   // Load tier config on startup
   useEffect(() => {
@@ -615,6 +620,7 @@ export const AppProvider = ({ children }) => {
         refreshCategories,
         // Tier limits & feature access
         tiersConfig,
+        features,
         isLoadingTiers,
         refreshTiersConfig,
         // Full Exam session

@@ -8,7 +8,8 @@ import { CONFIG_SECTIONS, getConfigSectionDocs } from "../services/adminConfigSe
 import { updateDocument } from "../services/firestoreService";
 import { getPrompts, updatePrompt } from "../services/promptService";
 import { getAuthProviders, setAuthProviderEnabled } from "../services/authProvidersService";
-import { getTiersConfig, saveTierConfig, seedMissingTiers } from "../services/tiersConfigService";
+import { getTiersConfig, saveTierConfig } from "../services/tiersConfigService";
+import { getFeatures, saveFeature } from "../services/featuresService";
 import { listAllUserProfiles, setUserTier, deleteAccount } from "../services/userService";
 import { getLanguages } from "../services/supportedLanguagesService";
 import { forceOverwriteAllTranslations, seedLanguageTranslations } from "../services/translationService";
@@ -24,6 +25,8 @@ import GenericDocsSection from "../components/admin/GenericDocsSection";
 import GenericDocEditModal from "../components/admin/GenericDocEditModal";
 import TiersSection from "../components/admin/TiersSection";
 import TierEditModal from "../components/admin/TierEditModal";
+import FeaturesSection from "../components/admin/FeaturesSection";
+import FeatureEditModal from "../components/admin/FeatureEditModal";
 import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
@@ -31,7 +34,7 @@ import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
 // The "prompts" section gets a dedicated editor (PromptsSection/PromptEditModal);
 // every other section stays a read-only JSON dump.
 const AdminPage = () => {
-  const { isDarkMode, user, isLoadingUser, showAlert, refreshTiersConfig } = useAppContext();
+  const { isDarkMode, user, isLoadingUser, showAlert, refreshTiersConfig, features } = useAppContext();
   const { isAdmin } = useTierAccess();
   const navigate = useNavigate();
 
@@ -48,7 +51,8 @@ const AdminPage = () => {
   const [isSavingGenericDoc, setIsSavingGenericDoc] = useState(false);
   const [editingTier, setEditingTier] = useState(null); // null | tier config object
   const [isSavingTier, setIsSavingTier] = useState(false);
-  const [isSeedingTiers, setIsSeedingTiers] = useState(false);
+  const [featureModal, setFeatureModal] = useState(null); // null | { feature: object|null }
+  const [isSavingFeature, setIsSavingFeature] = useState(false);
   // TEMPORARY — prompt seeding.
 
   // Categories actually in use, so the edit modal's dropdown reflects reality
@@ -65,6 +69,7 @@ const AdminPage = () => {
   const isLocalesSection = activeSectionId === "locales";
   const isCategoriesSection = activeSectionId === "categories";
   const isTiersSection = activeSectionId === "tiers";
+  const isFeaturesSection = activeSectionId === "features";
 
   const loadSection = useCallback(async (section) => {
     setIsLoadingDocs(true);
@@ -76,6 +81,8 @@ const AdminPage = () => {
           ? await getAuthProviders()
           : section.id === "tiers"
             ? await getTiersConfig()
+            : section.id === "features"
+              ? await getFeatures()
             : section.id === "users"
               ? await listAllUserProfiles(await auth.currentUser.getIdToken())
               : await getConfigSectionDocs(section.collection);
@@ -196,23 +203,21 @@ const AdminPage = () => {
     }
   }, [showAlert, refreshTiersConfig]);
 
-  const handleSeedMissingTiers = useCallback(async () => {
-    setIsSeedingTiers(true);
+  const handleSaveFeature = useCallback(async (featureKey, data, isNew) => {
+    setIsSavingFeature(true);
     try {
-      const seeded = await seedMissingTiers();
-      showAlert(
-        "success",
-        seeded.length === 0
-          ? "All tiers already have a document."
-          : `Seeded: ${seeded.join(", ")}.`
-      );
-      const updated = await getTiersConfig();
-      setDocsBySection((prev) => ({ ...prev, tiers: updated }));
+      await saveFeature(featureKey, data);
+      showAlert("success", isNew ? "Feature created." : "Feature saved.");
+      setFeatureModal(null);
+      const updated = await getFeatures();
+      setDocsBySection((prev) => ({ ...prev, features: updated }));
+      // Push into the live app so the tier editor and pricing page pick up the
+      // new label/order without a reload.
       await refreshTiersConfig();
     } catch (err) {
-      showAlert("error", `Could not seed tiers: ${err.message}`);
+      showAlert("error", `Could not save feature: ${err.message}`);
     } finally {
-      setIsSeedingTiers(false);
+      setIsSavingFeature(false);
     }
   }, [showAlert, refreshTiersConfig]);
 
@@ -373,15 +378,23 @@ const AdminPage = () => {
             onEditCategory={(category) => setCategoryModal({ category })}
             onDeleteCategory={handleDeleteCategory}
           />
-        ) : isTiersSection ? (
-          <TiersSection
-            tiers={docsBySection.tiers ?? {}}
+        ) : isFeaturesSection ? (
+          <FeaturesSection
+            features={docsBySection.features ?? []}
             isDarkMode={isDarkMode}
             isLoadingDocs={isLoadingDocs}
             error={error}
-            isSeeding={isSeedingTiers}
+            onAddFeature={() => setFeatureModal({ feature: null })}
+            onEditFeature={(feature) => setFeatureModal({ feature })}
+          />
+        ) : isTiersSection ? (
+          <TiersSection
+            tiers={docsBySection.tiers ?? {}}
+            featureCount={features?.length ?? 0}
+            isDarkMode={isDarkMode}
+            isLoadingDocs={isLoadingDocs}
+            error={error}
             onEditTier={setEditingTier}
-            onSeedMissing={handleSeedMissingTiers}
           />
         ) : isAuthProvidersSection ? (
           <LoginProvidersSection
@@ -423,9 +436,20 @@ const AdminPage = () => {
         />
       )}
 
+      {featureModal && (
+        <FeatureEditModal
+          feature={featureModal.feature}
+          isDarkMode={isDarkMode}
+          isSaving={isSavingFeature}
+          onSave={handleSaveFeature}
+          onClose={() => setFeatureModal(null)}
+        />
+      )}
+
       {editingTier && (
         <TierEditModal
           tier={editingTier}
+          allFeatures={features}
           isDarkMode={isDarkMode}
           isSaving={isSavingTier}
           onSave={handleSaveTier}

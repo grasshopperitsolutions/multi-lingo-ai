@@ -19,7 +19,8 @@ export const CONFIG_SECTIONS = [
   { id: "prompts", label: "Prompts", collection: "appConfig/config/prompts" },
   { id: "categories", label: "Interest Categories", collection: "appConfig/config/categories" },
   { id: "authProviders", label: "Login Providers", collection: "appConfig/config/authProviders" },
-  { id: "tiers", label: "Tiers & Features", collection: "appConfig/config/tiersConfig" },
+  { id: "features", label: "Features", collection: "appConfig/config/features" },
+  { id: "tiers", label: "Tiers & Limits", collection: "appConfig/config/tiersConfig" },
   { id: "users", label: "Users", collection: "Firebase Auth + users/*" },
 ];
 

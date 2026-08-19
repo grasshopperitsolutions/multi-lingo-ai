@@ -52,7 +52,8 @@ export const updateUserProfile = async (token, uid, data) => {
 
 /**
  * Set a user's subscriptionTier — the field that doubles as their role
- * (explorer/voyager/maestro/vip/admin, see tierLimits.js). Setting it on
+ * (explorer/voyager/maestro/vip/admin, configured in
+ * appConfig/config/tiersConfig). Setting it on
  * someone else's uid is admin-only (enforced by updateUserProfile's backend
  * call); setting your own is blocked server-side regardless of role.
  *

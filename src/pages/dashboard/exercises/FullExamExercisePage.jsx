@@ -10,8 +10,10 @@ const FullExamExercise = lazy(() => import("../../../components/FullExamExercise
 
 const FullExamExercisePage = () => {
   const { isDarkMode, showAlert } = useAppContext();
-  const { canAccess } = useTierAccess();
-  const isLocked = !canAccess("full_exam");
+  const { canAccess, isReady } = useTierAccess();
+  // Only a loaded config can lock the route — redirecting on the first render
+  // would bounce every user out before their access is known.
+  const isLocked = isReady && !canAccess("full_exam");
   const { t } = useTranslation();
   const navigate = useNavigate();
 

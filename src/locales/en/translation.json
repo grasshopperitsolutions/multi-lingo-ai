@@ -842,7 +842,9 @@
     "word_link_won": "Linked!",
     "word_link_lost": "No Link!",
     "word_link_score": "Guessed in {{count}} clue(s)!",
-    "word_link_answer": "The theme was:"
+    "word_link_answer": "The theme was:",
+    "word_ladder": "Word Ladder",
+    "word_ladder_desc": "Change one letter at a time to reach the target word"
   },
   "report": {
     "buttonLabel": "Report",
@@ -907,7 +909,11 @@
       "priority_support": "Priority Support",
       "ai_tutor": "AI Tutor",
       "voice_practice": "Voice Practice"
-    }
+    },
+    "show_all_features": "Show all {{count}} features",
+    "show_less": "Show less",
+    "unlimited": "Unlimited",
+    "per_day_suffix": "/day"
   },
   "subscription": {
     "title": "Subscription",
@@ -1051,12 +1057,19 @@
   },
   "custom_request": {
     "locked": "Want to ask for something specific? Upgrade to request your own topics.",
-    "unlocked_by_exhaustion": "You've seen everything saved so far — describe what you'd like next."
+    "unlocked_by_exhaustion": "You've seen everything saved so far — describe what you'd like next.",
+    "title": "Custom AI Requests"
   },
   "session": {
     "expired_title": "Session Expired",
     "expired_message": "Your session has expired. Please sign in again to continue.",
     "refresh_button": "Sign In Again",
     "checking": "Checking session..."
+  },
+  "features": {
+    "coming_soon": "Coming Soon",
+    "incoming": "Incoming",
+    "subscribe": "Subscribe",
+    "upgrade": "Upgrade"
   }
 }

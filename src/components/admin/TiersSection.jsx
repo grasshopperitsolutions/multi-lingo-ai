@@ -1,41 +1,22 @@
 import PropTypes from "prop-types";
-import { Pencil, Infinity as InfinityIcon, EyeOff, Sparkles } from "lucide-react";
+import { Pencil, Infinity as InfinityIcon, EyeOff } from "lucide-react";
 import Loader from "../Loader";
-import { GhostButton, PrimaryButton } from "../ui";
-import { FEATURE_KEYS } from "../../config/features";
+import { GhostButton } from "../ui";
 
 /**
  * TiersSection — admin list of subscription tiers
  * (appConfig/config/tiersConfig). Backed by tiersConfigService.js.
  *
  * Shows each tier's daily AI allowance and how many features it can reach, with
- * an editor behind the pencil. "Seed missing" writes the code defaults for any
- * tier that has no document yet, so an empty subcollection can be populated in
- * one click rather than by hand.
+ * an editor behind the pencil.
  */
-const TiersSection = ({ tiers, isDarkMode, isLoadingDocs, error, isSeeding, onEditTier, onSeedMissing }) => {
+const TiersSection = ({ tiers, featureCount, isDarkMode, isLoadingDocs, error, onEditTier }) => {
   const rows = Object.values(tiers ?? {}).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   const mutedClasses = isDarkMode ? "text-slate-400" : "text-slate-500";
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <PrimaryButton
-          onClick={onSeedMissing}
-          isDarkMode={isDarkMode}
-          color="emerald"
-          className="!px-4 !py-2"
-          disabled={isSeeding}
-        >
-          <Sparkles size={16} />
-          {isSeeding ? "Seeding..." : "Seed Missing Tiers"}
-        </PrimaryButton>
-        <p className={`text-xs font-bold ${mutedClasses}`}>
-          Writes code defaults for any tier with no document yet. Existing documents are left alone.
-        </p>
-      </div>
-
       {isLoadingDocs && <Loader message="Loading tiers..." isDarkMode={isDarkMode} />}
 
       {!isLoadingDocs && error && <p className="font-bold text-rose-500">{error}</p>}
@@ -95,7 +76,7 @@ const TiersSection = ({ tiers, isDarkMode, isLoadingDocs, error, isSeeding, onEd
               <div>
                 <p className={`text-[10px] font-black uppercase tracking-widest ${mutedClasses}`}>Features</p>
                 <p className={`text-xl font-black tabular-nums ${isDarkMode ? "text-white" : "text-slate-900"}`}>
-                  {isAdminTier ? "All" : `${grantedCount} / ${FEATURE_KEYS.length}`}
+                  {isAdminTier ? "All" : `${grantedCount} / ${featureCount}`}
                 </p>
               </div>
             </div>
@@ -114,19 +95,18 @@ const TiersSection = ({ tiers, isDarkMode, isLoadingDocs, error, isSeeding, onEd
 
 TiersSection.propTypes = {
   tiers: PropTypes.object,
+  featureCount: PropTypes.number,
   isDarkMode: PropTypes.bool.isRequired,
   isLoadingDocs: PropTypes.bool,
   error: PropTypes.string,
-  isSeeding: PropTypes.bool,
   onEditTier: PropTypes.func.isRequired,
-  onSeedMissing: PropTypes.func.isRequired,
 };
 
 TiersSection.defaultProps = {
   tiers: {},
+  featureCount: 0,
   isLoadingDocs: false,
   error: null,
-  isSeeding: false,
 };
 
 export default TiersSection;

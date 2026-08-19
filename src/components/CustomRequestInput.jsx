@@ -29,7 +29,7 @@ const CustomRequestInput = ({
   isDarkMode,
 }) => {
   const { t } = useTranslation();
-  const { canAccess } = useTierAccess();
+  const { canAccess, isReady } = useTierAccess();
   const navigate = useNavigate();
 
   // Granted by config (Admin > Tiers & Features) rather than inferred purely
@@ -37,6 +37,10 @@ const CustomRequestInput = ({
   // Exhausting the shared cache still unlocks it for anyone, as before.
   const hasCustomRequests = canAccess("custom_requests");
   const unlocked = hasCustomRequests || cacheExhausted;
+
+  // Render nothing until access is known, rather than flashing the upgrade
+  // prompt at a user who turns out to have the feature.
+  if (!isReady) return null;
 
   if (!unlocked) {
     return (

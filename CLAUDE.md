@@ -36,10 +36,27 @@ This is a Vite + React 18 SPA (`react-router-dom` v6) — the frontend for "Mult
 - Theme (dark/light), persisted to Firestore for logged-in users and `localStorage` for guests.
 - Interface language (`interfaceLang`) and the i18next translation-loading pipeline (see below).
 - Supported languages/writing systems and interest categories (fetched once on app load, guest-accessible).
+- Tier limits and feature access (`tiersConfig`), fetched once on app load.
 - Full Exam session state (`examSession`).
 - A periodic Firebase ID-token validation loop (every 50 min) that flags `tokenExpired` and shows a persistent alert if the session can no longer be refreshed.
 
-Feature-specific hooks build on top of this context, e.g. `src/hooks/useTierAccess.js` derives subscription-tier gating (`explorer`/`voyager`/`maestro`/`vip`/`admin`, daily AI call limits from `src/config/tierLimits.js`) from `user` in `AppContext`.
+Feature-specific hooks build on top of this context, e.g. `src/hooks/useTierAccess.js` derives subscription-tier gating (`explorer`/`voyager`/`maestro`/`vip`/`admin`) from `user` plus `tiersConfig`.
+
+### Tier limits & feature gating
+
+Two Firestore collections drive this, both edited from the Admin page and both guest-readable via `getTokenOrAnonymous()` so the public pricing page can render them:
+
+- **`appConfig/config/features/{featureKey}`** (`src/services/featuresService.js`) — the registry of gateable features. The **document id is the feature key** and is structural: components gate on it as a string literal (`canAccess("full_exam")`, dashboard tile ids, `grammar_${section.id}`) and tier documents store it in their `features` array, so it can be created but never renamed. `label` and `order` are presentational; `labelKey` points at an existing translation key for the user-facing name.
+- **`appConfig/config/tiersConfig/{tierId}`** (`src/services/tiersConfigService.js`) — per-tier `aiCallsPerDay`, `isFree`, `hidden`, and the `features` allowlist.
+
+Both are **required**: `AppContext` routes to `/app-unavailable` if either can't be fetched, the same as a failed translation load. `src/config/tierLimits.js` holds only a bootstrap object for the first render before the fetch resolves; it is not a fallback for a failed fetch.
+
+- Access is an **allowlist**: `useTierAccess().canAccess(key)` denies anything not named in the tier's `features` array, so a newly added key stays locked everywhere until granted — which is how a feature is beta-tested on the `vip` tier before release. `admin` bypasses the check entirely.
+- `src/utils/featureAccess.js` resolves *why* something is locked into one of `available` / `coming_soon` (admin only) / `incoming` (VIP only) / `subscribe` (sold, viewer has no subscription) / `upgrade` (sold on a higher plan). It is a pure function taking any tier, because the pricing page asks the same question about tiers other than the viewer's — one implementation means the dashboard badge and the pricing table can't disagree.
+- Features are never hidden from the UI. Every menu and dashboard tile stays visible with a status badge; `subscribe`/`upgrade` tiles route to `/pricing`, `coming_soon`/`incoming` are inert.
+- `canAccess()` returns false before the config loads, so callers that render lists must gate on `useTierAccess().isReady` rather than treating "not loaded" as "denied".
+- Firestore cannot store `Infinity`; unlimited allowances are persisted as `null` and converted at the service boundary.
+- These limits are display/UX only — the backend in `multi-lingo-ai-api` enforces the real allowance, so both must be kept in step.
 
 ### i18n / dynamic translations (core to this app)
 
