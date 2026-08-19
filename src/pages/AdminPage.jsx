@@ -10,8 +10,6 @@ import { getPrompts, updatePrompt } from "../services/promptService";
 import { getAuthProviders, setAuthProviderEnabled } from "../services/authProvidersService";
 import { getTiersConfig, saveTierConfig } from "../services/tiersConfigService";
 import { getFeatures, saveFeature } from "../services/featuresService";
-// TEMPORARY: feature seeding — delete with the block below and the seed file
-import { FEATURE_SEED } from "../config/TEMPORARY_featuresSeed";
 import { listAllUserProfiles, setUserTier, deleteAccount } from "../services/userService";
 import { getLanguages } from "../services/supportedLanguagesService";
 import { forceOverwriteAllTranslations, seedLanguageTranslations } from "../services/translationService";
@@ -55,7 +53,6 @@ const AdminPage = () => {
   const [isSavingTier, setIsSavingTier] = useState(false);
   const [featureModal, setFeatureModal] = useState(null); // null | { feature: object|null }
   const [isSavingFeature, setIsSavingFeature] = useState(false);
-  const [isSeedingFeatures, setIsSeedingFeatures] = useState(false); // TEMPORARY: feature seeding
   // TEMPORARY — prompt seeding.
 
   // Categories actually in use, so the edit modal's dropdown reflects reality
@@ -224,31 +221,6 @@ const AdminPage = () => {
     }
   }, [showAlert, refreshTiersConfig]);
 
-  // ── TEMPORARY: feature seeding ─────────────────────────────────────────
-  // Writes the built-in list from config/TEMPORARY_featuresSeed.js. Sequential
-  // rather than parallel so a failure names the document that broke. Remove
-  // this handler, its state, the import above, the JSX block in
-  // FeaturesSection.jsx and the seed file itself once the collection is seeded.
-  const handleSeedFeatures = useCallback(async () => {
-    setIsSeedingFeatures(true);
-    try {
-      let written = 0;
-      for (const { key, ...data } of FEATURE_SEED) {
-        await saveFeature(key, data);
-        written += 1;
-      }
-      showAlert("success", `Seeded ${written} features.`);
-      const updated = await getFeatures();
-      setDocsBySection((prev) => ({ ...prev, features: updated }));
-      await refreshTiersConfig();
-    } catch (err) {
-      showAlert("error", `Could not seed features: ${err.message}`);
-    } finally {
-      setIsSeedingFeatures(false);
-    }
-  }, [showAlert, refreshTiersConfig]);
-  // ── END TEMPORARY: feature seeding ─────────────────────────────────────
-
   const handleSaveGenericDoc = useCallback(async (docId, data) => {
     setIsSavingGenericDoc(true);
     try {
@@ -414,8 +386,6 @@ const AdminPage = () => {
             error={error}
             onAddFeature={() => setFeatureModal({ feature: null })}
             onEditFeature={(feature) => setFeatureModal({ feature })}
-            isSeeding={isSeedingFeatures}
-            onSeed={handleSeedFeatures}
           />
         ) : isTiersSection ? (
           <TiersSection

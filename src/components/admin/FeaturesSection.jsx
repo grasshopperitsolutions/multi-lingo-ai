@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { Pencil, Plus, Sprout } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import Loader from "../Loader";
 import { GhostButton, PrimaryButton, SearchBar } from "../ui";
 
@@ -19,7 +19,7 @@ function matchesSearch(feature, term) {
  * `labelKey` points at the translation key used for the user-facing name on
  * the dashboard and pricing page.
  */
-const FeaturesSection = ({ features, isDarkMode, isLoadingDocs, error, isSeeding, onAddFeature, onEditFeature, onSeed }) => {
+const FeaturesSection = ({ features, isDarkMode, isLoadingDocs, error, onAddFeature, onEditFeature }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filtered = useMemo(
@@ -31,21 +31,11 @@ const FeaturesSection = ({ features, isDarkMode, isLoadingDocs, error, isSeeding
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
+      <div>
         <PrimaryButton onClick={onAddFeature} isDarkMode={isDarkMode} color="emerald" className="!px-4 !py-2">
           <Plus size={16} />
           Add Feature
         </PrimaryButton>
-
-        {/* ── TEMPORARY: feature seeding — remove this block once seeded ── */}
-        <PrimaryButton onClick={onSeed} isDarkMode={isDarkMode} color="yellow" className="!px-4 !py-2" disabled={isSeeding}>
-          <Sprout size={16} />
-          {isSeeding ? "Seeding..." : "Seed Features"}
-        </PrimaryButton>
-        <p className={`text-xs font-bold ${mutedClasses}`}>
-          Temporary. Writes the built-in feature list, overwriting any key it names.
-        </p>
-        {/* ── END TEMPORARY: feature seeding ── */}
       </div>
 
       {isLoadingDocs && <Loader message="Loading features..." isDarkMode={isDarkMode} />}
@@ -107,18 +97,12 @@ FeaturesSection.propTypes = {
   error: PropTypes.string,
   onAddFeature: PropTypes.func.isRequired,
   onEditFeature: PropTypes.func.isRequired,
-  // TEMPORARY: feature seeding
-  isSeeding: PropTypes.bool,
-  onSeed: PropTypes.func,
 };
 
 FeaturesSection.defaultProps = {
   features: [],
   isLoadingDocs: false,
   error: null,
-  // TEMPORARY: feature seeding
-  isSeeding: false,
-  onSeed: () => {},
 };
 
 export default FeaturesSection;
