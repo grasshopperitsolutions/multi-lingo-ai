@@ -424,6 +424,7 @@ const ListeningExercise = ({ isDarkMode }) => {
                     answers={answers}
                     onAnswer={handleSelectAnswer}
                     isDarkMode={isDarkMode}
+                    accent="sky"
                   />
                 )}
                 {exerciseType === "true-false" && (
@@ -432,6 +433,7 @@ const ListeningExercise = ({ isDarkMode }) => {
                     answers={answers}
                     onAnswer={handleSelectAnswer}
                     isDarkMode={isDarkMode}
+                    accent="sky"
                   />
                 )}
                 {exerciseType === "fill-blanks" && (
@@ -442,6 +444,7 @@ const ListeningExercise = ({ isDarkMode }) => {
                     answers={answers}
                     onAnswer={handleSelectAnswer}
                     isDarkMode={isDarkMode}
+                    accent="sky"
                   />
                 )}
               </div>
@@ -522,7 +525,11 @@ const ListeningExercise = ({ isDarkMode }) => {
               />
             </div>
 
-            {audioCard}
+            {/*
+              No audio player here on purpose — once answers are marked the
+              transcript below is the useful artefact, and replaying the clip
+              only invites another AI call.
+            */}
             {transcriptCard}
 
             {/*

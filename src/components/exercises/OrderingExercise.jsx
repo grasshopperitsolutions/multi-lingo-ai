@@ -15,8 +15,9 @@
 import { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { ArrowUp, ArrowDown } from 'lucide-react';
+import { accentClass, ACCENT_NAMES } from './exerciseAccents';
 
-const OrderingExercise = ({ items, userOrder, onReorder, isDarkMode }) => {
+const OrderingExercise = ({ items, userOrder, onReorder, isDarkMode, accent }) => {
   // Determine display order: use userOrder if provided, otherwise use randomly shuffled
   const [shuffled] = useState(() => {
     const arr = [...items];
@@ -58,10 +59,8 @@ const OrderingExercise = ({ items, userOrder, onReorder, isDarkMode }) => {
           >
             {/* Position number */}
             <span className={`shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-black ${
-              isDarkMode
-                ? 'border-violet-600 bg-slate-800 text-violet-400'
-                : 'border-violet-500 bg-white text-violet-600'
-            }`}>
+              isDarkMode ? 'bg-slate-800' : 'bg-white'
+            } ${accentClass(accent, 'marker', isDarkMode)}`}>
               {index + 1}
             </span>
 
@@ -119,11 +118,13 @@ OrderingExercise.propTypes = {
   userOrder: PropTypes.arrayOf(PropTypes.string),
   onReorder: PropTypes.func.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
+  accent: PropTypes.oneOf(ACCENT_NAMES),
   level: PropTypes.string,
 };
 
 OrderingExercise.defaultProps = {
   userOrder: [],
+  accent: 'teal',
   level: 'A1',
 };
 

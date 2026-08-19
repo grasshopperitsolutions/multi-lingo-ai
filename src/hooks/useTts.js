@@ -7,9 +7,12 @@
  * Usage:
  *   const { ttsState, playTts, pauseTts, stopTts } = useTts();
  *
- *   // ttsState: { activeKey: string|null, isPaused: boolean }
- *   // activeKey — an opaque key identifying which audio source is playing
- *   // isPaused  — true while paused (activeKey is still set)
+ *   // ttsState: { activeKey, isPaused, isGenerating }
+ *   // activeKey    — an opaque key identifying which audio source is active
+ *   // isPaused     — true while paused (activeKey is still set)
+ *   // isGenerating — true between the play press and the first sound, while
+ *   //                Gemini synthesises the clip. Callers should show a loader
+ *   //                rather than claiming playback has started.
  *
  *   playTts({ key: 'input', text, lang, token, rate });
  *   pauseTts();
@@ -23,8 +26,9 @@ import { useState, useCallback, useRef } from 'react';
 import { speak, pauseSpeaking, resumeSpeaking, stopSpeaking } from '../services/getTtsService';
 
 export function useTts() {
-  const [activeKey, setActiveKey] = useState(null);
-  const [isPaused,  setIsPaused]  = useState(false);
+  const [activeKey,    setActiveKey]    = useState(null);
+  const [isPaused,     setIsPaused]     = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const activeKeyRef = useRef(null);
 
@@ -32,6 +36,7 @@ export function useTts() {
     activeKeyRef.current = null;
     setActiveKey(null);
     setIsPaused(false);
+    setIsGenerating(false);
   }, []);
 
   const playTts = useCallback(({ key, text, lang, token, rate = 1 }) => {
@@ -44,10 +49,16 @@ export function useTts() {
     activeKeyRef.current = key;
     setActiveKey(key);
     setIsPaused(false);
+    // Gemini synthesis takes seconds. Until onStart fires there is nothing to
+    // hear, so the UI must show "generating" rather than "playing".
+    setIsGenerating(true);
 
     speak(text, lang, {
       token,
       rate,
+      onStart: () => {
+        if (activeKeyRef.current === key) setIsGenerating(false);
+      },
       onEnd: () => {
         if (activeKeyRef.current === key) _resetState();
       },
@@ -66,10 +77,13 @@ export function useTts() {
   const stopTts = useCallback(() => {
     if (!activeKeyRef.current) return;
     activeKeyRef.current = null;
+    // stopSpeaking() also bumps the service's sequence counter, so a clip still
+    // being generated is discarded instead of playing once it arrives.
     stopSpeaking();
     setActiveKey(null);
     setIsPaused(false);
+    setIsGenerating(false);
   }, []);
 
-  return { ttsState: { activeKey, isPaused }, playTts, pauseTts, stopTts };
+  return { ttsState: { activeKey, isPaused, isGenerating }, playTts, pauseTts, stopTts };
 }

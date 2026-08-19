@@ -29,10 +29,14 @@ const CustomRequestInput = ({
   isDarkMode,
 }) => {
   const { t } = useTranslation();
-  const { hasUnlimitedAI } = useTierAccess();
+  const { canAccess } = useTierAccess();
   const navigate = useNavigate();
 
-  const unlocked = hasUnlimitedAI || cacheExhausted;
+  // Granted by config (Admin > Tiers & Features) rather than inferred purely
+  // from an unlimited allowance, so the two can be tuned independently.
+  // Exhausting the shared cache still unlocks it for anyone, as before.
+  const hasCustomRequests = canAccess("custom_requests");
+  const unlocked = hasCustomRequests || cacheExhausted;
 
   if (!unlocked) {
     return (
@@ -68,7 +72,7 @@ const CustomRequestInput = ({
       />
       {/* Only lower tiers reach this by exhausting the cache, so only they need
           telling why the box just appeared. */}
-      {!hasUnlimitedAI && cacheExhausted && (
+      {!hasCustomRequests && cacheExhausted && (
         <p className={`mt-2 text-xs font-bold ${isDarkMode ? "text-amber-400" : "text-amber-600"}`}>
           {t("custom_request.unlocked_by_exhaustion")}
         </p>

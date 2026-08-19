@@ -2,18 +2,20 @@
  * TTSPlayer.jsx
  *
  * Reusable Text-to-Speech player component.
- * Routes all audio through getTtsService (Gemini TTS primary, Web Speech API fallback)
- * via the useTts hook. Token is sourced from AppContext.
+ * Routes all audio through getTtsService (Gemini TTS primary, Web Speech API
+ * fallback) via the useTts hook. Token is sourced from AppContext.
  *
  * Props:
  *   text       {string} - The text to be spoken
  *   lang       {string} - BCP-47 locale, e.g. 'pt-PT'
  *   isDarkMode {bool}   - Theme flag
+ *   showNotice {bool}   - Show the "audio improvements coming soon" note
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import { Play, Square } from 'lucide-react';
+import { Play, Square, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useTts } from '../hooks/useTts';
 import { useAppContext } from '../contexts/AppContext';
 
@@ -32,11 +34,18 @@ const PLAYER_KEY = 'tts-player';
 // TTSPlayer
 // ---------------------------------------------------------------------------
 
-const TTSPlayer = ({ text, lang, isDarkMode }) => {
+const TTSPlayer = ({ text, lang, isDarkMode, showNotice = true }) => {
+  const { t } = useTranslation();
   const { user } = useAppContext();
   const { ttsState, playTts, stopTts } = useTts();
+  const [playCount, setPlayCount] = useState(0);
+  const [rate, setRate] = useState(1);
 
-  const isPlaying = ttsState.activeKey === PLAYER_KEY;
+  const isActive     = ttsState.activeKey === PLAYER_KEY;
+  const isGenerating = isActive && ttsState.isGenerating;
+  const isPlaying    = isActive && !ttsState.isGenerating;
+  const isBusy       = isActive;
+  const hasText      = !!text?.trim();
 
   // Stop on unmount to prevent zombie audio
   useEffect(() => {
@@ -44,57 +53,42 @@ const TTSPlayer = ({ text, lang, isDarkMode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
-    <TTSPlayerInner
-      text={text}
-      isDarkMode={isDarkMode}
-      token={user?.token}
-      isPlaying={isPlaying}
-      onPlay={(rate) =>
-        playTts({ key: PLAYER_KEY, text, lang, token: user?.token, rate })
-      }
-      onStop={stopTts}
-    />
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Inner stateful component — keeps local playCount and rate state
-// ---------------------------------------------------------------------------
-
-import { useState } from 'react';
-
-const TTSPlayerInner = ({ text, isDarkMode, isPlaying, onPlay, onStop }) => {
-  const [playCount, setPlayCount] = useState(0);
-  const [rate, setRate] = useState(1);
-
-  const handlePlay = () => {
-    if (!text?.trim()) return;
+  const handleToggle = () => {
+    if (isBusy) {
+      // Works during generation too — stopTts invalidates the in-flight request
+      // so a cancelled clip never arrives and starts playing on its own.
+      stopTts();
+      return;
+    }
+    if (!hasText) return;
     setPlayCount((prev) => prev + 1);
-    onPlay(rate);
-  };
-
-  const handleStop = () => {
-    onStop();
+    playTts({ key: PLAYER_KEY, text, lang, token: user?.token, rate });
   };
 
   const handleSpeedChange = (newRate) => {
-    if (isPlaying) return;
+    if (isBusy) return;
     setRate(newRate);
   };
+
+  const statusLabel = isGenerating
+    ? t('exam.audio_generating', 'Preparing audio…')
+    : isPlaying
+      ? t('exam.audio_playing', 'Playing…')
+      : t('exam.audio_press_play', 'Press play to listen');
 
   return (
     <div className="flex flex-col gap-4">
       {/* Play / Stop row */}
       <div className="flex items-center gap-4">
         <button
-          onClick={isPlaying ? handleStop : handlePlay}
-          disabled={!text?.trim()}
-          aria-label={isPlaying ? 'Stop audio' : 'Play audio'}
+          onClick={handleToggle}
+          disabled={!hasText}
+          aria-label={isBusy ? t('exam.audio_stop', 'Stop audio') : t('exam.audio_play', 'Play audio')}
+          aria-busy={isGenerating}
           className={`flex items-center justify-center w-14 h-14 rounded-2xl border-4 font-black
             transition-all active:scale-95 shrink-0
             ${
-              !text?.trim()
+              !hasText
                 ? 'opacity-50 cursor-not-allowed'
                 : 'hover:-translate-y-0.5'
             }
@@ -104,9 +98,11 @@ const TTSPlayerInner = ({ text, isDarkMode, isPlaying, onPlay, onStop }) => {
                 : 'bg-sky-500 border-slate-900 text-white shadow-[4px_4px_0px_0px_#0f172a] hover:bg-sky-600'
             }`}
         >
-          {isPlaying
-            ? <Square size={22} fill="currentColor" />
-            : <Play   size={22} fill="currentColor" />}
+          {isGenerating
+            ? <Loader2 size={22} className="animate-spin" />
+            : isPlaying
+              ? <Square size={22} fill="currentColor" />
+              : <Play   size={22} fill="currentColor" />}
         </button>
 
         <div className="flex flex-col gap-1 min-w-0">
@@ -115,7 +111,7 @@ const TTSPlayerInner = ({ text, isDarkMode, isPlaying, onPlay, onStop }) => {
               isDarkMode ? 'text-slate-200' : 'text-slate-800'
             }`}
           >
-            {isPlaying ? 'Playing…' : 'Press play to listen'}
+            {statusLabel}
           </p>
           {playCount > 0 && (
             <p
@@ -123,7 +119,7 @@ const TTSPlayerInner = ({ text, isDarkMode, isPlaying, onPlay, onStop }) => {
                 isDarkMode ? 'text-slate-500' : 'text-slate-400'
               }`}
             >
-              ▶ Listened × {playCount}
+              &#9654; {t('exam.audio_listened_count', 'Listened × {{count}}', { count: playCount })}
             </p>
           )}
         </div>
@@ -136,25 +132,25 @@ const TTSPlayerInner = ({ text, isDarkMode, isPlaying, onPlay, onStop }) => {
             isDarkMode ? 'text-slate-400' : 'text-slate-500'
           }`}
         >
-          Speed
+          {t('exam.audio_speed', 'Speed')}
         </span>
         <div className="flex gap-1.5 flex-wrap">
           {SPEED_OPTIONS.map((option) => {
-            const isActive = rate === option;
+            const isSelected = rate === option;
             return (
               <button
                 key={option}
                 onClick={() => handleSpeedChange(option)}
-                disabled={isPlaying}
-                aria-label={`Set speed to ${option}x`}
-                aria-pressed={isActive}
+                disabled={isBusy}
+                aria-label={t('exam.audio_set_speed', 'Set speed to {{rate}}×', { rate: option })}
+                aria-pressed={isSelected}
                 className={`px-3 py-1 rounded-lg border-2 text-xs font-black uppercase tracking-widest
                   transition-all active:scale-95
                   ${
-                    isPlaying ? 'opacity-40 cursor-not-allowed' : 'hover:-translate-y-0.5 cursor-pointer'
+                    isBusy ? 'opacity-40 cursor-not-allowed' : 'hover:-translate-y-0.5 cursor-pointer'
                   }
                   ${
-                    isActive
+                    isSelected
                       ? isDarkMode
                         ? 'bg-sky-500 border-sky-400 text-slate-900'
                         : 'bg-sky-500 border-slate-900 text-white'
@@ -163,28 +159,27 @@ const TTSPlayerInner = ({ text, isDarkMode, isPlaying, onPlay, onStop }) => {
                       : 'bg-transparent border-slate-300 text-slate-500 hover:bg-slate-100'
                   }`}
               >
-                {option}×
+                {option}&#215;
               </button>
             );
           })}
         </div>
       </div>
+
+      {showNotice && (
+        <p className={`text-xs font-semibold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+          {t('exam.audio_notice', 'Audio quality and voices are still being improved.')}
+        </p>
+      )}
     </div>
   );
-};
-
-TTSPlayerInner.propTypes = {
-  text:      PropTypes.string.isRequired,
-  isDarkMode: PropTypes.bool.isRequired,
-  isPlaying: PropTypes.bool.isRequired,
-  onPlay:    PropTypes.func.isRequired,
-  onStop:    PropTypes.func.isRequired,
 };
 
 TTSPlayer.propTypes = {
   text:       PropTypes.string.isRequired,
   lang:       PropTypes.string.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
+  showNotice: PropTypes.bool,
 };
 
 export default TTSPlayer;

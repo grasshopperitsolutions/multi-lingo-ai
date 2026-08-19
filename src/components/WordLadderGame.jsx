@@ -406,7 +406,7 @@ const WordLadderGame = ({ isDarkMode }) => {
               isDarkMode ? "text-slate-400" : "text-slate-500"
             }`}>
               {t("challenges.word_ladder_clue_label", "Clue for word {{step}}:", { step: currentStep + 1 })}
-              {" "}
+              
               <span className={`font-black ${
                 isDarkMode ? "text-orange-400" : "text-orange-600"
               }`}>

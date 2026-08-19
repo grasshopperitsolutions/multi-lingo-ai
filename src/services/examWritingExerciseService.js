@@ -8,6 +8,7 @@ import { getWritingPrompt } from './examPromptTemplates';
 import { getPrompt, renderTemplate } from './promptService';
 import { parseAIJSON } from '../utils/parseAIJSON';
 import { askAI } from './aiService';
+import { getWritingSpec, RUBRIC_MAX_SCORE } from '../config/examLevels';
 
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
@@ -29,15 +30,6 @@ const MAX_OUTPUT_TOKENS_GENERATION_BY_LEVEL = {
 const DEFAULT_MAX_OUTPUT_TOKENS_GENERATION = 4096;
 const MAX_OUTPUT_TOKENS_EVALUATION = 6144;
 
-const WORD_COUNT_BOUNDS = {
-  A1: { min: 60, max: 100 },
-  A2: { min: 60, max: 100 },
-  B1: { min: 100, max: 150 },
-  B2: { min: 150, max: 200 },
-  C1: { min: 200, max: 250 },
-  C2: { min: 200, max: 250 },
-};
-
 export async function generateWritingExercise({ token, level, targetLang }) {
   if (!token) throw new Error('[examWritingExerciseService] token is required');
   if (!level) throw new Error('[examWritingExerciseService] level is required');
@@ -46,7 +38,7 @@ export async function generateWritingExercise({ token, level, targetLang }) {
   const textTypes = ['email', 'message', 'story', 'article', 'opinion', 'letter'];
   const textType = textTypes[Math.floor(Math.random() * textTypes.length)];
   const promptStr = await getWritingPrompt(level, targetLang, { textType });
-  const { min, max } = WORD_COUNT_BOUNDS[level] ?? WORD_COUNT_BOUNDS.A1;
+  const { minWords: min, maxWords: max } = getWritingSpec(level);
 
   // maxTokens/model can be overridden per-prompt from the admin editor
   // (appConfig/config/prompts/exam-writing-prompt) — falls back to the
@@ -77,16 +69,24 @@ export async function generateWritingExercise({ token, level, targetLang }) {
   };
 }
 
-export async function evaluateWriting({ token, level, targetLang, interfaceLang, exercisePrompt, userText }) {
+export async function evaluateWriting({
+  token, level, targetLang, interfaceLang, exercisePrompt, userText,
+  // The generator may return its own word range, which is what the student is
+  // actually shown. Passing it through means the penalty is applied against the
+  // target they were given rather than the level default.
+  minWords: overrideMin, maxWords: overrideMax,
+}) {
   if (!token) throw new Error('[examWritingExerciseService] token is required');
   if (!level) throw new Error('[examWritingExerciseService] level is required');
   if (!targetLang) throw new Error('[examWritingExerciseService] targetLang is required');
   if (!exercisePrompt) throw new Error('[examWritingExerciseService] exercisePrompt is required');
   if (!userText?.trim()) throw new Error('[examWritingExerciseService] userText is required');
 
+  const spec = getWritingSpec(level);
+  const min = overrideMin ?? spec.minWords;
+  const max = overrideMax ?? spec.maxWords;
   const wordCount = _countWords(userText);
-  const wordCountPenalty = _calcWordCountPenalty(wordCount, level);
-  const { min, max } = WORD_COUNT_BOUNDS[level] ?? WORD_COUNT_BOUNDS.A1;
+  const wordCountPenalty = _calcWordCountPenalty(wordCount, min, max);
   const feedbackLanguage = _resolveLanguageName(interfaceLang);
 
   const promptDoc = await getPrompt('exam-writing-evaluation-prompt');
@@ -111,16 +111,32 @@ export async function evaluateWriting({ token, level, targetLang, interfaceLang,
     throw new Error('Something went wrong. Please try again.');
   }
 
-  const rawScore = data.parameters.reduce((sum, p) => sum + (p.score ?? 0), 0);
+  // Stamp the rubric letter onto each parameter. The response schema doesn't
+  // ask the model for an id (letting it invent one would be worse), but
+  // ParameterRow keys on `param.id` and looks up its translated label via
+  // PARAM_NAME_KEYS[param.id] — without this the lookup missed, labels fell
+  // back to raw AI-generated names, and React got an undefined key.
+  const parameters = data.parameters.map((p, i) => ({
+    ...p,
+    id: p.id ?? String.fromCharCode(65 + i),   // A, B, C, D, E
+    maxScore: p.maxScore ?? RUBRIC_MAX_SCORE / data.parameters.length,
+  }));
+
+  const rawScore = parameters.reduce((sum, p) => sum + (p.score ?? 0), 0);
   const totalScore = Math.max(0, rawScore - wordCountPenalty);
+  // Derive the ceiling from what the model actually returned rather than
+  // assuming 25, so a rubric that comes back weighted differently still adds up.
+  const maxScore = parameters.reduce((sum, p) => sum + (p.maxScore ?? 0), 0) || RUBRIC_MAX_SCORE;
 
   return {
     totalScore,
-    maxScore: 25,
+    maxScore,
     rawScore,
     wordCount,
     wordCountPenalty,
-    parameters: data.parameters,
+    minWords: min,
+    maxWords: max,
+    parameters,
     generalFeedback: data.generalFeedback ?? '',
   };
 }
@@ -187,9 +203,16 @@ function _countWords(text) {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-function _calcWordCountPenalty(wordCount, level) {
-  const { min, max } = WORD_COUNT_BOUNDS[level] ?? WORD_COUNT_BOUNDS.A1;
+/**
+ * Penalty for missing the word-count target: 0 inside the range, 1 just outside
+ * it, 2 well outside.
+ *
+ * The middle test used `||`, which is true for almost any input (a 5-word answer
+ * satisfies `5 <= max + 20`), so the 2-point penalty was unreachable and every
+ * out-of-range answer lost exactly one point regardless of how far off it was.
+ */
+function _calcWordCountPenalty(wordCount, min, max) {
   if (wordCount >= min && wordCount <= max) return 0;
-  if (wordCount >= min - 20 || wordCount <= max + 20) return 1;
+  if (wordCount >= min - 20 && wordCount <= max + 20) return 1;
   return 2;
 }

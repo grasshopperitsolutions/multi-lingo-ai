@@ -10,7 +10,7 @@
 import { useState, useRef, useCallback } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { ClipboardList, ChevronLeft, ChevronRight, Check, Loader as LoaderIcon } from "lucide-react";
+import { ClipboardList, ChevronLeft, ChevronRight, Check, X, Loader as LoaderIcon } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import ExerciseSidebar from "./ExerciseSidebar";
 import ReportButton from "./ReportButton";
@@ -39,14 +39,20 @@ import Loader from "./Loader";
 import { getExercise } from "../services/examExerciseService";
 import { evaluateWriting } from "../services/examWritingExerciseService";
 import { getScoreColor } from "../services/examUtils";
+import { markExercisesSeen } from "../services/userService";
+import { getWritingSpec } from "../config/examLevels";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const EXAM_STRUCTURE = {
   A1: {
+    // Only multiple-choice, true-false and fill-blanks can currently be
+    // generated for listening (see generateListeningExercise). Requesting
+    // anything else used to fall through to a random type, which is how two
+    // identical multiple-choice exercises ended up in one exam.
     listening: [
-      { type: "image-multiple-choice", maxScore: 4 },
       { type: "true-false", maxScore: 4 },
-      { type: "multiple-choice", maxScore: 3 },
+      { type: "multiple-choice", maxScore: 4 },
+      { type: "fill-blanks", maxScore: 3 },
     ],
     reading: [
       { type: "true-false", maxScore: 4 },
@@ -54,14 +60,14 @@ const EXAM_STRUCTURE = {
       { type: "multiple-choice", maxScore: 3 },
       { type: "fill-blanks", maxScore: 4 },
     ],
-    writing: { minWords: 40, maxWords: 60, maxScore: 10 },
+    writing: getWritingSpec("A1"),
   },
   A2: {
     listening: [
       { type: "fill-blanks", maxScore: 5 },
-      { type: "matching", maxScore: 5 },
-      { type: "true-false", maxScore: 4 },
-      { type: "multiple-choice", maxScore: 3 },
+      { type: "true-false", maxScore: 5 },
+      { type: "multiple-choice", maxScore: 4 },
+      { type: "fill-blanks", maxScore: 3 },
     ],
     reading: [
       { type: "true-false", maxScore: 5 },
@@ -69,14 +75,14 @@ const EXAM_STRUCTURE = {
       { type: "multiple-choice", maxScore: 4 },
       { type: "fill-blanks", maxScore: 5 },
     ],
-    writing: { minWords: 60, maxWords: 80, maxScore: 15 },
+    writing: getWritingSpec("A2"),
   },
   B1: {
     listening: [
       { type: "fill-blanks", maxScore: 6 },
-      { type: "matching", maxScore: 5 },
-      { type: "multiple-choice", maxScore: 4 },
+      { type: "multiple-choice", maxScore: 5 },
       { type: "true-false", maxScore: 4 },
+      { type: "fill-blanks", maxScore: 4 },
     ],
     reading: [
       { type: "true-false", maxScore: 6 },
@@ -85,14 +91,14 @@ const EXAM_STRUCTURE = {
       { type: "cloze", maxScore: 8 },
       { type: "fill-blanks", maxScore: 5 },
     ],
-    writing: { minWords: 100, maxWords: 120, maxScore: 20 },
+    writing: getWritingSpec("B1"),
   },
   B2: {
     listening: [
       { type: "fill-blanks", maxScore: 6 },
       { type: "true-false", maxScore: 6 },
       { type: "multiple-choice", maxScore: 5 },
-      { type: "matching", maxScore: 5 },
+      { type: "multiple-choice", maxScore: 5 },
     ],
     reading: [
       { type: "true-false", maxScore: 6 },
@@ -101,7 +107,7 @@ const EXAM_STRUCTURE = {
       { type: "cloze", maxScore: 10 },
       { type: "fill-blanks", maxScore: 6 },
     ],
-    writing: { minWords: 130, maxWords: 160, maxScore: 25 },
+    writing: getWritingSpec("B2"),
   },
 };
 
@@ -168,7 +174,7 @@ const ExamGenerationLoader = ({ steps, isDarkMode }) => {
         <SectionHeading isDarkMode={isDarkMode}>
           <span className="flex items-center gap-2">
             <LoaderIcon size={16} className="animate-spin" />
-            Generating Your Exam...
+            {t("exam.full.generating_title", "Generating your exam...")}
           </span>
         </SectionHeading>
         <div className="flex flex-col gap-1 mt-4">
@@ -327,6 +333,7 @@ const ExamListeningSection = ({ isDarkMode, activeIndex, onSelectExercise }) => 
           onAnswer={handleAnswer}
           onMatch={handleAnswer}
           isDarkMode={isDarkMode}
+          accent="sky"
         />
       )}
     </div>
@@ -430,6 +437,7 @@ const ExamReadingSection = ({ isDarkMode, activeIndex, onSelectExercise }) => {
             updateExamSection("reading", { exercises: updatedExercises });
           }}
           isDarkMode={isDarkMode}
+          accent="teal"
         />
       )}
     </div>
@@ -561,7 +569,7 @@ const ExamNavFooter = ({ phase, isDarkMode, onNextSection, onPrevExercise, onNex
             <PrimaryButton onClick={onNextSection} isDarkMode={isDarkMode} color="teal">
               {phase === "listening"
                 ? t("exam.full.finish_listening", "Finish Listening")
-                : t("exam.full.finish_reading", "Finish Reading")}{" "}
+                : t("exam.full.finish_reading", "Finish Reading")}
               <ChevronRight size={16} />
             </PrimaryButton>
           )
@@ -598,7 +606,7 @@ const PARAM_NAME_KEYS = {
 };
 
 const ParameterRow = ({ param, isDarkMode, paramLabel }) => {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const scoreColor = getScoreColor(param.score, param.maxScore, isDarkMode);
 
   return (
@@ -645,6 +653,86 @@ ParameterRow.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
   paramLabel: PropTypes.string.isRequired,
 };
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ExamAnswerReview — per-question right/wrong review for one section
+//
+// The results screen used to show three section totals and nothing else, so a
+// student could see they scored 6/10 but never which answers were wrong or what
+// the right ones were. Values are rendered through the same true/false
+// localisation the standalone exercises use, since those answers come back as
+// booleans rather than strings.
+// ═══════════════════════════════════════════════════════════════════════════════
+const ExamAnswerReview = ({ title, breakdown, isDarkMode }) => {
+  const { t } = useTranslation();
+
+  if (!breakdown?.length) return null;
+
+  const renderValue = (value) => {
+    if (value === null || value === undefined || value === "") return t("exam.no_answer", "No answer");
+    if (value === true) return t("exam.true", "True");
+    if (value === false) return t("exam.false", "False");
+    return String(value);
+  };
+
+  return (
+    <CollapsibleCard title={title} isDarkMode={isDarkMode} defaultOpen={true}>
+      <div className="flex flex-col gap-4 mt-3">
+        {breakdown.map((ex, exIndex) => (
+          <div key={exIndex} className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className={`text-xs font-black uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+                {t("exam.full.exercise_n", "Exercise {{n}}", { n: exIndex + 1 })}
+              </p>
+              <span className={`text-xs font-black tabular-nums ${getScoreColor(ex.score, ex.maxScore, isDarkMode)}`}>
+                {ex.score}
+                <span className={isDarkMode ? "text-slate-500" : "text-slate-400"}>/{ex.maxScore}</span>
+              </span>
+            </div>
+
+            {ex.items.map((item, i) => (
+              <div
+                key={i}
+                className={`rounded-xl border-2 px-4 py-3 flex items-start gap-3 ${
+                  item.isCorrect
+                    ? isDarkMode ? "border-emerald-800 bg-emerald-900/20" : "border-emerald-200 bg-emerald-50"
+                    : isDarkMode ? "border-rose-900 bg-rose-900/20" : "border-rose-200 bg-rose-50"
+                }`}
+              >
+                <span className="shrink-0 mt-0.5">
+                  {item.isCorrect
+                    ? <Check size={16} className={isDarkMode ? "text-emerald-400" : "text-emerald-600"} />
+                    : <X size={16} className={isDarkMode ? "text-rose-400" : "text-rose-600"} />}
+                </span>
+                <div className="min-w-0 flex flex-col gap-1">
+                  <p className={`text-sm font-bold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
+                    {item.label}
+                  </p>
+                  <p className={`text-xs font-semibold ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                    {t("exam.your_answer", "Your answer")}: {renderValue(item.userAnswer)}
+                  </p>
+                  {!item.isCorrect && (
+                    <p className={`text-xs font-semibold ${isDarkMode ? "text-emerald-400" : "text-emerald-700"}`}>
+                      {t("exam.correct_answer", "Correct")}: {renderValue(item.correctAnswer)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </CollapsibleCard>
+  );
+};
+
+ExamAnswerReview.propTypes = {
+  title: PropTypes.string.isRequired,
+  breakdown: PropTypes.array,
+  isDarkMode: PropTypes.bool.isRequired,
+};
+
+ExamAnswerReview.defaultProps = { breakdown: [] };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ExamResultsPanel — final scores + per-section breakdowns
@@ -725,9 +813,21 @@ const ExamResultsPanel = ({ isDarkMode, onStartNewExam }) => {
         />
       </div>
 
+      <ExamAnswerReview
+        title={t("exam.full.review_listening", "Listening — your answers")}
+        breakdown={examSession?.breakdown?.listening}
+        isDarkMode={isDarkMode}
+      />
+
+      <ExamAnswerReview
+        title={t("exam.full.review_reading", "Reading — your answers")}
+        breakdown={examSession?.breakdown?.reading}
+        isDarkMode={isDarkMode}
+      />
+
       {/* Writing rubric */}
       {writingData?.evaluation?.parameters && (
-        <CollapsibleCard title={t("exam.breakdown", "Score Breakdown")} isDarkMode={isDarkMode} defaultOpen={false}>
+        <CollapsibleCard title={t("exam.breakdown", "Score Breakdown")} isDarkMode={isDarkMode} defaultOpen={true}>
           <div className="flex flex-col gap-2 mt-3">
             {writingData.evaluation.parameters.map((param) => (
               <ParameterRow
@@ -758,7 +858,7 @@ ExamResultsPanel.propTypes = {
 // ═══════════════════════════════════════════════════════════════════════════════
 const FullExamExercise = ({ isDarkMode, onBack }) => {
   const { t } = useTranslation();
-  const { user, examSession, setExamSession, updateExamSection, showAlert } = useAppContext();
+  const { user, setUser, examSession, setExamSession, updateExamSection, showAlert } = useAppContext();
 
   const [genSteps, setGenSteps] = useState(
     GENERATION_STEPS.map((s) => ({ ...s, status: "pending" }))
@@ -789,6 +889,53 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
     const struct = EXAM_STRUCTURE[level] ?? EXAM_STRUCTURE.A1;
     const sections = { listening: { exercises: [], activeIndex: 0 }, reading: { exercises: [], activeIndex: 0 }, writing: { exercise: null, userText: "", evaluation: null } };
 
+    // Exercises the user has already completed, plus everything handed out
+    // earlier in *this* exam. Passing an empty array (as this used to) meant the
+    // pool filter could never exclude anything, so the same exercise could
+    // appear twice in one sitting and again the next time.
+    const seenByType = {
+      listening: [...(user.seenExerciseIds?.listening ?? [])],
+      reading: [...(user.seenExerciseIds?.reading ?? [])],
+      writing: [...(user.seenExerciseIds?.writing ?? [])],
+    };
+    const newlySeen = { listening: [], reading: [], writing: [] };
+    const failedSlots = [];
+
+    /**
+     * Fetch one slot. Each generated exercise carries the slot that requested
+     * it, so scoring can match on type rather than array position — a skipped
+     * slot used to shift every later exercise onto the wrong maximum.
+     */
+    const fetchSlot = async (type, slot) => {
+      try {
+        const res = await getExercise({
+          token: user.token,
+          level,
+          type,
+          questionType: slot?.type,
+          targetLang: user.learningDialect || "pt-PT",
+          userDialect: user.interfaceLang || "en-US",
+          seenExerciseIds: seenByType[type],
+        });
+        if (res.exerciseId) {
+          seenByType[type].push(res.exerciseId);
+          newlySeen[type].push(res.exerciseId);
+        }
+        return {
+          exercise: res.content,
+          exerciseId: res.exerciseId,
+          slotType: slot?.type ?? null,
+          maxScore: slot?.maxScore ?? 0,
+          answers: {},
+          result: null,
+        };
+      } catch (err) {
+        console.warn(`[FullExam] Failed to generate ${type}/${slot?.type}:`, err?.message);
+        failedSlots.push(slot?.type ?? type);
+        return null;
+      }
+    };
+
     try {
       // Step 1: Reading level
       updateStep("reading_level", "loading");
@@ -798,76 +945,66 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
       // Step 2: Generate listening exercises
       updateStep("listening", "loading");
       for (const slot of struct.listening) {
-        try {
-          const res = await getExercise({
-            token: user.token,
-            level,
-            type: "listening",
-            questionType: slot.type,
-            targetLang: user.learningDialect || "pt-PT",
-            userDialect: user.interfaceLang || "en-US",
-            seenExerciseIds: [],
-          });
-          sections.listening.exercises.push({
-            exercise: res.content,
-            exerciseId: res.exerciseId,
-            answers: {},
-            result: null,
-          });
-        } catch {
-          // If one fails, skip it
-        }
+        const built = await fetchSlot("listening", slot);
+        if (built) sections.listening.exercises.push(built);
       }
-      updateStep("listening", "done");
+      updateStep("listening", sections.listening.exercises.length ? "done" : "error");
 
       // Step 3: Generate reading exercises
       updateStep("reading", "loading");
       await new Promise((r) => setTimeout(r, 300));
       for (const slot of struct.reading) {
-        try {
-          const res = await getExercise({
-            token: user.token,
-            level,
-            type: "reading",
-            questionType: slot.type,
-            targetLang: user.learningDialect || "pt-PT",
-            userDialect: user.interfaceLang || "en-US",
-            seenExerciseIds: [],
-          });
-          sections.reading.exercises.push({
-            exercise: res.content,
-            exerciseId: res.exerciseId,
-            answers: {},
-            result: null,
-          });
-        } catch {
-          // skip
-        }
+        const built = await fetchSlot("reading", slot);
+        if (built) sections.reading.exercises.push(built);
       }
-      updateStep("reading", "done");
+      updateStep("reading", sections.reading.exercises.length ? "done" : "error");
 
       // Step 4: Generate writing exercise
       updateStep("writing", "loading");
       await new Promise((r) => setTimeout(r, 300));
-      try {
-        const res = await getExercise({
-          token: user.token,
-          level,
-          type: "writing",
-          targetLang: user.learningDialect || "pt-PT",
-          userDialect: user.interfaceLang || "en-US",
-          seenExerciseIds: [],
-        });
-        sections.writing.exercise = res.content;
-      } catch {
-        // skip
-      }
-      updateStep("writing", "done");
+      const writingBuilt = await fetchSlot("writing", null);
+      if (writingBuilt) sections.writing.exercise = writingBuilt.exercise;
+      updateStep("writing", writingBuilt ? "done" : "error");
 
       // Step 5: Done
       updateStep("done", "loading");
       await new Promise((r) => setTimeout(r, 500));
       updateStep("done", "done");
+
+      if (!sections.listening.exercises.length && !sections.reading.exercises.length && !sections.writing.exercise) {
+        showAlert("error", t("exam.full.generate_failed", "Could not generate the exam. Please try again."));
+        return;
+      }
+
+      // Tell the student what is missing rather than silently handing them a
+      // shorter exam scored against a smaller total.
+      if (failedSlots.length) {
+        showAlert("warning", t(
+          "exam.full.partial_generation",
+          "{{count}} exercise(s) could not be generated and were left out of this exam.",
+          { count: failedSlots.length },
+        ));
+      }
+
+      // Persist the seen list in one write, and mirror it into context so a
+      // second exam in the same session doesn't repeat what this one used.
+      if (user.uid) {
+        try {
+          await markExercisesSeen(user.token, user.uid, newlySeen);
+          setUser((prev) => ({
+            ...prev,
+            seenExerciseIds: {
+              ...prev.seenExerciseIds,
+              listening: seenByType.listening,
+              reading: seenByType.reading,
+              writing: seenByType.writing,
+            },
+          }));
+        } catch (err) {
+          // Not worth failing the exam over — worst case is a repeat later.
+          console.warn("[FullExam] Could not persist seen exercises:", err?.message);
+        }
+      }
 
       setExamSession({
         level,
@@ -876,12 +1013,14 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
         finalScores: null,
       });
       setExerciseIndex(0);
+      timerRef.current?.reset();
+      timerRef.current?.start();
     } catch {
       showAlert("error", t("common.error", "Failed to generate exam. Please try again."));
     } finally {
       setGenerating(false);
     }
-  }, [user, level, setExamSession, updateStep, showAlert, t]);
+  }, [user, setUser, level, setExamSession, updateStep, showAlert, t]);
 
   // ── Section navigation ──────────────────────────────────────────────────────
   const getSectionExercises = (sectionName) => {
@@ -920,63 +1059,104 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
   };
 
   // ── Score exam ──────────────────────────────────────────────────────────────
-  const scoreSectionExercises = (sectionName, exercises) => {
-    let total = 0;
-    let maxTotal = 0;
-    const struct = EXAM_STRUCTURE[level] ?? EXAM_STRUCTURE.A1;
-    const slots = struct[sectionName] ?? [];
+  /**
+   * Score one exercise and describe every question in it.
+   *
+   * The per-exercise `maxScore` is read from the slot recorded at generation
+   * time. Scoring used to look it up as `slots[i]` — matching by array position
+   * — so a single failed generation shifted every later exercise onto the wrong
+   * maximum and quietly changed the exam total.
+   */
+  const scoreExercise = (ex) => {
+    const exerciseData = ex.exercise ?? {};
+    const answers = ex.answers ?? {};
+    const slotMax = ex.maxScore ?? 0;
+    const type = ex.slotType ?? exerciseData.questionType ?? exerciseData.exerciseType;
+    const items = [];
+    let ratio = 0;
 
-    exercises.forEach((ex, i) => {
-      const slot = slots[i];
-      const slotMax = slot?.maxScore ?? 0;
-      const exerciseData = ex.exercise ?? {};
-      const answers = ex.answers ?? {};
+    if (type === "best-title") {
+      const titles = exerciseData.titles ?? [];
+      const correctTitle = titles.find((tt) => tt.isCorrect);
+      const chosen = titles.find((tt) => tt.id === answers.bestTitle);
+      const isCorrect = !!correctTitle && chosen?.id === correctTitle.id;
+      ratio = isCorrect ? 1 : 0;
+      items.push({
+        label: exerciseData.questions?.[0]?.text || t("exam.best_title_label", "Best title"),
+        userAnswer: chosen?.text ?? null,
+        correctAnswer: correctTitle?.text ?? "",
+        isCorrect,
+      });
+    } else if (type === "ordering") {
+      const order = answers.ordering ?? [];
+      const orderItems = exerciseData.questions ?? [];
+      orderItems.forEach((item) => {
+        const userPos = order.indexOf(item.id);
+        const isCorrect = userPos >= 0 && userPos + 1 === item.correctPosition;
+        items.push({
+          label: item.text,
+          userAnswer: userPos >= 0 ? String(userPos + 1) : null,
+          correctAnswer: String(item.correctPosition),
+          isCorrect,
+        });
+      });
+      ratio = orderItems.length ? items.filter((b) => b.isCorrect).length / orderItems.length : 0;
+    } else if (exerciseData.blanks?.length) {
+      const blanks = exerciseData.blanks;
+      blanks.forEach((b, i) => {
+        const isCorrect = answers[b.id] === b.correctAnswer;
+        items.push({
+          label: t("exam.blank_n", "Blank {{n}}", { n: b.position ?? i + 1 }),
+          userAnswer: answers[b.id] ?? null,
+          correctAnswer: b.correctAnswer,
+          isCorrect,
+        });
+      });
+      ratio = blanks.length ? items.filter((b) => b.isCorrect).length / blanks.length : 0;
+    } else if (exerciseData.questions?.length) {
+      const questions = exerciseData.questions;
+      questions.forEach((q) => {
+        const isCorrect = answers[q.id] === q.correctAnswer;
+        items.push({
+          label: q.text ?? q.question,
+          userAnswer: answers[q.id] ?? null,
+          correctAnswer: q.correctAnswer,
+          isCorrect,
+        });
+      });
+      ratio = questions.length ? items.filter((b) => b.isCorrect).length / questions.length : 0;
+    }
 
-      // Count correct answers
-      if (exerciseData.questionType === "best-title") {
-        const titles = exerciseData.titles ?? [];
-        const correctTitle = titles.find((t) => t.isCorrect);
-        if (correctTitle && answers.bestTitle === correctTitle.id) {
-          total += slotMax;
-        }
-      } else if (exerciseData.questionType === "ordering") {
-        const order = answers.ordering ?? [];
-        const items = exerciseData.questions ?? [];
-        const correct = items.filter((item) => {
-          const userPos = order.indexOf(item.id);
-          return userPos >= 0 && userPos + 1 === item.correctPosition;
-        }).length;
-        const ratio = items.length > 0 ? correct / items.length : 0;
-        total += Math.round(ratio * slotMax);
-      } else if (exerciseData.blanks?.length) {
-        const blanks = exerciseData.blanks ?? [];
-        const correct = blanks.filter((b) => answers[b.id] === b.correctAnswer).length;
-        const ratio = blanks.length > 0 ? correct / blanks.length : 0;
-        total += Math.round(ratio * slotMax);
-      } else if (exerciseData.questions?.length) {
-        const questions = exerciseData.questions ?? [];
-        const correct = questions.filter((q) => answers[q.id] === q.correctAnswer).length;
-        const ratio = questions.length > 0 ? correct / questions.length : 0;
-        total += Math.round(ratio * slotMax);
-      }
-      maxTotal += slotMax;
-    });
+    return {
+      type,
+      score: Math.round(ratio * slotMax),
+      maxScore: slotMax,
+      items,
+    };
+  };
 
-    return { score: total, maxScore: maxTotal };
+  const scoreSectionExercises = (exercises) => {
+    const breakdown = exercises.map(scoreExercise);
+    return {
+      score: breakdown.reduce((sum, b) => sum + b.score, 0),
+      maxScore: breakdown.reduce((sum, b) => sum + b.maxScore, 0),
+      breakdown,
+    };
   };
 
   const handleSubmitExam = async () => {
     setShowSubmitConfirm(false);
     setSubmitting(true);
+    timerRef.current?.stop();
 
     try {
-      const listeningScore = scoreSectionExercises("listening", examSession?.sections?.listening?.exercises ?? []);
-      const readingScore = scoreSectionExercises("reading", examSession?.sections?.reading?.exercises ?? []);
+      const listeningScore = scoreSectionExercises(examSession?.sections?.listening?.exercises ?? []);
+      const readingScore = scoreSectionExercises(examSession?.sections?.reading?.exercises ?? []);
 
       // Evaluate writing
-      let writingScore = { score: 0, maxScore: 0 };
-      const writingSection = examSession?.sections?.writing;
       const writingStruct = (EXAM_STRUCTURE[level] ?? EXAM_STRUCTURE.A1).writing;
+      let writingScore = { score: 0, maxScore: writingStruct.maxScore };
+      const writingSection = examSession?.sections?.writing;
 
       if (writingSection?.userText?.trim() && writingSection?.exercise?.prompt) {
         try {
@@ -987,14 +1167,26 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
             interfaceLang: user.interfaceLang || "en-US",
             exercisePrompt: writingSection.exercise.prompt,
             userText: writingSection.userText,
+            minWords: writingSection.exercise.minWords ?? writingStruct.minWords,
+            maxWords: writingSection.exercise.maxWords ?? writingStruct.maxWords,
           });
-          writingScore = { score: evalResult.totalScore ?? 0, maxScore: evalResult.maxScore ?? writingStruct.maxScore };
+          // The rubric always marks out of its own scale (five parameters, five
+          // points each). Scale that into the weight writing carries at this
+          // level — previously the raw rubric total was added straight to the
+          // exam, so an A1 exam could report 25 out of a 10-point section.
+          const rubricMax = evalResult.maxScore || 1;
+          writingScore = {
+            score: Math.round((evalResult.totalScore / rubricMax) * writingStruct.maxScore),
+            maxScore: writingStruct.maxScore,
+          };
           updateExamSection("writing", { evaluation: evalResult });
-        } catch {
-          writingScore = { score: 0, maxScore: writingStruct.maxScore };
+        } catch (err) {
+          console.warn("[FullExam] Writing evaluation failed:", err?.message);
+          showAlert("warning", t(
+            "exam.full.writing_eval_failed",
+            "Your writing could not be marked automatically. The rest of your exam has been scored.",
+          ));
         }
-      } else {
-        writingScore = { score: 0, maxScore: writingStruct.maxScore };
       }
 
       const totalScore = listeningScore.score + readingScore.score + writingScore.score;
@@ -1013,7 +1205,12 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
           total: totalScore,
           totalMax,
         },
+        breakdown: {
+          listening: listeningScore.breakdown,
+          reading: readingScore.breakdown,
+        },
       }));
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setSubmitting(false);
     }

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { PenLine, RotateCcw } from "lucide-react";
@@ -15,10 +15,12 @@ import {
   GhostButton,
   LevelBadge,
   CollapsibleCard,
+  ExamScoreCard,
 } from "./ui";
 import { getExercise } from "../services/examExerciseService";
 import { evaluateWriting } from "../services/examWritingExerciseService";
 import { getScoreColor } from "../services/examUtils";
+import { getWritingSpec } from "../config/examLevels";
 import { markExerciseSeen, resetSeenExercises } from "../services/userService";
 import useGenerateConfirm from "../hooks/useGenerateConfirm";
 
@@ -30,8 +32,8 @@ const PARAM_NAME_KEYS = {
   E: "exam.param_e_name",
 };
 
-const ParameterRow = ({ param, isDarkMode, paramLabel }) => {
-  const [expanded, setExpanded] = useState(false);
+const ParameterRow = ({ param, isDarkMode, paramLabel, defaultExpanded = true }) => {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const scoreColor = getScoreColor(param.score, param.maxScore, isDarkMode);
 
   return (
@@ -82,6 +84,7 @@ ParameterRow.propTypes = {
   }).isRequired,
   isDarkMode: PropTypes.bool.isRequired,
   paramLabel: PropTypes.string.isRequired,
+  defaultExpanded: PropTypes.bool,
 };
 
 const headerIcon = (
@@ -97,8 +100,8 @@ const WritingExercise = ({ isDarkMode }) => {
   const [level, setLevel] = useState("A1");
   const [exercise, setExercise] = useState(null);
   const [exerciseId, setExerciseId] = useState(null);
-  const [minWords, setMinWords] = useState(60);
-  const [maxWords, setMaxWords] = useState(100);
+  const [minWords, setMinWords] = useState(getWritingSpec("A1").minWords);
+  const [maxWords, setMaxWords] = useState(getWritingSpec("A1").maxWords);
   const [userText, setUserText] = useState("");
   const [evaluation, setEval] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -153,8 +156,8 @@ const WritingExercise = ({ isDarkMode }) => {
       });
       setExercise(result.content);
       setExerciseId(result.exerciseId);
-      setMinWords(result.content?.minWords ?? 60);
-      setMaxWords(result.content?.maxWords ?? 100);
+      setMinWords(result.content?.minWords ?? getWritingSpec(level).minWords);
+      setMaxWords(result.content?.maxWords ?? getWritingSpec(level).maxWords);
       setUserText("");
       setEval(null);
       timerRef.current?.reset();
@@ -186,6 +189,8 @@ const WritingExercise = ({ isDarkMode }) => {
         interfaceLang: user.interfaceLang || "en-US",
         exercisePrompt: exercise.prompt,
         userText,
+        minWords,
+        maxWords,
       });
       setEval(result);
       await markCurrentExerciseSeen();
@@ -230,8 +235,8 @@ const WritingExercise = ({ isDarkMode }) => {
     setUserText("");
     setEval(null);
     setError(null);
-    setMinWords(60);
-    setMaxWords(100);
+    setMinWords(getWritingSpec(level).minWords);
+    setMaxWords(getWritingSpec(level).maxWords);
     timerRef.current?.reset();
     handleGetExercise();
   };
@@ -239,6 +244,10 @@ const WritingExercise = ({ isDarkMode }) => {
   const handleGenerateWrapper = () => {
     onGenerateClick(handleGetExercise);
   };
+
+  useEffect(() => {
+    if (evaluation) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [evaluation]);
 
   const handleTryAgain = () => {
     setUserText("");
@@ -357,6 +366,17 @@ const WritingExercise = ({ isDarkMode }) => {
               </div>
               <ReportButton isDarkMode={isDarkMode} context="WritingExercise" />
             </div>
+
+            <ExamScoreCard
+              score={evaluation.totalScore}
+              maxScore={evaluation.maxScore}
+              scoreColor={scoreColor}
+              isDarkMode={isDarkMode}
+              wordCount={evaluation.wordCount}
+              minWords={minWords}
+              maxWords={maxWords}
+              wordCountPenalty={evaluation.wordCountPenalty}
+            />
 
             <CollapsibleCard title={t("exam.task", "Your Task")} isDarkMode={isDarkMode} defaultOpen={false}>
               <p className={`text-sm sm:text-base font-semibold leading-relaxed mb-3 mt-3 ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}>

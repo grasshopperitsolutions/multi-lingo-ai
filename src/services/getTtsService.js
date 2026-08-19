@@ -31,8 +31,31 @@ import { getPrompt, renderTemplate } from './promptService';
  * Use 'gemini-2.5-flash-preview-tts' (current stable preview).
  */
 const GEMINI_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
-const GEMINI_TTS_VOICE = 'Sulafat';
 const WEB_SPEECH_RATE  = 1.0;
+
+/**
+ * Prebuilt Gemini TTS voices, split by perceived gender.
+ *
+ * Every clip used to be read by 'Sulafat' (female), so a dialogue between two
+ * people sounded like one person talking to herself — students had no way to
+ * tell speakers apart. Until multi-speaker synthesis lands, the voice is picked
+ * deterministically from the text so that a given transcript always sounds the
+ * same (re-reading an exercise doesn't swap the narrator) while different
+ * exercises vary.
+ */
+const GEMINI_VOICES = {
+  female: ['Sulafat', 'Aoede', 'Kore', 'Leda'],
+  male:   ['Charon', 'Puck', 'Fenrir', 'Orus'],
+};
+const ALL_VOICES = [...GEMINI_VOICES.female, ...GEMINI_VOICES.male];
+
+/**
+ * Maximum number of generated clips held in memory at once.
+ * Gemini returns raw 24 kHz mono PCM — roughly 48 KB per second of speech —
+ * so a 60-second exam transcript is ~3 MB. Twelve clips is a comfortable
+ * ceiling for a single exam session without pushing the tab into swap.
+ */
+const AUDIO_CACHE_LIMIT = 12;
 
 /**
  * Locale metadata used to build dialect-aware TTS prompts.
@@ -77,12 +100,103 @@ const LOCALE_METADATA = {
 };
 
 // ---------------------------------------------------------------------------
-// Global singleton — tracks the currently active onEnd callback so that
-// stopSpeaking() can notify the previous caller that playback was interrupted.
+// Global singleton — tracks the currently active playback session.
+//
+// `_currentAudio` must be a real reference to the HTMLAudioElement. An earlier
+// version tagged the element with `data-tts-audio` and looked it up with
+// `document.querySelectorAll('audio[data-tts-audio]')`, but `new Audio()`
+// elements are never appended to the document, so that selector always matched
+// nothing and stop/pause/resume were silent no-ops on the Gemini path.
+//
+// `_playSeq` guards against a race: generation takes seconds, so a user can
+// press stop (or start a different clip) while a request is still in flight.
+// Each speak() call captures the sequence number it was issued under and
+// discards its result if the number has moved on.
 // ---------------------------------------------------------------------------
 
 let _currentOnEnd   = null;
 let _currentOnError = null;
+let _currentAudio   = null;
+let _currentBlobUrl = null;
+let _playSeq        = 0;
+
+/**
+ * In-memory cache of generated clips, keyed by voice + locale + text.
+ *
+ * Replaying a listening exercise is normal exam behaviour, and without this
+ * every press of play was a fresh `askAI` round-trip: several seconds of wait
+ * and another call charged against the user's daily tier limit. Playback speed
+ * is applied client-side via `playbackRate`, so one cached clip serves all four
+ * speed settings.
+ */
+const _audioCache = new Map();
+
+/**
+ * djb2 — a short, stable string hash. Only used to keep cache keys a sane
+ * length; it never needs to be collision-proof because the full locale and
+ * voice are part of the key and a stale hit would at worst replay the wrong
+ * clip within one session.
+ */
+function _hashText(str) {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0;
+  }
+  return (hash >>> 0).toString(36);
+}
+
+/**
+ * Build the cache key. The locale is part of it because the *same* text can be
+ * legitimately read in different languages — "Toronto" or "chocolate" in pt-PT
+ * versus en-US are different recordings, and keying on text alone would serve a
+ * Portuguese learner an English pronunciation.
+ */
+function _cacheKey(text, lang, voice) {
+  return `${voice}|${lang}|${_hashText(text.trim())}`;
+}
+
+function _cacheGet(key) {
+  const hit = _audioCache.get(key);
+  if (!hit) return null;
+  // Refresh recency — Map preserves insertion order, so re-inserting moves the
+  // entry to the end and keeps the eviction below approximately LRU.
+  _audioCache.delete(key);
+  _audioCache.set(key, hit);
+  return hit;
+}
+
+function _cacheSet(key, value) {
+  if (_audioCache.has(key)) _audioCache.delete(key);
+  _audioCache.set(key, value);
+  while (_audioCache.size > AUDIO_CACHE_LIMIT) {
+    _audioCache.delete(_audioCache.keys().next().value);
+  }
+}
+
+/**
+ * Pick a deterministic voice for a piece of text so the same transcript always
+ * gets the same narrator across replays (and therefore the same cache key).
+ */
+function _pickVoice(text, lang) {
+  const idx = parseInt(_hashText(`${lang}:${text.trim()}`), 36) % ALL_VOICES.length;
+  return ALL_VOICES[idx];
+}
+
+/** Release the current audio element and any blob URL backing it. */
+function _teardownAudio() {
+  if (_currentAudio) {
+    _currentAudio.pause();
+    _currentAudio.onended = null;
+    _currentAudio.onerror = null;
+    _currentAudio.onplaying = null;
+    _currentAudio.src = '';
+    _currentAudio = null;
+  }
+  if (_currentBlobUrl) {
+    URL.revokeObjectURL(_currentBlobUrl);
+    _currentBlobUrl = null;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -100,7 +214,8 @@ let _currentOnError = null;
  * @param {string}   [options.token]          - Firebase ID token (required for Gemini TTS)
  * @param {boolean}  [options.useFallback]    - Force Web Speech API only
  * @param {boolean}  [options.preferFallback] - Try Gemini first, fall back on error (default: true)
- * @param {number}   [options.rate]           - Speech rate (Web Speech API fallback only, default 1.0)
+ * @param {number}   [options.rate]           - Playback rate (applies to both engines, default 1.0)
+ * @param {Function} [options.onStart]        - Called when audio actually begins playing
  * @param {Function} [options.onEnd]          - Called when playback ends naturally or is stopped
  * @param {Function} [options.onError]        - Called when playback fails
  * @returns {Promise<boolean>} true if speech succeeded
@@ -108,12 +223,16 @@ let _currentOnError = null;
 export async function speak(
   text,
   lang,
-  { token, useFallback = false, preferFallback = true, rate = WEB_SPEECH_RATE, onEnd, onError } = {}
+  { token, useFallback = false, preferFallback = true, rate = WEB_SPEECH_RATE, onStart, onEnd, onError } = {}
 ) {
   if (!text?.trim()) return false;
 
   // Stop any ongoing speech and notify the previous caller it was interrupted
   stopSpeaking();
+
+  // Claim this playback session. Anything that arrives late from a previous
+  // generation checks this number and bails out instead of playing over us.
+  const seq = ++_playSeq;
 
   // Register callbacks for this new playback session
   _currentOnEnd   = onEnd   ?? null;
@@ -140,17 +259,19 @@ export async function speak(
   // Option A: Use Gemini TTS (primary, async)
   if (!useFallback && token) {
     try {
-      const success = await _speakWithGemini(token, text, lang, _handleEnd, _handleError);
+      const success = await _speakWithGemini(token, text, lang, rate, seq, onStart, _handleEnd, _handleError);
       if (success) return true;
+      if (seq !== _playSeq) return false;   // superseded while generating
       if (!preferFallback) return false;
     } catch (err) {
       console.warn('[getTtsService] Gemini TTS failed, falling back to Web Speech API:', err.message);
+      if (seq !== _playSeq) return false;
       if (!preferFallback) return false;
     }
   }
 
   // Option B: Web Speech API (fallback)
-  _speakWithWebSpeech(text, lang, rate, _handleEnd, _handleError);
+  _speakWithWebSpeech(text, lang, rate, onStart, _handleEnd, _handleError);
   return true;
 }
 
@@ -162,9 +283,7 @@ export function pauseSpeaking() {
   if (window.speechSynthesis?.speaking && !window.speechSynthesis.paused) {
     window.speechSynthesis.pause();
   }
-  document.querySelectorAll('audio[data-tts-audio]').forEach((el) => {
-    if (!el.paused) el.pause();
-  });
+  if (_currentAudio && !_currentAudio.paused) _currentAudio.pause();
 }
 
 /**
@@ -175,26 +294,28 @@ export function resumeSpeaking() {
   if (window.speechSynthesis?.paused) {
     window.speechSynthesis.resume();
   }
-  document.querySelectorAll('audio[data-tts-audio]').forEach((el) => {
-    if (el.paused && el.currentTime > 0 && !el.ended) el.play();
-  });
+  if (_currentAudio?.paused && !_currentAudio.ended) {
+    _currentAudio.play().catch(() => {});
+  }
 }
 
 /**
  * Stop any currently playing speech (both Gemini and Web Speech API).
  * Fires the registered onEnd callback of the interrupted session.
+ *
+ * Also invalidates any generation still in flight, so pressing stop while the
+ * loader is showing genuinely cancels — previously the clip would arrive a few
+ * seconds later and start playing on its own.
  */
 export function stopSpeaking() {
   const onEnd    = _currentOnEnd;
   _currentOnEnd   = null;
   _currentOnError = null;
 
-  window.speechSynthesis?.cancel();
+  _playSeq++;
 
-  document.querySelectorAll('audio[data-tts-audio]').forEach((el) => {
-    el.pause();
-    el.remove();
-  });
+  window.speechSynthesis?.cancel();
+  _teardownAudio();
 
   if (onEnd) onEnd();
 }
@@ -232,42 +353,91 @@ async function _buildTtsPrompt(text, lang) {
 // Gemini TTS (primary)
 // ---------------------------------------------------------------------------
 
-async function _speakWithGemini(token, text, lang, onEnd, onError) {
+async function _speakWithGemini(token, text, lang, rate, seq, onStart, onEnd, onError) {
+  const voice = _pickVoice(text, lang);
+  const key   = _cacheKey(text, lang, voice);
+
+  // Serve a previously generated clip without touching the API. Only the audio
+  // bytes are cached — speed is applied at playback time, so all four speed
+  // settings share one generation.
+  const cached = _cacheGet(key);
+  if (cached) {
+    if (seq !== _playSeq) return false;
+    return _playAudioBase64(cached.audioData, cached.mimeType, rate, seq, onStart, onEnd, onError);
+  }
+
   const { prompt: ttsPrompt, model } = await _buildTtsPrompt(text, lang);
   const result = await askAI(token, ttsPrompt, {
     provider:  'gemini',
     model,
     tts:       true,
-    voice:     GEMINI_TTS_VOICE,
+    voice,
     language:  lang,
   });
 
-  console.log('[getTtsService] Gemini TTS mimeType:', result?.mimeType);
+  // A stop (or a different clip) landed while we were generating — throw the
+  // result away rather than playing over whatever is current now.
+  if (seq !== _playSeq) return false;
 
-  if (result?.audioUrl)  return _playAudioUrl(result.audioUrl, onEnd, onError);
-  if (result?.audioData) return _playAudioBase64(result.audioData, result.mimeType || 'audio/wav', onEnd, onError);
+  if (result?.audioData) {
+    _cacheSet(key, {
+      audioData: result.audioData,
+      mimeType:  result.mimeType || 'audio/wav',
+    });
+    return _playAudioBase64(result.audioData, result.mimeType || 'audio/wav', rate, seq, onStart, onEnd, onError);
+  }
+
+  // Remote URLs aren't cached — the browser's own HTTP cache covers replays,
+  // and we have no bytes to hold on to.
+  if (result?.audioUrl) return _playAudioUrl(result.audioUrl, rate, seq, onStart, onEnd, onError);
 
   console.warn('[getTtsService] Unexpected Gemini TTS response shape', result);
   return false;
 }
 
-function _playAudioUrl(url, onEnd, onError, blobUrlToRevoke = null) {
+function _playAudioUrl(url, rate, seq, onStart, onEnd, onError, blobUrl = null) {
   return new Promise((resolve, reject) => {
+    if (seq !== _playSeq) {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      resolve(false);
+      return;
+    }
+
     const audio = new Audio(url);
-    audio.dataset.ttsAudio = 'true';
+    // Applying the rate here is what makes the 0.25×/0.5×/2× buttons work at
+    // all — previously `rate` only ever reached the Web Speech fallback, so the
+    // speed selector did nothing whenever Gemini succeeded (the normal case).
+    audio.playbackRate = rate;
+    // Keep pitch steady when slowed down; without this 0.25× sounds like a
+    // tape drag rather than careful speech, which defeats the point for a
+    // listening exam.
+    audio.preservesPitch = true;
+    audio.webkitPreservesPitch = true;   // Safari
+
+    _currentAudio   = audio;
+    _currentBlobUrl = blobUrl;
+
+    // Only release global state if this element is still the active one — a
+    // newer clip may already have replaced it.
+    const releaseIfCurrent = () => {
+      if (_currentAudio === audio) _teardownAudio();
+      else if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+
+    audio.onplaying = () => onStart?.();
     audio.onended = () => {
-      if (blobUrlToRevoke) URL.revokeObjectURL(blobUrlToRevoke);
+      releaseIfCurrent();
       onEnd?.();
       resolve(true);
     };
     audio.onerror = (err) => {
-      if (blobUrlToRevoke) URL.revokeObjectURL(blobUrlToRevoke);
+      releaseIfCurrent();
       console.warn('[getTtsService] Audio playback error:', err);
       onError?.(err);
       reject(new Error('Audio playback failed'));
     };
     audio.play().catch((err) => {
-      if (blobUrlToRevoke) URL.revokeObjectURL(blobUrlToRevoke);
+      releaseIfCurrent();
       console.warn('[getTtsService] Audio play() failed:', err);
       onError?.(err);
       reject(err);
@@ -341,26 +511,26 @@ function _writeStr(view, offset, str) {
   }
 }
 
-function _playAudioBase64(base64Data, mimeType, onEnd, onError) {
+function _playAudioBase64(base64Data, mimeType, rate, seq, onStart, onEnd, onError) {
   // Gemini returns raw L16 PCM — browsers cannot play it without a WAV header.
   // Detect by mimeType and wrap in a proper WAV container via blob: URL.
   const isPcm = /L16|pcm/i.test(mimeType);
 
   if (isPcm) {
     const blobUrl = _pcmToWavBlobUrl(base64Data, mimeType);
-    return _playAudioUrl(blobUrl, onEnd, onError, blobUrl);
+    return _playAudioUrl(blobUrl, rate, seq, onStart, onEnd, onError, blobUrl);
   }
 
   // Already a browser-playable format (audio/wav, audio/mp3, audio/ogg, etc.)
   const dataUrl = `data:${mimeType};base64,${base64Data}`;
-  return _playAudioUrl(dataUrl, onEnd, onError);
+  return _playAudioUrl(dataUrl, rate, seq, onStart, onEnd, onError);
 }
 
 // ---------------------------------------------------------------------------
 // Web Speech API (fallback)
 // ---------------------------------------------------------------------------
 
-function _speakWithWebSpeech(text, lang, rate, onEnd, onError) {
+function _speakWithWebSpeech(text, lang, rate, onStart, onEnd, onError) {
   if (!window.speechSynthesis) {
     console.warn('[getTtsService] Web Speech API not available in this browser');
     onError?.(new Error('Web Speech API not available'));
@@ -370,6 +540,7 @@ function _speakWithWebSpeech(text, lang, rate, onEnd, onError) {
   const utterance    = new SpeechSynthesisUtterance(text);
   utterance.lang     = lang;
   utterance.rate     = rate;
+  utterance.onstart  = () => onStart?.();
   utterance.onend    = () => onEnd?.();
   utterance.onerror  = (e) => {
     if (e?.error === 'interrupted' || e?.error === 'canceled') return;

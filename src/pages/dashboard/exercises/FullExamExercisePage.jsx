@@ -10,14 +10,15 @@ const FullExamExercise = lazy(() => import("../../../components/FullExamExercise
 
 const FullExamExercisePage = () => {
   const { isDarkMode, showAlert } = useAppContext();
-  const { isExplorer } = useTierAccess();
+  const { canAccess } = useTierAccess();
+  const isLocked = !canAccess("full_exam");
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  // Full Exam is locked for Explorer-tier users — guard the route directly
+  // Access is configured in Admin > Tiers & Features. Guard the route directly
   // so it can't be bypassed by visiting the URL, not just the menu card.
   useEffect(() => {
-    if (isExplorer) {
+    if (isLocked) {
       navigate("/dashboard/exam-training", { replace: true });
       showAlert("warning", t("subscription.errors.upgrade_required"), {
         label: t("pricing.upgrade"),
@@ -25,9 +26,9 @@ const FullExamExercisePage = () => {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isExplorer]);
+  }, [isLocked]);
 
-  if (isExplorer) return null;
+  if (isLocked) return null;
 
   return (
     <FeaturePageShell

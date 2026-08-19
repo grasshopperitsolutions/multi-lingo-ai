@@ -65,6 +65,29 @@ const ReadingExercise = ({ isDarkMode }) => {
     return exercise.questions?.every((q) => answers[q.id] != null);
   })();
 
+  const { answeredCount, totalQuestions } = (() => {
+    if (!exercise) return { answeredCount: 0, totalQuestions: 0 };
+    // One answer for the whole exercise, not one per item.
+    if (exercise.questionType === "ordering") {
+      return { answeredCount: answers.ordering?.length > 0 ? 1 : 0, totalQuestions: 1 };
+    }
+    if (exercise.questionType === "best-title") {
+      return { answeredCount: answers.bestTitle ? 1 : 0, totalQuestions: 1 };
+    }
+    if (exercise.questionType === "cloze" || exercise.questionType === "fill-blanks") {
+      const blanks = exercise.blanks ?? [];
+      return {
+        answeredCount: blanks.filter((b) => answers[b.id] != null).length,
+        totalQuestions: blanks.length,
+      };
+    }
+    const questions = exercise.questions ?? [];
+    return {
+      answeredCount: questions.filter((q) => answers[q.id] != null).length,
+      totalQuestions: questions.length,
+    };
+  })();
+
   const markCurrentExerciseSeen = async () => {
     if (!exerciseId || !user?.token || !user?.uid) return;
     const currentSeen = user.seenExerciseIds?.reading ?? [];
@@ -132,7 +155,7 @@ const ReadingExercise = ({ isDarkMode }) => {
       const breakdown = [
         {
           questionId: "bestTitle",
-          question: exercise.questions?.[0]?.text ?? "Escolhe o melhor título",
+          question: exercise.questions?.[0]?.text || t("exam.best_title_label", "Best title"),
           userAnswer: userTitle?.text ?? null,
           correctAnswer: correctTitle?.text ?? "",
           isCorrect,
@@ -559,8 +582,8 @@ const ReadingExercise = ({ isDarkMode }) => {
             standalone Card. Each sub-exercise component (MultipleChoice,
             TrueFalse, BestTitle, Cloze, FillBlanks) renders the passage
             itself — some inline with interactive elements (cloze, fill-blanks)
-            — so showing it here would duplicate it. Types without a passage
-            (ordering, matching, notice-sign) never have a passage to show.
+            — so showing it here would duplicate it. Ordering and notice-sign
+            are self-contained and have no passage to show.
           */}
 
           <div>
@@ -575,6 +598,7 @@ const ReadingExercise = ({ isDarkMode }) => {
                   answers={answers}
                   onAnswer={handleSelectAnswer}
                   isDarkMode={isDarkMode}
+                  accent="teal"
                 />
               )}
               {exercise.questionType === "true-false" && (
@@ -584,6 +608,7 @@ const ReadingExercise = ({ isDarkMode }) => {
                   answers={answers}
                   onAnswer={handleSelectAnswer}
                   isDarkMode={isDarkMode}
+                  accent="teal"
                 />
               )}
               {exercise.questionType === "best-title" && (
@@ -595,6 +620,7 @@ const ReadingExercise = ({ isDarkMode }) => {
                     setAnswers((prev) => ({ ...prev, bestTitle: id }))
                   }
                   isDarkMode={isDarkMode}
+                  accent="teal"
                 />
               )}
               {exercise.questionType === "ordering" && (
@@ -605,6 +631,7 @@ const ReadingExercise = ({ isDarkMode }) => {
                     setAnswers((prev) => ({ ...prev, ordering: newOrder }))
                   }
                   isDarkMode={isDarkMode}
+                  accent="teal"
                 />
               )}
               {exercise.questionType === "cloze" && (
@@ -614,6 +641,7 @@ const ReadingExercise = ({ isDarkMode }) => {
                   answers={answers}
                   onAnswer={handleSelectAnswer}
                   isDarkMode={isDarkMode}
+                  accent="teal"
                 />
               )}
               {exercise.questionType === "fill-blanks" && (
@@ -624,14 +652,17 @@ const ReadingExercise = ({ isDarkMode }) => {
                   answers={answers}
                   onAnswer={handleSelectAnswer}
                   isDarkMode={isDarkMode}
+                  accent="teal"
                 />
               )}
               {exercise.questionType === "matching" && (
                 <MatchingExercise
+                  passage={exercise.passage}
                   pairs={exercise.questions}
                   matches={answers}
                   onMatch={handleSelectAnswer}
                   isDarkMode={isDarkMode}
+                  accent="teal"
                 />
               )}
               {exercise.questionType === "notice-sign" && (
@@ -640,6 +671,7 @@ const ReadingExercise = ({ isDarkMode }) => {
                   answers={answers}
                   onAnswer={handleSelectAnswer}
                   isDarkMode={isDarkMode}
+                  accent="teal"
                 />
               )}
             </div>
@@ -648,11 +680,7 @@ const ReadingExercise = ({ isDarkMode }) => {
           <p
             className={`text-xs font-semibold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}
           >
-            {Object.keys(answers).length} /
-            {(exercise.questionType === "cloze" ||
-            exercise.questionType === "fill-blanks"
-              ? exercise.blanks?.length
-              : exercise.questions?.length) ?? 0}
+            {answeredCount} / {totalQuestions}
             {t("exam.questions_answered", "questions answered")}
           </p>
 

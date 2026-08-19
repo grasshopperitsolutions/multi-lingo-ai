@@ -1,6 +1,8 @@
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 
 const ClozeExercise = ({ passage, blanks, answers, onAnswer, isDarkMode }) => {
+  const { t } = useTranslation();
   // Replace blanks in passage with interactive elements
   const renderPassageWithBlanks = () => {
     let passageText = passage;
@@ -47,7 +49,7 @@ const ClozeExercise = ({ passage, blanks, answers, onAnswer, isDarkMode }) => {
   return (
     <div className="flex flex-col gap-4">
       <div className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]' : 'bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]'}`}>
-        <p className={`text-xs font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Texto</p>
+        <p className={`text-xs font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('exam.passage_label', 'Text')}</p>
         <p className={`text-sm sm:text-base leading-relaxed ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
           {renderPassageWithBlanks()}
         </p>

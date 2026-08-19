@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useTierAccess } from "../../hooks/useTierAccess";
 import { useAppContext } from "../../contexts/AppContext";
 import { isGrammarSupported } from "../../config/grammarSupport";
 import FeatureCard from "../../components/FeatureCard";
@@ -68,6 +69,7 @@ const DashboardHomePage = () => {
   const { isDarkMode, user, showAlert, supportedLanguages } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { canAccess } = useTierAccess();
 
   const stats = [
     { icon: Flame,      label: t("dashboard.day_streak"),      value: String(user?.dayStreak ?? 0),        color: "text-rose-500" },
@@ -112,6 +114,11 @@ const DashboardHomePage = () => {
     { id: "radio_tv",          route: "/dashboard/radio-tv",           icon: RadioTower,       title: t("dashboard.radio_tv"),          description: t("dashboard.radio_tv_desc"),          color: "text-cyan-500",    statusBadgeLabel: t("dashboard.coming_soon") },
     { id: "plan_trip",         route: "/dashboard/plan-trip",          icon: Plane,            title: t("dashboard.plan_trip"),         description: t("dashboard.plan_trip_desc"),         color: "text-pink-500",    statusBadgeLabel: t("dashboard.coming_soon") },
   ];
+
+  // Tile ids double as feature keys (see src/config/features.js). Access is
+  // configured in Admin > Tiers & Features, so a feature still in testing can
+  // be granted to VIP only and stays invisible to everyone else.
+  const visibleFeatures = features.filter((feature) => canAccess(feature.id));
 
   const handleFeatureClick = (feature) => {
     if (feature.disabled) {
@@ -162,7 +169,7 @@ const DashboardHomePage = () => {
           isDarkMode ? "text-slate-400" : "text-slate-500"
         }`}>{t("dashboard.what_you_can_do")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {features.map((f) => (
+          {visibleFeatures.map((f) => (
             <FeatureCard
               key={f.title}
               icon={f.icon}

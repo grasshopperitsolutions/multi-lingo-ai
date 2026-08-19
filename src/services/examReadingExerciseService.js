@@ -356,6 +356,12 @@ function getResponseSchemaForType(type) {
       return {
         type: 'object',
         properties: {
+          passage: {
+            type: 'string',
+            description:
+              'The reading text the pairs refer to. Every itemA must be answerable ' +
+              'from this text — do not write pairs that stand alone without it.',
+          },
           pairs: {
             type: 'array',
             items: {
@@ -382,7 +388,7 @@ function getResponseSchemaForType(type) {
           },
           instructions: { type: 'array', items: { type: 'string' } },
         },
-        required: ['pairs', 'extraItems'],
+        required: ['passage', 'pairs', 'extraItems'],
       };
 
     case 'notice-sign':
@@ -464,7 +470,10 @@ function _parseAIResponse(data, type) {
       text = data?.passage ?? '';
       // Store full titles separately for rendering, and create a single question for answer checking
       const correctTitle = (data?.titles ?? []).find((t) => t.isCorrect);
-questions = [{ id: 'bestTitle', text: 'Escolhe o melhor título', correctAnswer: correctTitle?.id ?? '' }];
+      // Left untranslated on purpose: this is a stored data label, not UI copy.
+      // The component renders t('exam.best_title_label') and only falls back to
+      // this when reading older stored content.
+      questions = [{ id: 'bestTitle', text: '', correctAnswer: correctTitle?.id ?? '' }];
       titles = data?.titles ?? [];
       break;
     }
@@ -494,6 +503,10 @@ questions = [{ id: 'bestTitle', text: 'Escolhe o melhor título', correctAnswer:
       wordBank = data?.wordBank ?? [];
       break;
     case 'matching':
+      // Matching exercises can carry a short source text that the pairs refer
+      // back to. This case never assigned `text`, so `passage` came out empty
+      // and students were shown pairs with nothing to read them against.
+      text = data?.passage ?? '';
       questions = (data?.pairs ?? []).map((p) => ({
         ...p,
         text: p.itemA,
@@ -504,6 +517,8 @@ questions = [{ id: 'bestTitle', text: 'Escolhe o melhor título', correctAnswer:
       example = data?.example ?? null;
       break;
     case 'notice-sign':
+      // Self-contained by design: each notice carries its own text, so there is
+      // no separate passage.
       questions = data?.notices ?? [];
       break;
   }

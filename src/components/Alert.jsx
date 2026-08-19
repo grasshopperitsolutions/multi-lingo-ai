@@ -28,6 +28,9 @@ const AlertMessage = ({ alert, onClose }) => {
       text: "text-slate-900",
       icon: CheckCircle,
     },
+    // Distinct from `error`: the action completed, but not fully or not as
+    // asked — e.g. an exam generated with some exercises missing.
+    warning: { bg: "bg-amber-400", text: "text-slate-900", icon: AlertTriangle },
     info: { bg: "bg-blue-400", text: "text-slate-900", icon: Info },
   };
 

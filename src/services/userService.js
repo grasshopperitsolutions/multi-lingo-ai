@@ -436,6 +436,31 @@ export const markExerciseSeen = async (token, uid, type, exerciseId, currentSeen
 };
 
 /**
+ * Mark several exercises seen across multiple types in a single profile write.
+ *
+ * A Full Exam pulls a dozen exercises at once. Calling markExerciseSeen for
+ * each would be a dozen profile reads and a dozen writes; this merges them all
+ * into one read/write pair using the same endpoints.
+ *
+ * @param {string} token
+ * @param {string} uid
+ * @param {Object<string, string[]>} idsByType - e.g. { reading: ['a','b'], listening: ['c'] }
+ * @returns {Promise<Object>} The merged seenExerciseIds map that was written
+ */
+export const markExercisesSeen = async (token, uid, idsByType = {}) => {
+  const entries = Object.entries(idsByType).filter(([, ids]) => ids?.length);
+  if (entries.length === 0) return null;
+
+  const profile = await getUserProfile(token, uid);
+  const seen = { ...emptySeenExerciseIds(), ...(profile?.seenExerciseIds ?? {}) };
+  for (const [type, ids] of entries) {
+    seen[type] = [...new Set([...(seen[type] ?? []), ...ids])];
+  }
+  await updateUserProfile(token, uid, { seenExerciseIds: seen });
+  return seen;
+};
+
+/**
  * Clear all seen exercise IDs for a specific type.
  * Resets users/{uid}.seenExerciseIds to [].
  * Allows the user to see previously completed exercises of that type again.

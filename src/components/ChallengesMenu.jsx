@@ -2,6 +2,7 @@ import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BrainCircuit, Swords, NotebookPen, Search, EggFried, Link2, Footprints } from "lucide-react";
+import { useTierAccess } from "../hooks/useTierAccess";
 import StatusBadge from "./StatusBadge";
 import ReportButton from "./ReportButton";
 import { Breadcrumb } from "./ui";
@@ -117,6 +118,11 @@ GameCard.propTypes = {
 const ChallengesMenu = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { canAccess } = useTierAccess();
+
+  // Game ids double as feature keys (see src/config/features.js); access is
+  // configured in Admin > Tiers & Features.
+  const visibleGames = GAMES.filter((game) => canAccess(game.id));
 
   return (
     <div className="flex flex-col gap-4">
@@ -137,7 +143,7 @@ const ChallengesMenu = ({ isDarkMode }) => {
       </div>
 
       <div className="grid grid-cols-1 gap-3 mt-2">
-        {GAMES.map((game) => (
+        {visibleGames.map((game) => (
           <GameCard
             key={game.id}
             title={t(game.titleKey)}

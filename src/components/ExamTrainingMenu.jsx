@@ -12,6 +12,7 @@ import { Breadcrumb } from './ui';
 const EXERCISES = [
   {
     id: 'listening',
+    featureKey: 'exam_listening',
     route: '/dashboard/exam-training/listening',
     icon: Headphones,
     color: 'bg-sky-500',
@@ -21,6 +22,7 @@ const EXERCISES = [
   },
   {
     id: 'reading',
+    featureKey: 'exam_reading',
     route: '/dashboard/exam-training/reading',
     icon: BookOpen,
     color: 'bg-emerald-500',
@@ -30,6 +32,7 @@ const EXERCISES = [
   },
   {
     id: 'writing',
+    featureKey: 'exam_writing',
     route: '/dashboard/exam-training/writing',
     icon: PenLine,
     color: 'bg-teal-500',
@@ -39,6 +42,7 @@ const EXERCISES = [
   },
   {
     id: "full_exam",
+    featureKey: "full_exam",
     route: '/dashboard/exam-training/full-exam',
     icon: ClipboardList,
     color: "bg-rose-400",
@@ -93,11 +97,12 @@ const ExamTrainingMenu = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { showAlert } = useAppContext();
-  const { isExplorer } = useTierAccess();
+  const { canAccess } = useTierAccess();
 
   const handleExerciseSelect = (ex) => {
-    // Lock Full Exam for Explorer users
-    if (ex.id === 'full_exam' && isExplorer) {
+    // Access comes from appConfig/config/tiersConfig (Admin > Tiers & Features),
+    // so locking or releasing an exercise is a config change, not a code change.
+    if (!canAccess(ex.featureKey)) {
       showAlert('warning', t('subscription.errors.upgrade_required'), {
         label: t('pricing.upgrade'),
         onClick: () => navigate('/pricing'),
@@ -127,7 +132,7 @@ const ExamTrainingMenu = ({ isDarkMode }) => {
 
       <div className="grid grid-cols-1 gap-3 mt-2">
         {EXERCISES.map((ex) => {
-          const isLocked = ex.id === 'full_exam' && isExplorer;
+          const isLocked = !canAccess(ex.featureKey);
           return (
             <ExamCard
               key={ex.id}

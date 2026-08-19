@@ -10,6 +10,8 @@ import {
 import { getUserProfile, updateDayStreak, updateUserProfile } from "../services/userService";
 import { getLanguages, getWritingSystems } from "../services/supportedLanguagesService";
 import { getCategories } from "../services/categoriesService";
+import { getTiersConfig } from "../services/tiersConfigService";
+import { TIER_LIMITS, TIER_IDS } from "../config/tierLimits";
 import { normalizeCode } from "../utils/languageCode";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
@@ -71,6 +73,15 @@ export const AppProvider = ({ children }) => {
   // ── Interest Categories state ──────────────────────────────────────────
   const [categories, setCategories] = useState([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+
+  // ── Tier limits & feature access state ─────────────────────────────────
+  // Seeded from the code defaults so useTierAccess never sees an empty object
+  // during the first render — an empty config would read as "no features" and
+  // briefly lock the UI for everyone.
+  const [tiersConfig, setTiersConfig] = useState(() =>
+    Object.fromEntries(TIER_IDS.map((id) => [id, { id, ...TIER_LIMITS[id] }]))
+  );
+  const [isLoadingTiers, setIsLoadingTiers] = useState(false);
 
   // ── Full Exam session state ────────────────────────────────────────────
   const [examSession, setExamSession] = useState(null);
@@ -134,6 +145,25 @@ export const AppProvider = ({ children }) => {
       setIsLoadingCategories(false);
     }
   }, [showAlert]);
+
+  // ── Fetch tier limits & feature access ───────────────────────────────
+  // Runs for guests too — gating decisions are needed before sign-in, and
+  // getTiersConfig() falls back to an anonymous session. It never throws;
+  // on failure it returns the code defaults rather than locking the app.
+  const refreshTiersConfig = useCallback(async () => {
+    setIsLoadingTiers(true);
+    try {
+      setTiersConfig(await getTiersConfig());
+    } finally {
+      setIsLoadingTiers(false);
+    }
+  }, []);
+
+  // Load tier config on startup
+  useEffect(() => {
+    refreshTiersConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load categories on startup
   useEffect(() => {
@@ -583,6 +613,10 @@ export const AppProvider = ({ children }) => {
         categories,
         isLoadingCategories,
         refreshCategories,
+        // Tier limits & feature access
+        tiersConfig,
+        isLoadingTiers,
+        refreshTiersConfig,
         // Full Exam session
         examSession,
         setExamSession,

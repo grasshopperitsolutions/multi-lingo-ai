@@ -14,9 +14,11 @@
  *   level        {string}
  */
 import PropTypes from 'prop-types';
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 
 const FillBlanksExercise = ({ passage, wordBank, blanks, answers, onAnswer, isDarkMode }) => {
+  const { t } = useTranslation();
   // Fisher-Yates shuffle to randomize word bank order (runs once on mount)
   const [shuffledWordBank] = useState(() => {
     const arr = [...wordBank];
@@ -80,7 +82,7 @@ const FillBlanksExercise = ({ passage, wordBank, blanks, answers, onAnswer, isDa
     <div className="flex flex-col gap-4">
       {/* Word Bank */}
       <div className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]' : 'bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]'}`}>
-        <p className={`text-xs font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Banco de Palavras</p>
+        <p className={`text-xs font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('exam.word_bank_label', 'Word bank')}</p>
         <div className="flex flex-wrap gap-2">
           {shuffledWordBank.map((word) => {
             const isUsed = Object.values(answers).includes(word);
@@ -106,7 +108,7 @@ const FillBlanksExercise = ({ passage, wordBank, blanks, answers, onAnswer, isDa
 
       {/* Passage with Blanks */}
       <div className={`rounded-2xl border-4 p-4 sm:p-5 ${isDarkMode ? 'bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]' : 'bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]'}`}>
-        <p className={`text-xs font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>Texto</p>
+        <p className={`text-xs font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('exam.passage_label', 'Text')}</p>
         <p className={`text-sm sm:text-base leading-relaxed ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>
           {renderPassageWithBlanks()}
         </p>

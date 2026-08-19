@@ -8,6 +8,7 @@ import { CONFIG_SECTIONS, getConfigSectionDocs } from "../services/adminConfigSe
 import { updateDocument } from "../services/firestoreService";
 import { getPrompts, updatePrompt } from "../services/promptService";
 import { getAuthProviders, setAuthProviderEnabled } from "../services/authProvidersService";
+import { getTiersConfig, saveTierConfig, seedMissingTiers } from "../services/tiersConfigService";
 import { listAllUserProfiles, setUserTier, deleteAccount } from "../services/userService";
 import { getLanguages } from "../services/supportedLanguagesService";
 import { forceOverwriteAllTranslations, seedLanguageTranslations } from "../services/translationService";
@@ -21,6 +22,8 @@ import CategoriesSection from "../components/admin/CategoriesSection";
 import CategoryEditModal from "../components/admin/CategoryEditModal";
 import GenericDocsSection from "../components/admin/GenericDocsSection";
 import GenericDocEditModal from "../components/admin/GenericDocEditModal";
+import TiersSection from "../components/admin/TiersSection";
+import TierEditModal from "../components/admin/TierEditModal";
 import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
@@ -28,7 +31,7 @@ import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
 // The "prompts" section gets a dedicated editor (PromptsSection/PromptEditModal);
 // every other section stays a read-only JSON dump.
 const AdminPage = () => {
-  const { isDarkMode, user, isLoadingUser, showAlert } = useAppContext();
+  const { isDarkMode, user, isLoadingUser, showAlert, refreshTiersConfig } = useAppContext();
   const { isAdmin } = useTierAccess();
   const navigate = useNavigate();
 
@@ -43,6 +46,9 @@ const AdminPage = () => {
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
   const [editingGenericDoc, setEditingGenericDoc] = useState(null); // null | { doc, collection }
   const [isSavingGenericDoc, setIsSavingGenericDoc] = useState(false);
+  const [editingTier, setEditingTier] = useState(null); // null | tier config object
+  const [isSavingTier, setIsSavingTier] = useState(false);
+  const [isSeedingTiers, setIsSeedingTiers] = useState(false);
   // TEMPORARY — prompt seeding.
 
   // Categories actually in use, so the edit modal's dropdown reflects reality
@@ -58,6 +64,7 @@ const AdminPage = () => {
   const isUsersSection = activeSectionId === "users";
   const isLocalesSection = activeSectionId === "locales";
   const isCategoriesSection = activeSectionId === "categories";
+  const isTiersSection = activeSectionId === "tiers";
 
   const loadSection = useCallback(async (section) => {
     setIsLoadingDocs(true);
@@ -67,9 +74,11 @@ const AdminPage = () => {
         ? await getPrompts()
         : section.id === "authProviders"
           ? await getAuthProviders()
-          : section.id === "users"
-            ? await listAllUserProfiles(await auth.currentUser.getIdToken())
-            : await getConfigSectionDocs(section.collection);
+          : section.id === "tiers"
+            ? await getTiersConfig()
+            : section.id === "users"
+              ? await listAllUserProfiles(await auth.currentUser.getIdToken())
+              : await getConfigSectionDocs(section.collection);
       setDocsBySection((prev) => ({ ...prev, [section.id]: docs }));
     } catch (err) {
       setError(err.message);
@@ -168,6 +177,44 @@ const AdminPage = () => {
       setIsDeletingCategory(false);
     }
   }, [showAlert, refreshCategoriesDocs]);
+
+  const handleSaveTier = useCallback(async (tierId, config) => {
+    setIsSavingTier(true);
+    try {
+      await saveTierConfig(tierId, config);
+      showAlert("success", `${config.label} saved.`);
+      setEditingTier(null);
+      const updated = await getTiersConfig();
+      setDocsBySection((prev) => ({ ...prev, tiers: updated }));
+      // Push the change into the live app immediately, so gating updates
+      // without a reload for the admin who just made it.
+      await refreshTiersConfig();
+    } catch (err) {
+      showAlert("error", `Could not save tier: ${err.message}`);
+    } finally {
+      setIsSavingTier(false);
+    }
+  }, [showAlert, refreshTiersConfig]);
+
+  const handleSeedMissingTiers = useCallback(async () => {
+    setIsSeedingTiers(true);
+    try {
+      const seeded = await seedMissingTiers();
+      showAlert(
+        "success",
+        seeded.length === 0
+          ? "All tiers already have a document."
+          : `Seeded: ${seeded.join(", ")}.`
+      );
+      const updated = await getTiersConfig();
+      setDocsBySection((prev) => ({ ...prev, tiers: updated }));
+      await refreshTiersConfig();
+    } catch (err) {
+      showAlert("error", `Could not seed tiers: ${err.message}`);
+    } finally {
+      setIsSeedingTiers(false);
+    }
+  }, [showAlert, refreshTiersConfig]);
 
   const handleSaveGenericDoc = useCallback(async (docId, data) => {
     setIsSavingGenericDoc(true);
@@ -326,6 +373,16 @@ const AdminPage = () => {
             onEditCategory={(category) => setCategoryModal({ category })}
             onDeleteCategory={handleDeleteCategory}
           />
+        ) : isTiersSection ? (
+          <TiersSection
+            tiers={docsBySection.tiers ?? {}}
+            isDarkMode={isDarkMode}
+            isLoadingDocs={isLoadingDocs}
+            error={error}
+            isSeeding={isSeedingTiers}
+            onEditTier={setEditingTier}
+            onSeedMissing={handleSeedMissingTiers}
+          />
         ) : isAuthProvidersSection ? (
           <LoginProvidersSection
             providers={docsBySection.authProviders ?? {}}
@@ -363,6 +420,16 @@ const AdminPage = () => {
           isSaving={isSavingGenericDoc}
           onSave={handleSaveGenericDoc}
           onClose={() => setEditingGenericDoc(null)}
+        />
+      )}
+
+      {editingTier && (
+        <TierEditModal
+          tier={editingTier}
+          isDarkMode={isDarkMode}
+          isSaving={isSavingTier}
+          onSave={handleSaveTier}
+          onClose={() => setEditingTier(null)}
         />
       )}
 

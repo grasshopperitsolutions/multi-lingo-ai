@@ -23,17 +23,37 @@ const MAX_OUTPUT_TOKENS_BY_LEVEL = {
 };
 const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 
+/**
+ * Listening exercise types this service can actually generate.
+ *
+ * Keep in sync with EXAM_TYPE_MAP and EXAM_STRUCTURE in FullExamExercise.jsx —
+ * asking for a type that isn't here now throws rather than substituting one.
+ */
+export const SUPPORTED_EXERCISE_TYPES = ['multiple-choice', 'true-false', 'fill-blanks'];
+
 export async function generateListeningExercise({ token, level, targetLang, questionType: forcedType }) {
   if (!token) throw new Error('[examListeningExerciseService] token is required');
   if (!level) throw new Error('[examListeningExerciseService] level is required');
   if (!targetLang) throw new Error('[examListeningExerciseService] targetLang is required');
 
   const audioFormats = ['dialogue', 'monologue', 'phone-message', 'announcement', 'interview'];
-  const exerciseTypes = ['multiple-choice', 'true-false', 'fill-blanks'];
   const audioFormat = audioFormats[Math.floor(Math.random() * audioFormats.length)];
-  const type = forcedType && exerciseTypes.includes(forcedType)
-    ? forcedType
-    : exerciseTypes[Math.floor(Math.random() * exerciseTypes.length)];
+
+  // An unsupported forcedType used to silently fall back to a *random* type.
+  // The caller believed it had asked for `matching` and got a second
+  // multiple-choice instead — which is how one exam ended up with the same
+  // exercise type twice — and the exercise pool, still filtered on the
+  // requested type, could never match so every attempt burned a fresh
+  // generation. Failing loudly makes the gap visible instead.
+  if (forcedType && !SUPPORTED_EXERCISE_TYPES.includes(forcedType)) {
+    throw new Error(
+      `[examListeningExerciseService] Unsupported listening exercise type "${forcedType}". ` +
+      `Supported: ${SUPPORTED_EXERCISE_TYPES.join(', ')}.`
+    );
+  }
+
+  const type = forcedType
+    ?? SUPPORTED_EXERCISE_TYPES[Math.floor(Math.random() * SUPPORTED_EXERCISE_TYPES.length)];
 
   // Build prompt with targetLang
   const prompt = await getListeningPrompt(level, targetLang, { type, audioFormat });

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Library, Lightbulb, MessageCircleQuestion, Dumbbell } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { isGrammarSupported } from "../config/grammarSupport";
+import { useTierAccess } from "../hooks/useTierAccess";
 import StatusBadge from "./StatusBadge";
 import ReportButton from "./ReportButton";
 import { Breadcrumb } from "./ui";
@@ -93,8 +94,13 @@ const GrammarMenu = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAppContext();
+  const { canAccess } = useTierAccess();
 
   const supported = isGrammarSupported(user?.learningDialect);
+
+  // Section ids are namespaced as grammar_* feature keys (see
+  // src/config/features.js); access is configured in Admin > Tiers & Features.
+  const visibleSections = SECTIONS.filter((section) => canAccess(`grammar_${section.id}`));
 
   return (
     <div className="flex flex-col gap-4">
@@ -130,7 +136,7 @@ const GrammarMenu = ({ isDarkMode }) => {
 
       {supported && (
         <div className="grid grid-cols-1 gap-3 mt-2">
-          {SECTIONS.map((section) => (
+          {visibleSections.map((section) => (
             <GrammarCard
               key={section.id}
               title={t(section.titleKey)}
