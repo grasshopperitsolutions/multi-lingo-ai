@@ -6,7 +6,7 @@ import { createCheckoutSession, openPlanChangePortal } from "../services/stripeS
 import { PRICING, getYearlySavingsPercent } from "../config/pricing";
 import { FEATURE_STATUS, getFeatureStatus } from "../utils/featureAccess";
 import { auth } from "../firebase";
-import { CheckCircle, Star, Lock, Clock, ArrowRight, ChevronDown } from "lucide-react";
+import { CheckCircle, Lock, Clock, ArrowRight, ChevronDown } from "lucide-react";
 import PropTypes from "prop-types";
 
 // ── Rows shown before the list collapses ──────────────────────────────────────
@@ -220,18 +220,10 @@ const TierCard = ({
               </div>
             )}
 
-            {/* 7-Day Trial Badge — Maestro only. Wrapper keeps card spacing
-                consistent with Voyager (no trial) even when empty. */}
-            <div className="mb-6">
-              {tierKey === "maestro" && (
-                <div className="flex items-center gap-2">
-                  <Star size={16} className="text-yellow-500" />
-                  <span className="text-xs font-black uppercase tracking-widest text-yellow-500">
-                    {t("pricing.try_free_days", { days: 7 })}
-                  </span>
-                </div>
-              )}
-            </div>
+            {/* No plan offers a free trial — the free Explorer tier is the
+                trial. Spacer keeps card rhythm consistent with the block that
+                used to live here. */}
+            <div className="mb-6" />
           </>
         )}
 
