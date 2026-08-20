@@ -12,6 +12,7 @@ import { AlertTriangle, Loader2, X } from "lucide-react";
  *   warning       string | null       — secondary warning line (optional)
  *   confirmLabel  string
  *   confirmColor  'rose' | 'yellow'   — button colour scheme
+ *   zIndexClass   string              — stacking layer (default 'z-50')
  *   icon          ReactNode           — defaults to AlertTriangle
  *   isLoading     boolean
  *   onConfirm     () => void
@@ -24,6 +25,11 @@ const ConfirmModal = ({
   warning,
   confirmLabel,
   confirmColor = "rose",
+  // App-global modals need to outrank feature-level overlays. Everything in
+  // the app (loaders, sheets, dropdowns, other modals) sits at z-50, and an
+  // equal z-index is resolved by DOM order — which the global modals lose,
+  // since they render above <Routes>. See AiGenerationConfirm.
+  zIndexClass = "z-50",
   icon,
   isLoading,
   onConfirm,
@@ -40,7 +46,7 @@ const ConfirmModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className={`fixed inset-0 ${zIndexClass} flex items-center justify-center p-4`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-modal-title"
@@ -153,6 +159,7 @@ ConfirmModal.propTypes = {
   warning:      PropTypes.string,
   confirmLabel: PropTypes.string.isRequired,
   confirmColor: PropTypes.oneOf(["rose", "yellow"]),
+  zIndexClass:  PropTypes.string,
   icon:         PropTypes.node,
   isLoading:    PropTypes.bool.isRequired,
   onConfirm:    PropTypes.func.isRequired,

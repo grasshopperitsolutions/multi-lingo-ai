@@ -115,9 +115,15 @@ const WritingExercise = ({ isDarkMode }) => {
     onGenerateClick,
     handleConfirm: handleConfirmNewExercise,
     handleCancel: handleCancelNewExercise,
-  } = useGenerateConfirm(
-    exercise !== null || (evaluation !== null && exercise !== null),
-  );
+  // "Ongoing" means unfinished, not merely present. Once the text is submitted
+  // and `evaluation` is set there is nothing left to discard, so generating a
+  // new task from the results screen shouldn't ask for confirmation.
+  //
+  // The previous condition read `exercise !== null || (evaluation !== null &&
+  // exercise !== null)` — the right-hand clause is a subset of the left, so it
+  // looked like it handled the submitted case while resolving to plain
+  // `exercise !== null`.
+  } = useGenerateConfirm(exercise !== null && evaluation === null);
 
   const wordCount = userText.trim()
     ? userText.trim().split(/\s+/).filter(Boolean).length

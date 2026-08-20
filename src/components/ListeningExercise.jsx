@@ -54,7 +54,10 @@ const ListeningExercise = ({ isDarkMode }) => {
     onGenerateClick,
     handleConfirm: handleConfirmNewExercise,
     handleCancel: handleCancelNewExercise,
-  } = useGenerateConfirm(exercise !== null);
+  // "Ongoing" means unfinished, not merely present. Once answers are submitted
+  // and `result` is set there is nothing left to discard, so generating a new
+  // exercise from the results screen shouldn't ask for confirmation.
+  } = useGenerateConfirm(exercise !== null && result === null);
 
   const exerciseType = exercise?.exerciseType;
 

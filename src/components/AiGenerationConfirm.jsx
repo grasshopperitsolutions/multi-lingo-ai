@@ -51,6 +51,12 @@ const AiGenerationConfirm = () => {
       }
       confirmLabel={t("ai_confirm.confirm", "Generate now")}
       confirmColor="yellow"
+      // The prompt fires from inside askAI, by which point the calling feature
+      // has already put up its own full-screen loader at z-50. Same z-index +
+      // rendered earlier in the DOM meant the loader painted on top and the
+      // buttons were unreachable. Sit above every feature overlay, but below
+      // the alert toast (z-200) so alerts remain visible.
+      zIndexClass="z-[150]"
       onConfirm={() => resolveAiConfirm(true)}
       onCancel={() => resolveAiConfirm(false)}
     />
