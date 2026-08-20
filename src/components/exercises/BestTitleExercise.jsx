@@ -1,8 +1,8 @@
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { accentClass, ACCENT_NAMES } from './exerciseAccents';
+import { selectedClass, unselectedClass, ACCENT_NAMES } from './exerciseAccents';
 
-const BestTitleExercise = ({ passage, titles, selectedId, onSelect, isDarkMode, accent }) => {
+const BestTitleExercise = ({ passage, titles, selectedId, onSelect, isDarkMode }) => {
   const { t } = useTranslation();
 
   return (
@@ -17,7 +17,7 @@ const BestTitleExercise = ({ passage, titles, selectedId, onSelect, isDarkMode, 
         <p className={`text-xs font-black uppercase tracking-widest mb-2 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('exam.best_title_label', 'Best title')}</p>
         <div className="flex flex-col gap-2">
           {titles.map((title) => (
-            <button key={title.id} onClick={() => onSelect(title.id)} className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${selectedId === title.id ? accentClass(accent, 'selected', isDarkMode) : (isDarkMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700/50' : 'border-slate-200 text-slate-700 hover:bg-slate-50')}`}>
+            <button key={title.id} onClick={() => onSelect(title.id)} className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${selectedId === title.id ? selectedClass(isDarkMode) : unselectedClass(isDarkMode)}`}>
               {title.text}
             </button>
           ))}

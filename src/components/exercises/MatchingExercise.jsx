@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { accentClass, ACCENT_NAMES } from './exerciseAccents';
+import { accentClass, selectedClass, unselectedClass, ACCENT_NAMES } from './exerciseAccents';
 
 const MatchingExercise = ({ passage, pairs, extraItems, matches, onMatch, showExample, example, isDarkMode, accent }) => {
   const { t } = useTranslation();
@@ -29,7 +29,7 @@ const MatchingExercise = ({ passage, pairs, extraItems, matches, onMatch, showEx
         <div className="flex flex-col gap-2">
           <p className={`text-xs font-black uppercase tracking-widest mb-1 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>{t('exam.column_a', 'Column A')}</p>
           {pairs.map((pair, i) => (
-            <div key={pair.id} className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 ${matches[pair.id] ? accentClass(accent, 'selected', isDarkMode) : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-300')}`}>
+            <div key={pair.id} className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 ${matches[pair.id] ? selectedClass(isDarkMode) : (isDarkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-300')}`}>
               <span className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-black ${accentClass(accent, 'marker', isDarkMode)}`}>{i + 1}</span>
               <span className={`text-sm font-semibold ${isDarkMode ? 'text-slate-200' : 'text-slate-800'}`}>{pair.itemA}</span>
             </div>
@@ -40,7 +40,7 @@ const MatchingExercise = ({ passage, pairs, extraItems, matches, onMatch, showEx
           {shuffledB.map((item, i) => {
             const isAssigned = assignedB.has(item.text);
             return (
-              <button key={`${item.text}-${i}`} onClick={() => { const c = Object.entries(matches).find(([, v]) => v === item.text); if (c) onMatch(c[0], null); }} className={`text-left px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${isAssigned ? accentClass(accent, 'selected', isDarkMode) : (isDarkMode ? 'border-slate-600 text-slate-300 hover:bg-slate-700/50' : 'border-slate-200 text-slate-700 hover:bg-slate-50')}`}>
+              <button key={`${item.text}-${i}`} onClick={() => { const c = Object.entries(matches).find(([, v]) => v === item.text); if (c) onMatch(c[0], null); }} className={`text-left px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${isAssigned ? selectedClass(isDarkMode) : unselectedClass(isDarkMode)}`}>
                 {item.isCorrect ? item.text : item.id}
                 {!item.isCorrect && <span className={`ml-2 text-xs ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>{t('exam.extra_option', '(extra)')}</span>}
               </button>

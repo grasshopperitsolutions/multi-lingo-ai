@@ -20,6 +20,7 @@ import AppUnavailablePage from "./pages/AppUnavailablePage";
 import AlertMessage from "./components/Alert";
 import GlobalCompassCursor from "./components/GlobalCompassCursor";
 import Loader from "./components/Loader";
+import AiGenerationConfirm from "./components/AiGenerationConfirm";
 
 // ── /dashboard/* pages — route-level code splitting ──────────────────────────
 const DashboardLayout = lazy(() => import("./pages/dashboard/DashboardLayout"));
@@ -141,6 +142,9 @@ const AppLayout = () => {
         <style>{`* { cursor: none !important; }`}</style>
       )}
       <AlertMessage alert={alert} onClose={closeAlert} />
+
+      {/* Asks before any billable AI call — see services/aiService.js */}
+      <AiGenerationConfirm />
 
       {!isTouchDevice && (
         <GlobalCompassCursor

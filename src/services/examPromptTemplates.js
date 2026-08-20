@@ -80,8 +80,11 @@ function getExamPhrasing(type, level) {
     'true-false': isBeginner
       ? 'Identifica as frases verdadeiras (V) e as falsas (F), de acordo com o texto.'
       : 'Identifique as frases verdadeiras (V) e as falsas (F), de acordo com o texto.',
+    // Reading matching pairs two columns of text — there are no images in this
+    // exercise, so the old beginner phrasing ("Associa um nome a cada imagem")
+    // told students to do something the UI never showed them.
     'matching': isBeginner
-      ? 'Associa um nome a cada imagem.'
+      ? 'Associa cada elemento da coluna A ao elemento correspondente da coluna B.'
       : 'Faça corresponder cada elemento da coluna A ao único elemento da coluna B que permite formar uma afirmação correta.',
     'fill-blanks': isBeginner
       ? 'Preenche cada espaço com a palavra correta do quadro abaixo. Há três palavras a mais.'

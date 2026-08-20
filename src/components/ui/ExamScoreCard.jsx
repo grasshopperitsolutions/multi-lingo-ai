@@ -13,7 +13,7 @@ import Card from './Card';
  *   score       {number}  - Raw score achieved (e.g. 8)
  *   maxScore    {number}  - Maximum possible score (e.g. 10)
  *   percentage  {number}  - Pre-computed percentage (optional; auto-computed if omitted)
- *   scoreColor  {string}  - Tailwind text colour class from getScoreColor() / getListeningScoreColor()
+ *   scoreColor  {string}  - Tailwind text colour class from getScoreColor()
  *   isDarkMode  {boolean}
  *
  * Writing-only (optional):

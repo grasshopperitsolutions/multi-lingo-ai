@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { isAiDeclined } from "../../../services/aiService";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Send, FileUp, X } from "lucide-react";
@@ -70,6 +71,8 @@ const GrammarAskPage = () => {
         showAlert("info", t("grammar.pdf_truncated", { chars: MAX_PDF_CHARS }));
       }
     } catch (err) {
+      // The user chose not to spend an AI call — not an error worth a banner.
+      if (isAiDeclined(err)) return;
       setError(err.message);
     } finally {
       setIsParsingPdf(false);
@@ -104,6 +107,8 @@ const GrammarAskPage = () => {
       });
       setAnswer(result);
     } catch (err) {
+      // The user chose not to spend an AI call — not an error worth a banner.
+      if (isAiDeclined(err)) return;
       setError(err.message);
     } finally {
       setIsAsking(false);

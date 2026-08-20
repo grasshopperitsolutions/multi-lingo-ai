@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { isAiDeclined } from "../services/aiService";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { BookOpen, RotateCcw } from "lucide-react";
@@ -18,6 +19,7 @@ import {
 } from "./ui";
 import { getExercise } from "../services/examExerciseService";
 import { checkReadingAnswers, getScoreColor } from "../services/examUtils";
+import { correctTextClass, incorrectTextClass } from "./exercises/exerciseAccents";
 import { markExerciseSeen, resetSeenExercises } from "../services/userService";
 import {
   MultipleChoiceExercise,
@@ -122,6 +124,8 @@ const ReadingExercise = ({ isDarkMode }) => {
       timerRef.current?.reset();
       timerRef.current?.start();
     } catch (err) {
+      // The user chose not to spend an AI call — not an error worth a banner.
+      if (isAiDeclined(err)) return;
       const errorMessage =
         err.message ??
         t("common.error", "Something went wrong. Please try again.");
@@ -444,7 +448,7 @@ const ReadingExercise = ({ isDarkMode }) => {
                           {i + 1}. {item.question}
                         </p>
                         <p
-                          className={`text-sm font-bold ${item.isCorrect ? (isDarkMode ? "text-teal-400" : "text-teal-700") : (isDarkMode ? "text-rose-400" : "text-rose-600")}`}
+                          className={`text-sm font-bold ${item.isCorrect ? correctTextClass(isDarkMode) : incorrectTextClass(isDarkMode)}`}
                         >
                           {formatTf(item.userAnswer) ?? t("exam.no_answer", "No answer")}
                         </p>

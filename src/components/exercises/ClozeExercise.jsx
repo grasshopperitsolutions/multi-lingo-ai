@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
+import { selectedClass } from './exerciseAccents';
 
 const ClozeExercise = ({ passage, blanks, answers, onAnswer, isDarkMode }) => {
   const { t } = useTranslation();
@@ -18,9 +19,7 @@ const ClozeExercise = ({ passage, blanks, answers, onAnswer, isDarkMode }) => {
               value={answers[blank.id] || ''}
               onChange={(e) => onAnswer(blank.id, e.target.value)}
               className={`px-2 py-1 rounded-lg border-2 text-sm font-semibold ${answers[blank.id]
-                ? isDarkMode
-                  ? 'bg-cyan-900/30 border-cyan-600 text-cyan-300'
-                  : 'bg-cyan-50 border-cyan-500 text-cyan-800'
+                ? selectedClass(isDarkMode)
                 : isDarkMode
                   ? 'bg-slate-700 border-slate-600 text-slate-300'
                   : 'bg-white border-slate-300 text-slate-700'

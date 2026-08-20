@@ -40,6 +40,48 @@ const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.
 const DEFAULT_TIMEOUT = 25000; // 25 seconds (up to 120 seconds as per api limit)
 
 // ---------------------------------------------------------------------------
+// Generation confirmation
+//
+// Every call through here spends one of the user's daily AI allowance, so the
+// app asks before spending it. The handler is registered from AppContext (the
+// same pattern i18n uses for registerMissingKeyHandler) because the decision
+// needs a modal, which a service can't render.
+//
+// Calls that aren't the user asking for new content pass `skipConfirm: true`:
+// background translation back-fill, and TTS playback (already cached per clip,
+// and prompting mid-exercise to hear a sentence would be unusable).
+// ---------------------------------------------------------------------------
+
+let _confirmHandler = null;
+
+/**
+ * Register the confirmation prompt shown before a billable AI call.
+ *
+ * @param {null|(() => Promise<boolean>)} fn - Resolves true to proceed.
+ */
+export function registerAiConfirmHandler(fn) {
+  _confirmHandler = typeof fn === 'function' ? fn : null;
+}
+
+/**
+ * True when an error is the user declining the generation prompt rather than a
+ * real failure. Call sites use this to bail out quietly instead of showing an
+ * error banner for something the user chose.
+ */
+export function isAiDeclined(err) {
+  return Boolean(err?.declined);
+}
+
+/** Thrown when the user declines the generation prompt. */
+export class AiGenerationDeclined extends Error {
+  constructor() {
+    super('AI generation declined by user');
+    this.name = 'AiGenerationDeclined';
+    this.declined = true;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -53,10 +95,18 @@ const DEFAULT_TIMEOUT = 25000; // 25 seconds (up to 120 seconds as per api limit
  * @param {number}  [options.timeout=25000] - Request timeout in milliseconds
  * @param {AbortSignal} [options.signal]    - External abort signal for cancellation
  * @param {number}  [options.retries=0]     - Number of retry attempts on failure
+ * @param {boolean} [options.skipConfirm]    - Bypass the generation prompt for
+ *   background/system calls the user didn't explicitly ask for.
  * @returns {Promise<object>} The `data` field from the API response envelope
+ * @throws {AiGenerationDeclined} If the user declines the generation prompt.
  */
 export async function askAI(token, prompt, providerParams, options = {}) {
-  const { timeout = DEFAULT_TIMEOUT, signal, retries = 0 } = options;
+  const { timeout = DEFAULT_TIMEOUT, signal, retries = 0, skipConfirm = false } = options;
+
+  if (!skipConfirm && _confirmHandler) {
+    const proceed = await _confirmHandler();
+    if (!proceed) throw new AiGenerationDeclined();
+  }
 
   let lastError;
 

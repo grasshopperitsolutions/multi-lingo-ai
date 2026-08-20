@@ -102,13 +102,3 @@ export function getScoreColor(score, max, isDarkMode) {
   if (pct >= 0.5) return isDarkMode ? 'text-yellow-400' : 'text-yellow-600';
   return isDarkMode ? 'text-rose-400' : 'text-rose-600';
 }
-
-/**
- * Listening-specific score colour (uses sky palette).
- */
-export function getListeningScoreColor(score, max, isDarkMode) {
-  const pct = max > 0 ? score / max : 0;
-  if (pct >= 0.8) return isDarkMode ? 'text-sky-400' : 'text-sky-600';
-  if (pct >= 0.5) return isDarkMode ? 'text-yellow-400' : 'text-yellow-600';
-  return isDarkMode ? 'text-rose-400' : 'text-rose-600';
-}

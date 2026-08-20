@@ -157,31 +157,6 @@ const ExerciseSidebar = ({
       <p className={`text-xs font-black uppercase tracking-widest ${labelClass}`}>
         {t("exam_exercises.text", "Sections")}
       </p>
-      {/* Listening row */}
-      <button
-        onClick={() => onExamSectionChange?.("listening")}
-        disabled={phase === "generating"}
-        className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${
-          phase === "listening"
-            ? isDarkMode
-              ? "border-sky-500 bg-sky-500/20 text-sky-300"
-              : "border-sky-500 bg-sky-50 text-sky-700"
-            : isDarkMode
-              ? "border-transparent text-slate-400 hover:bg-slate-700"
-              : "border-transparent text-slate-500 hover:bg-slate-100"
-        }`}
-      >
-        <Headphones size={14} />
-        <span className="text-xs font-bold flex-1">{t("exam.full.section_listening", "Listening")}</span>
-        <span className="text-xs font-black tabular-nums">
-          {Array.from({ length: listeningCount }, (_, i) => (
-            <span key={i} className={i < listeningAnswered ? "text-emerald-400" : "text-slate-500"}>
-              {i < listeningAnswered ? "\u25CF" : "\u25CB"}
-            </span>
-          ))}
-        </span>
-      </button>
-
       {/* Reading row */}
       <button
         onClick={() => onExamSectionChange?.("reading")}
@@ -202,6 +177,31 @@ const ExerciseSidebar = ({
           {Array.from({ length: readingCount }, (_, i) => (
             <span key={i} className={i < readingAnswered ? "text-emerald-400" : "text-slate-500"}>
               {i < readingAnswered ? "\u25CF" : "\u25CB"}
+            </span>
+          ))}
+        </span>
+      </button>
+
+      {/* Listening row */}
+      <button
+        onClick={() => onExamSectionChange?.("listening")}
+        disabled={phase === "generating"}
+        className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${
+          phase === "listening"
+            ? isDarkMode
+              ? "border-sky-500 bg-sky-500/20 text-sky-300"
+              : "border-sky-500 bg-sky-50 text-sky-700"
+            : isDarkMode
+              ? "border-transparent text-slate-400 hover:bg-slate-700"
+              : "border-transparent text-slate-500 hover:bg-slate-100"
+        }`}
+      >
+        <Headphones size={14} />
+        <span className="text-xs font-bold flex-1">{t("exam.full.section_listening", "Listening")}</span>
+        <span className="text-xs font-black tabular-nums">
+          {Array.from({ length: listeningCount }, (_, i) => (
+            <span key={i} className={i < listeningAnswered ? "text-emerald-400" : "text-slate-500"}>
+              {i < listeningAnswered ? "\u25CF" : "\u25CB"}
             </span>
           ))}
         </span>
@@ -245,16 +245,16 @@ const ExerciseSidebar = ({
       </p>
       <div className={`pt-2 border-t-2 ${isDarkMode ? "border-slate-700" : "border-slate-200"} flex flex-col gap-1.5`}>
         <div className="flex justify-between text-xs font-bold">
-          <span className={isDarkMode ? "text-sky-400" : "text-sky-600"}>
-            {t("exam.full.section_listening", "Listening")}:
-          </span>
-          <span className={labelClass}>{examScores.listening}/{examScores.listeningMax}</span>
-        </div>
-        <div className="flex justify-between text-xs font-bold">
           <span className={isDarkMode ? "text-teal-400" : "text-teal-600"}>
             {t("exam.full.section_reading", "Reading")}:
           </span>
           <span className={labelClass}>{examScores.reading}/{examScores.readingMax}</span>
+        </div>
+        <div className="flex justify-between text-xs font-bold">
+          <span className={isDarkMode ? "text-sky-400" : "text-sky-600"}>
+            {t("exam.full.section_listening", "Listening")}:
+          </span>
+          <span className={labelClass}>{examScores.listening}/{examScores.listeningMax}</span>
         </div>
         <div className="flex justify-between text-xs font-bold">
           <span className={isDarkMode ? "text-amber-400" : "text-amber-600"}>

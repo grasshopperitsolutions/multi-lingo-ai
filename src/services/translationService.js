@@ -335,7 +335,10 @@ export async function fillMissingTranslations(locale, token) {
           temperature: 0.1,
           jsonMode: true,
           maxOutputTokens: promptDoc.maxTokens ?? 4096,
-        }
+        },
+        // Background back-fill — the user never asked for this, so it must not
+        // interrupt them with a generation prompt.
+        { skipConfirm: true }
       );
 
       let translatedChunk;
@@ -455,7 +458,9 @@ export async function seedLanguageTranslations(locale, token) {
         temperature: 0.1,
         jsonMode: true,
         maxOutputTokens: promptDoc.maxTokens ?? 8192,
-      }
+      },
+      // Admin-triggered locale seeding, not a user content request.
+      { skipConfirm: true }
     );
 
     // The API returns the JSON string inside the `text` field

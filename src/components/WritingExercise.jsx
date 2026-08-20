@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { isAiDeclined } from "../services/aiService";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { PenLine, RotateCcw } from "lucide-react";
@@ -163,6 +164,8 @@ const WritingExercise = ({ isDarkMode }) => {
       timerRef.current?.reset();
       timerRef.current?.start();
     } catch (err) {
+      // The user chose not to spend an AI call — not an error worth a banner.
+      if (isAiDeclined(err)) return;
       const errorMessage =
         err.message ??
         t("common.error", "Something went wrong. Please try again.");
@@ -195,6 +198,8 @@ const WritingExercise = ({ isDarkMode }) => {
       setEval(result);
       await markCurrentExerciseSeen();
     } catch (err) {
+      // The user chose not to spend an AI call — not an error worth a banner.
+      if (isAiDeclined(err)) return;
       const errorMessage =
         err.message ??
         t("common.error", "Something went wrong. Please try again.");

@@ -12,6 +12,7 @@ import { getLanguages, getWritingSystems } from "../services/supportedLanguagesS
 import { getCategories } from "../services/categoriesService";
 import { getTiersConfig } from "../services/tiersConfigService";
 import { getFeatures } from "../services/featuresService";
+import { registerAiConfirmHandler } from "../services/aiService";
 import { normalizeCode } from "../utils/languageCode";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
@@ -20,6 +21,11 @@ import { loadRemoteTranslations, registerMissingKeyHandler } from "../i18n";
 import Loader from "../components/Loader";
 
 const AppContext = createContext();
+
+// How long one "yes" keeps covering follow-up AI calls. Long enough for a Full
+// Exam's dozen sequential generations, short enough that the next thing the
+// user does asks again.
+const AI_CONFIRM_GRACE_MS = 90 * 1000;
 
 // ── Token validation interval (50 min — Firebase ID tokens expire after 1 hr)
 const TOKEN_CHECK_INTERVAL_MS = 50 * 60 * 1000;
@@ -84,6 +90,17 @@ export const AppProvider = ({ children }) => {
 
   // ── Full Exam session state ────────────────────────────────────────────
   const [examSession, setExamSession] = useState(null);
+
+  // ── AI generation confirmation ─────────────────────────────────────────
+  // Holds the pending prompt's resolver while the modal is open. Registered
+  // into aiService so every billable call routes through it — see
+  // registerAiConfirmHandler there for which calls are exempt.
+  const [aiConfirm, setAiConfirm] = useState(null); // null | { open: true }
+  const aiConfirmResolver = useRef(null);
+  // One user action can fan out into many AI calls — a Full Exam generates a
+  // dozen exercises in one go. Prompting per call would be unusable, so a
+  // confirmation covers the burst it belongs to.
+  const aiConfirmGraceUntil = useRef(0);
 
   const showAlert = useCallback((type, message, action = null) => {
     setAlert({ show: true, type, message, action });
@@ -321,6 +338,34 @@ export const AppProvider = ({ children }) => {
       setIsLoadingTranslations(false);
     }
   }, [navigate]);
+
+  // Ask before spending an AI call. Resolves true to proceed. Only one prompt
+  // can be open at a time; a second request while one is pending is declined
+  // rather than queued, so a burst can't stack modals.
+  useEffect(() => {
+    registerAiConfirmHandler(() => {
+      // Still inside the window opened by a recent "yes" — this call is part of
+      // the same action the user already approved.
+      if (Date.now() < aiConfirmGraceUntil.current) return Promise.resolve(true);
+      // A prompt is already on screen; decline rather than stack modals.
+      if (aiConfirmResolver.current) return Promise.resolve(false);
+      return new Promise((resolve) => {
+        aiConfirmResolver.current = resolve;
+        setAiConfirm({ open: true });
+      });
+    });
+    return () => registerAiConfirmHandler(null);
+  }, []);
+
+  const resolveAiConfirm = useCallback((proceed) => {
+    const resolve = aiConfirmResolver.current;
+    aiConfirmResolver.current = null;
+    setAiConfirm(null);
+    // Approving covers the rest of this action's calls; declining clears any
+    // window still open so the next action asks again.
+    aiConfirmGraceUntil.current = proceed ? Date.now() + AI_CONFIRM_GRACE_MS : 0;
+    resolve?.(proceed);
+  }, []);
 
   // Register the fillMissingTranslations function with i18next so it
   // can be called when a translation key is missing at runtime
@@ -627,6 +672,9 @@ export const AppProvider = ({ children }) => {
         examSession,
         setExamSession,
         updateExamSection,
+        // AI generation confirmation
+        aiConfirm,
+        resolveAiConfirm,
       }}
     >
       {children}

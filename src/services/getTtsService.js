@@ -367,13 +367,14 @@ async function _speakWithGemini(token, text, lang, rate, seq, onStart, onEnd, on
   }
 
   const { prompt: ttsPrompt, model } = await _buildTtsPrompt(text, lang);
-  const result = await askAI(token, ttsPrompt, {
-    provider:  'gemini',
-    model,
-    tts:       true,
-    voice,
-    language:  lang,
-  });
+  const result = await askAI(
+    token,
+    ttsPrompt,
+    { provider: 'gemini', model, tts: true, voice, language: lang },
+    // Playback isn't the user asking for new content, and clips are cached per
+    // (voice, locale, text) — a prompt here would fire mid-exercise.
+    { skipConfirm: true },
+  );
 
   // A stop (or a different clip) landed while we were generating — throw the
   // result away rather than playing over whatever is current now.

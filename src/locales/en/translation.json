@@ -17,7 +17,8 @@
     "open_menu": "Open menu",
     "close_menu": "Close menu",
     "pricing": "Pricing",
-    "brand": "Multi Lingo AI"
+    "brand": "Multi Lingo AI",
+    "primary": "Primary"
   },
   "seo": {
     "home_title": "Multi Lingo AI | Practice any language, for real life",
@@ -38,7 +39,9 @@
     "error": "Something went wrong. Please try again.",
     "back": "Back",
     "stop": "Stop",
-    "remove": "Remove"
+    "remove": "Remove",
+    "next": "Next",
+    "try_again": "Try Again"
   },
   "avatar": {
     "alt_fallback": "Avatar"
@@ -581,7 +584,8 @@
     "radio_tv": "Radio & TV",
     "radio_tv_desc": "Listen to local radio and watch TV stations from the country you're learning about.",
     "plan_trip": "Plan Your Trip",
-    "plan_trip_desc": "Plan a trip to the country you're learning about, with places to visit and the language you'll need."
+    "plan_trip_desc": "Plan a trip to the country you're learning about, with places to visit and the language you'll need.",
+    "highest_streak": "Highest Streak"
   },
   "exam": {
     "title": "Exam Training",
@@ -655,7 +659,10 @@
       "new_exercise_title": "New Exercise",
       "new_exercise_message": "You have an exercise in progress. Generating a new one will discard your current work.",
       "new_exercise_warning": "⚠ This cannot be undone.",
-      "new_exercise_confirm": "Yes, generate new exercise"
+      "new_exercise_confirm": "Yes, generate new exercise",
+      "score": "Score",
+      "word_count": "Words",
+      "penalty": "penalty"
     },
     "levels": {
       "a1": "A1 - Beginner",
@@ -723,7 +730,9 @@
     "audio_speed": "Speed",
     "audio_set_speed": "Set speed to {{rate}}×",
     "audio_listened_count": "Listened × {{count}}",
-    "audio_notice": "Audio quality and voices are still being improved."
+    "audio_notice": "Audio quality and voices are still being improved.",
+    "passage": "Passage",
+    "evaluating_writing": "Evaluating writing..."
   },
   "exam_exercises": {
     "text": "Text",
@@ -844,7 +853,17 @@
     "word_link_score": "Guessed in {{count}} clue(s)!",
     "word_link_answer": "The theme was:",
     "word_ladder": "Word Ladder",
-    "word_ladder_desc": "Change one letter at a time to reach the target word"
+    "word_ladder_desc": "Change one letter at a time to reach the target word",
+    "next_word_tooltip": "Next word",
+    "play_again_tooltip": "Play again",
+    "word_ladder_subtitle": "Each word changes by one letter",
+    "word_ladder_clue_label": "Clue for word {{step}}:",
+    "word_ladder_placeholder": "Type the word…",
+    "word_ladder_guess": "Submit",
+    "word_ladder_won": "Climbed!",
+    "word_ladder_won_desc": "You climbed all {{count}} rungs!",
+    "word_ladder_lost": "Fell off!",
+    "word_ladder_answer": "The word was: "
   },
   "report": {
     "buttonLabel": "Report",
@@ -1071,5 +1090,13 @@
     "incoming": "Incoming",
     "subscribe": "Subscribe",
     "upgrade": "Upgrade"
+  },
+  "ai_confirm": {
+    "title_limited": "All cached content used",
+    "title_unlimited": "New AI content incoming",
+    "message_limited": "Congratulations! You have finished all cached exercises. Your next call shall use AI generation. New content is stored and reviewed constantly. Try again later or get yourself new content now!",
+    "message_unlimited": "This will generate fresh content with AI.",
+    "remaining": "You have {{count}} AI call(s) left today.",
+    "confirm": "Generate now"
   }
 }

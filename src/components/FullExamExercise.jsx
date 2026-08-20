@@ -41,6 +41,7 @@ import { evaluateWriting } from "../services/examWritingExerciseService";
 import { getScoreColor } from "../services/examUtils";
 import { markExercisesSeen } from "../services/userService";
 import { getWritingSpec } from "../config/examLevels";
+import { isAiDeclined } from "../services/aiService";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const EXAM_STRUCTURE = {
@@ -113,8 +114,8 @@ const EXAM_STRUCTURE = {
 
 const GENERATION_STEPS = [
   { key: "reading_level", i18nKey: "exam.full.gen_step_level" },
-  { key: "listening", i18nKey: "exam.full.gen_step_listening" },
   { key: "reading", i18nKey: "exam.full.gen_step_reading" },
+  { key: "listening", i18nKey: "exam.full.gen_step_listening" },
   { key: "writing", i18nKey: "exam.full.gen_step_writing" },
   { key: "done", i18nKey: "exam.full.gen_step_done" },
 ];
@@ -567,9 +568,9 @@ const ExamNavFooter = ({ phase, isDarkMode, onNextSection, onPrevExercise, onNex
             </PrimaryButton>
           ) : (
             <PrimaryButton onClick={onNextSection} isDarkMode={isDarkMode} color="teal">
-              {phase === "listening"
-                ? t("exam.full.finish_listening", "Finish Listening")
-                : t("exam.full.finish_reading", "Finish Reading")}
+              {phase === "reading"
+                ? t("exam.full.finish_reading", "Finish Reading")
+                : t("exam.full.finish_listening", "Finish Listening")}
               <ChevronRight size={16} />
             </PrimaryButton>
           )
@@ -791,17 +792,17 @@ const ExamResultsPanel = ({ isDarkMode, onStartNewExam }) => {
       {/* Per-section Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <ExamScoreCard
-          title={t("exam.full.section_listening", "Listening")}
-          score={scores.listening}
-          maxScore={scores.listeningMax}
-          scoreColor={listeningColor}
-          isDarkMode={isDarkMode}
-        />
-        <ExamScoreCard
           title={t("exam.full.section_reading", "Reading")}
           score={scores.reading}
           maxScore={scores.readingMax}
           scoreColor={readingColor}
+          isDarkMode={isDarkMode}
+        />
+        <ExamScoreCard
+          title={t("exam.full.section_listening", "Listening")}
+          score={scores.listening}
+          maxScore={scores.listeningMax}
+          scoreColor={listeningColor}
           isDarkMode={isDarkMode}
         />
         <ExamScoreCard
@@ -814,14 +815,14 @@ const ExamResultsPanel = ({ isDarkMode, onStartNewExam }) => {
       </div>
 
       <ExamAnswerReview
-        title={t("exam.full.review_listening", "Listening — your answers")}
-        breakdown={examSession?.breakdown?.listening}
+        title={t("exam.full.review_reading", "Reading — your answers")}
+        breakdown={examSession?.breakdown?.reading}
         isDarkMode={isDarkMode}
       />
 
       <ExamAnswerReview
-        title={t("exam.full.review_reading", "Reading — your answers")}
-        breakdown={examSession?.breakdown?.reading}
+        title={t("exam.full.review_listening", "Listening — your answers")}
+        breakdown={examSession?.breakdown?.listening}
         isDarkMode={isDarkMode}
       />
 
@@ -900,6 +901,9 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
     };
     const newlySeen = { listening: [], reading: [], writing: [] };
     const failedSlots = [];
+    // Set when the user declines the generation prompt — the remaining slots
+    // are skipped rather than each reporting itself as a failure.
+    let declined = false;
 
     /**
      * Fetch one slot. Each generated exercise carries the slot that requested
@@ -907,6 +911,7 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
      * slot used to shift every later exercise onto the wrong maximum.
      */
     const fetchSlot = async (type, slot) => {
+      if (declined) return null;
       try {
         const res = await getExercise({
           token: user.token,
@@ -930,6 +935,10 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
           result: null,
         };
       } catch (err) {
+        if (isAiDeclined(err)) {
+          declined = true;
+          return null;
+        }
         console.warn(`[FullExam] Failed to generate ${type}/${slot?.type}:`, err?.message);
         failedSlots.push(slot?.type ?? type);
         return null;
@@ -942,22 +951,22 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
       await new Promise((r) => setTimeout(r, 800));
       updateStep("reading_level", "done");
 
-      // Step 2: Generate listening exercises
-      updateStep("listening", "loading");
-      for (const slot of struct.listening) {
-        const built = await fetchSlot("listening", slot);
-        if (built) sections.listening.exercises.push(built);
-      }
-      updateStep("listening", sections.listening.exercises.length ? "done" : "error");
-
-      // Step 3: Generate reading exercises
+      // Step 2: Generate reading exercises
       updateStep("reading", "loading");
-      await new Promise((r) => setTimeout(r, 300));
       for (const slot of struct.reading) {
         const built = await fetchSlot("reading", slot);
         if (built) sections.reading.exercises.push(built);
       }
       updateStep("reading", sections.reading.exercises.length ? "done" : "error");
+
+      // Step 3: Generate listening exercises
+      updateStep("listening", "loading");
+      await new Promise((r) => setTimeout(r, 300));
+      for (const slot of struct.listening) {
+        const built = await fetchSlot("listening", slot);
+        if (built) sections.listening.exercises.push(built);
+      }
+      updateStep("listening", sections.listening.exercises.length ? "done" : "error");
 
       // Step 4: Generate writing exercise
       updateStep("writing", "loading");
@@ -970,6 +979,10 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
       updateStep("done", "loading");
       await new Promise((r) => setTimeout(r, 500));
       updateStep("done", "done");
+
+      // Declined before anything was built — back out silently, the user
+      // already knows why.
+      if (declined) return;
 
       if (!sections.listening.exercises.length && !sections.reading.exercises.length && !sections.writing.exercise) {
         showAlert("error", t("exam.full.generate_failed", "Could not generate the exam. Please try again."));
@@ -1008,7 +1021,7 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
 
       setExamSession({
         level,
-        phase: "listening",
+        phase: "reading",
         sections,
         finalScores: null,
       });
@@ -1046,9 +1059,9 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
 
   const handleNextSection = () => {
     setExerciseIndex(0);
-    if (phase === "listening") {
-      setExamSession((prev) => ({ ...prev, phase: "reading" }));
-    } else if (phase === "reading") {
+    if (phase === "reading") {
+      setExamSession((prev) => ({ ...prev, phase: "listening" }));
+    } else if (phase === "listening") {
       setExamSession((prev) => ({ ...prev, phase: "writing" }));
     }
   };
@@ -1285,16 +1298,16 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
             />
           )}
 
-          {phase === "listening" && (
-            <ExamListeningSection
+          {phase === "reading" && (
+            <ExamReadingSection
               isDarkMode={isDarkMode}
               activeIndex={exerciseIndex}
               onSelectExercise={setExerciseIndex}
             />
           )}
 
-          {phase === "reading" && (
-            <ExamReadingSection
+          {phase === "listening" && (
+            <ExamListeningSection
               isDarkMode={isDarkMode}
               activeIndex={exerciseIndex}
               onSelectExercise={setExerciseIndex}

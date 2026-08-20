@@ -20,7 +20,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, XCircle } from 'lucide-react';
-import { accentClass, ACCENT_NAMES } from './exerciseAccents';
+import { accentClass, selectedClass, unselectedClass, ACCENT_NAMES } from './exerciseAccents';
 
 const TrueFalseExercise = ({
   passage,
@@ -76,13 +76,7 @@ const TrueFalseExercise = ({
                 <button
                   onClick={() => onAnswer(stmt.id, true)}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 text-sm font-bold transition-all active:scale-[0.98] ${
-                    answer === true
-                      ? isDarkMode
-                        ? 'bg-emerald-900/40 border-emerald-500 text-emerald-300'
-                        : 'bg-emerald-50 border-emerald-500 text-emerald-800'
-                      : isDarkMode
-                      ? 'border-slate-600 text-slate-300 hover:bg-slate-700/50'
-                      : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    answer === true ? selectedClass(isDarkMode) : unselectedClass(isDarkMode)
                   }`}
                 >
                   <CheckCircle2 size={16} /> {t('exam.true', 'True')}
@@ -90,13 +84,7 @@ const TrueFalseExercise = ({
                 <button
                   onClick={() => onAnswer(stmt.id, false)}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 text-sm font-bold transition-all active:scale-[0.98] ${
-                    answer === false
-                      ? isDarkMode
-                        ? 'bg-rose-900/40 border-rose-500 text-rose-300'
-                        : 'bg-rose-50 border-rose-500 text-rose-800'
-                      : isDarkMode
-                      ? 'border-slate-600 text-slate-300 hover:bg-slate-700/50'
-                      : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    answer === false ? selectedClass(isDarkMode) : unselectedClass(isDarkMode)
                   }`}
                 >
                   <XCircle size={16} /> {t('exam.false', 'False')}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { isAiDeclined } from "../../services/aiService";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Landmark, Sparkles } from "lucide-react";
@@ -83,6 +84,8 @@ const HistoryCulturePage = () => {
         })
         .catch(() => { /* seen-tracking is best-effort; a repeat later is a minor inconvenience */ });
     } catch (err) {
+      // The user chose not to spend an AI call — not an error worth a banner.
+      if (isAiDeclined(err)) return;
       const message = err.message ?? t("common.error", "Something went wrong. Please try again.");
       setError(message);
       showAlert("error", message, { label: t("common.try_again", "Try Again"), onClick: handleDiscover });

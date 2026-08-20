@@ -11,15 +11,6 @@ import { Breadcrumb } from './ui';
 // ── Exercise Registry ─────────────────────────────────────────────────────────
 const EXERCISES = [
   {
-    id: 'listening',
-    featureKey: 'exam_listening',
-    route: '/dashboard/exam-training/listening',
-    icon: Headphones,
-    color: 'bg-sky-500',
-    titleKey: 'exam.listening',
-    descKey: 'exam.listening_desc',
-  },
-  {
     id: 'reading',
     featureKey: 'exam_reading',
     route: '/dashboard/exam-training/reading',
@@ -27,6 +18,15 @@ const EXERCISES = [
     color: 'bg-emerald-500',
     titleKey: 'exam.reading',
     descKey: 'exam.reading_desc',
+  },
+  {
+    id: 'listening',
+    featureKey: 'exam_listening',
+    route: '/dashboard/exam-training/listening',
+    icon: Headphones,
+    color: 'bg-sky-500',
+    titleKey: 'exam.listening',
+    descKey: 'exam.listening_desc',
   },
   {
     id: 'writing',

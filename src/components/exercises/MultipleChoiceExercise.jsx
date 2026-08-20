@@ -15,7 +15,7 @@
  */
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { accentClass, ACCENT_NAMES } from './exerciseAccents';
+import { accentClass, selectedClass, unselectedClass, ACCENT_NAMES } from './exerciseAccents';
 
 const MultipleChoiceExercise = ({ passage, questions, answers, onAnswer, isDarkMode, accent }) => {
   const { t } = useTranslation();
@@ -53,11 +53,7 @@ const MultipleChoiceExercise = ({ passage, questions, answers, onAnswer, isDarkM
                     key={option}
                     onClick={() => onAnswer(q.id, option)}
                     className={`w-full text-left px-4 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all active:scale-[0.98] ${
-                      isSelected
-                        ? accentClass(accent, 'selected', isDarkMode)
-                        : isDarkMode
-                        ? 'border-slate-600 text-slate-300 hover:bg-slate-700/50'
-                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                      isSelected ? selectedClass(isDarkMode) : unselectedClass(isDarkMode)
                     }`}
                   >
                     {option}

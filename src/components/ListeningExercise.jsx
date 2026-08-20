@@ -1,9 +1,11 @@
 import { useState, useRef } from "react";
+import { isAiDeclined } from "../services/aiService";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Headphones, CheckCircle2, RotateCcw } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import ExerciseSidebar from "./ExerciseSidebar";
+import { correctTextClass, incorrectTextClass } from "./exercises/exerciseAccents";
 import Loader from "./Loader";
 import ReportButton from "./ReportButton";
 import ConfirmModal from "./ConfirmModal";
@@ -25,7 +27,7 @@ import {
 import { getExercise } from "../services/examExerciseService";
 import {
   checkListeningAnswers,
-  getListeningScoreColor,
+  getScoreColor,
 } from "../services/examUtils";
 import { markExerciseSeen, resetSeenExercises } from "../services/userService";
 import useGenerateConfirm from "../hooks/useGenerateConfirm";
@@ -110,6 +112,8 @@ const ListeningExercise = ({ isDarkMode }) => {
       timerRef.current?.reset();
       timerRef.current?.start();
     } catch (err) {
+      // The user chose not to spend an AI call — not an error worth a banner.
+      if (isAiDeclined(err)) return;
       const errorMessage =
         err.message ??
         t("common.error", "Something went wrong. Please try again.");
@@ -479,7 +483,7 @@ const ListeningExercise = ({ isDarkMode }) => {
 
   // ── Results view ───────────────────────────────────────────────────────────
   if (result) {
-    const scoreColor = getListeningScoreColor(
+    const scoreColor = getScoreColor(
       result.score,
       result.maxScore,
       isDarkMode,
@@ -569,13 +573,7 @@ const ListeningExercise = ({ isDarkMode }) => {
                         </p>
                         <p
                           className={`text-sm font-bold ${
-                            item.isCorrect
-                              ? isDarkMode
-                                ? "text-sky-400"
-                                : "text-sky-700"
-                              : isDarkMode
-                                ? "text-rose-400"
-                                : "text-rose-600"
+                            item.isCorrect ? correctTextClass(isDarkMode) : incorrectTextClass(isDarkMode)
                           }`}
                         >
                           {formatTf(item.userAnswer) ?? t("exam.no_answer", "No answer")}
