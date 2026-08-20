@@ -75,8 +75,8 @@ function getExamPhrasing(type, level) {
 
   const phrasings = {
     'multiple-choice': isBeginner
-      ? 'Marca com X a resposta correta.'
-      : 'Assinale com X a opção correta.',
+      ? 'Marca a resposta correta.'
+      : 'Assinale a opção correta.',
     'true-false': isBeginner
       ? 'Identifica as frases verdadeiras (V) e as falsas (F), de acordo com o texto.'
       : 'Identifique as frases verdadeiras (V) e as falsas (F), de acordo com o texto.',
@@ -93,7 +93,7 @@ function getExamPhrasing(type, level) {
       ? 'Completa as frases com as palavras do quadro.'
       : 'Complete as frases com as palavras do quadro.',
     'cloze-options': 'Complete as frases com a letra da opção correta.',
-    'best-title': 'Marca com X o melhor título para o texto.',
+    'best-title': 'Seleccione o melhor título para o texto.',
     'ordering': 'Ordene os parágrafos de acordo com o sentido do texto.',
     'transcription': 'Copie do texto a frase que corresponde à afirmação seguinte.',
     'notice-sign': isBeginner

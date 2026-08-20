@@ -147,6 +147,137 @@ function setPath(obj, path, value) {
  * @param {number} [budget]
  * @returns {object[]} Array of chunk objects, each a (possibly partial) nested subset of sourceData.
  */
+/**
+ * Recovery strategy when a chunk comes back unparseable.
+ *
+ * `translation-fill-missing-prompt` is deliberately the one AI call in the app
+ * with no `responseSchema`: the expected shape is whatever key tree happens to
+ * be missing, which differs on every call, so there is no static schema to
+ * declare. Generating one per chunk would risk Gemini's schema-complexity
+ * limits on a large one — which is why this prompt must KEEP its explicit
+ * "return only JSON" instructions.
+ *
+ * `jsonMode` alone asks Gemini for JSON without constraining the grammar, so a
+ * reply can still arrive broken. In practice that is almost always the output
+ * being cut off at `maxOutputTokens` — the response stops mid-string and the
+ * tail of the document is missing. So recovery escalates in the order that
+ * actually addresses the cause:
+ *
+ *   1. Re-ask with a larger output budget (the usual fix).
+ *   2. Still failing? Split the chunk in half and translate each half
+ *      separately — less output per call, recursively, until it fits.
+ *
+ * There is no "skip it" step: a locale is translated in full or not at all, so
+ * an unrecoverable chunk aborts the run rather than silently leaving holes.
+ */
+const TOKEN_ESCALATION = [1, 2, 3];
+
+/** Gemini's per-response ceiling; asking beyond it is rejected, not clamped. */
+const MAX_OUTPUT_TOKENS_CEILING = 32768;
+
+/** Below this a chunk is one indivisible value — splitting further won't help. */
+const MIN_SPLITTABLE_KEYS = 2;
+
+/**
+ * Translate one chunk, escalating the output budget and then bisecting the
+ * chunk if the response can't be parsed.
+ *
+ * @throws {Error} If the chunk cannot be translated even when split down.
+ */
+async function requestTranslatedChunk({ token, prompt, promptDoc, chunk, locale, baseMaxTokens, label }) {
+  let lastError;
+
+  for (const multiplier of TOKEN_ESCALATION) {
+    const maxOutputTokens = Math.min(baseMaxTokens * multiplier, MAX_OUTPUT_TOKENS_CEILING);
+
+    const aiResponse = await askAI(
+      token,
+      prompt,
+      {
+        provider: "gemini",
+        model: promptDoc.model || "gemini-3.5-flash-lite",
+        temperature: 0.1,
+        jsonMode: true,
+        maxOutputTokens,
+      },
+      // Background/admin work — never interrupt the user with a generation prompt.
+      { skipConfirm: true },
+    );
+
+    const truncated = aiResponse?.finishReason === "MAX_TOKENS";
+
+    try {
+      const parsed = typeof aiResponse?.text === "string"
+        ? parseAIJSON(aiResponse.text)
+        : aiResponse;
+
+      if (!parsed || typeof parsed !== "object") {
+        throw new Error("response was not a JSON object");
+      }
+      // A truncated reply can still parse if it happens to stop on a boundary,
+      // but it is missing keys — treat it as a failure rather than writing a
+      // partial translation.
+      if (truncated) {
+        throw new Error(`response hit the ${maxOutputTokens}-token output cap and was cut off`);
+      }
+
+      if (multiplier > 1) {
+        console.info(`[translationService] ${label} — recovered at ${maxOutputTokens} output tokens`);
+      }
+      return parsed;
+    } catch (err) {
+      lastError = err;
+      console.warn(
+        `[translationService] ${label} — ${maxOutputTokens} output tokens ` +
+        `${truncated ? "(truncated by the cap)" : "(malformed)"}: ${err.message}`,
+      );
+    }
+  }
+
+  // Still failing at the largest budget — the chunk is simply too big for one
+  // response. Halve it and translate each side on its own.
+  //
+  // Split on leaf paths rather than top-level keys: collectChunkEntries
+  // already recurses into oversized sections, so a chunk can arrive as a
+  // single nested key (e.g. { home: { faqs: [...] } }). Splitting the top
+  // level there would find one key and give up while the real content sits
+  // one level down. Passing budget 0 flattens every plain object to its
+  // leaves, and setPath rebuilds each half back into the same nested shape
+  // the prompt expects.
+  const leaves = collectChunkEntries(chunk, 0);
+  if (leaves.length < MIN_SPLITTABLE_KEYS) {
+    throw new Error(
+      `[translationService] ${label} — could not translate even at ` +
+      `${MAX_OUTPUT_TOKENS_CEILING} output tokens, and the chunk is a single ` +
+      `value ("${leaves[0]?.path.join(".") ?? "?"}") that cannot be split ` +
+      `further. Its content is too large for one response: ${lastError?.message}`,
+    );
+  }
+
+  const mid = Math.ceil(leaves.length / 2);
+  const halves = [leaves.slice(0, mid), leaves.slice(mid)].map((leafSet) =>
+    leafSet.reduce((acc, { path, value }) => setPath(acc, path, value), {}),
+  );
+  console.warn(`[translationService] ${label} — splitting into ${halves.length} smaller chunks and retrying`);
+
+  let merged = {};
+  for (const [idx, half] of halves.entries()) {
+    const sub = await translateSubChunk({
+      token, promptDoc, chunk: half, locale, baseMaxTokens,
+      label: `${label}.${idx + 1}`,
+    });
+    merged = deepMergeClone(merged, sub);
+  }
+  return merged;
+}
+
+/** Builds the prompt for a (possibly split) chunk and delegates back up. */
+async function translateSubChunk({ token, promptDoc, chunk, locale, baseMaxTokens, label }) {
+  const missingKeysJson = JSON.stringify(chunk);
+  const prompt = renderTemplate(promptDoc.template, { locale, missingKeysJson });
+  return requestTranslatedChunk({ token, prompt, promptDoc, chunk, locale, baseMaxTokens, label });
+}
+
 function splitIntoChunks(sourceData, budget = CHUNK_SIZE_BUDGET_BYTES) {
   const entries = collectChunkEntries(sourceData, budget);
   const chunks = [];
@@ -318,44 +449,18 @@ export async function fillMissingTranslations(locale, token) {
       // (1024) because even one chunk can span several sections at once —
       // 1024 was silently truncating the JSON response.
       //
-      // NOTE: deliberately no `responseSchema` here, unlike every other AI
-      // call in the app. The expected shape is whatever key tree happens to
-      // be missing, which differs on every call, so there is no static
-      // schema to declare. Generating one from missingTree would work for a
-      // small patch but not for a large chunk, which would produce a schema
-      // large enough to risk Gemini's complexity limits. Consequently
-      // `translation-fill-missing-prompt` is the one prompt that must KEEP
-      // its explicit "return only JSON" instructions.
-      const aiResponse = await askAI(
+      // All or nothing: requestTranslatedChunk escalates the output budget and
+      // then splits the chunk, and only throws once neither can rescue it. A
+      // throw here aborts the whole fill rather than writing a partial patch.
+      const translatedChunk = await requestTranslatedChunk({
         token,
         prompt,
-        {
-          provider: "gemini",
-          model: promptDoc.model || "gemini-3.5-flash-lite",
-          temperature: 0.1,
-          jsonMode: true,
-          maxOutputTokens: promptDoc.maxTokens ?? 4096,
-        },
-        // Background back-fill — the user never asked for this, so it must not
-        // interrupt them with a generation prompt.
-        { skipConfirm: true }
-      );
-
-      let translatedChunk;
-      try {
-        translatedChunk = typeof aiResponse?.text === "string"
-          ? parseAIJSON(aiResponse.text)
-          : aiResponse;
-      } catch (err) {
-        console.error(`[translationService] fillMissingTranslations("${locale}") — failed to parse AI response for chunk ${i + 1}/${chunks.length}: ${err.message}. Raw: ${String(aiResponse?.text).slice(0, 300)}`);
-        throw err;
-      }
-
-      if (!translatedChunk || typeof translatedChunk !== "object") {
-        throw new Error(
-          `[translationService] AI response for chunk ${i + 1}/${chunks.length} did not return a valid JSON object`
-        );
-      }
+        promptDoc,
+        chunk,
+        locale,
+        baseMaxTokens: promptDoc.maxTokens ?? 4096,
+        label: `fillMissingTranslations("${locale}") chunk ${i + 1}/${chunks.length}`,
+      });
 
       translatedTree = deepMergeClone(translatedTree, translatedChunk);
       console.info(`[translationService] fillMissingTranslations("${locale}") — chunk ${i + 1}/${chunks.length} done (${Object.keys(translatedChunk).length} section(s))`);
@@ -449,36 +554,18 @@ export async function seedLanguageTranslations(locale, token) {
       );
     }
 
-    const aiResponse = await askAI(
+    // All or nothing: a locale is written whole or not at all, so an
+    // unrecoverable chunk aborts the seed instead of creating a document with
+    // silent holes in it.
+    const translatedChunk = await requestTranslatedChunk({
       token,
       prompt,
-      {
-        provider: "gemini",
-        model: promptDoc.model || "gemini-3.5-flash-lite",
-        temperature: 0.1,
-        jsonMode: true,
-        maxOutputTokens: promptDoc.maxTokens ?? 8192,
-      },
-      // Admin-triggered locale seeding, not a user content request.
-      { skipConfirm: true }
-    );
-
-    // The API returns the JSON string inside the `text` field
-    let translatedChunk;
-    try {
-      translatedChunk = typeof aiResponse?.text === "string"
-        ? parseAIJSON(aiResponse.text)
-        : aiResponse;
-    } catch (err) {
-      console.error(`[translationService] seedLanguageTranslations("${locale}") — failed to parse AI response for chunk ${i + 1}/${chunks.length}: ${err.message}. Raw: ${String(aiResponse?.text).slice(0, 300)}`);
-      throw err;
-    }
-
-    if (!translatedChunk || typeof translatedChunk !== "object") {
-      throw new Error(
-        `[translationService] AI response for chunk ${i + 1}/${chunks.length} did not return a valid JSON object`
-      );
-    }
+      promptDoc,
+      chunk,
+      locale,
+      baseMaxTokens: promptDoc.maxTokens ?? 8192,
+      label: `seedLanguageTranslations("${locale}") chunk ${i + 1}/${chunks.length}`,
+    });
 
     // Deep merge, not Object.assign — a large section (e.g. "home") can now
     // be split across multiple chunks, so a shallow assign would let a later
