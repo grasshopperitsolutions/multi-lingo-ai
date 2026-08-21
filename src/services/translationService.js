@@ -13,6 +13,7 @@ import { getPrompt, renderTemplate } from "./promptService";
 import { askAI } from "./aiService";
 import { loadRemoteTranslations } from "../i18n";
 import { parseAIJSON } from "../utils/parseAIJSON";
+import { decodeEntitiesDeep } from "../utils/decodeHtmlEntities";
 import enTranslation from "../locales/en/translation.json";
 
 // ---------------------------------------------------------------------------
@@ -337,8 +338,14 @@ export async function getTranslations(locale, token) {
     const doc = await getDocument(LOCALES_COLLECTION, locale, authToken);
     if (doc?.data) {
       console.info(`[translationService] getTranslations("${locale}") — loaded from Firestore`);
-      _cache.set(locale, doc.data);
-      return doc.data;
+      // Decode on read as well as on write. Locale documents seeded before
+      // parseAIJSON started decoding still have entity references baked in
+      // ("mani&egravere"), and those strings are on screen everywhere. Doing it
+      // here repairs them for display without a data migration; a re-seed fixes
+      // the stored copy whenever that happens next.
+      const data = decodeEntitiesDeep(doc.data);
+      _cache.set(locale, data);
+      return data;
     }
     console.warn(`[translationService] getTranslations("${locale}") — no Firestore doc found`);
   } catch (err) {

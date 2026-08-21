@@ -38,6 +38,7 @@
 
 import { askAI } from './aiService';
 import { getPrompt, renderTemplate } from './promptService';
+import { decodeHtmlEntities } from '../utils/decodeHtmlEntities';
 
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
@@ -66,9 +67,14 @@ export async function translateText({ token, text, sourceLang, targetLang }) {
   };
   if (promptDoc.maxTokens) providerParams.maxOutputTokens = promptDoc.maxTokens;
 
-  const data = await askAI(token, prompt, providerParams);
+  // Exempt from the generation prompt: translating is a quick reflex action
+  // mid-reading, and a modal before every lookup makes the tool unusable.
+  const data = await askAI(token, prompt, providerParams, { skipConfirm: true });
 
-  const translation = data?.text ?? '';
+  // Plain-text response, so it never passes through parseAIJSON — decode here
+  // instead. Models emit "t&acirc;che" for "tâche" often enough that untreated
+  // output reaches the screen as visible entity text.
+  const translation = decodeHtmlEntities(data?.text ?? '');
 
   if (!translation) throw new Error('[translatorService] Empty translation returned');
 

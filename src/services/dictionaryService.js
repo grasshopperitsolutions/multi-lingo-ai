@@ -178,7 +178,10 @@ export async function lookupWord({ token, word, interfaceLang, learningLang, wor
   };
   if (promptDoc.maxTokens) providerParams.maxOutputTokens = promptDoc.maxTokens;
 
-  const data = await askAI(token, prompt, providerParams);
+  // Exempt from the generation prompt, same reasoning as the translator: this
+  // also backs WordLookupSheet, so a prompt here would fire every time a
+  // student taps a word mid-exercise.
+  const data = await askAI(token, prompt, providerParams, { skipConfirm: true });
 
   const raw = data?.text ?? '';
 

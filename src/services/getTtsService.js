@@ -27,10 +27,13 @@ import { askAI } from './aiService';
 import { getPrompt, renderTemplate } from './promptService';
 
 /**
- * Current active Gemini TTS model.
- * Use 'gemini-3.1-flash-preview-tts' (current stable preview).
+ * Fallback TTS model, used only when the `tts-build-prompt` Firestore doc has
+ * no `model` field set. Must stay in sync with DEFAULT_TTS_MODEL in the proxy
+ * (multi-lingo-ai-api/lib/providers/gemini.ts) — that file's own comment notes
+ * a differently-misnamed model "does NOT exist and should never be used", and
+ * this constant had drifted to yet another wrong variant (word order swapped).
  */
-const GEMINI_TTS_MODEL = 'gemini-3.1-flash-preview-tts';
+const GEMINI_TTS_MODEL = 'gemini-3.1-flash-tts-preview';
 
 /**
  * Speech pace options.

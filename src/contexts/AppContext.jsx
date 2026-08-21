@@ -27,6 +27,43 @@ const AppContext = createContext();
 // user does asks again.
 const AI_CONFIRM_GRACE_MS = 90 * 1000;
 
+/**
+ * Only interrupt when the user is this close to their daily cap.
+ *
+ * Warning before every single call made the prompt noise rather than a signal —
+ * the point is to stop someone spending their *last* calls without noticing,
+ * not to gate all twenty. Tiers with no cap never see it at all, and the
+ * dashboard header already shows the running count for everyone else.
+ */
+const AI_CONFIRM_WARN_AT_OR_BELOW = 2;
+
+/** localStorage key holding the day the user last silenced the warning. */
+const AI_CONFIRM_MUTED_KEY = "aiConfirmMutedDate";
+
+/** Today as YYYY-MM-DD, matching the day-key the backend counts calls against. */
+const todayKey = () => new Date().toISOString().slice(0, 10);
+
+/**
+ * Whether the user muted the warning earlier today. Deliberately scoped to the
+ * day, not forever: the quota resets daily, so a permanent opt-out would let
+ * someone silence it once and then run dry unwarned every day after.
+ */
+const isAiConfirmMutedToday = () => {
+  try {
+    return localStorage.getItem(AI_CONFIRM_MUTED_KEY) === todayKey();
+  } catch {
+    return false; // localStorage unavailable (SSG/sandboxed contexts)
+  }
+};
+
+const muteAiConfirmForToday = () => {
+  try {
+    localStorage.setItem(AI_CONFIRM_MUTED_KEY, todayKey());
+  } catch {
+    // Non-fatal: the warning simply shows again next time.
+  }
+};
+
 // ── Token validation interval (50 min — Firebase ID tokens expire after 1 hr)
 const TOKEN_CHECK_INTERVAL_MS = 50 * 60 * 1000;
 
@@ -101,6 +138,25 @@ export const AppProvider = ({ children }) => {
   // dozen exercises in one go. Prompting per call would be unusable, so a
   // confirmation covers the burst it belongs to.
   const aiConfirmGraceUntil = useRef(0);
+  // The handler below is registered once, so it can't close over `user` or
+  // `tiersConfig` directly without going stale. A ref keeps the current quota
+  // readable at call time.
+  const aiQuotaRef = useRef({ unlimited: true, remaining: Infinity });
+
+  // Mirror the current tier's allowance into the ref the confirm handler reads.
+  // Same derivation as useTierAccess, kept here because the handler is outside
+  // React's render cycle.
+  useEffect(() => {
+    const tier = user?.subscriptionTier ?? "explorer";
+    const limits = tiersConfig?.[tier] ?? tiersConfig?.explorer;
+    const perDay = limits?.aiCallsPerDay ?? Infinity;
+    aiQuotaRef.current = {
+      unlimited: perDay === Infinity,
+      remaining: perDay === Infinity
+        ? Infinity
+        : Math.max(0, perDay - (user?.aiCallsToday ?? 0)),
+    };
+  }, [user, tiersConfig]);
 
   const showAlert = useCallback((type, message, action = null) => {
     setAlert({ show: true, type, message, action });
@@ -339,28 +395,41 @@ export const AppProvider = ({ children }) => {
     }
   }, [navigate]);
 
-  // Ask before spending an AI call. Resolves true to proceed. Only one prompt
-  // can be open at a time; a second request while one is pending is declined
-  // rather than queued, so a burst can't stack modals.
+  // Ask before spending an AI call — but only when the answer could plausibly
+  // be "no". Resolves true to proceed. Only one prompt can be open at a time; a
+  // second request while one is pending is declined rather than queued, so a
+  // burst can't stack modals.
   useEffect(() => {
     registerAiConfirmHandler(() => {
+      const { unlimited, remaining } = aiQuotaRef.current;
+
+      // Nothing to ration — Maestro, VIP and Admin are never interrupted.
+      if (unlimited) return Promise.resolve(true);
+      // Plenty of allowance left; the header counter is signal enough.
+      if (remaining > AI_CONFIRM_WARN_AT_OR_BELOW) return Promise.resolve(true);
+      // The user asked not to be warned again today.
+      if (isAiConfirmMutedToday()) return Promise.resolve(true);
       // Still inside the window opened by a recent "yes" — this call is part of
       // the same action the user already approved.
       if (Date.now() < aiConfirmGraceUntil.current) return Promise.resolve(true);
       // A prompt is already on screen; decline rather than stack modals.
       if (aiConfirmResolver.current) return Promise.resolve(false);
+
       return new Promise((resolve) => {
         aiConfirmResolver.current = resolve;
-        setAiConfirm({ open: true });
+        setAiConfirm({ open: true, remaining });
       });
     });
     return () => registerAiConfirmHandler(null);
   }, []);
 
-  const resolveAiConfirm = useCallback((proceed) => {
+  const resolveAiConfirm = useCallback((proceed, { muteToday = false } = {}) => {
     const resolve = aiConfirmResolver.current;
     aiConfirmResolver.current = null;
     setAiConfirm(null);
+    // Only honour the checkbox on a "yes" — silencing the warning while
+    // declining would be a confusing thing to have asked for.
+    if (proceed && muteToday) muteAiConfirmForToday();
     // Approving covers the rest of this action's calls; declining clears any
     // window still open so the next action asks again.
     aiConfirmGraceUntil.current = proceed ? Date.now() + AI_CONFIRM_GRACE_MS : 0;

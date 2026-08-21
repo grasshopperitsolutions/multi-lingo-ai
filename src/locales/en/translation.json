@@ -1092,11 +1092,9 @@
     "upgrade": "Upgrade"
   },
   "ai_confirm": {
-    "title_limited": "All cached content used",
-    "title_unlimited": "New AI content incoming",
-    "message_limited": "Congratulations! You have finished all cached exercises. Your next call shall use AI generation. New content is stored and reviewed constantly. Try again later or get yourself new content now!",
-    "message_unlimited": "This will generate fresh content with AI.",
-    "remaining": "You have {{count}} AI call(s) left today.",
+    "title_low": "{{count}} AI call(s) left today",
+    "message_low": "You have used all the ready-made content here, so this will generate something new with AI and spend one of your remaining calls. New content is added and reviewed constantly — you can also come back later.",
+    "mute_today": "Don't warn me again today",
     "confirm": "Generate now"
   }
 }
