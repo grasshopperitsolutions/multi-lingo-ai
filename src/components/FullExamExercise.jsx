@@ -791,31 +791,29 @@ const ExamResultsPanel = ({ isDarkMode, onStartNewExam }) => {
         isDarkMode={isDarkMode}
       />
 
-      {/* Writing feedback — the prose comes before the rubric, same as the
-          standalone writing exercise: the student reads what to fix, then the
-          per-parameter numbers behind it. */}
-      {writingData?.evaluation?.generalFeedback && (
-        <Card isDarkMode={isDarkMode}>
-          <SectionHeading isDarkMode={isDarkMode}>
-            {t("exam.general_feedback", "General Feedback")}
-          </SectionHeading>
-          <p className={`text-sm leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-            {writingData.evaluation.generalFeedback}
-          </p>
-        </Card>
-      )}
-
-      {writingData?.evaluation?.parameters && (
-        <CollapsibleCard title={t("exam.breakdown", "Score Breakdown")} isDarkMode={isDarkMode} defaultOpen={true}>
-          <div className="flex flex-col gap-2 mt-3">
-            {writingData.evaluation.parameters.map((param) => (
-              <ParameterRow
-                key={param.id}
-                param={param}
-                isDarkMode={isDarkMode}
-                paramLabel={t(PARAM_NAME_KEYS[param.id], param.name)}
-              />
-            ))}
+      {/* Writing feedback — one collapsible card, same pattern as the reading
+          and listening reviews above: general feedback first (what to fix),
+          then the per-parameter breakdown (why) behind it. */}
+      {(writingData?.evaluation?.generalFeedback || writingData?.evaluation?.parameters) && (
+        <CollapsibleCard title={t("exam.full.review_writing", "Writing — feedback")} isDarkMode={isDarkMode} defaultOpen={true}>
+          <div className="flex flex-col gap-4 mt-3">
+            {writingData.evaluation.generalFeedback && (
+              <p className={`text-sm leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                {writingData.evaluation.generalFeedback}
+              </p>
+            )}
+            {writingData.evaluation.parameters && (
+              <div className="flex flex-col gap-2">
+                {writingData.evaluation.parameters.map((param) => (
+                  <ParameterRow
+                    key={param.id}
+                    param={param}
+                    isDarkMode={isDarkMode}
+                    paramLabel={t(PARAM_NAME_KEYS[param.id], param.name)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </CollapsibleCard>
       )}

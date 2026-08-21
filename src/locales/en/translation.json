@@ -702,6 +702,7 @@
       "exercise_n": "Exercise {{n}}",
       "review_listening": "Listening — your answers",
       "review_reading": "Reading — your answers",
+      "review_writing": "Writing — feedback",
       "generate_failed": "Could not generate the exam. Please try again.",
       "partial_generation": "{{count}} exercise(s) could not be generated and were left out of this exam.",
       "writing_eval_failed": "Your writing could not be marked automatically. The rest of your exam has been scored."
