@@ -1093,8 +1093,8 @@
   },
   "ai_confirm": {
     "title_low": "{{count}} AI call(s) left today",
-    "message_low": "You have used all the ready-made content here, so this will generate something new with AI and spend one of your remaining calls. New content is added and reviewed constantly — you can also come back later.",
+    "message_low": "This will use one of your remaining calls for today. Your allowance resets tomorrow.",
     "mute_today": "Don't warn me again today",
-    "confirm": "Generate now"
+    "confirm": "Continue"
   }
 }

@@ -11,6 +11,10 @@ import ConfirmModal from "./ConfirmModal";
  * registers the handler aiService awaits — so one component covers every
  * feature rather than each call site growing its own dialog.
  *
+ * The copy is deliberately about the user's remaining allowance and nothing
+ * else. It says nothing about where content comes from or whether it has been
+ * checked — users should never be told they are looking at unreviewed output.
+ *
  * AppContext decides *whether* to show it; this component only renders. It
  * stays quiet for tiers with no cap, while there is still comfortable
  * allowance left, and once the user has silenced it for the day — see
@@ -38,7 +42,7 @@ const AiGenerationConfirm = () => {
       <span>
         {t(
           "ai_confirm.message_low",
-          "You have used all the ready-made content here, so this will generate something new with AI and spend one of your remaining calls. New content is added and reviewed constantly — you can also come back later.",
+          "This will use one of your remaining calls for today. Your allowance resets tomorrow.",
         )}
       </span>
 
@@ -65,7 +69,7 @@ const AiGenerationConfirm = () => {
         count: remaining,
       })}
       message={message}
-      confirmLabel={t("ai_confirm.confirm", "Generate now")}
+      confirmLabel={t("ai_confirm.confirm", "Continue")}
       confirmColor="yellow"
       // The prompt fires from inside askAI, by which point the calling feature
       // has already put up its own full-screen loader at z-50. Same z-index +
