@@ -276,12 +276,23 @@ const ExerciseSidebar = ({
   );
 
   // ── Shared Controls ──────────────────────────────────────────────────────
+  // The level/type pickers, Generate and Reset only belong to free-practice
+  // mode, or to an exam that hasn't been generated yet — once an exam session
+  // exists they'd let the user reconfigure a run in progress.
+  const showSetupControls = !examMode || (examMode && phase === "generating" && !examSession);
+
+  // With an exam under way (and in the results phase especially) every entry in
+  // `controls` is false. The desktop column still wrapped them in a bordered
+  // panel, leaving an empty card floating in the sidebar — so only draw that
+  // wrapper when something will actually land inside it.
+  const hasControls = Boolean(examPhaseBadge) || Boolean(examSectionNav) || showSetupControls;
+
   const controls = (
     <>
       {examPhaseBadge}
       {examSectionNav}
 
-      {(!examMode || (examMode && phase === "generating" && !examSession)) && (
+      {showSetupControls && (
         <NeoDropdown
           options={CEFR_LEVELS}
           value={level}
@@ -301,7 +312,7 @@ const ExerciseSidebar = ({
         />
       )}
 
-      {(!examMode || (examMode && phase === "generating" && !examSession)) && (
+      {showSetupControls && (
         <button
           onClick={onGenerate}
           disabled={loading}
@@ -317,7 +328,7 @@ const ExerciseSidebar = ({
         </button>
       )}
 
-      {(!examMode || (examMode && phase === "generating" && !examSession)) && (
+      {showSetupControls && (
         <button
           onClick={() => setShowResetConfirm(true)}
           disabled={seenExerciseCount === 0 || isResetting}
@@ -434,7 +445,7 @@ const ExerciseSidebar = ({
       <aside className="hidden lg:flex flex-col gap-4 w-64 shrink-0">
         {scoreSection}
         {examScorePanel}
-        <div className={`${panelBase} p-4 flex flex-col gap-4`}>{controls}</div>
+        {hasControls && <div className={`${panelBase} p-4 flex flex-col gap-4`}>{controls}</div>}
         {timerSection}
       </aside>
 

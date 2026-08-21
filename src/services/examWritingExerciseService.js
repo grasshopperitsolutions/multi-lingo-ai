@@ -30,6 +30,28 @@ const MAX_OUTPUT_TOKENS_GENERATION_BY_LEVEL = {
 const DEFAULT_MAX_OUTPUT_TOKENS_GENERATION = 4096;
 const MAX_OUTPUT_TOKENS_EVALUATION = 6144;
 
+/**
+ * Coerce a word-bound coming back from the model into a usable number.
+ *
+ * `minWords`/`maxWords` are declared as `string` in WRITING_EXERCISE_SCHEMA:
+ * models are markedly less reliable at emitting a bare JSON number for these
+ * two fields than at emitting the digits as text. That means everything
+ * downstream (the sidebar's in-range check, _calcWordCountPenalty, the range
+ * shown to the student) would otherwise be comparing against a string.
+ *
+ * parseInt also salvages the near-misses the looser type invites — "120 words",
+ * "120-150" — and falls back whenever nothing numeric is there. Numbers pass
+ * through untouched, so exercises stored before the schema changed still work.
+ *
+ * @param {string|number} value
+ * @param {number} fallback - the level's spec bound, used when value is unusable
+ * @returns {number}
+ */
+export function toWordBound(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 export async function generateWritingExercise({ token, level, targetLang }) {
   if (!token) throw new Error('[examWritingExerciseService] token is required');
   if (!level) throw new Error('[examWritingExerciseService] level is required');
@@ -63,8 +85,8 @@ export async function generateWritingExercise({ token, level, targetLang }) {
   return {
     prompt: data.prompt,
     instructions: data.instructions,
-    minWords: data.minWords ?? min,
-    maxWords: data.maxWords ?? max,
+    minWords: toWordBound(data.minWords, min),
+    maxWords: toWordBound(data.maxWords, max),
     hints: {},
   };
 }
@@ -83,8 +105,8 @@ export async function evaluateWriting({
   if (!userText?.trim()) throw new Error('[examWritingExerciseService] userText is required');
 
   const spec = getWritingSpec(level);
-  const min = overrideMin ?? spec.minWords;
-  const max = overrideMax ?? spec.maxWords;
+  const min = toWordBound(overrideMin, spec.minWords);
+  const max = toWordBound(overrideMax, spec.maxWords);
   const wordCount = _countWords(userText);
   const wordCountPenalty = _calcWordCountPenalty(wordCount, min, max);
   const feedbackLanguage = _resolveLanguageName(interfaceLang);

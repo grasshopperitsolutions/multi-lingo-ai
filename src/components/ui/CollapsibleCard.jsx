@@ -46,9 +46,19 @@ const CollapsibleCard = ({ title, isDarkMode, defaultOpen = false, children, cla
         />
       </button>
 
+      {/*
+        Open: cap the height and let the body scroll itself. Before this the
+        wrapper was `overflow-hidden`, so anything past max-h was simply
+        clipped and unreachable. The scrollbar is hidden because a native one
+        cuts through the flat neo-brutalist surface; the content still scrolls
+        by wheel, touch and keyboard.
+        Closed: overflow-hidden is what makes the collapse animation clip.
+      */}
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+        className={`transition-all duration-300 ease-in-out ${
+          isOpen
+            ? 'max-h-[600px] opacity-100 overflow-y-auto scrollbar-hidden'
+            : 'max-h-0 opacity-0 overflow-hidden'
         }`}
       >
         <div

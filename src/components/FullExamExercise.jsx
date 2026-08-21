@@ -37,7 +37,7 @@ import {
 } from "./ui";
 import Loader from "./Loader";
 import { getExercise } from "../services/examExerciseService";
-import { evaluateWriting } from "../services/examWritingExerciseService";
+import { evaluateWriting, toWordBound } from "../services/examWritingExerciseService";
 import { getScoreColor } from "../services/examUtils";
 import { markExercisesSeen } from "../services/userService";
 import { getWritingSpec } from "../config/examLevels";
@@ -460,8 +460,8 @@ const ExamWritingSection = ({ isDarkMode }) => {
   const writing = examSession?.sections?.writing ?? {};
   const exercise = writing.exercise ?? {};
   const userText = writing.userText ?? "";
-  const minWords = exercise?.minWords ?? 100;
-  const maxWords = exercise?.maxWords ?? 120;
+  const minWords = toWordBound(exercise?.minWords, 100);
+  const maxWords = toWordBound(exercise?.maxWords, 120);
 
   const wordCount = userText.trim()
     ? userText.trim().split(/\s+/).filter(Boolean).length
@@ -773,6 +773,53 @@ const ExamResultsPanel = ({ isDarkMode, onStartNewExam }) => {
         <ReportButton isDarkMode={isDarkMode} context="FullExamResults" />
       </div>
 
+      {/* Answers first, scores last.
+
+          The sidebar already shows the score while the results are open, so
+          leading with a big total here just repeated it above the part the
+          student actually needs. Reading and listening reviews come first,
+          then the writing feedback, and the numbers close the page out. */}
+      <ExamAnswerReview
+        title={t("exam.full.review_reading", "Reading — your answers")}
+        breakdown={examSession?.breakdown?.reading}
+        isDarkMode={isDarkMode}
+      />
+
+      <ExamAnswerReview
+        title={t("exam.full.review_listening", "Listening — your answers")}
+        breakdown={examSession?.breakdown?.listening}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* Writing feedback — the prose comes before the rubric, same as the
+          standalone writing exercise: the student reads what to fix, then the
+          per-parameter numbers behind it. */}
+      {writingData?.evaluation?.generalFeedback && (
+        <Card isDarkMode={isDarkMode}>
+          <SectionHeading isDarkMode={isDarkMode}>
+            {t("exam.general_feedback", "General Feedback")}
+          </SectionHeading>
+          <p className={`text-sm leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+            {writingData.evaluation.generalFeedback}
+          </p>
+        </Card>
+      )}
+
+      {writingData?.evaluation?.parameters && (
+        <CollapsibleCard title={t("exam.breakdown", "Score Breakdown")} isDarkMode={isDarkMode} defaultOpen={true}>
+          <div className="flex flex-col gap-2 mt-3">
+            {writingData.evaluation.parameters.map((param) => (
+              <ParameterRow
+                key={param.id}
+                param={param}
+                isDarkMode={isDarkMode}
+                paramLabel={t(PARAM_NAME_KEYS[param.id], param.name)}
+              />
+            ))}
+          </div>
+        </CollapsibleCard>
+      )}
+
       {/* Total Score */}
       <div className={`rounded-2xl border-4 p-6 text-center ${
         isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
@@ -813,34 +860,6 @@ const ExamResultsPanel = ({ isDarkMode, onStartNewExam }) => {
           isDarkMode={isDarkMode}
         />
       </div>
-
-      <ExamAnswerReview
-        title={t("exam.full.review_reading", "Reading — your answers")}
-        breakdown={examSession?.breakdown?.reading}
-        isDarkMode={isDarkMode}
-      />
-
-      <ExamAnswerReview
-        title={t("exam.full.review_listening", "Listening — your answers")}
-        breakdown={examSession?.breakdown?.listening}
-        isDarkMode={isDarkMode}
-      />
-
-      {/* Writing rubric */}
-      {writingData?.evaluation?.parameters && (
-        <CollapsibleCard title={t("exam.breakdown", "Score Breakdown")} isDarkMode={isDarkMode} defaultOpen={true}>
-          <div className="flex flex-col gap-2 mt-3">
-            {writingData.evaluation.parameters.map((param) => (
-              <ParameterRow
-                key={param.id}
-                param={param}
-                isDarkMode={isDarkMode}
-                paramLabel={t(PARAM_NAME_KEYS[param.id], param.name)}
-              />
-            ))}
-          </div>
-        </CollapsibleCard>
-      )}
 
       <GhostButton onClick={handleNewExam} isDarkMode={isDarkMode}>
         {t("exam.full.start_new", "Start New Exam")}
@@ -1180,8 +1199,8 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
             interfaceLang: user.interfaceLang || "en-US",
             exercisePrompt: writingSection.exercise.prompt,
             userText: writingSection.userText,
-            minWords: writingSection.exercise.minWords ?? writingStruct.minWords,
-            maxWords: writingSection.exercise.maxWords ?? writingStruct.maxWords,
+            minWords: toWordBound(writingSection.exercise.minWords, writingStruct.minWords),
+            maxWords: toWordBound(writingSection.exercise.maxWords, writingStruct.maxWords),
           });
           // The rubric always marks out of its own scale (five parameters, five
           // points each). Scale that into the weight writing carries at this

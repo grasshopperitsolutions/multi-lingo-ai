@@ -8,6 +8,15 @@
   font-family: 'Outfit', sans-serif;
 }
 
+/* Scrollable area with no visible scrollbar.
+   Used by panels that scroll internally (e.g. CollapsibleCard) where the
+   scrollbar itself would break the flat neo-brutalist surface. */
+.scrollbar-hidden {
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* legacy Edge/IE */
+}
+.scrollbar-hidden::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+
 /* Neo-Brutalist Shadows */
 .neo-shadow-light { box-shadow: 6px 6px 0px 0px #0f172a; }
 .neo-shadow-dark { box-shadow: 6px 6px 0px 0px #facc15; }

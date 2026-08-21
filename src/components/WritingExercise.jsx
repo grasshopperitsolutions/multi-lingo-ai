@@ -18,7 +18,7 @@ import {
   CollapsibleCard,
 } from "./ui";
 import { getExercise } from "../services/examExerciseService";
-import { evaluateWriting } from "../services/examWritingExerciseService";
+import { evaluateWriting, toWordBound } from "../services/examWritingExerciseService";
 import { getScoreColor } from "../services/examUtils";
 import { getWritingSpec } from "../config/examLevels";
 import { markExerciseSeen, resetSeenExercises } from "../services/userService";
@@ -162,8 +162,11 @@ const WritingExercise = ({ isDarkMode }) => {
       });
       setExercise(result.content);
       setExerciseId(result.exerciseId);
-      setMinWords(result.content?.minWords ?? getWritingSpec(level).minWords);
-      setMaxWords(result.content?.maxWords ?? getWritingSpec(level).maxWords);
+      // toWordBound, not ??: the schema returns these as strings (models are
+      // unreliable at emitting bare numbers here), and exercises cached before
+      // that change still hold real numbers. Both need to land as numbers.
+      setMinWords(toWordBound(result.content?.minWords, getWritingSpec(level).minWords));
+      setMaxWords(toWordBound(result.content?.maxWords, getWritingSpec(level).maxWords));
       setUserText("");
       setEval(null);
       timerRef.current?.reset();
