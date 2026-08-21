@@ -28,10 +28,43 @@ import { getPrompt, renderTemplate } from './promptService';
 
 /**
  * Current active Gemini TTS model.
- * Use 'gemini-2.5-flash-preview-tts' (current stable preview).
+ * Use 'gemini-3.1-flash-preview-tts' (current stable preview).
  */
-const GEMINI_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
-const WEB_SPEECH_RATE  = 1.0;
+const GEMINI_TTS_MODEL = 'gemini-3.1-flash-preview-tts';
+
+/**
+ * Speech pace options.
+ *
+ * A slow reading is a *separately generated recording* — Gemini is asked to
+ * speak deliberately — not the normal clip played back slowly. Browser
+ * time-stretching (`playbackRate` with `preservesPitch`) runs a phase vocoder,
+ * and at large ratios it produces the metallic, warbly artifacts that made the
+ * old 0.25× option unusable. Asking the model for a genuinely slower delivery
+ * keeps the voice human at the cost of one extra generation per pace.
+ *
+ * `promptValue` fills the {{speechPace}} placeholder in the `tts-build-prompt`
+ * template. `webSpeechRate` applies only to the Web Speech fallback, which is a
+ * real synthesizer and changes rate natively without artifacts.
+ *
+ * Adding another pace (e.g. a fast one) is a row here plus an option in
+ * TTSPlayer — nothing else needs to know about it.
+ */
+export const SPEECH_PACE = {
+  NATURAL: 'natural',
+  SLOW:    'slow',
+};
+
+const PACE_CONFIG = {
+  [SPEECH_PACE.NATURAL]: { promptValue: 'natural',          webSpeechRate: 1.0 },
+  [SPEECH_PACE.SLOW]:    { promptValue: 'slow, deliberate', webSpeechRate: 0.7 },
+};
+
+const DEFAULT_PACE = SPEECH_PACE.NATURAL;
+
+/** Resolve a pace to its config, falling back to natural for an unknown value. */
+function _paceConfig(pace) {
+  return PACE_CONFIG[pace] ?? PACE_CONFIG[DEFAULT_PACE];
+}
 
 /**
  * Prebuilt Gemini TTS voices, split by perceived gender.
@@ -125,9 +158,9 @@ let _playSeq        = 0;
  *
  * Replaying a listening exercise is normal exam behaviour, and without this
  * every press of play was a fresh `askAI` round-trip: several seconds of wait
- * and another call charged against the user's daily tier limit. Playback speed
- * is applied client-side via `playbackRate`, so one cached clip serves all four
- * speed settings.
+ * and another call charged against the user's daily tier limit. Each pace is
+ * its own recording and so its own entry — a text the user hears both ways
+ * occupies two slots.
  */
 const _audioCache = new Map();
 
@@ -149,10 +182,12 @@ function _hashText(str) {
  * Build the cache key. The locale is part of it because the *same* text can be
  * legitimately read in different languages — "Toronto" or "chocolate" in pt-PT
  * versus en-US are different recordings, and keying on text alone would serve a
- * Portuguese learner an English pronunciation.
+ * Portuguese learner an English pronunciation. The pace is part of it because
+ * natural and slow are now two distinct recordings, not one clip played at two
+ * speeds — without it, pressing slow would replay the natural take.
  */
-function _cacheKey(text, lang, voice) {
-  return `${voice}|${lang}|${_hashText(text.trim())}`;
+function _cacheKey(text, lang, voice, pace) {
+  return `${voice}|${lang}|${pace}|${_hashText(text.trim())}`;
 }
 
 function _cacheGet(key) {
@@ -214,7 +249,8 @@ function _teardownAudio() {
  * @param {string}   [options.token]          - Firebase ID token (required for Gemini TTS)
  * @param {boolean}  [options.useFallback]    - Force Web Speech API only
  * @param {boolean}  [options.preferFallback] - Try Gemini first, fall back on error (default: true)
- * @param {number}   [options.rate]           - Playback rate (applies to both engines, default 1.0)
+ * @param {string}   [options.pace]           - One of SPEECH_PACE. A non-natural
+ *   pace is generated as its own recording rather than time-stretched.
  * @param {Function} [options.onStart]        - Called when audio actually begins playing
  * @param {Function} [options.onEnd]          - Called when playback ends naturally or is stopped
  * @param {Function} [options.onError]        - Called when playback fails
@@ -223,7 +259,7 @@ function _teardownAudio() {
 export async function speak(
   text,
   lang,
-  { token, useFallback = false, preferFallback = true, rate = WEB_SPEECH_RATE, onStart, onEnd, onError } = {}
+  { token, useFallback = false, preferFallback = true, pace = DEFAULT_PACE, onStart, onEnd, onError } = {}
 ) {
   if (!text?.trim()) return false;
 
@@ -259,7 +295,7 @@ export async function speak(
   // Option A: Use Gemini TTS (primary, async)
   if (!useFallback && token) {
     try {
-      const success = await _speakWithGemini(token, text, lang, rate, seq, onStart, _handleEnd, _handleError);
+      const success = await _speakWithGemini(token, text, lang, pace, seq, onStart, _handleEnd, _handleError);
       if (success) return true;
       if (seq !== _playSeq) return false;   // superseded while generating
       if (!preferFallback) return false;
@@ -271,7 +307,7 @@ export async function speak(
   }
 
   // Option B: Web Speech API (fallback)
-  _speakWithWebSpeech(text, lang, rate, onStart, _handleEnd, _handleError);
+  _speakWithWebSpeech(text, lang, pace, onStart, _handleEnd, _handleError);
   return true;
 }
 
@@ -334,16 +370,35 @@ export function stopSpeaking() {
  *
  * @param {string} text - The text to be read aloud (not modified)
  * @param {string} lang - BCP-47 locale, e.g. 'pt-PT', 'en-US'
+ * @param {string} pace - One of SPEECH_PACE
  * @returns {Promise<{prompt: string, model: string}>} Instructional prompt + model to use for Gemini TTS
  */
-async function _buildTtsPrompt(text, lang) {
+async function _buildTtsPrompt(text, lang, pace) {
   const meta = LOCALE_METADATA[lang] ?? {
     language: lang,
     region: 'the appropriate region',
   };
 
   const promptDoc = await getPrompt('tts-build-prompt');
-  const prompt = renderTemplate(promptDoc.template, { language: meta.language, region: meta.region, text });
+
+  // The template is admin-edited in Firestore, so it may not carry the
+  // placeholder yet. Without it a slow request generates — and caches, and
+  // bills — a second clip that sounds exactly like the natural one, which is
+  // silent enough to waste a lot of calls before anyone notices.
+  if (pace !== DEFAULT_PACE && !String(promptDoc.template).includes('{{speechPace}}')) {
+    console.warn(
+      '[getTtsService] The "tts-build-prompt" template has no {{speechPace}} placeholder, ' +
+      `so the "${pace}" reading will sound identical to the natural one. ` +
+      'Add it in Admin > Prompts, e.g. "Speak at a {{speechPace}} pace."',
+    );
+  }
+
+  const prompt = renderTemplate(promptDoc.template, {
+    language: meta.language,
+    region: meta.region,
+    text,
+    speechPace: _paceConfig(pace).promptValue,
+  });
   // Overriding the model here requires a TTS-capable Gemini model — picking a
   // plain text model would break audio generation entirely.
   return { prompt, model: promptDoc.model || GEMINI_TTS_MODEL };
@@ -353,20 +408,19 @@ async function _buildTtsPrompt(text, lang) {
 // Gemini TTS (primary)
 // ---------------------------------------------------------------------------
 
-async function _speakWithGemini(token, text, lang, rate, seq, onStart, onEnd, onError) {
+async function _speakWithGemini(token, text, lang, pace, seq, onStart, onEnd, onError) {
   const voice = _pickVoice(text, lang);
-  const key   = _cacheKey(text, lang, voice);
+  const key   = _cacheKey(text, lang, voice, pace);
 
-  // Serve a previously generated clip without touching the API. Only the audio
-  // bytes are cached — speed is applied at playback time, so all four speed
-  // settings share one generation.
+  // Serve a previously generated clip without touching the API. Each pace is a
+  // separate recording, so a text heard both ways caches two entries.
   const cached = _cacheGet(key);
   if (cached) {
     if (seq !== _playSeq) return false;
-    return _playAudioBase64(cached.audioData, cached.mimeType, rate, seq, onStart, onEnd, onError);
+    return _playAudioBase64(cached.audioData, cached.mimeType, seq, onStart, onEnd, onError);
   }
 
-  const { prompt: ttsPrompt, model } = await _buildTtsPrompt(text, lang);
+  const { prompt: ttsPrompt, model } = await _buildTtsPrompt(text, lang, pace);
   const result = await askAI(
     token,
     ttsPrompt,
@@ -385,18 +439,18 @@ async function _speakWithGemini(token, text, lang, rate, seq, onStart, onEnd, on
       audioData: result.audioData,
       mimeType:  result.mimeType || 'audio/wav',
     });
-    return _playAudioBase64(result.audioData, result.mimeType || 'audio/wav', rate, seq, onStart, onEnd, onError);
+    return _playAudioBase64(result.audioData, result.mimeType || 'audio/wav', seq, onStart, onEnd, onError);
   }
 
   // Remote URLs aren't cached — the browser's own HTTP cache covers replays,
   // and we have no bytes to hold on to.
-  if (result?.audioUrl) return _playAudioUrl(result.audioUrl, rate, seq, onStart, onEnd, onError);
+  if (result?.audioUrl) return _playAudioUrl(result.audioUrl, seq, onStart, onEnd, onError);
 
   console.warn('[getTtsService] Unexpected Gemini TTS response shape', result);
   return false;
 }
 
-function _playAudioUrl(url, rate, seq, onStart, onEnd, onError, blobUrl = null) {
+function _playAudioUrl(url, seq, onStart, onEnd, onError, blobUrl = null) {
   return new Promise((resolve, reject) => {
     if (seq !== _playSeq) {
       if (blobUrl) URL.revokeObjectURL(blobUrl);
@@ -404,16 +458,10 @@ function _playAudioUrl(url, rate, seq, onStart, onEnd, onError, blobUrl = null) 
       return;
     }
 
+    // Deliberately played at the rate it was recorded at. Slow readings come
+    // from a separate generation (see SPEECH_PACE), so there is nothing to
+    // time-stretch — and stretching is what made the voice sound robotic.
     const audio = new Audio(url);
-    // Applying the rate here is what makes the 0.25×/0.5×/2× buttons work at
-    // all — previously `rate` only ever reached the Web Speech fallback, so the
-    // speed selector did nothing whenever Gemini succeeded (the normal case).
-    audio.playbackRate = rate;
-    // Keep pitch steady when slowed down; without this 0.25× sounds like a
-    // tape drag rather than careful speech, which defeats the point for a
-    // listening exam.
-    audio.preservesPitch = true;
-    audio.webkitPreservesPitch = true;   // Safari
 
     _currentAudio   = audio;
     _currentBlobUrl = blobUrl;
@@ -512,26 +560,26 @@ function _writeStr(view, offset, str) {
   }
 }
 
-function _playAudioBase64(base64Data, mimeType, rate, seq, onStart, onEnd, onError) {
+function _playAudioBase64(base64Data, mimeType, seq, onStart, onEnd, onError) {
   // Gemini returns raw L16 PCM — browsers cannot play it without a WAV header.
   // Detect by mimeType and wrap in a proper WAV container via blob: URL.
   const isPcm = /L16|pcm/i.test(mimeType);
 
   if (isPcm) {
     const blobUrl = _pcmToWavBlobUrl(base64Data, mimeType);
-    return _playAudioUrl(blobUrl, rate, seq, onStart, onEnd, onError, blobUrl);
+    return _playAudioUrl(blobUrl, seq, onStart, onEnd, onError, blobUrl);
   }
 
   // Already a browser-playable format (audio/wav, audio/mp3, audio/ogg, etc.)
   const dataUrl = `data:${mimeType};base64,${base64Data}`;
-  return _playAudioUrl(dataUrl, rate, seq, onStart, onEnd, onError);
+  return _playAudioUrl(dataUrl, seq, onStart, onEnd, onError);
 }
 
 // ---------------------------------------------------------------------------
 // Web Speech API (fallback)
 // ---------------------------------------------------------------------------
 
-function _speakWithWebSpeech(text, lang, rate, onStart, onEnd, onError) {
+function _speakWithWebSpeech(text, lang, pace, onStart, onEnd, onError) {
   if (!window.speechSynthesis) {
     console.warn('[getTtsService] Web Speech API not available in this browser');
     onError?.(new Error('Web Speech API not available'));
@@ -540,7 +588,10 @@ function _speakWithWebSpeech(text, lang, rate, onStart, onEnd, onError) {
 
   const utterance    = new SpeechSynthesisUtterance(text);
   utterance.lang     = lang;
-  utterance.rate     = rate;
+  // Unlike an <audio> element, this is a real synthesizer — it re-synthesises
+  // at the requested rate rather than stretching a recording, so there are no
+  // artifacts and no need for a separate generation.
+  utterance.rate     = _paceConfig(pace).webSpeechRate;
   utterance.onstart  = () => onStart?.();
   utterance.onend    = () => onEnd?.();
   utterance.onerror  = (e) => {

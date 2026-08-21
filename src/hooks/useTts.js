@@ -14,7 +14,7 @@
  *   //                Gemini synthesises the clip. Callers should show a loader
  *   //                rather than claiming playback has started.
  *
- *   playTts({ key: 'input', text, lang, token, rate });
+ *   playTts({ key: 'input', text, lang, token, pace });
  *   pauseTts();
  *   stopTts();
  *
@@ -23,7 +23,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { speak, pauseSpeaking, resumeSpeaking, stopSpeaking } from '../services/getTtsService';
+import { speak, pauseSpeaking, resumeSpeaking, stopSpeaking, SPEECH_PACE } from '../services/getTtsService';
 
 export function useTts() {
   const [activeKey,    setActiveKey]    = useState(null);
@@ -39,7 +39,7 @@ export function useTts() {
     setIsGenerating(false);
   }, []);
 
-  const playTts = useCallback(({ key, text, lang, token, rate = 1 }) => {
+  const playTts = useCallback(({ key, text, lang, token, pace = SPEECH_PACE.NATURAL }) => {
     if (activeKeyRef.current === key && isPaused) {
       resumeSpeaking();
       setIsPaused(false);
@@ -55,7 +55,7 @@ export function useTts() {
 
     speak(text, lang, {
       token,
-      rate,
+      pace,
       onStart: () => {
         if (activeKeyRef.current === key) setIsGenerating(false);
       },

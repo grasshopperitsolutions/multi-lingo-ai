@@ -5,6 +5,7 @@ import { Copy, Trash2, Search, Volume2, Turtle, Pause, Square } from 'lucide-rea
 import { useAppContext } from '../contexts/AppContext';
 import { lookupWord, WORD_TYPES, MAX_WORD_TYPES } from '../services/dictionaryService';
 import { useTts } from '../hooks/useTts';
+import { SPEECH_PACE } from '../services/getTtsService';
 import TooltipButton from './TooltipButton';
 import ReportButton from './ReportButton';
 import { Breadcrumb } from './ui';
@@ -59,7 +60,7 @@ SynonymChip.propTypes = {
 // ---------------------------------------------------------------------------
 // TtsControls — Play / Pause / Stop row for a single text source
 // ---------------------------------------------------------------------------
-const TtsControls = ({ ttsKey, text, lang, token, rate = 1, ttsState, playTts, pauseTts, stopTts, isDarkMode }) => {
+const TtsControls = ({ ttsKey, text, lang, token, ttsState, playTts, pauseTts, stopTts, isDarkMode }) => {
   const { t } = useTranslation();
   const isActive  = ttsState.activeKey === ttsKey;
   const isPlaying = isActive && !ttsState.isPaused;
@@ -71,7 +72,7 @@ const TtsControls = ({ ttsKey, text, lang, token, rate = 1, ttsState, playTts, p
     if (isPlaying) {
       pauseTts();
     } else {
-      playTts({ key: ttsKey, text, lang, token, rate });
+      playTts({ key: ttsKey, text, lang, token });
     }
   };
 
@@ -100,7 +101,7 @@ const TtsControls = ({ ttsKey, text, lang, token, rate = 1, ttsState, playTts, p
 
       {/* Slow play (Turtle) */}
       <button
-        onClick={() => playTts({ key: `${ttsKey}-slow`, text, lang, token, rate: 0.5 })}
+        onClick={() => playTts({ key: `${ttsKey}-slow`, text, lang, token, pace: SPEECH_PACE.SLOW })}
         disabled={!hasText}
         aria-label={t('translator.listen_slow')}
         title={t('translator.listen_slow')}
@@ -131,7 +132,6 @@ TtsControls.propTypes = {
   text:       PropTypes.string,
   lang:       PropTypes.string.isRequired,
   token:      PropTypes.string,
-  rate:       PropTypes.number,
   ttsState:   PropTypes.object.isRequired,
   playTts:    PropTypes.func.isRequired,
   pauseTts:   PropTypes.func.isRequired,

@@ -5,6 +5,7 @@ import { ArrowLeftRight, Copy, Trash2, Languages, BookMarked, Volume2, Turtle, P
 import { useAppContext } from '../contexts/AppContext';
 import { translateText } from '../services/translatorService';
 import { useTts } from '../hooks/useTts';
+import { SPEECH_PACE } from '../services/getTtsService';
 import TooltipButton from './TooltipButton';
 import ReportButton from './ReportButton';
 import { Breadcrumb } from './ui';
@@ -39,7 +40,7 @@ IconButton.propTypes = {
 // ---------------------------------------------------------------------------
 // TtsControls — Play / Pause / Stop row for a single text source
 // ---------------------------------------------------------------------------
-const TtsControls = ({ ttsKey, text, lang, token, rate = 1, ttsState, playTts, pauseTts, stopTts, isDarkMode }) => {
+const TtsControls = ({ ttsKey, text, lang, token, ttsState, playTts, pauseTts, stopTts, isDarkMode }) => {
   const { t } = useTranslation();
   const isActive  = ttsState.activeKey === ttsKey;
   const isPlaying = isActive && !ttsState.isPaused;
@@ -51,7 +52,7 @@ const TtsControls = ({ ttsKey, text, lang, token, rate = 1, ttsState, playTts, p
     if (isPlaying) {
       pauseTts();
     } else {
-      playTts({ key: ttsKey, text, lang, token, rate });
+      playTts({ key: ttsKey, text, lang, token });
     }
   };
 
@@ -85,7 +86,7 @@ const TtsControls = ({ ttsKey, text, lang, token, rate = 1, ttsState, playTts, p
       {/* Slow play (Turtle) */}
       <TooltipButton tooltip={t('translator.listen_slow')} isDarkMode={isDarkMode}>
         <button
-          onClick={() => playTts({ key: `${ttsKey}-slow`, text, lang, token, rate: 0.5 })}
+          onClick={() => playTts({ key: `${ttsKey}-slow`, text, lang, token, pace: SPEECH_PACE.SLOW })}
           disabled={!hasText}
           aria-label={t('translator.listen_slow')}
           className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
@@ -117,7 +118,6 @@ TtsControls.propTypes = {
   text:       PropTypes.string,
   lang:       PropTypes.string.isRequired,
   token:      PropTypes.string,
-  rate:       PropTypes.number,
   ttsState:   PropTypes.object.isRequired,
   playTts:    PropTypes.func.isRequired,
   pauseTts:   PropTypes.func.isRequired,

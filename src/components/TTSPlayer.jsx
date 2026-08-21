@@ -17,13 +17,25 @@ import PropTypes from 'prop-types';
 import { Play, Square, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useTts } from '../hooks/useTts';
+import { SPEECH_PACE } from '../services/getTtsService';
 import { useAppContext } from '../contexts/AppContext';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const SPEED_OPTIONS = [0.25, 0.5, 1, 2];
+/**
+ * The two paces offered, slowest first.
+ *
+ * 0.25× and 2× are gone: each pace is now a separately generated recording
+ * rather than the same clip stretched, so every option costs a generation —
+ * and the extremes were the ones nobody used. `value` is display/aria only;
+ * `pace` is what actually reaches the model.
+ */
+const PACE_OPTIONS = [
+  { value: 0.5, pace: SPEECH_PACE.SLOW },
+  { value: 1,   pace: SPEECH_PACE.NATURAL },
+];
 
 // A stable unique key for this player instance.
 // Since TTSPlayer is always used in a single-player context (one per exercise screen),
@@ -39,7 +51,7 @@ const TTSPlayer = ({ text, lang, isDarkMode, showNotice = true }) => {
   const { user } = useAppContext();
   const { ttsState, playTts, stopTts } = useTts();
   const [playCount, setPlayCount] = useState(0);
-  const [rate, setRate] = useState(1);
+  const [pace, setPace] = useState(SPEECH_PACE.NATURAL);
 
   const isActive     = ttsState.activeKey === PLAYER_KEY;
   const isGenerating = isActive && ttsState.isGenerating;
@@ -62,12 +74,12 @@ const TTSPlayer = ({ text, lang, isDarkMode, showNotice = true }) => {
     }
     if (!hasText) return;
     setPlayCount((prev) => prev + 1);
-    playTts({ key: PLAYER_KEY, text, lang, token: user?.token, rate });
+    playTts({ key: PLAYER_KEY, text, lang, token: user?.token, pace });
   };
 
-  const handleSpeedChange = (newRate) => {
+  const handlePaceChange = (newPace) => {
     if (isBusy) return;
-    setRate(newRate);
+    setPace(newPace);
   };
 
   const statusLabel = isGenerating
@@ -135,14 +147,14 @@ const TTSPlayer = ({ text, lang, isDarkMode, showNotice = true }) => {
           {t('exam.audio_speed', 'Speed')}
         </span>
         <div className="flex gap-1.5 flex-wrap">
-          {SPEED_OPTIONS.map((option) => {
-            const isSelected = rate === option;
+          {PACE_OPTIONS.map((option) => {
+            const isSelected = pace === option.pace;
             return (
               <button
-                key={option}
-                onClick={() => handleSpeedChange(option)}
+                key={option.pace}
+                onClick={() => handlePaceChange(option.pace)}
                 disabled={isBusy}
-                aria-label={t('exam.audio_set_speed', 'Set speed to {{rate}}×', { rate: option })}
+                aria-label={t('exam.audio_set_speed', 'Set speed to {{rate}}×', { rate: option.value })}
                 aria-pressed={isSelected}
                 className={`px-3 py-1 rounded-lg border-2 text-xs font-black uppercase tracking-widest
                   transition-all active:scale-95
@@ -159,7 +171,7 @@ const TTSPlayer = ({ text, lang, isDarkMode, showNotice = true }) => {
                       : 'bg-transparent border-slate-300 text-slate-500 hover:bg-slate-100'
                   }`}
               >
-                {option}&#215;
+                {option.value}&#215;
               </button>
             );
           })}
