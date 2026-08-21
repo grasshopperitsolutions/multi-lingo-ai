@@ -152,8 +152,8 @@ const WRITING_EXERCISE_SCHEMA = {
   properties: {
     prompt: { type: 'string', description: 'The writing task, in the target language.' },
     instructions: { type: 'array', items: { type: 'string' } },
-    minWords: { type: 'number' },
-    maxWords: { type: 'number' },
+    minWords: { type: 'string' },
+    maxWords: { type: 'string' },
   },
   required: ['prompt', 'instructions'],
 };

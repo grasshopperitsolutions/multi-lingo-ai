@@ -16,7 +16,6 @@ import {
   GhostButton,
   LevelBadge,
   CollapsibleCard,
-  ExamScoreCard,
 } from "./ui";
 import { getExercise } from "../services/examExerciseService";
 import { evaluateWriting } from "../services/examWritingExerciseService";
@@ -378,16 +377,17 @@ const WritingExercise = ({ isDarkMode }) => {
               <ReportButton isDarkMode={isDarkMode} context="WritingExercise" />
             </div>
 
-            <ExamScoreCard
-              score={evaluation.totalScore}
-              maxScore={evaluation.maxScore}
-              scoreColor={scoreColor}
-              isDarkMode={isDarkMode}
-              wordCount={evaluation.wordCount}
-              minWords={minWords}
-              maxWords={maxWords}
-              wordCountPenalty={evaluation.wordCountPenalty}
-            />
+            {/* Feedback leads: it is the part a student actually acts on. The
+                score, word count and penalty are already in the sidebar, so
+                repeating them here only pushed this further down. */}
+            <Card isDarkMode={isDarkMode}>
+              <SectionHeading isDarkMode={isDarkMode}>
+                {t("exam.general_feedback", "General Feedback")}
+              </SectionHeading>
+              <p className={`text-sm leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                {evaluation.generalFeedback}
+              </p>
+            </Card>
 
             <CollapsibleCard title={t("exam.task", "Your Task")} isDarkMode={isDarkMode} defaultOpen={false}>
               <p className={`text-sm sm:text-base font-semibold leading-relaxed mb-3 mt-3 ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}>
@@ -431,15 +431,6 @@ const WritingExercise = ({ isDarkMode }) => {
                 ))}
               </div>
             </div>
-
-            <Card isDarkMode={isDarkMode}>
-              <SectionHeading isDarkMode={isDarkMode}>
-                {t("exam.general_feedback", "General Feedback")}
-              </SectionHeading>
-              <p className={`text-sm leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-                {evaluation.generalFeedback}
-              </p>
-            </Card>
 
             <GhostButton onClick={handleTryAgain} isDarkMode={isDarkMode}>
               <RotateCcw size={14} /> {t("exam.try_again", "Try Again")}

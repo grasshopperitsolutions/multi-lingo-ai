@@ -250,15 +250,6 @@ const ListeningExercise = ({ isDarkMode }) => {
         lang={targetLang}
         isDarkMode={isDarkMode}
       />
-      {exercise.tone && (
-        <p
-          className={`mt-2 text-xs font-semibold italic ${
-            isDarkMode ? "text-slate-400" : "text-slate-500"
-          }`}
-        >
-          {exercise.tone}
-        </p>
-      )}
     </Card>
   );
 

@@ -9,7 +9,6 @@
  *   text       {string} - The text to be spoken
  *   lang       {string} - BCP-47 locale, e.g. 'pt-PT'
  *   isDarkMode {bool}   - Theme flag
- *   showNotice {bool}   - Show the "audio improvements coming soon" note
  */
 
 import { useEffect, useState } from 'react';
@@ -46,7 +45,7 @@ const PLAYER_KEY = 'tts-player';
 // TTSPlayer
 // ---------------------------------------------------------------------------
 
-const TTSPlayer = ({ text, lang, isDarkMode, showNotice = true }) => {
+const TTSPlayer = ({ text, lang, isDarkMode }) => {
   const { t } = useTranslation();
   const { user } = useAppContext();
   const { ttsState, playTts, stopTts } = useTts();
@@ -177,12 +176,6 @@ const TTSPlayer = ({ text, lang, isDarkMode, showNotice = true }) => {
           })}
         </div>
       </div>
-
-      {showNotice && (
-        <p className={`text-xs font-semibold ${isDarkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-          {t('exam.audio_notice', 'Audio quality and voices are still being improved.')}
-        </p>
-      )}
     </div>
   );
 };
@@ -191,7 +184,6 @@ TTSPlayer.propTypes = {
   text:       PropTypes.string.isRequired,
   lang:       PropTypes.string.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
-  showNotice: PropTypes.bool,
 };
 
 export default TTSPlayer;
