@@ -70,7 +70,7 @@ const DashboardHomePage = () => {
   const { isDarkMode, user, showAlert, supportedLanguages } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { featureStatus, isReady } = useTierAccess();
+  const { featureStatus, isVisible, isReady } = useTierAccess();
 
   const stats = [
     { icon: Flame,      label: t("dashboard.day_streak"),      value: String(user?.dayStreak ?? 0),        color: "text-rose-500" },
@@ -116,12 +116,16 @@ const DashboardHomePage = () => {
     { id: "plan_trip",         route: "/dashboard/plan-trip",          icon: Plane,            title: t("dashboard.plan_trip"),         description: t("dashboard.plan_trip_desc"),         color: "text-pink-500" },
   ];
 
-  // Tile ids double as feature keys. Tiles are never hidden — every feature
-  // stays visible and carries a badge saying why it isn't usable yet, so the
-  // dashboard doubles as the upsell surface. Access is configured in
-  // Admin > Tiers & Features.
+  // Tile ids double as feature keys. A locked tile normally stays on screen
+  // carrying a badge that says why — the dashboard doubles as the upsell
+  // surface. The one exception is a feature flagged `hidden` in
+  // Admin > Features: those are dropped outright for every tier below VIP, so
+  // an untested feature can be withheld at launch instead of advertised as
+  // "Coming Soon". Access and hiding are both configured in Admin.
   const visibleFeatures = isReady
-    ? features.map((feature) => {
+    ? features
+      .filter((feature) => isVisible(feature.id))
+      .map((feature) => {
         const status = featureStatus(feature.id);
         const badge = getStatusBadge(status);
         return {

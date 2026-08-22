@@ -53,6 +53,7 @@ const AdminPage = () => {
   const [isSavingTier, setIsSavingTier] = useState(false);
   const [featureModal, setFeatureModal] = useState(null); // null | { feature: object|null }
   const [isSavingFeature, setIsSavingFeature] = useState(false);
+  const [togglingFeatureId, setTogglingFeatureId] = useState(null);
   // TEMPORARY — prompt seeding.
 
   // Categories actually in use, so the edit modal's dropdown reflects reality
@@ -221,6 +222,31 @@ const AdminPage = () => {
     }
   }, [showAlert, refreshTiersConfig]);
 
+  // Flip `hidden` straight from the list. saveFeature overwrites the whole
+  // document, so every existing field is passed back through — dropping one
+  // here would silently blank a label or reset an order.
+  const handleToggleFeatureHidden = useCallback(async (feature) => {
+    setTogglingFeatureId(feature.id);
+    try {
+      await saveFeature(feature.id, {
+        label: feature.label,
+        labelKey: feature.labelKey,
+        order: feature.order,
+        hidden: !feature.hidden,
+      });
+      showAlert("success", feature.hidden ? `"${feature.id}" is visible again.` : `"${feature.id}" is now hidden.`);
+      const updated = await getFeatures();
+      setDocsBySection((prev) => ({ ...prev, features: updated }));
+      // Refresh the live registry so the dashboard and pricing page drop or
+      // restore the feature without a reload.
+      await refreshTiersConfig();
+    } catch (err) {
+      showAlert("error", `Could not update feature: ${err.message}`);
+    } finally {
+      setTogglingFeatureId(null);
+    }
+  }, [showAlert, refreshTiersConfig]);
+
   const handleSaveGenericDoc = useCallback(async (docId, data) => {
     setIsSavingGenericDoc(true);
     try {
@@ -386,6 +412,8 @@ const AdminPage = () => {
             error={error}
             onAddFeature={() => setFeatureModal({ feature: null })}
             onEditFeature={(feature) => setFeatureModal({ feature })}
+            onToggleHidden={handleToggleFeatureHidden}
+            togglingFeatureId={togglingFeatureId}
           />
         ) : isTiersSection ? (
           <TiersSection

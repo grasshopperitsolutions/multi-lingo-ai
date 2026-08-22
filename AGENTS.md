@@ -55,6 +55,27 @@ Rules for favourites:
 - The UI control is `components/ui/FavouriteButton` (controlled: the caller
   owns the state and does the persisting).
 
+## Feature gating: `hidden` vs "granted to nobody"
+
+Features live in `appConfig/config/features` and are gated two independent ways.
+Do not conflate them:
+
+- **Grants** (`features` array on each tier in `tiersConfig`) decide who may
+  *use* a feature. A feature granted to nobody is still advertised — it renders
+  with a "Coming Soon" / "Incoming" badge, because the dashboard doubles as the
+  upsell surface.
+- **`hidden: true`** on the feature document keeps it out of every listing for
+  tiers below VIP: no dashboard tile, no pricing row. This is the launch switch
+  for something still under test. VIP (beta channel) and Admin are unaffected.
+  It is a listing filter only — it does not gate `canAccess`, so a hidden
+  feature stays reachable by direct URL for anyone whose tier grants it.
+
+Anything that lists features must filter first: `useTierAccess().isVisible(key)`
+for the viewer, or `isFeatureVisible(feature, tierId)` from
+`utils/featureAccess` when asking about a tier other than the viewer's (the
+pricing page). Adding a dashboard tile without that filter leaks hidden
+features. Toggle the flag in Admin > Features.
+
 ## Do not assume
 
 - that a backend exists in this repo

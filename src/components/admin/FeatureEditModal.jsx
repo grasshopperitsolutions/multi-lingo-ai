@@ -33,6 +33,7 @@ const FeatureEditModal = ({ feature, isDarkMode, isSaving, onSave, onClose }) =>
   const [key, setKey] = useState(feature?.id ?? "");
   const [labelKey, setLabelKey] = useState(feature?.labelKey ?? "");
   const [order, setOrder] = useState(feature?.order != null ? String(feature.order) : "");
+  const [hidden, setHidden] = useState(feature?.hidden === true);
   const [keyManuallyEdited, setKeyManuallyEdited] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [validationError, setValidationError] = useState(null);
@@ -64,6 +65,7 @@ const FeatureEditModal = ({ feature, isDarkMode, isSaving, onSave, onClose }) =>
       label: label.trim(),
       labelKey: labelKey.trim(),
       order: order.trim() ? Number(order) : 0,
+      hidden,
     }, isNew);
   };
 
@@ -155,6 +157,27 @@ const FeatureEditModal = ({ feature, isDarkMode, isSaving, onSave, onClose }) =>
             </p>
           </div>
 
+          <div>
+            <label
+              htmlFor="feature-hidden"
+              className={`flex items-start gap-3 cursor-pointer ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}
+            >
+              <input
+                id="feature-hidden"
+                type="checkbox"
+                checked={hidden}
+                onChange={(e) => setHidden(e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0"
+              />
+              <span className="text-sm font-bold">Hidden from everyone below VIP</span>
+            </label>
+            <p className={`mt-1 text-xs font-semibold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              Removes the feature from the dashboard and the pricing table. VIP and Admin still
+              see it. Use this to launch without a feature that is still being tested — leaving it
+              granted to nobody instead still advertises it as &quot;Coming Soon&quot;.
+            </p>
+          </div>
+
           {validationError && <p className="font-bold text-rose-500 text-sm">{validationError}</p>}
 
           <div className="flex gap-3 justify-end">
@@ -173,7 +196,9 @@ const FeatureEditModal = ({ feature, isDarkMode, isSaving, onSave, onClose }) =>
           message={
             isNew
               ? `"${key}" will be created. It is granted to nobody until you add it to a tier, so users will see it as "Coming Soon".`
-              : `This changes how "${key}" is labelled and ordered for every user.`
+              : hidden
+                ? `"${key}" will be hidden: it disappears from the dashboard and the pricing table for every tier below VIP.`
+                : `This changes how "${key}" is labelled and ordered for every user.`
           }
           confirmLabel={isNew ? "Yes, create" : "Yes, save"}
           confirmColor="yellow"
@@ -192,6 +217,7 @@ FeatureEditModal.propTypes = {
     label: PropTypes.string,
     labelKey: PropTypes.string,
     order: PropTypes.number,
+    hidden: PropTypes.bool,
   }),
   isDarkMode: PropTypes.bool.isRequired,
   isSaving: PropTypes.bool,

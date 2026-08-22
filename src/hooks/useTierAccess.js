@@ -1,7 +1,12 @@
 import { useCallback, useMemo } from "react";
 import { useAppContext } from "../contexts/AppContext";
 import { BOOTSTRAP_TIER } from "../config/tierLimits";
-import { getFeatureStatus, FEATURE_STATUS, PURCHASABLE_STATUSES } from "../utils/featureAccess";
+import {
+  getFeatureStatus,
+  canSeeHiddenFeatures,
+  FEATURE_STATUS,
+  PURCHASABLE_STATUSES,
+} from "../utils/featureAccess";
 
 /**
  * Hook that provides tier-aware access control and usage information.
@@ -18,6 +23,7 @@ import { getFeatureStatus, FEATURE_STATUS, PURCHASABLE_STATUSES } from "../utils
  *   aiCallsRemaining: number,
  *   canUseAI: boolean,
  *   canAccess: (featureKey: string) => boolean,
+ *   isVisible: (featureKey: string) => boolean,
  *   features: string[],
  *   isExplorer: boolean,
  *   isVoyager: boolean,
@@ -65,6 +71,34 @@ export const useTierAccess = () => {
 
   const features = useMemo(() => limits.features ?? [], [limits.features]);
   const featureSet = useMemo(() => new Set(features), [features]);
+
+  // Feature keys withheld from this tier by the `hidden` flag on their
+  // registry document. Empty for VIP and admin, who see everything.
+  const hiddenFeatureSet = useMemo(() => {
+    if (canSeeHiddenFeatures(tier)) return new Set();
+    return new Set(
+      (featureRegistry ?? []).filter((f) => f.hidden).map((f) => f.id),
+    );
+  }, [featureRegistry, tier]);
+
+  /**
+   * Whether a feature should be listed for this tier.
+   *
+   * Callers listing features (dashboard tiles, pricing rows) filter on this
+   * *before* asking for a status — a hidden feature has no badge, it is simply
+   * absent. Unknown keys are visible, so a tile with no registry document
+   * behaves exactly as it did before the flag existed.
+   *
+   * Visibility only. It deliberately does not affect canAccess: a hidden
+   * feature stays reachable by direct URL for anyone whose tier grants it.
+   *
+   * @param {string} featureKey
+   * @returns {boolean}
+   */
+  const isVisible = useCallback(
+    (featureKey) => !hiddenFeatureSet.has(featureKey),
+    [hiddenFeatureSet],
+  );
 
   /**
    * Whether the current tier may use a feature.
@@ -116,6 +150,7 @@ export const useTierAccess = () => {
     isReady,
     featureStatus,
     isPurchasable,
+    isVisible,
     featureRegistry: featureRegistry ?? [],
     aiCallsRemaining,
     canUseAI: aiCallsRemaining > 0,

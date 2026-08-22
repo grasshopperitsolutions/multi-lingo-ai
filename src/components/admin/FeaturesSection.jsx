@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, Eye, EyeOff } from "lucide-react";
 import Loader from "../Loader";
 import { GhostButton, PrimaryButton, SearchBar } from "../ui";
 
 function matchesSearch(feature, term) {
   if (!term) return true;
-  const haystack = [feature.label, feature.id, feature.labelKey].filter(Boolean).join(" ").toLowerCase();
+  const haystack = [feature.label, feature.id, feature.labelKey, feature.hidden ? "hidden" : ""]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
   return haystack.includes(term.toLowerCase());
 }
 
@@ -18,8 +21,12 @@ function matchesSearch(feature, term) {
  * created; `label` and `order` are presentational and edited freely here.
  * `labelKey` points at the translation key used for the user-facing name on
  * the dashboard and pricing page.
+ *
+ * The eye button toggles `hidden` in place, without opening the modal — that
+ * flag is the one that gets flipped repeatedly while deciding what ships, so
+ * it earns a one-click control. The same field is also on the edit form.
  */
-const FeaturesSection = ({ features, isDarkMode, isLoadingDocs, error, onAddFeature, onEditFeature }) => {
+const FeaturesSection = ({ features, isDarkMode, isLoadingDocs, error, onAddFeature, onEditFeature, onToggleHidden, togglingFeatureId }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filtered = useMemo(
@@ -72,14 +79,32 @@ const FeaturesSection = ({ features, isDarkMode, isLoadingDocs, error, onAddFeat
               {feature.order}
             </span>
             <div className="min-w-0 flex-1">
-              <p className={`font-bold text-sm truncate ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
-                {feature.label}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className={`font-bold text-sm truncate ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
+                  {feature.label}
+                </p>
+                {feature.hidden && (
+                  <span className={`shrink-0 px-2 py-0.5 rounded-full border-2 text-[10px] font-black uppercase tracking-widest ${
+                    isDarkMode ? "border-rose-700 text-rose-400" : "border-rose-300 text-rose-600"
+                  }`}>
+                    Hidden
+                  </span>
+                )}
+              </div>
               <p className={`text-xs font-semibold truncate ${mutedClasses}`}>
                 <code>{feature.id}</code>
                 {feature.labelKey && <> &middot; {feature.labelKey}</>}
               </p>
             </div>
+            <GhostButton
+              onClick={() => onToggleHidden(feature)}
+              isDarkMode={isDarkMode}
+              disabled={togglingFeatureId === feature.id}
+              className="!px-3 !py-1.5"
+            >
+              {feature.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+              {feature.hidden ? "Show" : "Hide"}
+            </GhostButton>
             <GhostButton onClick={() => onEditFeature(feature)} isDarkMode={isDarkMode} className="!px-3 !py-1.5">
               <Pencil size={14} /> Edit
             </GhostButton>
@@ -97,12 +122,15 @@ FeaturesSection.propTypes = {
   error: PropTypes.string,
   onAddFeature: PropTypes.func.isRequired,
   onEditFeature: PropTypes.func.isRequired,
+  onToggleHidden: PropTypes.func.isRequired,
+  togglingFeatureId: PropTypes.string,
 };
 
 FeaturesSection.defaultProps = {
   features: [],
   isLoadingDocs: false,
   error: null,
+  togglingFeatureId: null,
 };
 
 export default FeaturesSection;

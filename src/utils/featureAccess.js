@@ -26,6 +26,44 @@ export const FEATURE_STATUS = {
 /** Statuses that should send the user to the pricing page when clicked. */
 export const PURCHASABLE_STATUSES = [FEATURE_STATUS.SUBSCRIBE, FEATURE_STATUS.UPGRADE];
 
+/**
+ * The tiers that see features marked `hidden` on their feature document.
+ *
+ * VIP is the beta channel and admin is unrestricted, so both keep working on a
+ * feature that has been withheld from everyone else. Note this is unrelated to
+ * a *tier* carrying `hidden` (which keeps VIP and Admin off the pricing table)
+ * — same word, different document.
+ */
+const HIDDEN_FEATURE_TIERS = ['vip', 'admin'];
+
+/**
+ * Whether `tierId` is allowed to see features marked hidden.
+ *
+ * @param {string} tierId
+ * @returns {boolean}
+ */
+export function canSeeHiddenFeatures(tierId) {
+  return HIDDEN_FEATURE_TIERS.includes(tierId);
+}
+
+/**
+ * Whether a feature should be shown to `tierId` at all.
+ *
+ * This is a visibility question asked *before* the status cascade below: a
+ * hidden feature is not "Coming Soon" to an Explorer, it simply does not
+ * exist for them — no dashboard tile, no pricing row. Answering it separately
+ * is what keeps the two surfaces consistent without either of them having to
+ * know why a feature is absent.
+ *
+ * @param {{hidden?: boolean}} feature - a registry entry from featuresService
+ * @param {string} tierId
+ * @returns {boolean}
+ */
+export function isFeatureVisible(feature, tierId) {
+  if (!feature?.hidden) return true;
+  return canSeeHiddenFeatures(tierId);
+}
+
 /** The publicly purchasable plans — the ones a feature can be *sold* on. */
 function paidTiers(tiersConfig) {
   return Object.values(tiersConfig ?? {}).filter((t) => !t.isFree && !t.hidden);

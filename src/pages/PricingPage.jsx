@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import { createCheckoutSession, openPlanChangePortal } from "../services/stripeService";
 import { PRICING, getYearlySavingsPercent } from "../config/pricing";
-import { FEATURE_STATUS, getFeatureStatus } from "../utils/featureAccess";
+import { FEATURE_STATUS, getFeatureStatus, isFeatureVisible } from "../utils/featureAccess";
 import { auth } from "../firebase";
 import { CheckCircle, Lock, Clock, ArrowRight, ChevronDown } from "lucide-react";
 import PropTypes from "prop-types";
@@ -350,8 +350,19 @@ const PricingPage = () => {
   // Plans and their contents come straight from appConfig/config/tiersConfig
   // and appConfig/config/features, so this page can't drift from what the app
   // actually grants. Hidden tiers (VIP, Admin) are excluded by definition.
+  //
+  // Features flagged `hidden` are dropped from every plan's row list, so an
+  // untested feature is never advertised on a plan that is about to be sold.
+  // The filter keys off the *viewer's* tier: a VIP browsing pricing still sees
+  // what they have early access to, while a signed-out visitor — the common
+  // case here — is treated as Explorer and sees only the shipped surface.
   const tiers = useMemo(() => {
     if (!tiersConfig || !featureRegistry) return [];
+
+    const viewerTier = user?.subscriptionTier ?? "explorer";
+    const sellableFeatures = featureRegistry.filter((feature) =>
+      isFeatureVisible(feature, viewerTier),
+    );
 
     return Object.values(tiersConfig)
       .filter((tier) => !tier.hidden)
@@ -363,7 +374,7 @@ const PricingPage = () => {
         aiCallsPerDay: tier.aiCallsPerDay,
         // Voyager is the recommended plan: the cheapest paid one.
         isMostPopular: !tier.isFree && tier.order === MOST_POPULAR_ORDER,
-        rows: featureRegistry.map((feature) => ({
+        rows: sellableFeatures.map((feature) => ({
           id: feature.id,
           // The user-facing name comes from the translation key stored on the
           // feature; the admin label is the fallback when none is set.
@@ -371,7 +382,7 @@ const PricingPage = () => {
           status: getFeatureStatus(feature.id, tier.id, tiersConfig),
         })),
       }));
-  }, [tiersConfig, featureRegistry, t]);
+  }, [tiersConfig, featureRegistry, user?.subscriptionTier, t]);
 
   return (
     <>
