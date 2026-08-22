@@ -13,7 +13,7 @@ import { ChevronDown } from 'lucide-react';
  *     <p>Some content here</p>
  *   </CollapsibleCard>
  */
-const CollapsibleCard = ({ title, isDarkMode, defaultOpen = false, children, className = '' }) => {
+const CollapsibleCard = ({ title, isDarkMode, defaultOpen = false, children, className = '', headerAction = null }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
@@ -24,27 +24,32 @@ const CollapsibleCard = ({ title, isDarkMode, defaultOpen = false, children, cla
           : 'bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]'
       } ${className}`}
     >
-      <button
-        onClick={() => setIsOpen((prev) => !prev)}
-        className={`w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 text-left transition-colors ${
-          isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50'
-        }`}
-        aria-expanded={isOpen}
-      >
-        <span
-          className={`text-xs font-black uppercase tracking-widest ${
-            isDarkMode ? 'text-slate-400' : 'text-slate-500'
+      <div className="flex items-stretch">
+        <button
+          onClick={() => setIsOpen((prev) => !prev)}
+          className={`flex-1 min-w-0 flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 text-left transition-colors ${
+            isDarkMode ? 'hover:bg-slate-700/50' : 'hover:bg-slate-50'
           }`}
+          aria-expanded={isOpen}
         >
-          {title}
-        </span>
-        <ChevronDown
-          size={16}
-          className={`shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${
-            isDarkMode ? 'text-slate-500' : 'text-slate-400'
-          }`}
-        />
-      </button>
+          <span
+            className={`text-xs font-black uppercase tracking-widest ${
+              isDarkMode ? 'text-slate-400' : 'text-slate-500'
+            }`}
+          >
+            {title}
+          </span>
+          <ChevronDown
+            size={16}
+            className={`shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''} ${
+              isDarkMode ? 'text-slate-500' : 'text-slate-400'
+            }`}
+          />
+        </button>
+        {headerAction && (
+          <div className="flex items-center pr-3 sm:pr-4">{headerAction}</div>
+        )}
+      </div>
 
       {/*
         Open: cap the height and let the body scroll itself. Before this the
@@ -79,11 +84,15 @@ CollapsibleCard.propTypes = {
   defaultOpen: PropTypes.bool,
   children: PropTypes.node.isRequired,
   className: PropTypes.string,
+  /** Rendered beside the toggle, outside it — for controls that must not
+   *  collapse the card when clicked (e.g. a favourite heart). */
+  headerAction: PropTypes.node,
 };
 
 CollapsibleCard.defaultProps = {
   defaultOpen: false,
   className: '',
+  headerAction: null,
 };
 
 export default CollapsibleCard;

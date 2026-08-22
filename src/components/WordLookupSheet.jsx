@@ -24,7 +24,7 @@ const WordLookupSheet = ({ word, targetLang, isDarkMode, onClose }) => {
   const { ttsState, playTts, stopTts } = useTts();
 
   const [activeWord, setActiveWord] = useState(word);
-  const [result, setResult] = useState(null);
+  const [entries, setEntries] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -39,13 +39,16 @@ const WordLookupSheet = ({ word, targetLang, isDarkMode, onClose }) => {
     let cancelled = false;
     setIsLoading(true);
     setError(null);
-    setResult(null);
+    setEntries([]);
 
-    // No wordTypes: this is a quick tap-to-glance while reading, so the single
-    // most common sense is what's wanted. The full Dictionary page is where
-    // you narrow by grammatical category.
-    lookupWord({ token: user?.token, word: activeWord, interfaceLang, learningLang: targetLang })
-      .then((data) => { if (!cancelled) setResult(data.entries[0] ?? null); })
+    // No wordTypes — the reader tapped a word, they haven't picked a
+    // grammatical category. But one sense is not enough: plenty of words are a
+    // noun and a verb with unrelated meanings ("bebe" is both a baby and
+    // drinks), and showing only the commonest sense can be actively wrong for
+    // the sentence in front of them. Ask for the two commonest instead.
+    // Narrowing by category is still the full Dictionary page's job.
+    lookupWord({ token: user?.token, word: activeWord, interfaceLang, learningLang: targetLang, commonSenses: 2 })
+      .then((data) => { if (!cancelled) setEntries(data.entries ?? []); })
       .catch((err) => { if (!cancelled) setError(err.message); })
       .finally(() => { if (!cancelled) setIsLoading(false); });
 
@@ -117,41 +120,48 @@ const WordLookupSheet = ({ word, targetLang, isDarkMode, onClose }) => {
             <p className="text-sm font-semibold text-rose-500">{error}</p>
           )}
 
-          {!isLoading && !error && result && (
-            <>
-              {/* Which sense of the word this is. The full Dictionary page lets
-                  you request several categories at once; here the model picks
-                  the most common one, so showing which it chose matters. */}
-              {result.wordType && (
-                <span className={`inline-block mb-2 px-2.5 py-1 rounded-full border-2 text-[10px] font-black uppercase tracking-widest ${
-                  isDarkMode
-                    ? "bg-violet-900/40 border-violet-700 text-violet-300"
-                    : "bg-violet-50 border-violet-300 text-violet-700"
-                }`}>
-                  {t(`dictionary.word_type.${result.wordType}`, result.wordType)}
-                </span>
-              )}
-              <p className={`text-sm ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
-                {result.definition}
-              </p>
-              {result.synonyms?.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {result.synonyms.map((syn) => (
-                    <button
-                      key={syn}
-                      onClick={() => setActiveWord(syn)}
-                      className={`px-3 py-1 rounded-full border-2 text-xs font-black uppercase tracking-widest transition-all hover:-translate-y-0.5 active:scale-95 ${
-                        isDarkMode
-                          ? "bg-slate-700 border-slate-600 text-violet-300 hover:border-violet-400 hover:text-violet-200"
-                          : "bg-slate-100 border-slate-300 text-violet-700 hover:border-violet-400 hover:bg-violet-50"
-                      }`}
-                    >
-                      {syn}
-                    </button>
-                  ))}
+          {/* One block per sense, each labelled with its grammatical category —
+              without the label two definitions of the same word would read as
+              one contradictory blob. */}
+          {!isLoading && !error && entries.length > 0 && (
+            <div className="flex flex-col gap-4">
+              {entries.map((entry, i) => (
+                <div
+                  key={`${entry.wordType}-${i}`}
+                  className={i > 0 ? `pt-4 border-t-2 ${isDarkMode ? "border-slate-700" : "border-slate-200"}` : ""}
+                >
+                  {entry.wordType && (
+                    <span className={`inline-block mb-2 px-2.5 py-1 rounded-full border-2 text-[10px] font-black uppercase tracking-widest ${
+                      isDarkMode
+                        ? "bg-violet-900/40 border-violet-700 text-violet-300"
+                        : "bg-violet-50 border-violet-300 text-violet-700"
+                    }`}>
+                      {t(`dictionary.word_type.${entry.wordType}`, entry.wordType)}
+                    </span>
+                  )}
+                  <p className={`text-sm ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
+                    {entry.definition}
+                  </p>
+                  {entry.synonyms?.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {entry.synonyms.map((syn) => (
+                        <button
+                          key={syn}
+                          onClick={() => setActiveWord(syn)}
+                          className={`px-3 py-1 rounded-full border-2 text-xs font-black uppercase tracking-widest transition-all hover:-translate-y-0.5 active:scale-95 ${
+                            isDarkMode
+                              ? "bg-slate-700 border-slate-600 text-violet-300 hover:border-violet-400 hover:text-violet-200"
+                              : "bg-slate-100 border-slate-300 text-violet-700 hover:border-violet-400 hover:bg-violet-50"
+                          }`}
+                        >
+                          {syn}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </>
+              ))}
+            </div>
           )}
         </div>
       </div>

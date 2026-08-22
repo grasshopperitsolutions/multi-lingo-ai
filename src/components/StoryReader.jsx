@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BookOpen, Volume2, Square } from "lucide-react";
+import { BookOpen, Volume2, Square, MousePointerClick } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { useInterestTopics } from "../hooks/useInterestTopics";
@@ -10,13 +10,12 @@ import { useTts } from "../hooks/useTts";
 import { getStory, getStoryTranslation, getStoryPoolStatus } from "../services/storyService";
 import { markStorySeen } from "../services/userService";
 import { tokenizeWords } from "../utils/tokenizeWords";
+import { getCefrLevelOptions } from "../config/examLevels";
 import Loader from "./Loader";
 import NeoDropdown from "./NeoDropdown";
 import CustomRequestInput from "./CustomRequestInput";
 import WordLookupSheet from "./WordLookupSheet";
 import { FeaturePageShell, Card, ErrorBanner, PrimaryButton, LevelBadge } from "./ui";
-
-const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"].map((v) => ({ value: v, label: v }));
 
 /**
  * StoryReader
@@ -35,6 +34,11 @@ const StoryReader = ({ isDarkMode }) => {
   const { topics } = useInterestTopics();
   const { ttsState, playTts, stopTts } = useTts();
   const { t } = useTranslation();
+
+  // Built inline rather than memoised: six t() calls cost nothing, and a memo
+  // here only invites the labels going stale when the interface language
+  // changes without `t` changing identity.
+  const cefrLevelOptions = getCefrLevelOptions(t);
   const navigate = useNavigate();
 
   const [level, setLevel] = useState("A1");
@@ -136,7 +140,7 @@ const StoryReader = ({ isDarkMode }) => {
       <div className="flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row sm:items-end gap-3">
           <NeoDropdown
-            options={CEFR_LEVELS}
+            options={cefrLevelOptions}
             value={level}
             onChange={setLevel}
             isDarkMode={isDarkMode}
@@ -184,6 +188,20 @@ const StoryReader = ({ isDarkMode }) => {
             <h2 className={`text-xl font-black tracking-tight ${isDarkMode ? "text-white" : "text-slate-900"}`}>
               {story.title}
             </h2>
+          </div>
+
+          {/* Tapping a word for a definition is the feature readers are least
+              likely to discover on their own — nothing about the paragraph
+              looks interactive until you happen to click it. */}
+          <div className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2 ${
+            isDarkMode
+              ? "border-slate-700 bg-slate-800/60 text-slate-400"
+              : "border-slate-200 bg-slate-50 text-slate-500"
+          }`}>
+            <MousePointerClick size={14} className="shrink-0" />
+            <p className="text-xs font-bold">
+              {t("story.tap_word_hint", "Tap any word to look it up.")}
+            </p>
           </div>
 
           {showBilingual && isLoadingTranslation && !translation && (

@@ -69,6 +69,40 @@ If a task touches any of the following, inspect the sibling API repo before deci
 - /api/ask-ai
 - /api/stripe
 
+## User-scoped list data: "seen" vs "favourites"
+
+Two different mechanisms keep arrays of ids on the user's own `users/{uid}`
+document. Do not conflate them or share fields between them.
+
+**Seen ids** — `src/services/userService.js`, fields named `seen*`
+(`seenConceptIds`, `seenStoryIds`, `seenHistoryFactsIds`, ...). Append-only
+progress tracking, so the app can stop serving content a user has already had.
+Ids go in one at a time and only come out via a wholesale reset. There is
+deliberately no "remove one" — un-seeing a single item is meaningless.
+
+**Favourites** — `src/services/favouritesService.js`, fields named `fav*`
+(`favGrammarTipIds`, `favStoryIds`, `favWordIds`). A user-curated list behind a
+heart toggle, so ids must go in *and out* one at a time. That add/remove
+requirement is the reason it is a separate service rather than more `mark*Seen`
+helpers.
+
+Rules for favourites:
+
+- Go through `favouritesService`; never write a `fav*` field directly.
+- Kinds live in `FAVOURITE_KINDS`; the kind → field mapping lives in that
+  service. Adding a new favouritable thing means adding one entry to
+  `FAVOURITE_FIELDS` and nothing else — fields are created lazily on first
+  write, so there is no migration or seeding step.
+- Read with `getFavouriteIds(user, kind)` off the AppContext user (synchronous,
+  no network). Only use `fetchFavouriteIds` when there is no loaded profile.
+- After a `toggleFavourite`, update the AppContext user with
+  `favouriteFieldFor(kind)` so the state survives navigation without a re-read.
+- Persisting is a whole-array write through the existing `/api/firestore` PUT
+  (`updateUserProfile`) — no new endpoint. Concurrent writes from two devices
+  can lose one change; that is an accepted trade-off for a favourites list.
+- The UI control is `components/ui/FavouriteButton` (controlled: the caller
+  owns the state and does the persisting).
+
 ## Do not assume
 
 - that a backend exists in this repo

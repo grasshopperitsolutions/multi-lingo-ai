@@ -48,6 +48,7 @@ import NeoDropdown from "./NeoDropdown";
 import ExamTimer from "./ExamTimer";
 import ConfirmModal from "./ConfirmModal";
 import { LevelBadge } from "./ui";
+import { getCefrLevelOptions } from "../config/examLevels";
 
 const READING_TYPES = [
   { value: "random", label: "Random" },
@@ -66,15 +67,6 @@ const LISTENING_TYPES = [
   { value: "multiple-choice", label: "Multiple Choice" },
   { value: "true-false", label: "True / False" },
   { value: "fill-blanks", label: "Fill Blanks" },
-];
-
-const CEFR_LEVELS = [
-  { value: "A1", label: "A1 - Iniciante" },
-  { value: "A2", label: "A2 - Elementar" },
-  { value: "B1", label: "B1 - Intermédio" },
-  { value: "B2", label: "B2 - Independente" },
-  { value: "C1", label: "C1 - Avançado" },
-  { value: "C2", label: "C2 - Proficiente" },
 ];
 
 const ExerciseSidebar = ({
@@ -105,6 +97,11 @@ const ExerciseSidebar = ({
   onExamSectionChange,
 }) => {
   const { t } = useTranslation();
+
+  // Built inline rather than memoised: six t() calls cost nothing, and a memo
+  // here only invites the labels going stale when the interface language
+  // changes without `t` changing identity.
+  const cefrLevelOptions = getCefrLevelOptions(t);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const typeOptions =
@@ -294,7 +291,7 @@ const ExerciseSidebar = ({
 
       {showSetupControls && (
         <NeoDropdown
-          options={CEFR_LEVELS}
+          options={cefrLevelOptions}
           value={level}
           onChange={onLevelChange}
           isDarkMode={isDarkMode}

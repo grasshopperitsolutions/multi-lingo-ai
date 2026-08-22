@@ -39,3 +39,45 @@ export const RUBRIC_MAX_SCORE = 25;
 export function getWritingSpec(level) {
   return WRITING_SPEC[level] ?? DEFAULT_WRITING_SPEC;
 }
+
+// ---------------------------------------------------------------------------
+// CEFR level labels
+// ---------------------------------------------------------------------------
+
+/**
+ * The six CEFR levels, in order. The single source for every level picker in
+ * the app — the exam sidebar and the story generator each used to keep their
+ * own array, and the sidebar's was hardcoded Portuguese ("C1 - Avançado") that
+ * showed through whatever interface language the user had chosen.
+ */
+export const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+/**
+ * English fallbacks, used as t()'s default value so a locale that hasn't been
+ * back-filled yet still reads as a level name rather than a raw key.
+ */
+const CEFR_LEVEL_FALLBACKS = {
+  A1: 'A1 - Beginner',
+  A2: 'A2 - Elementary',
+  B1: 'B1 - Intermediate',
+  B2: 'B2 - Upper Intermediate',
+  C1: 'C1 - Advanced',
+  C2: 'C2 - Proficient',
+};
+
+/**
+ * Localised `{ value, label }` options for a NeoDropdown.
+ *
+ * Takes `t` rather than calling useTranslation itself so it stays a plain
+ * function; call it during render (or from a useMemo keyed on i18n.language)
+ * so the labels follow an interface-language change.
+ *
+ * @param {(key: string, fallback: string) => string} t
+ * @returns {{value: string, label: string}[]}
+ */
+export function getCefrLevelOptions(t) {
+  return CEFR_LEVELS.map((level) => ({
+    value: level,
+    label: t(`exam.levels.${level.toLowerCase()}`, CEFR_LEVEL_FALLBACKS[level]),
+  }));
+}

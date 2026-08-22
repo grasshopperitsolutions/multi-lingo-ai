@@ -5,12 +5,13 @@ import { useTranslation } from "react-i18next";
 import { Landmark, Sparkles } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { useTierAccess } from "../../hooks/useTierAccess";
+import { useTts } from "../../hooks/useTts";
 import { useInterestTopics } from "../../hooks/useInterestTopics";
 import { getFact, getFactPoolStatus } from "../../services/historyCultureService";
 import { markHistoryFactSeen } from "../../services/userService";
 import CustomRequestInput from "../../components/CustomRequestInput";
 import Loader from "../../components/Loader";
-import { FeaturePageShell, Card, ErrorBanner, PrimaryButton } from "../../components/ui";
+import { FeaturePageShell, Card, ErrorBanner, PrimaryButton, TtsControls } from "../../components/ui";
 
 /**
  * HistoryCulturePage
@@ -26,6 +27,7 @@ const HistoryCulturePage = () => {
   const { isDarkMode, user, setUser, interfaceLang, showAlert } = useAppContext();
   const { canUseAI } = useTierAccess();
   const { topics } = useInterestTopics();
+  const { ttsState, playTts, pauseTts, stopTts } = useTts();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -94,6 +96,12 @@ const HistoryCulturePage = () => {
     }
   };
 
+  // One string for the whole piece, so listening plays straight through
+  // instead of needing a control per paragraph.
+  const spokenText = fact
+    ? [fact.title, ...(fact.paragraphs ?? [])].filter(Boolean).join("\n\n")
+    : "";
+
   return (
     <FeaturePageShell
       isDarkMode={isDarkMode}
@@ -144,9 +152,25 @@ const HistoryCulturePage = () => {
             }`}>
               <Landmark size={16} />
             </div>
-            <h2 className={`text-xl font-black tracking-tight ${isDarkMode ? "text-white" : "text-slate-900"}`}>
+            <h2 className={`text-xl font-black tracking-tight flex-1 min-w-0 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
               {fact.title}
             </h2>
+
+            {/* Read aloud in whatever language the piece actually came back in
+                (fact.locale), not the interface language — the translation is
+                best-effort and can fall back to the source. */}
+            <TtsControls
+              ttsKey="history-fact"
+              text={spokenText}
+              lang={fact.locale}
+              token={user?.token}
+              accent="rose"
+              ttsState={ttsState}
+              playTts={playTts}
+              pauseTts={pauseTts}
+              stopTts={stopTts}
+              isDarkMode={isDarkMode}
+            />
           </div>
 
           {fact.paragraphs.map((paragraph, i) => (

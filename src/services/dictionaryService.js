@@ -28,6 +28,9 @@
  * @property {string} word           - Word or expression to look up
  * @property {string} interfaceLang  - BCP-47 locale for the definition, e.g. 'en-US'
  * @property {string} learningLang   - BCP-47 locale for the synonyms, e.g. 'pt-PT'
+ * @property {number} [commonSenses] - When no wordTypes are given, how many of the
+ *                                     word's most common senses to return (default 1,
+ *                                     capped at MAX_ENTRIES).
  * @property {string[]} [wordTypes]  - Grammatical categories to define the word as.
  *                                     Empty = every available category; the model
  *                                     returns one entry per category. See WORD_TYPES.
@@ -84,7 +87,17 @@ export const WORD_TYPES = [
  * write. Exported so the UI enforces the same number the service does rather
  * than the two drifting apart.
  */
-export const MAX_WORD_TYPES = 5;
+export const MAX_WORD_TYPES = 3;
+
+/**
+ * Hard ceiling on definitions returned by a single lookup.
+ *
+ * A wall of six senses is not a dictionary entry anyone reads — the useful
+ * ones are the first few. Enforced in the schema (so the model never writes
+ * more than we intend to show) and again on the parsed result, since a
+ * response can still arrive with extras.
+ */
+export const MAX_ENTRIES = 3;
 
 /**
  * Build the response schema for a lookup.
@@ -102,14 +115,23 @@ export const MAX_WORD_TYPES = 5;
  *
  * @param {string[]} types - grammatical categories named in the prompt
  */
-function buildResponseSchema(types) {
+function buildResponseSchema(types, commonSenses) {
+  // With nothing ticked the bounds come from `commonSenses`: the caller says
+  // how many of the word's most common senses it wants, and the schema forces
+  // exactly that many. This is what lets a tap-to-look-up ask for two — the
+  // "bebe = baby / bebe = drinks" case, where one sense is actively
+  // misleading. With categories ticked the listed ones set the floor and the
+  // most-common extra sets the ceiling, both capped at MAX_ENTRIES.
+  const minItems = types.length > 0 ? types.length : commonSenses;
+  const maxItems = Math.min(Math.max(types.length + 1, minItems), MAX_ENTRIES);
+
   return {
     type: 'object',
     properties: {
       entries: {
         type: 'array',
-        minItems: types.length,
-        maxItems: types.length + 1,
+        minItems: Math.min(minItems, maxItems),
+        maxItems,
         items: {
           type: 'object',
           properties: {
@@ -141,7 +163,7 @@ function buildResponseSchema(types) {
  * @param {LookupParams} params
  * @returns {Promise<LookupResult>}
  */
-export async function lookupWord({ token, word, interfaceLang, learningLang, wordTypes = [] }) {
+export async function lookupWord({ token, word, interfaceLang, learningLang, wordTypes = [], commonSenses = 1 }) {
   if (!word?.trim())      throw new Error('[dictionaryService] word is required');
   if (!token)             throw new Error('[dictionaryService] token is required');
   if (!interfaceLang)     throw new Error('[dictionaryService] interfaceLang is required');
@@ -165,6 +187,11 @@ export async function lookupWord({ token, word, interfaceLang, learningLang, wor
     // The template injects this as plain text in a grammatical-category list
     // ("noun, verb, ..."), so it's joined into a human-readable string here.
     wordTypes: types.join(', '),
+    // Only meaningful when no categories were ticked. The stored template does
+    // not have to reference it — the response schema already forces the count —
+    // but exposing it lets the prompt be reworded to ask for N senses without
+    // another code change.
+    commonSenses,
     interfaceLang,
     learningLang,
   });
@@ -174,7 +201,7 @@ export async function lookupWord({ token, word, interfaceLang, learningLang, wor
     model:          promptDoc.model || GEMINI_MODEL,
     temperature:    0.2,
     jsonMode:       true,
-    responseSchema: buildResponseSchema(types),
+    responseSchema: buildResponseSchema(types, commonSenses),
   };
   if (promptDoc.maxTokens) providerParams.maxOutputTokens = promptDoc.maxTokens;
 
@@ -207,7 +234,8 @@ export async function lookupWord({ token, word, interfaceLang, learningLang, wor
     // The most-common-sense entry can land on a category that was also listed
     // explicitly, so the same wordType can come back twice. Keep the first and
     // drop the repeat rather than rendering the word twice as a noun.
-    .filter((e) => !seenTypes.has(e.wordType) && seenTypes.add(e.wordType));
+    .filter((e) => !seenTypes.has(e.wordType) && seenTypes.add(e.wordType))
+    .slice(0, MAX_ENTRIES);
 
   if (entries.length === 0) throw new Error('[dictionaryService] No definition returned');
 

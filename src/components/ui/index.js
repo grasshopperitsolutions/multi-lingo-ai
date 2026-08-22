@@ -10,3 +10,5 @@ export { default as ExamScoreCard } from './ExamScoreCard';
 export { default as FeaturePageShell } from './FeaturePageShell';
 export { default as ComingSoonContent } from './ComingSoonContent';
 export { default as SearchBar } from './SearchBar';
+export { default as FavouriteButton } from './FavouriteButton';
+export { default as TtsControls } from './TtsControls';

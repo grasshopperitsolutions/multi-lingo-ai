@@ -1,14 +1,13 @@
 import { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeftRight, Copy, Trash2, Languages, BookMarked, Volume2, Turtle, Pause, Square } from 'lucide-react';
+import { ArrowLeftRight, Copy, Trash2, Languages, BookMarked } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { translateText } from '../services/translatorService';
 import { useTts } from '../hooks/useTts';
-import { SPEECH_PACE } from '../services/getTtsService';
 import TooltipButton from './TooltipButton';
 import ReportButton from './ReportButton';
-import { Breadcrumb } from './ui';
+import { Breadcrumb, TtsControls } from './ui';
 
 const MAX_CHARS = 1000;
 
@@ -37,93 +36,6 @@ IconButton.propTypes = {
   children:   PropTypes.node.isRequired,
 };
 
-// ---------------------------------------------------------------------------
-// TtsControls — Play / Pause / Stop row for a single text source
-// ---------------------------------------------------------------------------
-const TtsControls = ({ ttsKey, text, lang, token, ttsState, playTts, pauseTts, stopTts, isDarkMode }) => {
-  const { t } = useTranslation();
-  const isActive  = ttsState.activeKey === ttsKey;
-  const isPlaying = isActive && !ttsState.isPaused;
-  const isPaused  = isActive && ttsState.isPaused;
-  const hasText   = !!text?.trim();
-  const isSlowKey = ttsState.activeKey === `${ttsKey}-slow`;
-
-  const handlePlayPause = () => {
-    if (isPlaying) {
-      pauseTts();
-    } else {
-      playTts({ key: ttsKey, text, lang, token });
-    }
-  };
-
-  const activeColor = isDarkMode
-    ? 'text-sky-400 hover:text-sky-300'
-    : 'text-sky-600 hover:text-sky-800';
-
-  const idleColor = isDarkMode
-    ? 'text-slate-400 hover:text-white'
-    : 'text-slate-500 hover:text-slate-900';
-
-  return (
-    <div className="flex items-center gap-1">
-      {/* Play (Volume2) / Pause toggle */}
-      <TooltipButton
-        tooltip={isPlaying ? t('translator.pause', 'Pause') : isPaused ? t('translator.resume', 'Resume') : t('translator.listen')}
-        isDarkMode={isDarkMode}
-      >
-        <button
-          onClick={handlePlayPause}
-          disabled={!hasText}
-          aria-label={isPlaying ? t('translator.pause', 'Pause') : t('translator.listen')}
-          className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-            isActive ? activeColor : idleColor
-          }`}
-        >
-          {isPlaying ? <Pause size={16} fill="currentColor" /> : <Volume2 size={16} />}
-        </button>
-      </TooltipButton>
-
-      {/* Slow play (Turtle) */}
-      <TooltipButton tooltip={t('translator.listen_slow')} isDarkMode={isDarkMode}>
-        <button
-          onClick={() => playTts({ key: `${ttsKey}-slow`, text, lang, token, pace: SPEECH_PACE.SLOW })}
-          disabled={!hasText}
-          aria-label={t('translator.listen_slow')}
-          className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-            isSlowKey ? activeColor : idleColor
-          }`}
-        >
-          <Turtle size={16} />
-        </button>
-      </TooltipButton>
-
-      {/* Stop — only enabled while this key or its slow variant is active */}
-      <TooltipButton tooltip={t('translator.stop', 'Stop')} isDarkMode={isDarkMode}>
-        <button
-          onClick={stopTts}
-          disabled={!isActive && !isSlowKey}
-          aria-label={t('translator.stop', 'Stop')}
-          className={`p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-            (isActive || isSlowKey) ? 'text-rose-500 hover:text-rose-400' : idleColor
-          }`}
-        >
-          <Square size={16} fill="currentColor" />
-        </button>
-      </TooltipButton>
-    </div>
-  );
-};
-TtsControls.propTypes = {
-  ttsKey:     PropTypes.string.isRequired,
-  text:       PropTypes.string,
-  lang:       PropTypes.string.isRequired,
-  token:      PropTypes.string,
-  ttsState:   PropTypes.object.isRequired,
-  playTts:    PropTypes.func.isRequired,
-  pauseTts:   PropTypes.func.isRequired,
-  stopTts:    PropTypes.func.isRequired,
-  isDarkMode: PropTypes.bool.isRequired,
-};
 
 // ---------------------------------------------------------------------------
 // TranslatorPanel
@@ -230,9 +142,7 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
       {/* —— Input panel —— */}
       <div className={panelBase}>
         <div className="flex items-center px-3 pt-2 pb-1 justify-between">
-          <TooltipButton tooltip="Interface language — change in Settings" isDarkMode={isDarkMode}>
-            <span className={langBadgeClass}>{sourceLang}</span>
-          </TooltipButton>
+          <span className={langBadgeClass}>{sourceLang}</span>
           <span className={`text-xs font-bold tabular-nums ${
             inputText.length > MAX_CHARS * 0.9 ? 'text-rose-500' : isDarkMode ? 'text-slate-500' : 'text-slate-400'
           }`}>
@@ -251,7 +161,7 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
         <div className={`flex items-center gap-2 px-3 py-2 border-t-2 ${
           isDarkMode ? 'border-slate-700' : 'border-slate-100'
         }`}>
-          <TtsControls {...ttsProps} ttsKey="translator-input" text={inputText} lang={sourceLang} />
+          <TtsControls {...ttsProps} accent="sky" ttsKey="translator-input" text={inputText} lang={sourceLang} />
           <IconButton onClick={handleClear} label={t('translator.clear')} disabled={!inputText} isDarkMode={isDarkMode}><Trash2 size={16} /></IconButton>
         </div>
       </div>
@@ -259,7 +169,7 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
       {/* —— Output panel —— */}
       <div className={panelBase}>
         <div className="flex items-center px-3 pt-2 pb-1">
-          <TooltipButton tooltip="Learning language — change in Settings" isDarkMode={isDarkMode}>
+          <TooltipButton tooltip={t('translator.learning_language_hint', 'Learning language — change in Settings')} isDarkMode={isDarkMode}>
             <span className={langBadgeClass}>{targetLang}</span>
           </TooltipButton>
         </div>
@@ -291,7 +201,7 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
         <div className={`flex items-center gap-2 px-3 py-2 border-t-2 ${
           isDarkMode ? 'border-slate-700' : 'border-slate-100'
         }`}>
-          <TtsControls {...ttsProps} ttsKey="translator-output" text={outputText} lang={targetLang} />
+          <TtsControls {...ttsProps} accent="sky" ttsKey="translator-output" text={outputText} lang={targetLang} />
           <IconButton onClick={handleCopy} label={copyFeedback ? t('translator.copied') : t('translator.copy')} disabled={!outputText} isDarkMode={isDarkMode}><Copy size={16} /></IconButton>
           {copyFeedback && (
             <span className={`text-xs font-black uppercase tracking-widest ${

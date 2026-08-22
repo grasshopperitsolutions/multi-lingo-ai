@@ -538,7 +538,8 @@
     "translate": "Translate",
     "keyboard_hint": "Tip: Press Ctrl+Enter (or ⌘+Enter) to translate",
     "error_failed": "Translation failed. Please try again.",
-    "lookup_in_dictionary": "Look up in Dictionary"
+    "lookup_in_dictionary": "Look up in Dictionary",
+    "learning_language_hint": "Learning language — change in Settings"
   },
   "dashboard": {
     "loading": "Loading your dashboard…",
@@ -1065,7 +1066,12 @@
     "empty_state": "Pick a level and get a short story to read and listen to.",
     "translating": "Translating...",
     "translation_unavailable": "Translation isn't available right now — showing the original only.",
-    "description_placeholder": "Or describe what the story should be about..."
+    "description_placeholder": "Or describe what the story should be about...",
+    "tap_word_hint": "Tap any word to look it up."
+  },
+  "favourites": {
+    "add": "Add to favourites",
+    "remove": "Remove from favourites"
   },
   "history_culture": {
     "discover": "Discover something",
