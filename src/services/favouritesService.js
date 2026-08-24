@@ -60,6 +60,13 @@ export const FAVOURITE_KINDS = {
   GRAMMAR_TIP: 'grammarTip',
   STORY: 'story',
   WORD: 'word',
+  /**
+   * A dashboard feature itself, not a piece of content — the ids are feature
+   * keys from config/dashboardFeatures.js. Pins the feature to the Today tab
+   * so a user can shortcut past the tab bar to the two or three things they
+   * actually use.
+   */
+  FEATURE: 'feature',
 };
 
 /**
@@ -72,6 +79,7 @@ const FAVOURITE_FIELDS = {
   [FAVOURITE_KINDS.GRAMMAR_TIP]: 'favGrammarTipIds',
   [FAVOURITE_KINDS.STORY]:       'favStoryIds',
   [FAVOURITE_KINDS.WORD]:        'favWordIds',
+  [FAVOURITE_KINDS.FEATURE]:     'favFeatureIds',
 };
 
 function fieldFor(kind) {
