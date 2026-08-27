@@ -30,17 +30,14 @@ export { MAX_STRIKES };
  * @param {string}   params.userDialect      - BCP-47 interface language (e.g. 'en-US')
  * @param {string}   params.learningDialect  - BCP-47 learning language (e.g. 'pt-PT')
  * @param {string[]} params.seenPuzzleIds    - Already-seen puzzle IDs from seenWordLadderPuzzleIds
- * @param {{label: string, isCustom: boolean}} [params.theme] - The subject the user
- *   picked in the sidebar. Overrides `topics`; a custom (free-text) theme is
- *   never used to tag the stored puzzle, since it maps to no interest id.
- * @param {Array<{id: string, label: string}>} [params.topics] - User interests used to theme a
- *                                              newly generated puzzle. The generated puzzle is
- *                                              tagged with the chosen category ID so it can be
- *                                              preferred later; reading the cached pool by topic
- *                                              is not wired up yet (see getWordService for that).
+ *
+ * This puzzle takes no theme. A ladder needs every word to sit one letter from
+ * the next, which leaves no room to also keep them on a subject — asking for
+ * both just produces a broken chain. The sidebar says as much rather than
+ * offering a picker that would not work.
  * @returns {Promise<{ puzzleId: string, words: string[], clues: string[], wordLength: number }>}
  */
-export const fetchWordLadderPuzzle = async ({ token, userDialect, learningDialect, seenPuzzleIds = [], topics = [], theme = null }) => {
+export const fetchWordLadderPuzzle = async ({ token, userDialect, learningDialect, seenPuzzleIds = [] }) => {
   const seenSet = new Set(seenPuzzleIds);
 
   // ── Step 1: try to find an unseen cached puzzle ──────────────────────────
@@ -61,21 +58,12 @@ export const fetchWordLadderPuzzle = async ({ token, userDialect, learningDialec
   }
 
   // ── Step 2: generate via AI ──────────────────────────────────────────────
-  // One interest, not all of them: a puzzle has a single theme, so picking one
-  // keeps the `topics` tag an accurate record of what it was built from.
-  // An explicit pick beats the random interest roll. A free-text theme has no
-  // id, so it themes the prompt but leaves the stored puzzle untagged.
-  const chosenTopic = theme?.label
-    ? { id: theme.isCustom ? null : (theme.id ?? null), label: theme.label }
-    : topics.length > 0
-    ? topics[Math.floor(Math.random() * topics.length)]
-    : null;
-  const puzzle = await _generateFromAI({ token, userDialect, learningDialect, topic: chosenTopic });
+  const puzzle = await _generateFromAI({ token, userDialect, learningDialect });
 
   // ── Step 3: cache silently (fire-and-forget) ─────────────────────────────
   let puzzleId = `ai_${Date.now()}`;
   try {
-    const savedId = await _cachePuzzle({ token, puzzle, userDialect, learningDialect, topic: chosenTopic });
+    const savedId = await _cachePuzzle({ token, puzzle, userDialect, learningDialect, topic: null });
     if (savedId) puzzleId = savedId;
   } catch (err) {
     console.warn('[wordLadderService] Cache write failed (non-fatal):', err);
@@ -112,8 +100,11 @@ const DEFAULT_THEME = 'generic local noun';
 // Private — AI generation
 // ---------------------------------------------------------------------------
 
-async function _generateFromAI({ token, userDialect, learningDialect, topic }) {
-  const interestOrTopic = topic?.label || DEFAULT_THEME;
+async function _generateFromAI({ token, userDialect, learningDialect }) {
+  // Still passed so a template that kept a {{interestOrTopic}} line renders a
+  // sentence rather than the raw placeholder — renderTemplate leaves unknown
+  // keys untouched. The line can simply be deleted from the prompt.
+  const interestOrTopic = DEFAULT_THEME;
 
   const promptDoc = await getPrompt('word-ladder-generate-prompt');
   const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, minWords: MIN_WORDS, maxWords: MAX_WORDS, interestOrTopic });

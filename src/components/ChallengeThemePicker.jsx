@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Lock, Sparkles } from "lucide-react";
+import { Ban, Lock, Sparkles } from "lucide-react";
 
 /**
  * ChallengeThemePicker
@@ -18,6 +18,11 @@ import { Lock, Sparkles } from "lucide-react";
  * When an interest is picked the free-text box is visibly disabled with the
  * reason on it, rather than removed: a control that vanishes leaves the user
  * guessing why.
+ *
+ * `unavailable` says the same thing about a whole challenge. Word Ladder needs
+ * every word to sit one letter from the next, so a theme cannot survive the
+ * chain — the section still appears, saying so, rather than silently differing
+ * from the other games.
  */
 const ChallengeThemePicker = ({
   interests,
@@ -30,6 +35,7 @@ const ChallengeThemePicker = ({
   freeTextBlockedByInterest,
   isDarkMode,
   disabled,
+  unavailable,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -37,6 +43,20 @@ const ChallengeThemePicker = ({
   const labelClasses = `font-black uppercase text-xs tracking-widest ${
     isDarkMode ? "text-slate-400" : "text-slate-500"
   }`;
+
+  if (unavailable) {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className={labelClasses}>{t("challenges.theme.title")}</p>
+        <p className={`flex items-start gap-1.5 text-[11px] font-bold leading-snug ${
+          isDarkMode ? "text-slate-500" : "text-slate-400"
+        }`}>
+          <Ban size={12} className="shrink-0 mt-0.5" />
+          {t("challenges.theme.unavailable")}
+        </p>
+      </div>
+    );
+  }
 
   const freeTextDisabled = disabled || freeTextBlockedByInterest || !canUseFreeText;
 
@@ -157,22 +177,33 @@ const ChallengeThemePicker = ({
 ChallengeThemePicker.propTypes = {
   interests: PropTypes.arrayOf(
     PropTypes.shape({ id: PropTypes.string.isRequired, label: PropTypes.string.isRequired }),
-  ).isRequired,
-  hasInterests: PropTypes.bool.isRequired,
+  ),
+  hasInterests: PropTypes.bool,
   selectedInterestId: PropTypes.string,
-  onSelectInterest: PropTypes.func.isRequired,
-  freeText: PropTypes.string.isRequired,
-  onFreeTextChange: PropTypes.func.isRequired,
-  canUseFreeText: PropTypes.bool.isRequired,
-  freeTextBlockedByInterest: PropTypes.bool.isRequired,
+  onSelectInterest: PropTypes.func,
+  freeText: PropTypes.string,
+  onFreeTextChange: PropTypes.func,
+  canUseFreeText: PropTypes.bool,
+  freeTextBlockedByInterest: PropTypes.bool,
   isDarkMode: PropTypes.bool.isRequired,
   /** Locks the whole picker while a round is loading. */
   disabled: PropTypes.bool,
+  /** This challenge cannot honour a theme at all. Renders the reason instead
+   *  of the controls, so no theme state is needed. */
+  unavailable: PropTypes.bool,
 };
 
 ChallengeThemePicker.defaultProps = {
+  interests: [],
+  hasInterests: false,
   selectedInterestId: null,
+  onSelectInterest: () => {},
+  freeText: "",
+  onFreeTextChange: () => {},
+  canUseFreeText: false,
+  freeTextBlockedByInterest: false,
   disabled: false,
+  unavailable: false,
 };
 
 export default ChallengeThemePicker;

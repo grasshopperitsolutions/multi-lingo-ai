@@ -10,8 +10,6 @@ import {
   markWordLadderPuzzleSeen,
 } from "../services/userService";
 import { fetchWordLadderPuzzle, getWordLadderPoolCount, MAX_STRIKES } from "../services/wordLadderService";
-import { useInterestTopics } from "../hooks/useInterestTopics";
-import { useChallengeTheme } from "../hooks/useChallengeTheme";
 import ChallengeSidebar from "./ChallengeSidebar";
 import ChallengeThemePicker from "./ChallengeThemePicker";
 import Loader from "./Loader";
@@ -150,8 +148,6 @@ StrikeIndicator.propTypes = {
 const WordLadderGame = ({ isDarkMode }) => {
   const { t }    = useTranslation();
   const { user } = useAppContext();
-  const { topics } = useInterestTopics();
-  const challengeTheme = useChallengeTheme();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
@@ -220,8 +216,6 @@ const WordLadderGame = ({ isDarkMode }) => {
         userDialect:    interfaceLang,
         learningDialect,
         seenPuzzleIds:  seenIds,
-        topics,
-        theme: challengeTheme.theme,
       });
 
       setPuzzleId(puzzle.puzzleId);
@@ -245,7 +239,7 @@ const WordLadderGame = ({ isDarkMode }) => {
       setLoading(false);
       setIsLoadingStats(false);
     }
-  }, [user, interfaceLang, learningDialect, t, topics, challengeTheme.theme]);
+  }, [user, interfaceLang, learningDialect, t]);
 
   useEffect(() => {
     loadPuzzle();
@@ -495,19 +489,10 @@ const WordLadderGame = ({ isDarkMode }) => {
 
       {/* ── Sidebar ── */}
       <ChallengeSidebar
-        themePicker={
-          <ChallengeThemePicker
-            interests={challengeTheme.interests}
-            hasInterests={challengeTheme.hasInterests}
-            selectedInterestId={challengeTheme.selectedInterestId}
-            onSelectInterest={challengeTheme.selectInterest}
-            freeText={challengeTheme.freeText}
-            onFreeTextChange={challengeTheme.setFreeText}
-            canUseFreeText={challengeTheme.canUseFreeText}
-            freeTextBlockedByInterest={challengeTheme.freeTextBlockedByInterest}
-            isDarkMode={isDarkMode}
-          />
-        }
+        // A ladder needs each word one letter from the next, so it cannot also
+        // honour a subject. The section says so rather than quietly missing,
+        // which would read as a bug next to the other games.
+        themePicker={<ChallengeThemePicker unavailable isDarkMode={isDarkMode} />}
         isDarkMode={isDarkMode}
         seenCount={seenCount}
         progress={progress}

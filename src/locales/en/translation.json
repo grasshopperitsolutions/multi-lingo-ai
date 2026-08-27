@@ -811,6 +811,7 @@
   "challenges": {
     "theme": {
       "title": "Theme",
+      "unavailable": "Themes are not available in this challenge.",
       "no_interests_prefix": "Pick your interests in",
       "settings_link": "settings",
       "no_interests_suffix": " to theme your challenges.",
