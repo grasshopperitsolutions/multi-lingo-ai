@@ -7,6 +7,7 @@ import { lookupWord, WORD_TYPES, MAX_WORD_TYPES } from '../services/dictionarySe
 import { useTts } from '../hooks/useTts';
 import TooltipButton from './TooltipButton';
 import ReportButton from './ReportButton';
+import FavouriteFeatureButton from './FavouriteFeatureButton';
 import { Breadcrumb, TtsControls } from './ui';
 
 const MAX_CHARS = 1000;
@@ -200,7 +201,10 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
         }`}>
           {t('dashboard.dictionary')}
         </h1>
-        <ReportButton isDarkMode={isDarkMode} context="DictionaryPanel" />
+        <div className="flex items-center gap-1">
+          <FavouriteFeatureButton featureId="dictionary" />
+          <ReportButton isDarkMode={isDarkMode} context="DictionaryPanel" />
+        </div>
       </div>
 
       <div className={`h-1 w-full rounded-full ${

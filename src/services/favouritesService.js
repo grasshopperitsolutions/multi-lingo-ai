@@ -82,6 +82,15 @@ const FAVOURITE_FIELDS = {
   [FAVOURITE_KINDS.FEATURE]:     'favFeatureIds',
 };
 
+/**
+ * Every `fav*` field, for callers that need to move the whole set at once.
+ *
+ * Exists so AppContext can hydrate favourites onto the loaded profile without
+ * naming each field — which is what keeps the promise in CLAUDE.md that adding
+ * a kind means one entry in FAVOURITE_FIELDS and nothing else.
+ */
+export const ALL_FAVOURITE_FIELDS = Object.freeze(Object.values(FAVOURITE_FIELDS));
+
 function fieldFor(kind) {
   const field = FAVOURITE_FIELDS[kind];
   if (!field) throw new Error(`[favouritesService] Unknown favourite kind: ${kind}`);

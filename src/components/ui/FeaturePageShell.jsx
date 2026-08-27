@@ -1,12 +1,16 @@
 import PropTypes from "prop-types";
 import Breadcrumb from "./Breadcrumb";
 import ReportButton from "../ReportButton";
+import FavouriteFeatureButton from "../FavouriteFeatureButton";
 
 /**
  * FeaturePageShell
  *
  * Shared chrome for routed game/exercise pages: a Breadcrumb, an optional
  * title + ReportButton row, then the feature content.
+ *
+ * The heart sits left of the report flag and works out which feature it is
+ * pinning from the route, so no page has to pass an id.
  *
  * Pass `title` to show the heading row (used by Challenges games); omit it
  * to render just the breadcrumb + content (used by Exam Training exercises,
@@ -23,7 +27,10 @@ const FeaturePageShell = ({ isDarkMode, accentColor, breadcrumbItems, title, rep
         }`}>
           {title}
         </h1>
-        {reportContext && <ReportButton isDarkMode={isDarkMode} context={reportContext} />}
+        <div className="flex items-center gap-1">
+          <FavouriteFeatureButton />
+          {reportContext && <ReportButton isDarkMode={isDarkMode} context={reportContext} />}
+        </div>
       </div>
     )}
 

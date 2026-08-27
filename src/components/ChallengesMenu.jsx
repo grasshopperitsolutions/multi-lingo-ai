@@ -1,72 +1,13 @@
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BrainCircuit, Swords, NotebookPen, Search, EggFried, Link2, Footprints } from "lucide-react";
 import { useTierAccess } from "../hooks/useTierAccess";
+import { CHALLENGE_GAMES as GAMES } from "../config/favouritableFeatures";
 import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from "../utils/featureAccess";
 import StatusBadge from "./StatusBadge";
 import ReportButton from "./ReportButton";
+import FavouriteFeatureButton from "./FavouriteFeatureButton";
 import { Breadcrumb } from "./ui";
-
-// ── Game Registry ─────────────────────────────────────────────────────────────
-const GAMES = [
-  {
-    id: "hangman",
-    route: "/dashboard/challenges/hangman",
-    icon: Swords,
-    color: "bg-rose-400",
-    titleKey: "challenges.hangman",
-    descKey: "challenges.hangman_desc",
-  },
-  {
-    id: "scrambled_word",
-    route: "/dashboard/challenges/scrambled-word",
-    icon: EggFried,
-    color: "bg-yellow-400",
-    titleKey: "challenges.scrambled_word",
-    descKey: "challenges.scrambled_word_desc",
-  },
-  {
-    id: "word_search",
-    route: "/dashboard/challenges/word-search",
-    icon: Search,
-    color: "bg-purple-400",
-    titleKey: "challenges.word_search",
-    descKey: "challenges.word_search_desc",
-  },
-  {
-    id: "word_link",
-    route: "/dashboard/challenges/word-link",
-    icon: Link2,
-    color: "bg-indigo-400",
-    titleKey: "challenges.word_link",
-    descKey: "challenges.word_link_desc",
-  },
-  {
-    id: "word_ladder",
-    route: "/dashboard/challenges/word-ladder",
-    icon: Footprints,
-    color: "bg-orange-400",
-    titleKey: "challenges.word_ladder",
-    descKey: "challenges.word_ladder_desc",
-  },
-  {
-    id: "word_quiz",
-    route: "/dashboard/challenges/word-quiz",
-    icon: NotebookPen,
-    color: "bg-emerald-400",
-    titleKey: "challenges.word_quiz",
-    descKey: "challenges.word_quiz_desc",
-  },
-  {
-    id: "crosswords",
-    route: "/dashboard/challenges/crosswords",
-    icon: BrainCircuit,
-    color: "bg-blue-400",
-    titleKey: "challenges.crosswords",
-    descKey: "challenges.crosswords_desc",
-  },
-];
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 const GameCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel }) => (
@@ -155,7 +96,10 @@ const ChallengesMenu = ({ isDarkMode }) => {
         }`}>
           {t('challenges.title', 'Challenges')}
         </h1>
-        <ReportButton isDarkMode={isDarkMode} context="ChallengesMenu" />
+        <div className="flex items-center gap-1">
+          <FavouriteFeatureButton featureId="challenges" />
+          <ReportButton isDarkMode={isDarkMode} context="ChallengesMenu" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 mt-2">

@@ -12,6 +12,7 @@ import { getLanguages, getWritingSystems } from "../services/supportedLanguagesS
 import { getCategories } from "../services/categoriesService";
 import { getTiersConfig } from "../services/tiersConfigService";
 import { getFeatures } from "../services/featuresService";
+import { ALL_FAVOURITE_FIELDS } from "../services/favouritesService";
 import { registerAiConfirmHandler } from "../services/aiService";
 import { normalizeCode } from "../utils/languageCode";
 import { auth } from "../firebase";
@@ -531,6 +532,16 @@ export const AppProvider = ({ children }) => {
       const seenStoryIds = profile?.seenStoryIds ?? [];
       const seenHistoryFactsIds = profile?.seenHistoryFactsIds ?? [];
 
+      // Favourites — every `fav*` field the service knows about, copied across
+      // as a group. Without this the hearts reset on every page load: the
+      // toggle writes to Firestore and updates AppContext, but a reload
+      // rebuilds `user` from the whitelist below and the ids never came back.
+      // Driven off ALL_FAVOURITE_FIELDS so adding a kind stays a one-line
+      // change in favouritesService, as CLAUDE.md promises.
+      const favouriteFields = Object.fromEntries(
+        ALL_FAVOURITE_FIELDS.map((field) => [field, profile?.[field] ?? []]),
+      );
+
       setUser((prev) => ({
         ...prev,
         // displayName: Firestore → auth provider → keep previous
@@ -559,6 +570,11 @@ export const AppProvider = ({ children }) => {
         seenExerciseIds,
         seenStoryIds,
         seenHistoryFactsIds,
+        ...favouriteFields,
+        // ── Preferences ──────────────────────────────────────────────────────
+        // Absent means "not chosen yet", which useDashboardPresentation
+        // resolves by viewport rather than by guessing a default here.
+        dashboardPresentation: profile?.dashboardPresentation ?? null,
       }));
     } catch (err) {
       showAlert("error", `Could not load your profile: ${err.message}`);

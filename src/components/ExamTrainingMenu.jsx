@@ -3,50 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useTierAccess } from '../hooks/useTierAccess';
 import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from '../utils/featureAccess';
-import { Headphones, BookOpen, PenLine, ClipboardList, Lock } from 'lucide-react';
+import { Lock } from 'lucide-react';
+import { EXAM_EXERCISES as EXERCISES } from '../config/favouritableFeatures';
 import StatusBadge from './StatusBadge';
 import ReportButton from './ReportButton';
+import FavouriteFeatureButton from './FavouriteFeatureButton';
 import { Breadcrumb } from './ui';
-
-// ── Exercise Registry ─────────────────────────────────────────────────────────
-const EXERCISES = [
-  {
-    id: 'reading',
-    featureKey: 'exam_reading',
-    route: '/dashboard/exam-training/reading',
-    icon: BookOpen,
-    color: 'bg-emerald-500',
-    titleKey: 'exam.reading',
-    descKey: 'exam.reading_desc',
-  },
-  {
-    id: 'listening',
-    featureKey: 'exam_listening',
-    route: '/dashboard/exam-training/listening',
-    icon: Headphones,
-    color: 'bg-sky-500',
-    titleKey: 'exam.listening',
-    descKey: 'exam.listening_desc',
-  },
-  {
-    id: 'writing',
-    featureKey: 'exam_writing',
-    route: '/dashboard/exam-training/writing',
-    icon: PenLine,
-    color: 'bg-teal-500',
-    titleKey: 'exam.writing',
-    descKey: 'exam.writing_desc',
-  },
-  {
-    id: "full_exam",
-    featureKey: "full_exam",
-    route: '/dashboard/exam-training/full-exam',
-    icon: ClipboardList,
-    color: "bg-rose-400",
-    titleKey: "exam.full_exam",
-    descKey: "exam.full_exam_desc",
-  },
-];
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 const ExamCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel }) => (
@@ -134,7 +96,10 @@ const ExamTrainingMenu = ({ isDarkMode }) => {
         }`}>
           {t('exam.training', 'Exam Training')}
         </h1>
-        <ReportButton isDarkMode={isDarkMode} context="ExamTrainingMenu" />
+        <div className="flex items-center gap-1">
+          <FavouriteFeatureButton featureId="exam_training" />
+          <ReportButton isDarkMode={isDarkMode} context="ExamTrainingMenu" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 mt-2">

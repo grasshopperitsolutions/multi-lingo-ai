@@ -1,50 +1,15 @@
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Library, Lightbulb, MessageCircleQuestion, Dumbbell } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
+import { GRAMMAR_SECTIONS as SECTIONS } from "../config/favouritableFeatures";
 import { isGrammarSupported } from "../config/grammarSupport";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from "../utils/featureAccess";
 import StatusBadge from "./StatusBadge";
 import ReportButton from "./ReportButton";
+import FavouriteFeatureButton from "./FavouriteFeatureButton";
 import { Breadcrumb } from "./ui";
-
-// ── Section Registry ──────────────────────────────────────────────────────────
-const SECTIONS = [
-  {
-    id: "structures",
-    route: "/dashboard/grammar/structures",
-    icon: Library,
-    color: "bg-amber-400",
-    titleKey: "grammar.structures",
-    descKey: "grammar.structures_desc",
-  },
-  {
-    id: "tips",
-    route: "/dashboard/grammar/tips",
-    icon: Lightbulb,
-    color: "bg-yellow-400",
-    titleKey: "grammar.tips",
-    descKey: "grammar.tips_desc",
-  },
-  {
-    id: "ask",
-    route: "/dashboard/grammar/ask",
-    icon: MessageCircleQuestion,
-    color: "bg-sky-400",
-    titleKey: "grammar.ask",
-    descKey: "grammar.ask_desc",
-  },
-  {
-    id: "practice",
-    route: "/dashboard/grammar/practice",
-    icon: Dumbbell,
-    color: "bg-emerald-400",
-    titleKey: "grammar.practice",
-    descKey: "grammar.practice_desc",
-  },
-];
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 const GrammarCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel }) => (
@@ -136,7 +101,10 @@ const GrammarMenu = ({ isDarkMode }) => {
         }`}>
           {t("dashboard.grammar")}
         </h1>
-        <ReportButton isDarkMode={isDarkMode} context="GrammarMenu" />
+        <div className="flex items-center gap-1">
+          <FavouriteFeatureButton featureId="grammar" />
+          <ReportButton isDarkMode={isDarkMode} context="GrammarMenu" />
+        </div>
       </div>
 
       {/* The dashboard card is already disabled for unsupported languages, but a

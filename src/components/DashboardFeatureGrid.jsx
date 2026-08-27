@@ -1,9 +1,7 @@
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
-import { useFeatureFavourites } from "../hooks/useFeatureFavourites";
 import FeatureCard from "./FeatureCard";
-import { FavouriteButton } from "./ui";
 
 /**
  * DashboardFeatureGrid
@@ -14,16 +12,12 @@ import { FavouriteButton } from "./ui";
  * Takes already-resolved tiles rather than feature ids so the tier cascade runs
  * once per render of the dashboard, not once per grid.
  *
- * Why the heart is a sibling of the card rather than a child
- * ---------------------------------------------------------
- * FeatureCard *is* a <button>. Nesting FavouriteButton inside it would be
- * invalid HTML and the heart's click would bubble into "open this feature", so
- * it is absolutely positioned over the card instead. Top-left, because
- * StatusBadge and the lock icon both sit at top-right.
+ * There is deliberately no heart here. Favouriting moved onto the feature pages
+ * themselves (see FavouriteFeatureButton, next to the report flag), so a user
+ * can pin the Challenges hub or one specific game rather than only a whole tile.
  */
-const DashboardFeatureGrid = ({ tiles, emptyMessage }) => {
+const DashboardFeatureGrid = ({ tiles, emptyMessage, gridClassName, showDescriptions }) => {
   const { isDarkMode, showAlert } = useAppContext();
-  const { isFavourite, isPending, toggle } = useFeatureFavourites();
   const navigate = useNavigate();
 
   const handleFeatureClick = (tile) => {
@@ -50,7 +44,7 @@ const DashboardFeatureGrid = ({ tiles, emptyMessage }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className={gridClassName}>
       {tiles.map((tile) => (
         <div key={tile.id} className="relative">
           <FeatureCard
@@ -62,18 +56,8 @@ const DashboardFeatureGrid = ({ tiles, emptyMessage }) => {
             onClick={() => handleFeatureClick(tile)}
             statusBadgeLabel={tile.statusBadgeLabel}
             disabled={tile.unavailable || tile.locked}
+            showDescription={showDescriptions}
           />
-          <div className="absolute top-3 left-3 z-20">
-            <FavouriteButton
-              isFavourite={isFavourite(tile.id)}
-              onToggle={(event) => {
-                event.stopPropagation();
-                toggle(tile.id);
-              }}
-              disabled={isPending(tile.id)}
-              isDarkMode={isDarkMode}
-            />
-          </div>
         </div>
       ))}
     </div>
@@ -99,10 +83,19 @@ DashboardFeatureGrid.propTypes = {
   ).isRequired,
   /** Shown instead of the grid when there is nothing to render. */
   emptyMessage: PropTypes.string,
+  /** Grid classes. Overridden inside a book page, which is narrower than the
+   *  full-width tab panel and cannot take three columns. */
+  gridClassName: PropTypes.string,
+  /** Print each description on its card rather than in a hover tooltip. Set
+   *  inside the book pages, where a tooltip would be clipped by the scroll
+   *  container. */
+  showDescriptions: PropTypes.bool,
 };
 
 DashboardFeatureGrid.defaultProps = {
   emptyMessage: undefined,
+  gridClassName: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4",
+  showDescriptions: false,
 };
 
 export default DashboardFeatureGrid;

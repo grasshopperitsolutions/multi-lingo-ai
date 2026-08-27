@@ -21,7 +21,9 @@ const DashboardTabs = ({ tabs, activeId, onSelect, isDarkMode, ariaLabel }) => {
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className="flex gap-2 sm:gap-3 overflow-x-auto py-2 px-0.5 snap-x snap-mandatory"
+      className={`flex gap-2 sm:gap-3 overflow-x-auto py-2 px-0.5 snap-x snap-mandatory neo-scrollbar ${
+        isDarkMode ? "neo-scrollbar-dark" : ""
+      }`}
     >
       {tabs.map((tab) => {
         const Icon = tab.icon;

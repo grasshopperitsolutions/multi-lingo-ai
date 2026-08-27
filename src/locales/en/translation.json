@@ -542,7 +542,17 @@
     "learning_language_hint": "Learning language — change in Settings"
   },
   "dashboard": {
-    "tabs": {
+    "books": {
+      "section_title": "Your Shelf",
+      "shelf_hint": "Pick a book to open it",
+      "put_it_back": "Put it back",
+      "previous_page": "Previous page",
+      "next_page": "Next page",
+      "page_about": "About",
+      "page_features": "Features",
+      "feature_count": "{{count}} features inside"
+    },
+    "groups": {
       "today": "Today",
       "today_desc": "Your streak, one thing to do next, and the features you use most.",
       "practice": "Practice",
@@ -555,10 +565,7 @@
       "get_it_done_desc": "Real tasks in your new language: trips to plan, documents to write, exams to pass."
     },
     "today": {
-      "recommended": "Do This Next",
-      "start_streak": "Start your streak today",
-      "keep_streak": "Keep your {{count}}-day streak alive",
-      "your_features": "Your Features",
+      "your_features": "Features",
       "suggested_features": "Picked For You",
       "favourites_hint": "Tap the heart on any feature to pin it here."
     },

@@ -17,7 +17,7 @@
  *
  * Grouping axis: **what the user is about to do**, not what the feature is
  * made of. "Look It Up" and "Get It Done" describe an intent the user already
- * has when they open the app, which is what makes a tab guessable.
+ * has when they open the app, which is what makes a section scannable.
  */
 
 import { Compass, Gamepad2, Search, Headphones, Briefcase } from "lucide-react";
@@ -32,46 +32,45 @@ export const DASHBOARD_GROUP_IDS = {
 };
 
 /**
- * The tabs, in bar order.
+ * The groups, in page order.
  *
  * Practice sits directly after Today on purpose: the product is moving toward
  * a gamified feel, and the games are the strongest first thing to put in front
  * of somebody who has just signed up.
  *
- * `descriptionKey` is not rendered by the flat tab bar. It exists because the
- * planned 3D book presentation shows a per-tab description on the left page,
- * and writing that copy alongside the label is cheaper than retrofitting it.
+ * `descriptionKey` is the one-line subtitle under each section heading. The
+ * dormant book presentation shows the same string on a book's left page.
  */
 export const DASHBOARD_GROUPS = [
   {
     id: DASHBOARD_GROUP_IDS.TODAY,
     icon: Compass,
-    labelKey: "dashboard.tabs.today",
-    descriptionKey: "dashboard.tabs.today_desc",
+    labelKey: "dashboard.groups.today",
+    descriptionKey: "dashboard.groups.today_desc",
   },
   {
     id: DASHBOARD_GROUP_IDS.PRACTICE,
     icon: Gamepad2,
-    labelKey: "dashboard.tabs.practice",
-    descriptionKey: "dashboard.tabs.practice_desc",
+    labelKey: "dashboard.groups.practice",
+    descriptionKey: "dashboard.groups.practice_desc",
   },
   {
     id: DASHBOARD_GROUP_IDS.LOOK_IT_UP,
     icon: Search,
-    labelKey: "dashboard.tabs.look_it_up",
-    descriptionKey: "dashboard.tabs.look_it_up_desc",
+    labelKey: "dashboard.groups.look_it_up",
+    descriptionKey: "dashboard.groups.look_it_up_desc",
   },
   {
     id: DASHBOARD_GROUP_IDS.WATCH_LISTEN,
     icon: Headphones,
-    labelKey: "dashboard.tabs.watch_listen",
-    descriptionKey: "dashboard.tabs.watch_listen_desc",
+    labelKey: "dashboard.groups.watch_listen",
+    descriptionKey: "dashboard.groups.watch_listen_desc",
   },
   {
     id: DASHBOARD_GROUP_IDS.GET_IT_DONE,
     icon: Briefcase,
-    labelKey: "dashboard.tabs.get_it_done",
-    descriptionKey: "dashboard.tabs.get_it_done_desc",
+    labelKey: "dashboard.groups.get_it_done",
+    descriptionKey: "dashboard.groups.get_it_done_desc",
   },
 ];
 

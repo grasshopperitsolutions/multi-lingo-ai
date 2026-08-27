@@ -7,6 +7,7 @@ import { translateText } from '../services/translatorService';
 import { useTts } from '../hooks/useTts';
 import TooltipButton from './TooltipButton';
 import ReportButton from './ReportButton';
+import FavouriteFeatureButton from './FavouriteFeatureButton';
 import { Breadcrumb, TtsControls } from './ui';
 
 const MAX_CHARS = 1000;
@@ -132,7 +133,10 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
         }`}>
           {t('dashboard.translator')}
         </h1>
-        <ReportButton isDarkMode={isDarkMode} context="TranslatorPanel" />
+        <div className="flex items-center gap-1">
+          <FavouriteFeatureButton featureId="translator" />
+          <ReportButton isDarkMode={isDarkMode} context="TranslatorPanel" />
+        </div>
       </div>
 
       <div className={`h-1 w-full rounded-full ${

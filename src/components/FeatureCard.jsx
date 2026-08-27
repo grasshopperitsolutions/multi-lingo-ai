@@ -11,10 +11,15 @@ import { Lock } from "lucide-react";
  * Pass a string (e.g. "In progress...") to show the corner badge.
  * Omit or set to undefined/null to hide it once the feature is ready.
  * Pass `disabled: true` to grey out the card and show a lock overlay.
+ *
+ * `showDescription` prints the description on the card and suppresses the
+ * hover tooltip. Use it wherever the card sits inside a scrolling or clipped
+ * container — a tooltip bubble drawn above the card gets cut off there, so the
+ * description would only be readable by scrolling, if at all.
  */
-const FeatureCard = ({ icon: Icon, title, description, delay, color, isDarkMode, onClick, statusBadgeLabel, disabled }) => {
+const FeatureCard = ({ icon: Icon, title, description, delay, color, isDarkMode, onClick, statusBadgeLabel, disabled, showDescription }) => {
   return (
-    <Tooltip text={disabled ? "" : description} isDarkMode={isDarkMode}>
+    <Tooltip text={disabled || showDescription ? "" : description} isDarkMode={isDarkMode}>
       <button
         onClick={disabled ? undefined : onClick}
         disabled={disabled}
@@ -46,6 +51,15 @@ const FeatureCard = ({ icon: Icon, title, description, delay, color, isDarkMode,
           <Icon className="w-8 h-8" />
         </div>
         <h3 className="font-extrabold text-xl uppercase">{title}</h3>
+        {showDescription && description && (
+          <p
+            className={`mt-2 text-xs font-bold leading-snug ${
+              isDarkMode ? "text-slate-400" : "text-slate-500"
+            }`}
+          >
+            {description}
+          </p>
+        )}
       </button>
     </Tooltip>
   );
@@ -63,6 +77,8 @@ FeatureCard.propTypes = {
   statusBadgeLabel: PropTypes.string,
   /** When true, greys out the card and shows a lock icon */
   disabled: PropTypes.bool,
+  /** Print the description on the card instead of in a hover tooltip. */
+  showDescription: PropTypes.bool,
 };
 
 FeatureCard.defaultProps = {
@@ -71,6 +87,7 @@ FeatureCard.defaultProps = {
   delay: undefined,
   statusBadgeLabel: undefined,
   disabled: false,
+  showDescription: false,
 };
 
 export default FeatureCard;

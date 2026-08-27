@@ -89,3 +89,109 @@
 .scrambled-shake {
   animation: scrambled-shake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
 }
+
+/* ── Floating books (dashboard) ─────────────────────────────────────────────
+   Tailwind 3.4 has no perspective / transform-style utilities (they arrive in
+   v4), so the 3D primitives the book shelf needs live here. */
+
+/* The shared camera. perspective-origin sits slightly above centre so the arc
+   reads as being at eye level rather than looking down at a table. */
+.book-scene {
+  perspective: 1600px;
+  perspective-origin: 50% 45%;
+}
+.book-scene-mobile { perspective: 1100px; }
+
+.preserve-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; }
+
+/* Spine lettering: bottom-to-top, the way it reads on a shelf.
+   vertical-rl alone runs top-to-bottom; the 180deg flip is what reverses it. */
+.book-spine-text {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+/* ── Neo-brutalist scrollbars ───────────────────────────────────────────────
+   Opt-in via .neo-scrollbar, so nothing gets restyled by accident.
+
+   Chrome gives up on ::-webkit-scrollbar entirely the moment EITHER
+   scrollbar-width or scrollbar-color is set to a non-auto value — it switches
+   to standard scrollbar rendering and every rule below is silently ignored.
+   So neither standard property may appear outside the feature query.
+
+   The thumb cycles through the three loader-block colours over 12s. Colours
+   can only be interpolated if the custom property is registered with
+   @property; an unregistered var would jump between the keyframes instead of
+   blending. The animation runs on the scroll container, not on the thumb,
+   because Chrome does not animate scrollbar pseudo-elements directly — the
+   thumb just reads the inherited variables and repaints. */
+@property --neo-scroll-a {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #60a5fa;
+}
+@property --neo-scroll-b {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #facc15;
+}
+
+/* blue → yellow → rose, and the second stop a third of a cycle ahead, so the
+   thumb always shows a gradient between two different colours. */
+@keyframes neo-scroll-a {
+  0%   { --neo-scroll-a: #60a5fa; }
+  33%  { --neo-scroll-a: #facc15; }
+  66%  { --neo-scroll-a: #f472b6; }
+  100% { --neo-scroll-a: #60a5fa; }
+}
+@keyframes neo-scroll-b {
+  0%   { --neo-scroll-b: #facc15; }
+  33%  { --neo-scroll-b: #f472b6; }
+  66%  { --neo-scroll-b: #60a5fa; }
+  100% { --neo-scroll-b: #facc15; }
+}
+
+.neo-scrollbar {
+  animation: neo-scroll-a 12s linear infinite, neo-scroll-b 12s linear infinite;
+}
+
+.neo-scrollbar::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+.neo-scrollbar::-webkit-scrollbar-track,
+.neo-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.neo-scrollbar::-webkit-scrollbar-thumb {
+  background-image: linear-gradient(160deg, var(--neo-scroll-a), var(--neo-scroll-b));
+  border: 3px solid #0f172a;
+  border-radius: 8px;
+  /* Keeps the gradient inside the border, so the thumb reads as an object
+     sitting on the page rather than a bar welded to the side of it. */
+  background-clip: padding-box;
+}
+
+/* Dark theme: only the thumb's border changes, to match the darker frame it
+   sits against. No standard scrollbar-* properties here — see above. */
+.neo-scrollbar-dark::-webkit-scrollbar-thumb {
+  border-color: #1e293b;
+}
+
+/* Firefox has no ::-webkit-scrollbar, so it is served the standard properties
+   instead, behind a query Chrome fails. scrollbar-color takes a flat colour
+   only — no gradient and no animation — so it gets the middle of the cycle. */
+@supports not selector(::-webkit-scrollbar) {
+  .neo-scrollbar {
+    animation: none;
+    scrollbar-width: thin;
+    scrollbar-color: #facc15 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-scrollbar {
+    animation: none;
+  }
+}
