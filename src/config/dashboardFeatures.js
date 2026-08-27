@@ -2,8 +2,8 @@
  * dashboardFeatures.js
  *
  * The dashboard tile registry — one entry per feature card, carrying the parts
- * that cannot live in Firestore (icon component, route, colour) plus the tab it
- * belongs to.
+ * that cannot live in Firestore (icon component, route, colour) plus the section
+ * it belongs to.
  *
  * `id` doubles as the feature key in appConfig/config/features, which is what
  * ties a tile to its tier grant, its `hidden` flag and its pricing row. Ids are
@@ -11,7 +11,7 @@
  * granted. See utils/featureAccess.js for the gating cascade.
  *
  * This is a module rather than an array inside DashboardHomePage because two
- * surfaces now read it: the per-tab grid, and the Today panel's favourites.
+ * surfaces read it: the grouped sections, and the Today panel's favourites.
  *
  * Titles and descriptions are held as i18n keys, not resolved strings, so this
  * module stays free of React and translation state.
@@ -38,7 +38,7 @@ import { DASHBOARD_GROUP_IDS, FALLBACK_GROUP_ID, isGroupId } from "./dashboardGr
 import { isGrammarSupported } from "./grammarSupport";
 
 /**
- * Every dashboard tile, in the order they appear within their tab.
+ * Every dashboard tile, in the order they appear within their section.
  *
  * `isUnavailable` marks a tile blocked for a reason paying cannot fix — the
  * user's learning language simply is not supported by that feature yet. It is
@@ -55,6 +55,20 @@ export const DASHBOARD_FEATURES = [
     color: "text-yellow-500",
     titleKey: "dashboard.challenges",
     descKey: "dashboard.challenges_desc",
+  },
+  {
+    id: "exam_training",
+    group: DASHBOARD_GROUP_IDS.PRACTICE,
+    route: "/dashboard/exam-training",
+    icon: GraduationCap,
+    color: "text-teal-500",
+    titleKey: "dashboard.exam_training",
+    descKey: "dashboard.exam_training_desc",
+    isUnavailable: ({ user, supportedLanguages }) =>
+      !(supportedLanguages ?? []).some(
+        (lang) => lang.code === user?.learningDialect && lang.examSupported,
+      ),
+    unavailableReasonKey: "dashboard.exam_not_available_for_language",
   },
   {
     id: "ai_tutor",
@@ -174,20 +188,6 @@ export const DASHBOARD_FEATURES = [
     titleKey: "dashboard.professional_tools",
     descKey: "dashboard.professional_tools_desc",
   },
-  {
-    id: "exam_training",
-    group: DASHBOARD_GROUP_IDS.GET_IT_DONE,
-    route: "/dashboard/exam-training",
-    icon: GraduationCap,
-    color: "text-teal-500",
-    titleKey: "dashboard.exam_training",
-    descKey: "dashboard.exam_training_desc",
-    isUnavailable: ({ user, supportedLanguages }) =>
-      !(supportedLanguages ?? []).some(
-        (lang) => lang.code === user?.learningDialect && lang.examSupported,
-      ),
-    unavailableReasonKey: "dashboard.exam_not_available_for_language",
-  },
 ];
 
 /** id → tile, for the Today panel resolving stored favourite ids. */
@@ -204,9 +204,9 @@ export function featureById(id) {
 }
 
 /**
- * The tiles belonging to one tab, in registry order.
+ * The tiles belonging to one group, in registry order.
  *
- * A tile whose `group` matches no tab falls into FALLBACK_GROUP_ID rather than
+ * A tile whose `group` matches no group falls into FALLBACK_GROUP_ID rather than
  * disappearing, so forgetting the field is a visible mistake, not a silent one.
  *
  * @param {string} groupId
@@ -238,19 +238,23 @@ export const INTEREST_FEATURE_HINTS = {
 
 /**
  * What Today shows to somebody with no favourites and no useful interests.
- * Challenges leads, matching the gamified direction and the tab order.
+ * Challenges leads, matching the gamified direction and the section order.
  */
 export const DEFAULT_TODAY_FEATURE_IDS = ["challenges", "translator", "story_generator"];
 
-/** How many tiles the Today panel shows before it stops. */
-export const TODAY_FEATURE_LIMIT = 3;
+/**
+ * How many *suggestions* the Today panel offers before a user has pinned
+ * anything. Favourites themselves are deliberately uncapped — the strip scrolls
+ * instead — so this only ever limits the interest-based fallback.
+ */
+export const TODAY_SUGGESTION_LIMIT = 3;
 
 /**
  * Suggested feature ids for a user who has not favourited anything yet: their
  * interests first, topped up from the defaults so the panel is never empty.
  *
  * @param {string[]} interests - user.interests from onboarding
- * @returns {string[]} ids, deduped, capped at TODAY_FEATURE_LIMIT
+ * @returns {string[]} ids, deduped, capped at TODAY_SUGGESTION_LIMIT
  */
 export function suggestedFeatureIds(interests = []) {
   const fromInterests = (interests ?? []).flatMap(
@@ -258,6 +262,6 @@ export function suggestedFeatureIds(interests = []) {
   );
   return [...new Set([...fromInterests, ...DEFAULT_TODAY_FEATURE_IDS])].slice(
     0,
-    TODAY_FEATURE_LIMIT,
+    TODAY_SUGGESTION_LIMIT,
   );
 }

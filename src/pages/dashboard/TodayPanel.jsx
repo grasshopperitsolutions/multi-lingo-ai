@@ -1,37 +1,40 @@
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Flame, Star, Trophy, TrendingUp, Heart } from "lucide-react";
+import { Flame, Star, Trophy, TrendingUp, Heart, X } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { useFeatureFavourites } from "../../hooks/useFeatureFavourites";
-import { suggestedFeatureIds, TODAY_FEATURE_LIMIT } from "../../config/dashboardFeatures";
+import { suggestedFeatureIds, TODAY_SUGGESTION_LIMIT } from "../../config/dashboardFeatures";
 import { favouritableById } from "../../config/favouritableFeatures";
 import { useTierAccess } from "../../hooks/useTierAccess";
 import { FEATURE_STATUS, PURCHASABLE_STATUSES } from "../../utils/featureAccess";
 import Tooltip from "../../components/Tooltip";
 
 // ── StatCard ────────────────────────────────────────────────────────────────
+// One design at every width, rather than a small mobile card and a large
+// desktop one. Fixed width because these live in a scrolling strip: uniform
+// cards make the row read as a rail, and adding a fifth or sixth stat later
+// just makes it scroll a little sooner.
 const StatCard = ({ icon: Icon, label, value, color, isDarkMode }) => (
   <div
-    className={`p-2.5 sm:p-6 rounded-xl sm:rounded-2xl border-4 flex flex-col gap-1.5 sm:gap-3 transition-all hover:-translate-y-1
+    className={`w-[198px] shrink-0 snap-start p-3 rounded-xl border-4 flex flex-col gap-1.5 transition-all hover:-translate-y-1
     ${
       isDarkMode
-        ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
-        : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
+        ? "bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]"
+        : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
     }`}
   >
-    <div className="flex items-center gap-2 sm:gap-3">
-      <div className={`w-7 h-7 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl border-2 border-current flex items-center justify-center shrink-0 ${color}`}>
-        <Icon size={14} className="sm:hidden" />
-        <Icon size={22} className="hidden sm:block" />
+    <div className="flex items-center gap-2">
+      <div className={`w-8 h-8 rounded-lg border-2 border-current flex items-center justify-center shrink-0 ${color}`}>
+        <Icon size={16} />
       </div>
-      <p className={`text-lg sm:text-3xl font-black tracking-tighter ${
+      <p className={`text-xl font-black tracking-tighter ${
         isDarkMode ? "text-white" : "text-slate-900"
       }`}>
         {value}
       </p>
     </div>
-    <p className={`text-[9px] sm:text-xs font-black uppercase tracking-widest leading-tight ${
+    <p className={`text-[9px] font-black uppercase tracking-widest leading-tight ${
       isDarkMode ? "text-slate-400" : "text-slate-500"
     }`}>
       {label}
@@ -76,7 +79,7 @@ const TodayPanel = ({ tiles }) => {
   const { isDarkMode, user, showAlert } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { favouriteIds } = useFeatureFavourites();
+  const { favouriteIds, isPending, toggle } = useFeatureFavourites();
   const { featureStatus, isVisible } = useTierAccess();
 
   const stats = [
@@ -121,10 +124,9 @@ const TodayPanel = ({ tiles }) => {
     };
   };
 
-  const favouriteTiles = favouriteIds
-    .map(resolveFavourite)
-    .filter(Boolean)
-    .slice(0, TODAY_FEATURE_LIMIT);
+  // Uncapped on purpose: pin as many as you like. The strip scrolls sideways
+  // rather than growing the page.
+  const favouriteTiles = favouriteIds.map(resolveFavourite).filter(Boolean);
 
   const hasFavourites = favouriteTiles.length > 0;
 
@@ -133,7 +135,7 @@ const TodayPanel = ({ tiles }) => {
   const suggestedTiles = suggestedFeatureIds(user?.interests)
     .map((id) => byId.get(id))
     .filter(Boolean)
-    .slice(0, TODAY_FEATURE_LIMIT);
+    .slice(0, TODAY_SUGGESTION_LIMIT);
 
   const shownTiles = hasFavourites ? favouriteTiles : suggestedTiles;
 
@@ -157,15 +159,17 @@ const TodayPanel = ({ tiles }) => {
       {/* Progress */}
       <section>
         <SectionLabel isDarkMode={isDarkMode}>{t("dashboard.your_progress")}</SectionLabel>
+        {/* A strip, not a grid — it never wraps to a second line. More stats
+            later just extend the rail and it starts scrolling sooner. The
+            padding keeps the cards' offset shadows and hover lift off the
+            clipped edges, since overflow-x also clips vertically. */}
         <div
-          className={`flex gap-3 overflow-x-auto py-2 px-0.5 sm:py-1 sm:grid sm:grid-cols-4 sm:gap-4 snap-x snap-mandatory neo-scrollbar ${
+          className={`flex gap-3 overflow-x-auto px-2 py-3 snap-x snap-mandatory neo-scrollbar ${
             isDarkMode ? "neo-scrollbar-dark" : ""
           }`}
         >
           {stats.map((s) => (
-            <div key={s.label} className="snap-start shrink-0 w-[calc(50%-8px)] min-w-[100px] sm:w-auto sm:min-w-0">
-              <StatCard {...s} isDarkMode={isDarkMode} />
-            </div>
+            <StatCard key={s.label} {...s} isDarkMode={isDarkMode} />
           ))}
         </div>
       </section>
@@ -185,9 +189,18 @@ const TodayPanel = ({ tiles }) => {
           )}
         </SectionLabel>
 
-        {/* A shortcut strip, not a second copy of the feature grid: the
-            group sections below already show every card in full. */}
-        <div className="flex flex-wrap gap-3">
+        {/* A shortcut strip, not a second copy of the feature grid: the group
+            sections below already show every card in full.
+
+            One scrolling row rather than a wrapping grid, so pinning a lot of
+            features never pushes the sections off the fold. The vertical
+            padding is load-bearing: overflow-x:auto also clips vertically, and
+            each remove button hangs 8px outside its square. */}
+        <div
+          className={`flex gap-3 overflow-x-auto px-2 py-3 snap-x snap-mandatory neo-scrollbar ${
+            isDarkMode ? "neo-scrollbar-dark" : ""
+          }`}
+        >
             {shownTiles.length === 0 ? (
               <p className={`text-sm font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
                 {t("dashboard.today.favourites_hint")}
@@ -197,7 +210,7 @@ const TodayPanel = ({ tiles }) => {
                 // The size lives on the button, not on this box: Tooltip's own
                 // wrapper is `w-full` with no height, so an `h-full` button
                 // inside it collapsed to its content and came out 64x36.
-                <div key={tile.id}>
+                <div key={tile.id} className="relative shrink-0 snap-start">
                   <Tooltip text={tile.description} isDarkMode={isDarkMode}>
                     <button
                       type="button"
@@ -214,6 +227,31 @@ const TodayPanel = ({ tiles }) => {
                       <tile.icon size={28} className={tile.color} />
                     </button>
                   </Tooltip>
+
+                  {/* Unpin, without a trip to the feature's own page.
+                      A sibling of the square rather than a child: the square is
+                      itself a <button>, so nesting one inside would be invalid
+                      HTML and the click would bubble into "open this feature".
+
+                      Only on real favourites — the same strip shows suggested
+                      features before a user has pinned anything, and there is
+                      nothing to remove from those. */}
+                  {hasFavourites && (
+                    <button
+                      type="button"
+                      onClick={() => toggle(tile.id)}
+                      disabled={isPending(tile.id)}
+                      aria-label={t("dashboard.today.remove_favourite", { name: tile.title })}
+                      title={t("dashboard.today.remove_favourite", { name: tile.title })}
+                      className={`absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full border-2 transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed ${
+                        isDarkMode
+                          ? "bg-slate-900 border-slate-600 text-slate-400 hover:text-rose-400 hover:border-rose-500"
+                          : "bg-white border-slate-900 text-slate-500 hover:text-rose-500 hover:border-rose-500"
+                      }`}
+                    >
+                      <X size={12} strokeWidth={3} />
+                    </button>
+                  )}
                 </div>
               ))
             )}

@@ -12,12 +12,19 @@ import { Lock } from "lucide-react";
  * Omit or set to undefined/null to hide it once the feature is ready.
  * Pass `disabled: true` to grey out the card and show a lock overlay.
  *
+ * `compact` shrinks the title on small screens. Scoped to a prop rather than
+ * applied globally because the two surfaces differ: the dashboard shows these
+ * two-across on a phone, while the home page shows one full-width card, where
+ * a smaller title would just look undersized.
+ *
  * `showDescription` prints the description on the card and suppresses the
  * hover tooltip. Use it wherever the card sits inside a scrolling or clipped
  * container — a tooltip bubble drawn above the card gets cut off there, so the
  * description would only be readable by scrolling, if at all.
  */
-const FeatureCard = ({ icon: Icon, title, description, delay, color, isDarkMode, onClick, statusBadgeLabel, disabled, showDescription }) => {
+const FeatureCard = ({ icon: Icon, title, description, delay, color, isDarkMode, onClick, statusBadgeLabel, disabled, showDescription, compact }) => {
+  const titleSize = compact ? "text-sm sm:text-xl" : "text-xl";
+
   return (
     <Tooltip text={disabled || showDescription ? "" : description} isDarkMode={isDarkMode}>
       <button
@@ -50,7 +57,7 @@ const FeatureCard = ({ icon: Icon, title, description, delay, color, isDarkMode,
         >
           <Icon className="w-8 h-8" />
         </div>
-        <h3 className="font-extrabold text-xl uppercase">{title}</h3>
+        <h3 className={`font-extrabold uppercase leading-tight ${titleSize}`}>{title}</h3>
         {showDescription && description && (
           <p
             className={`mt-2 text-xs font-bold leading-snug ${
@@ -79,6 +86,8 @@ FeatureCard.propTypes = {
   disabled: PropTypes.bool,
   /** Print the description on the card instead of in a hover tooltip. */
   showDescription: PropTypes.bool,
+  /** Smaller title below the sm breakpoint, for two-across phone layouts. */
+  compact: PropTypes.bool,
 };
 
 FeatureCard.defaultProps = {
@@ -88,6 +97,7 @@ FeatureCard.defaultProps = {
   statusBadgeLabel: undefined,
   disabled: false,
   showDescription: false,
+  compact: false,
 };
 
 export default FeatureCard;

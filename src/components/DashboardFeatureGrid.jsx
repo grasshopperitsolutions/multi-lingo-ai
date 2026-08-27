@@ -57,6 +57,7 @@ const DashboardFeatureGrid = ({ tiles, emptyMessage, gridClassName, showDescript
             statusBadgeLabel={tile.statusBadgeLabel}
             disabled={tile.unavailable || tile.locked}
             showDescription={showDescriptions}
+            compact
           />
         </div>
       ))}
@@ -94,7 +95,9 @@ DashboardFeatureGrid.propTypes = {
 
 DashboardFeatureGrid.defaultProps = {
   emptyMessage: undefined,
-  gridClassName: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4",
+  // Two columns even on the narrowest phones — a single column of tall
+  // cards made the sections very long to scroll past.
+  gridClassName: "grid grid-cols-2 lg:grid-cols-3 gap-4",
   showDescriptions: false,
 };
 

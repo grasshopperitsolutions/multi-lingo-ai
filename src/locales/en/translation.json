@@ -556,16 +556,17 @@
       "today": "Today",
       "today_desc": "Your streak, one thing to do next, and the features you use most.",
       "practice": "Practice",
-      "practice_desc": "Games, drills and tutors. Where you put the language to work.",
+      "practice_desc": "Games, drills, tutors and exam training. Where you put the language to work.",
       "look_it_up": "Look It Up",
       "look_it_up_desc": "Fast answers: translate a phrase, check a word, settle a grammar question.",
       "watch_listen": "Read, Watch & Listen",
       "watch_listen_desc": "Stories, radio, TV, food and culture from the country itself.",
       "get_it_done": "Get It Done",
-      "get_it_done_desc": "Real tasks in your new language: trips to plan, documents to write, exams to pass."
+      "get_it_done_desc": "Real tasks in your new language: trips to plan and documents to write."
     },
     "today": {
       "your_features": "Features",
+      "remove_favourite": "Remove {{name}} from your features",
       "suggested_features": "Picked For You",
       "favourites_hint": "Tap the heart on any feature to pin it here."
     },
