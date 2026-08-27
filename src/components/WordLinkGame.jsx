@@ -11,7 +11,9 @@ import {
 } from "../services/userService";
 import { fetchWordLinkPuzzle, getWordLinkPoolCount } from "../services/wordLinkService";
 import { useInterestTopics } from "../hooks/useInterestTopics";
+import { useChallengeTheme } from "../hooks/useChallengeTheme";
 import ChallengeSidebar from "./ChallengeSidebar";
+import ChallengeThemePicker from "./ChallengeThemePicker";
 import Loader from "./Loader";
 import { sanitizeAIError } from "../utils/errorUtils";
 
@@ -142,6 +144,7 @@ const WordLinkGame = ({ isDarkMode }) => {
   const { t }    = useTranslation();
   const { user } = useAppContext();
   const { topics } = useInterestTopics();
+  const challengeTheme = useChallengeTheme();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
@@ -211,6 +214,7 @@ const WordLinkGame = ({ isDarkMode }) => {
         learningDialect,
         seenPuzzleIds:  seenIds,
         topics,
+        theme: challengeTheme.theme,
       });
 
       setPuzzleId(puzzle.puzzleId);
@@ -235,7 +239,7 @@ const WordLinkGame = ({ isDarkMode }) => {
       setLoading(false);
       setIsLoadingStats(false);
     }
-  }, [user, interfaceLang, learningDialect, t, topics]);
+  }, [user, interfaceLang, learningDialect, t, topics, challengeTheme.theme]);
 
   useEffect(() => {
     loadPuzzle();
@@ -445,6 +449,19 @@ const WordLinkGame = ({ isDarkMode }) => {
 
       {/* ── Sidebar ── */}
       <ChallengeSidebar
+        themePicker={
+          <ChallengeThemePicker
+            interests={challengeTheme.interests}
+            hasInterests={challengeTheme.hasInterests}
+            selectedInterestId={challengeTheme.selectedInterestId}
+            onSelectInterest={challengeTheme.selectInterest}
+            freeText={challengeTheme.freeText}
+            onFreeTextChange={challengeTheme.setFreeText}
+            canUseFreeText={challengeTheme.canUseFreeText}
+            freeTextBlockedByInterest={challengeTheme.freeTextBlockedByInterest}
+            isDarkMode={isDarkMode}
+          />
+        }
         isDarkMode={isDarkMode}
         seenCount={seenCount}
         progress={progress}

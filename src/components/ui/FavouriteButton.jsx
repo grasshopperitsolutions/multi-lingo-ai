@@ -6,8 +6,12 @@ import { useTranslation } from 'react-i18next';
  * FavouriteButton.jsx
  *
  * The heart toggle used wherever something can be favourited (grammar tips,
- * stories, words — see favouritesService.FAVOURITE_KINDS). Filled when on,
- * outline when off.
+ * stories, words, whole features — see favouritesService.FAVOURITE_KINDS).
+ * Filled when on, outline when off.
+ *
+ * Borderless: it sits beside ReportButton's flag in feature page headers, and
+ * the two read as a pair only if neither carries a frame. State is shown by
+ * the fill and the colour instead.
  *
  * Presentational and fully controlled: the caller owns `isFavourite` and does
  * the persisting in `onToggle`. That keeps the optimistic-update decision with
@@ -35,14 +39,14 @@ const FavouriteButton = ({ isFavourite, onToggle, isDarkMode, disabled = false, 
       aria-label={label}
       title={label}
       aria-pressed={isFavourite}
-      className={`shrink-0 p-2 rounded-lg border-2 transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed ${
+      className={`shrink-0 inline-flex items-center p-1.5 rounded-lg transition-colors active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed ${
         isFavourite
           ? isDarkMode
-            ? 'border-rose-500/60 text-rose-400 hover:bg-rose-500/10'
-            : 'border-rose-400 text-rose-500 hover:bg-rose-50'
+            ? 'text-rose-400 hover:text-rose-300'
+            : 'text-rose-500 hover:text-rose-600'
           : isDarkMode
-            ? 'border-slate-600 text-slate-500 hover:text-rose-400 hover:border-rose-500/60'
-            : 'border-slate-300 text-slate-400 hover:text-rose-500 hover:border-rose-400'
+            ? 'text-slate-500 hover:text-rose-400'
+            : 'text-slate-400 hover:text-rose-500'
       }`}
     >
       <Heart size={size} fill={isFavourite ? 'currentColor' : 'none'} />

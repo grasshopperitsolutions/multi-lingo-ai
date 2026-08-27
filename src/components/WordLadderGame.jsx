@@ -11,7 +11,9 @@ import {
 } from "../services/userService";
 import { fetchWordLadderPuzzle, getWordLadderPoolCount, MAX_STRIKES } from "../services/wordLadderService";
 import { useInterestTopics } from "../hooks/useInterestTopics";
+import { useChallengeTheme } from "../hooks/useChallengeTheme";
 import ChallengeSidebar from "./ChallengeSidebar";
+import ChallengeThemePicker from "./ChallengeThemePicker";
 import Loader from "./Loader";
 import { sanitizeAIError } from "../utils/errorUtils";
 
@@ -149,6 +151,7 @@ const WordLadderGame = ({ isDarkMode }) => {
   const { t }    = useTranslation();
   const { user } = useAppContext();
   const { topics } = useInterestTopics();
+  const challengeTheme = useChallengeTheme();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
@@ -218,6 +221,7 @@ const WordLadderGame = ({ isDarkMode }) => {
         learningDialect,
         seenPuzzleIds:  seenIds,
         topics,
+        theme: challengeTheme.theme,
       });
 
       setPuzzleId(puzzle.puzzleId);
@@ -241,7 +245,7 @@ const WordLadderGame = ({ isDarkMode }) => {
       setLoading(false);
       setIsLoadingStats(false);
     }
-  }, [user, interfaceLang, learningDialect, t, topics]);
+  }, [user, interfaceLang, learningDialect, t, topics, challengeTheme.theme]);
 
   useEffect(() => {
     loadPuzzle();
@@ -491,6 +495,19 @@ const WordLadderGame = ({ isDarkMode }) => {
 
       {/* ── Sidebar ── */}
       <ChallengeSidebar
+        themePicker={
+          <ChallengeThemePicker
+            interests={challengeTheme.interests}
+            hasInterests={challengeTheme.hasInterests}
+            selectedInterestId={challengeTheme.selectedInterestId}
+            onSelectInterest={challengeTheme.selectInterest}
+            freeText={challengeTheme.freeText}
+            onFreeTextChange={challengeTheme.setFreeText}
+            canUseFreeText={challengeTheme.canUseFreeText}
+            freeTextBlockedByInterest={challengeTheme.freeTextBlockedByInterest}
+            isDarkMode={isDarkMode}
+          />
+        }
         isDarkMode={isDarkMode}
         seenCount={seenCount}
         progress={progress}

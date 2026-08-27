@@ -26,6 +26,9 @@ const POOL_LIMIT      = 200;
  * @param {string}   params.userDialect      - BCP-47 interface language (e.g. 'en-US')
  * @param {string}   params.learningDialect  - BCP-47 learning language (e.g. 'pt-PT')
  * @param {string[]} params.seenPuzzleIds    - Already-seen puzzle IDs from seenWordLinkPuzzleIds
+ * @param {{label: string, isCustom: boolean}} [params.theme] - The subject the user
+ *   picked in the sidebar. Overrides `topics`; a custom (free-text) theme is
+ *   never used to tag the stored puzzle, since it maps to no interest id.
  * @param {Array<{id: string, label: string}>} [params.topics] - User interests used to theme a
  *                                              newly generated puzzle. The generated puzzle is
  *                                              tagged with the chosen category ID so it can be
@@ -33,7 +36,7 @@ const POOL_LIMIT      = 200;
  *                                              is not wired up yet (see getWordService for that).
  * @returns {Promise<{ puzzleId: string, theme: string, themeTranslation: string, clues: string[], keywords: string[] }>}
  */
-export const fetchWordLinkPuzzle = async ({ token, userDialect, learningDialect, seenPuzzleIds = [], topics = [] }) => {
+export const fetchWordLinkPuzzle = async ({ token, userDialect, learningDialect, seenPuzzleIds = [], topics = [], theme = null }) => {
   const seenSet = new Set(seenPuzzleIds);
 
   // ── Step 1: try to find an unseen cached puzzle ──────────────────────────
@@ -57,7 +60,11 @@ export const fetchWordLinkPuzzle = async ({ token, userDialect, learningDialect,
   // ── Step 2: generate via AI ──────────────────────────────────────────────
   // One interest, not all of them: a puzzle has a single theme, so picking one
   // keeps the `topics` tag an accurate record of what it was built from.
-  const chosenTopic = topics.length > 0
+  // An explicit pick beats the random interest roll. A free-text theme has no
+  // id, so it themes the prompt but leaves the stored puzzle untagged.
+  const chosenTopic = theme?.label
+    ? { id: theme.isCustom ? null : (theme.id ?? null), label: theme.label }
+    : topics.length > 0
     ? topics[Math.floor(Math.random() * topics.length)]
     : null;
   const puzzle = await _generateFromAI({ token, userDialect, learningDialect, topic: chosenTopic });
@@ -92,20 +99,22 @@ export const getWordLinkPoolCount = async (token, userDialect, learningDialect) 
   }
 };
 
+/**
+ * Theme handed to the AI when the user has picked neither an interest nor a
+ * free-text subject. A value, not a sentence — the prompt template decides how
+ * to phrase it.
+ */
+const DEFAULT_THEME = 'generic local noun';
+
 // ---------------------------------------------------------------------------
 // Private — AI generation
 // ---------------------------------------------------------------------------
 
 async function _generateFromAI({ token, userDialect, learningDialect, topic }) {
-  // A whole sentence or nothing at all — the template drops {{interestsLine}}
-  // in mid-prompt, so an empty string has to leave a grammatical prompt behind
-  // when the user has no interests set.
-  const interestsLine = topic
-    ? `Theme the puzzle around the subject "${topic.label}".`
-    : '';
+  const interestOrTopic = topic?.label || DEFAULT_THEME;
 
   const promptDoc = await getPrompt('word-link-generate-prompt');
-  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, interestsLine });
+  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, interestOrTopic });
 
   const providerParams = {
     provider:    'gemini',

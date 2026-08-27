@@ -12,7 +12,9 @@ import {
 } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import { useInterestTopics } from "../hooks/useInterestTopics";
+import { useChallengeTheme } from "../hooks/useChallengeTheme";
 import ChallengeSidebar from "./ChallengeSidebar";
+import ChallengeThemePicker from "./ChallengeThemePicker";
 import Loader from "./Loader";
 import { sanitizeAIError } from "../utils/errorUtils";
 
@@ -67,6 +69,7 @@ const HangmanGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const { user, showAlert, writingSystems } = useAppContext();
   const { topics, preferTopics } = useInterestTopics();
+  const challengeTheme = useChallengeTheme();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
@@ -223,10 +226,15 @@ const HangmanGame = ({ isDarkMode }) => {
       seenConceptIds: seenIds,
       topics,
       preferTopics,
+      // An interest narrows the shared pool; a free-text theme cannot
+      // match a pooled word, so it generates instead.
+      filterTopicIds: challengeTheme.theme.topicIds,
+      customTheme: challengeTheme.theme.isCustom ? challengeTheme.theme.label : null,
+      themeLabel: challengeTheme.theme.label,
     });
 
     return { word: result.word.toUpperCase(), hint: result.hint, conceptId: result.conceptId, progress: prog };
-  }, [user, learningDialect, interfaceLang, t, topics, preferTopics]);
+  }, [user, learningDialect, interfaceLang, t, topics, preferTopics, challengeTheme.theme]);
 
   const fetchWord = useCallback(async () => {
     try {
@@ -504,6 +512,19 @@ const HangmanGame = ({ isDarkMode }) => {
 
       {/* ── Sidebar ── */}
       <ChallengeSidebar
+        themePicker={
+          <ChallengeThemePicker
+            interests={challengeTheme.interests}
+            hasInterests={challengeTheme.hasInterests}
+            selectedInterestId={challengeTheme.selectedInterestId}
+            onSelectInterest={challengeTheme.selectInterest}
+            freeText={challengeTheme.freeText}
+            onFreeTextChange={challengeTheme.setFreeText}
+            canUseFreeText={challengeTheme.canUseFreeText}
+            freeTextBlockedByInterest={challengeTheme.freeTextBlockedByInterest}
+            isDarkMode={isDarkMode}
+          />
+        }
         isDarkMode={isDarkMode}
         seenCount={seenCount}
         progress={progress}

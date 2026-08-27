@@ -809,6 +809,18 @@
     }
   },
   "challenges": {
+    "theme": {
+      "title": "Theme",
+      "no_interests_prefix": "Pick your interests in",
+      "settings_link": "settings",
+      "no_interests_suffix": " to theme your challenges.",
+      "free_text_label": "Custom theme",
+      "free_text_placeholder": "Or type your own theme…",
+      "free_text_blocked": "Unselect your interest first",
+      "free_text_blocked_hint": "An interest is selected. Unselect it to type your own theme — only one can be used at a time.",
+      "free_text_locked": "Custom themes are a paid feature. Tap to see plans.",
+      "default_hint": "No theme picked — you will get a general word."
+    },
     "title": "Challenge Hub",
     "coming_soon": "Coming soon...",
     "crosswords": "Crosswords",

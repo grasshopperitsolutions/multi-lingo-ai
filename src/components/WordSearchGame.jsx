@@ -12,8 +12,10 @@ import {
 } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import { useInterestTopics } from "../hooks/useInterestTopics";
+import { useChallengeTheme } from "../hooks/useChallengeTheme";
 import { buildGrid, checkSelection } from "../utils/wordSearchUtils";
 import ChallengeSidebar from "./ChallengeSidebar";
+import ChallengeThemePicker from "./ChallengeThemePicker";
 import Loader from "./Loader";
 
 // ---------------------------------------------------------------------------
@@ -142,6 +144,7 @@ const WordSearchGame = ({ isDarkMode }) => {
   const { t }    = useTranslation();
   const { user, showAlert } = useAppContext();
   const { topics, preferTopics } = useInterestTopics();
+  const challengeTheme = useChallengeTheme();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
@@ -232,13 +235,18 @@ const WordSearchGame = ({ isDarkMode }) => {
         maxLength:       MAX_LENGTH,
         topics,
         preferTopics,
+        // An interest narrows the shared pool; a free-text theme cannot
+        // match a pooled word, so it generates instead.
+        filterTopicIds: challengeTheme.theme.topicIds,
+        customTheme: challengeTheme.theme.isCustom ? challengeTheme.theme.label : null,
+        themeLabel: challengeTheme.theme.label,
       });
       results.push(result);
       fetchedThisSession.push(result);
     }
 
     return { results, progress: prog };
-  }, [user, learningDialect, interfaceLang, t, topics, preferTopics]);
+  }, [user, learningDialect, interfaceLang, t, topics, preferTopics, challengeTheme.theme]);
 
   const applyWords = useCallback((results, prog) => {
     const wordEntries = results.map((r) => ({
@@ -455,6 +463,19 @@ const WordSearchGame = ({ isDarkMode }) => {
     resetMessage:      t("challenges.sidebar.reset_message"),
     resetWarning:      t("challenges.sidebar.reset_warning"),
     resetConfirmLabel: t("challenges.sidebar.reset_confirm"),
+    themePicker: (
+      <ChallengeThemePicker
+        interests={challengeTheme.interests}
+        hasInterests={challengeTheme.hasInterests}
+        selectedInterestId={challengeTheme.selectedInterestId}
+        onSelectInterest={challengeTheme.selectInterest}
+        freeText={challengeTheme.freeText}
+        onFreeTextChange={challengeTheme.setFreeText}
+        canUseFreeText={challengeTheme.canUseFreeText}
+        freeTextBlockedByInterest={challengeTheme.freeTextBlockedByInterest}
+        isDarkMode={isDarkMode}
+      />
+    ),
   };
 
   // ── Loading ───────────────────────────────────────────────────────────────

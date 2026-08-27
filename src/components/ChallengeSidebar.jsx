@@ -96,6 +96,7 @@ const ChallengeSidebar = ({
   resetWarning,
   resetConfirmLabel,
   title,
+  themePicker,
 }) => {
   const { t } = useTranslation();
 
@@ -151,6 +152,9 @@ const ChallengeSidebar = ({
             {title}
           </span>
         </div>
+
+        {/* Theme picker — a control, so it sits above the read-only stats. */}
+        {themePicker && <div className={panelBase}>{themePicker}</div>}
 
         {/* Progress section */}
         <div className={`${panelBase} flex flex-col gap-4`}>
@@ -242,6 +246,14 @@ const ChallengeSidebar = ({
           {title}
         </p>
 
+        {themePicker && (
+          <div className={`mb-4 pb-4 border-b-2 ${
+            isDarkMode ? "border-slate-700" : "border-slate-200"
+          }`}>
+            {themePicker}
+          </div>
+        )}
+
         {isLoadingStats ? (
           <div className="flex justify-center py-2">
             <Loader2 size={18} className="animate-spin opacity-40" />
@@ -315,6 +327,10 @@ ChallengeSidebar.propTypes = {
   resetWarning:      PropTypes.string,
   resetConfirmLabel: PropTypes.string.isRequired,
   title:             PropTypes.string.isRequired,
+  /** Rendered above the stats in both layouts. A node rather than a bag of
+   *  props, so this component stays presentational and knows nothing about
+   *  interests or tiers. */
+  themePicker:       PropTypes.node,
 };
 
 ChallengeSidebar.defaultProps = {
@@ -322,6 +338,7 @@ ChallengeSidebar.defaultProps = {
   progress:     null,
   totalWords:   null,
   resetWarning: undefined,
+  themePicker:  null,
 };
 
 export default ChallengeSidebar;

@@ -77,6 +77,21 @@
  * @module getWordService
  */
 
+/**
+ * Theme handed to the AI when the user has picked neither an interest nor a
+ * free-text subject. A value, not a sentence — the prompt template decides how
+ * to phrase it.
+ */
+const DEFAULT_THEME = 'generic local noun';
+
+/**
+ * How many times to ask for a new concept before accepting one that is longer
+ * than requested. Length is no longer constrained in the prompt, so it is
+ * checked here instead; a retry costs an AI call, which is the trade the
+ * shorter, admin-editable prompt buys.
+ */
+const MAX_LENGTH_ATTEMPTS = 3;
+
 // ---------------------------------------------------------------------------
 // Types (JSDoc only — no runtime cost)
 // ---------------------------------------------------------------------------
@@ -150,10 +165,25 @@ export async function getWord({
   maxLength,
   topics = [],
   preferTopics = [],
+  filterTopicIds = [],
+  customTheme = null,
+  themeLabel = null,
 }) {
   const seenSet = new Set(seenConceptIds ?? []);
 
   const allConcepts = await _fetchReadyConcepts(token);
+
+  // A free-text theme cannot match a pooled word — nothing in the pool is
+  // tagged "medieval castles" — so honouring it means generating. That is a
+  // deliberate AI call, gated upstream by the `custom_requests` feature, and
+  // the pool is skipped entirely rather than serving an unrelated word.
+  if (customTheme) {
+    return _generateThemedConcept({
+      allConcepts, userDialect, learningDialect, maxLength,
+      topic: { id: null, label: customTheme },
+      token,
+    });
+  }
 
   // Client-side filter: exclude concepts whose source word is too long.
   // This is a fast pre-filter; the translated word length is checked separately
@@ -162,7 +192,13 @@ export async function getWord({
     ? allConcepts.filter((c) => (c.normalizedKey ?? c.sourceWord ?? '').length <= maxLength)
     : allConcepts;
 
-  const concepts = _sortByPreferredTopics(lengthFiltered, preferTopics);
+  // A picked interest *filters* rather than reorders: the user asked for that
+  // subject, so serving them something else would ignore the request. Falling
+  // out of the bottom of a filtered pool lands on generation, themed the same
+  // way, so the request is still honoured.
+  const topicFiltered = _filterByTopicIds(lengthFiltered, filterTopicIds);
+
+  const concepts = _sortByPreferredTopics(topicFiltered, preferTopics);
 
   // Walk unseen concepts in order, skipping any whose translation is too long.
   for (const concept of concepts) {
@@ -194,8 +230,7 @@ export async function getWord({
     const generated = await _generateTranslation(
       concept.sourceWord,
       { userDialect, learningDialect },
-      token,
-      maxLength
+      token
     );
 
     // Skip if AI returned a word that's still too long
@@ -216,16 +251,71 @@ export async function getWord({
   // One interest is picked rather than all of them: the AI produces a single
   // word, so theming it on one subject lets us tag the new concept with
   // exactly the topic it was built from instead of guessing.
-  const knownWords = allConcepts.map((c) => c.normalizedKey);
-  const chosenTopic = topics.length > 0
-    ? topics[Math.floor(Math.random() * topics.length)]
-    : null;
-  const generated  = await _generateNewConcept(
-    { userDialect, learningDialect, knownWords, maxLength, topic: chosenTopic },
-    token
-  );
+  // A filtered pool ran dry, or the user has no interests at all. Either way
+  // the new concept is themed on whatever the user asked for.
+  // The caller's resolved theme wins. Only when there is none does this fall
+  // back to rolling one of the user's interests, which is what happened before
+  // the theme picker existed.
+  const chosenTopic = themeLabel
+    ? { id: filterTopicIds[0] ?? null, label: themeLabel }
+    : (topics.length > 0 ? topics[Math.floor(Math.random() * topics.length)] : null);
 
-  const conceptId = await _writeNewConcept(generated, learningDialect, token, chosenTopic);
+  return _generateThemedConcept({
+    allConcepts, userDialect, learningDialect, maxLength, topic: chosenTopic, token,
+  });
+}
+
+/**
+ * Keep only concepts carrying one of `topicIds`.
+ *
+ * Unlike _sortByPreferredTopics this really does shrink the pool, because a
+ * user who picked an interest asked for that subject specifically. Concepts
+ * written before interests existed have no `topicIds` and drop out — which is
+ * correct here: an untagged word is not known to be on-theme.
+ *
+ * @param {Array<object>} concepts
+ * @param {string[]} topicIds
+ * @returns {Array<object>}
+ */
+function _filterByTopicIds(concepts, topicIds) {
+  if (!topicIds?.length) return concepts;
+  const wanted = new Set(topicIds);
+  return concepts.filter((concept) =>
+    (Array.isArray(concept.topicIds) ? concept.topicIds : []).some((id) => wanted.has(id)),
+  );
+}
+
+/**
+ * Generate, store and return a brand-new concept on a given theme.
+ *
+ * Shared by the two paths that reach the AI: a free-text theme (which skips
+ * the pool by design) and an exhausted pool.
+ */
+async function _generateThemedConcept({
+  allConcepts, userDialect, learningDialect, maxLength, topic, token,
+}) {
+  const knownWords = allConcepts.map((c) => c.normalizedKey);
+
+  // The prompt no longer carries a length rule, so enforce it here: ask again
+  // if the word came back too long, and keep the shortest attempt as the
+  // fallback rather than failing the round outright.
+  let generated = null;
+  for (let attempt = 0; attempt < MAX_LENGTH_ATTEMPTS; attempt += 1) {
+    const candidate = await _generateNewConcept(
+      { userDialect, learningDialect, knownWords, topic },
+      token,
+    );
+    if (maxLength == null || candidate.word.length <= maxLength) {
+      generated = candidate;
+      break;
+    }
+    if (!generated || candidate.word.length < generated.word.length) generated = candidate;
+  }
+
+  // Only a real interest id tags the new concept; a free-text theme has none
+  // to tag it with, so it enters the pool untagged.
+  const tagTopic = topic?.id ? topic : null;
+  const conceptId = await _writeNewConcept(generated, learningDialect, token, tagTopic);
 
   return {
     word:      generated.word,
@@ -426,16 +516,15 @@ async function _writeNewConcept(generated, learningDialect, token, topic = null)
 
 /**
  * Generate a translation for an existing English concept.
- * When maxLength is provided, the prompt instructs the AI to keep the
- * translated word within that character limit.
+ *
+ * Length is no longer asked for in the prompt. The caller checks the result and
+ * moves on to another concept if it is too long — one wasted call now and then
+ * is cheaper than a template carrying a sentence only the code can edit.
  */
-async function _generateTranslation(sourceWord, { userDialect, learningDialect }, token, maxLength) {
-  const lengthConstraintLine = maxLength
-    ? `The translated word MUST be ${maxLength} characters or fewer.`
-    : '';
+async function _generateTranslation(sourceWord, { userDialect, learningDialect }, token) {
 
   const promptDoc = await getPrompt('get-word-translate-concept-prompt');
-  const prompt = renderTemplate(promptDoc.template, { sourceWord, learningDialect, userDialect, lengthConstraintLine });
+  const prompt = renderTemplate(promptDoc.template, { sourceWord, learningDialect, userDialect });
 
   const providerParams = {
     provider:    'gemini',
@@ -495,24 +584,16 @@ async function _generateHintForDialect(sourceWord, userDialect, token) {
  * When maxLength is provided, both the English source word and translated word
  * are constrained to that length in the prompt.
  */
-async function _generateNewConcept({ userDialect, learningDialect, knownWords, maxLength, topic }, token) {
-  const avoidListLine = knownWords.length > 0
-    ? `Do NOT use any of these (already in the database): ${knownWords.join(', ')}`
-    : '';
+async function _generateNewConcept({ userDialect, learningDialect, knownWords, topic }, token) {
+  // Values, not sentences. Every one of these is always defined so the
+  // template can phrase them however an admin likes without the app needing a
+  // rebuild — and without a placeholder ever resolving to an empty string.
+  const avoidList = knownWords.length > 0 ? knownWords.join(', ') : 'none';
 
-  const lengthConstraintLine = maxLength
-    ? `Both the English word and the ${learningDialect} translation MUST be ${maxLength} characters or fewer.`
-    : '';
-
-  // A whole sentence or nothing at all, like the two lines above — the
-  // template drops {{interestsLine}} in mid-prompt, so an empty string has to
-  // leave a grammatical prompt behind when the user has no interests set.
-  const interestsLine = topic
-    ? `Choose a word related to the subject "${topic.label}" when a suitable one exists.`
-    : '';
+  const interestOrTopic = topic?.label || DEFAULT_THEME;
 
   const promptDoc = await getPrompt('get-word-generate-new-concept-prompt');
-  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, lengthConstraintLine, avoidListLine, interestsLine });
+  const prompt = renderTemplate(promptDoc.template, { learningDialect, userDialect, avoidList, interestOrTopic });
 
   const providerParams = {
     provider:    'gemini',
