@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Ban, Lock, Sparkles } from "lucide-react";
+import { Ban, Check, Lock, Sparkles } from "lucide-react";
 
 /**
  * ChallengeThemePicker
@@ -14,6 +14,11 @@ import { Ban, Lock, Sparkles } from "lucide-react";
  * it. An interest filters the shared word pool, which is free. Free text cannot
  * match a pooled word, so it forces a fresh AI generation — the same kind of
  * custom call the Story Generator gates, and gated by the same feature key.
+ *
+ * Nothing here takes effect until Apply is pressed. Reacting to each keystroke
+ * meant a half-typed theme fired an AI call per letter and swapped out the
+ * puzzle the user was in the middle of, so choosing a theme and committing to
+ * one are deliberately separate actions.
  *
  * When an interest is picked the free-text box is visibly disabled with the
  * reason on it, rather than removed: a control that vanishes leaves the user
@@ -36,6 +41,8 @@ const ChallengeThemePicker = ({
   isDarkMode,
   disabled,
   unavailable,
+  isDirty,
+  onApply,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -161,8 +168,31 @@ const ChallengeThemePicker = ({
         </button>
       )}
 
+      {/* Nothing reaches the game until this is pressed. */}
+      <button
+        type="button"
+        onClick={onApply}
+        disabled={disabled || !isDirty}
+        className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border-4 font-black uppercase tracking-widest text-[11px] transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
+          isDarkMode
+            ? "bg-yellow-400 border-yellow-400 text-slate-900"
+            : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
+        }`}
+      >
+        <Check size={13} className="shrink-0" />
+        {t("challenges.theme.apply")}
+      </button>
+
+      {isDirty && (
+        <p className={`text-[10px] font-bold leading-snug ${
+          isDarkMode ? "text-amber-400" : "text-amber-600"
+        }`}>
+          {t("challenges.theme.unapplied_hint")}
+        </p>
+      )}
+
       {/* What the AI will actually be asked for, when nothing is chosen. */}
-      {!selectedInterestId && !freeText.trim() && (
+      {!isDirty && !selectedInterestId && !freeText.trim() && (
         <p className={`flex items-start gap-1.5 text-[10px] font-bold leading-snug ${
           isDarkMode ? "text-slate-500" : "text-slate-400"
         }`}>
@@ -191,6 +221,9 @@ ChallengeThemePicker.propTypes = {
   /** This challenge cannot honour a theme at all. Renders the reason instead
    *  of the controls, so no theme state is needed. */
   unavailable: PropTypes.bool,
+  /** The controls differ from what the game is currently generating from. */
+  isDirty: PropTypes.bool,
+  onApply: PropTypes.func,
 };
 
 ChallengeThemePicker.defaultProps = {
@@ -204,6 +237,8 @@ ChallengeThemePicker.defaultProps = {
   freeTextBlockedByInterest: false,
   disabled: false,
   unavailable: false,
+  isDirty: false,
+  onApply: () => {},
 };
 
 export default ChallengeThemePicker;

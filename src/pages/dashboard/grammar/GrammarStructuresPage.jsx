@@ -109,7 +109,7 @@ const GrammarStructuresPage = () => {
   // ── Guard: unsupported learning language ───────────────────────────────────
   if (!supported) {
     return (
-      <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems}>
+      <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems} title={t("grammar.structures")} reportContext="GrammarStructuresPage">
         <Card isDarkMode={isDarkMode}>
           <p className={`font-bold ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
             {t("grammar.not_available_for_language")}
@@ -122,7 +122,7 @@ const GrammarStructuresPage = () => {
   // ── Detail view ────────────────────────────────────────────────────────────
   if (selectedTopic) {
     return (
-      <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems}>
+      <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems} title={t("grammar.structures")} reportContext="GrammarStructuresPage">
         <GhostButton onClick={handleBackToList} isDarkMode={isDarkMode} className="self-start">
           <ArrowLeft size={16} />
           {t("grammar.all_topics")}
@@ -240,7 +240,7 @@ const GrammarStructuresPage = () => {
   }, {});
 
   return (
-    <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems}>
+    <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems} title={t("grammar.structures")} reportContext="GrammarStructuresPage">
       {isLoadingTopics && <Loader message={t("grammar.loading_topics")} isDarkMode={isDarkMode} />}
 
       {!isLoadingTopics && listError && <ErrorBanner error={listError} isDarkMode={isDarkMode} />}

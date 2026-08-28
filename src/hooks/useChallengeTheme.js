@@ -20,6 +20,18 @@ export const THEME_KIND = {
 export const FREE_TEXT_MAX = 200;
 
 /**
+ * The applied theme before anything is chosen. A frozen module constant so its
+ * identity never changes — the games put the applied theme in a fetch
+ * dependency array, and a fresh object each render would refetch forever.
+ */
+const DEFAULT_THEME = Object.freeze({
+  kind: THEME_KIND.DEFAULT,
+  label: DEFAULT_THEME_LABEL,
+  topicIds: Object.freeze([]),
+  isCustom: false,
+});
+
+/**
  * useChallengeTheme
  *
  * Owns the subject a challenge is generated around: one of the user's own
@@ -32,9 +44,18 @@ export const FREE_TEXT_MAX = 200;
  *
  * The two inputs are mutually exclusive, and the exclusion is enforced here
  * rather than in the UI so every consumer agrees on what "the theme" is:
- * picking an interest blanks and disables the free text. `resolve()` still
- * prefers free text if both were somehow set, so the priority rule holds even
- * if a caller sets state directly.
+ * picking an interest blanks and disables the free text. Free text still wins
+ * if both were somehow set, so the priority rule holds even if a caller sets
+ * state directly.
+ *
+ * Draft vs applied
+ * ----------------
+ * What the user is typing (`draftTheme`) and what the game is generating from
+ * (`theme`) are separate, and only `applyTheme()` moves one to the other.
+ * Without that split every keystroke produced a new theme object, which the
+ * games have in a fetch dependency — so typing "castle" fired an AI call per
+ * letter, on half-spelled words, and replaced the puzzle someone was in the
+ * middle of.
  *
  * Cost model, which is why the two are not interchangeable:
  *   interest  — filters the shared word pool by topicIds. No extra AI call.
@@ -51,7 +72,10 @@ export const FREE_TEXT_MAX = 200;
  *   setFreeText: (value: string) => void,
  *   canUseFreeText: boolean,
  *   freeTextBlockedByInterest: boolean,
+ *   draftTheme: {kind: string, label: string, topicIds: string[], isCustom: boolean},
  *   theme: {kind: string, label: string, topicIds: string[], isCustom: boolean},
+ *   isDirty: boolean,
+ *   applyTheme: () => void,
  * }}
  */
 export function useChallengeTheme() {
@@ -98,7 +122,9 @@ export function useChallengeTheme() {
 
   const freeTextBlockedByInterest = Boolean(selectedInterestId);
 
-  const theme = useMemo(() => {
+  // What the controls currently say. Recomputed on every keystroke, and
+  // deliberately NOT what the game generates from.
+  const draftTheme = useMemo(() => {
     const trimmed = freeText.trim();
     if (trimmed && canUseFreeText && !freeTextBlockedByInterest) {
       return { kind: THEME_KIND.FREE_TEXT, label: trimmed, topicIds: [], isCustom: true };
@@ -114,13 +140,18 @@ export function useChallengeTheme() {
       };
     }
 
-    return {
-      kind: THEME_KIND.DEFAULT,
-      label: DEFAULT_THEME_LABEL,
-      topicIds: [],
-      isCustom: false,
-    };
+    return DEFAULT_THEME;
   }, [freeText, canUseFreeText, freeTextBlockedByInterest, interests, selectedInterestId]);
+
+  // What the game is actually generating from. Only applyTheme() changes it, so
+  // its identity is stable across typing and the fetch does not re-fire.
+  const [theme, setTheme] = useState(DEFAULT_THEME);
+
+  const isDirty = draftTheme.kind !== theme.kind || draftTheme.label !== theme.label;
+
+  const applyTheme = useCallback(() => {
+    setTheme(draftTheme);
+  }, [draftTheme]);
 
   return {
     interests,
@@ -131,7 +162,10 @@ export function useChallengeTheme() {
     setFreeText,
     canUseFreeText,
     freeTextBlockedByInterest,
+    draftTheme,
     theme,
+    isDirty,
+    applyTheme,
   };
 }
 

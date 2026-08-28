@@ -8,6 +8,7 @@ export { default as Breadcrumb } from './Breadcrumb';
 export { default as CollapsibleCard } from './CollapsibleCard';
 export { default as ExamScoreCard } from './ExamScoreCard';
 export { default as FeaturePageShell } from './FeaturePageShell';
+export { default as FeatureHeader } from './FeatureHeader';
 export { default as ComingSoonContent } from './ComingSoonContent';
 export { default as SearchBar } from './SearchBar';
 export { default as FavouriteButton } from './FavouriteButton';

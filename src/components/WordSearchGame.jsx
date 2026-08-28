@@ -324,6 +324,10 @@ const WordSearchGame = ({ isDarkMode }) => {
   useEffect(() => {
     if (!user?.token || !user?.uid) return;
     let cancelled = false;
+    // Re-armed here, not just by the initial useState: this effect also runs
+    // when the applied theme changes, and without this the previous word
+    // stayed on screen until the new one arrived.
+    setLoading(true);
 
     const init = async () => {
       try {
@@ -473,6 +477,8 @@ const WordSearchGame = ({ isDarkMode }) => {
         onFreeTextChange={challengeTheme.setFreeText}
         canUseFreeText={challengeTheme.canUseFreeText}
         freeTextBlockedByInterest={challengeTheme.freeTextBlockedByInterest}
+        isDirty={challengeTheme.isDirty}
+        onApply={challengeTheme.applyTheme}
         isDarkMode={isDarkMode}
       />
     ),

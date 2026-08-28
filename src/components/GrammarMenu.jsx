@@ -7,9 +7,7 @@ import { isGrammarSupported } from "../config/grammarSupport";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from "../utils/featureAccess";
 import StatusBadge from "./StatusBadge";
-import ReportButton from "./ReportButton";
-import FavouriteFeatureButton from "./FavouriteFeatureButton";
-import { Breadcrumb } from "./ui";
+import { Breadcrumb, FeatureHeader } from "./ui";
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 const GrammarCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel }) => (
@@ -95,17 +93,13 @@ const GrammarMenu = ({ isDarkMode }) => {
         items={[{ label: t("common.back", "Back"), onClick: () => navigate("/dashboard") }]}
       />
 
-      <div className="flex items-center justify-between gap-2">
-        <h1 className={`text-3xl sm:text-5xl font-black uppercase tracking-tighter leading-none ${
-          isDarkMode ? "text-white" : "text-slate-900"
-        }`}>
-          {t("dashboard.grammar")}
-        </h1>
-        <div className="flex items-center gap-1">
-          <FavouriteFeatureButton featureId="grammar" />
-          <ReportButton isDarkMode={isDarkMode} context="GrammarMenu" />
-        </div>
-      </div>
+      <FeatureHeader
+        title={t("dashboard.grammar")}
+        isDarkMode={isDarkMode}
+        accentColor="amber"
+        favouriteId="grammar"
+        reportContext="GrammarMenu"
+      />
 
       {/* The dashboard card is already disabled for unsupported languages, but a
           user can still reach this route directly — say why rather than showing

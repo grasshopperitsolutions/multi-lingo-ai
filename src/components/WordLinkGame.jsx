@@ -459,6 +459,8 @@ const WordLinkGame = ({ isDarkMode }) => {
             onFreeTextChange={challengeTheme.setFreeText}
             canUseFreeText={challengeTheme.canUseFreeText}
             freeTextBlockedByInterest={challengeTheme.freeTextBlockedByInterest}
+            isDirty={challengeTheme.isDirty}
+            onApply={challengeTheme.applyTheme}
             isDarkMode={isDarkMode}
           />
         }

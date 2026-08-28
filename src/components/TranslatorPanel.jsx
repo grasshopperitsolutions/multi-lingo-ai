@@ -6,9 +6,7 @@ import { useAppContext } from '../contexts/AppContext';
 import { translateText } from '../services/translatorService';
 import { useTts } from '../hooks/useTts';
 import TooltipButton from './TooltipButton';
-import ReportButton from './ReportButton';
-import FavouriteFeatureButton from './FavouriteFeatureButton';
-import { Breadcrumb, TtsControls } from './ui';
+import { Breadcrumb, FeatureHeader, TtsControls } from './ui';
 
 const MAX_CHARS = 1000;
 
@@ -127,21 +125,13 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
         items={[{ label: t('common.back', 'Back'), onClick: onBack }, { label: t('dashboard.translator', 'Translator') }]}
       />
 
-      <div className="flex items-center justify-between gap-2">
-        <h1 className={`text-3xl sm:text-5xl font-black uppercase tracking-tighter leading-none ${
-          isDarkMode ? 'text-white' : 'text-slate-900'
-        }`}>
-          {t('dashboard.translator')}
-        </h1>
-        <div className="flex items-center gap-1">
-          <FavouriteFeatureButton featureId="translator" />
-          <ReportButton isDarkMode={isDarkMode} context="TranslatorPanel" />
-        </div>
-      </div>
-
-      <div className={`h-1 w-full rounded-full ${
-        isDarkMode ? 'bg-sky-500' : 'bg-sky-400'
-      }`} />
+      <FeatureHeader
+        title={t('dashboard.translator')}
+        isDarkMode={isDarkMode}
+        accentColor="sky"
+        favouriteId="translator"
+        reportContext="TranslatorPanel"
+      />
 
       {/* —— Input panel —— */}
       <div className={panelBase}>

@@ -1,4 +1,5 @@
 import PropTypes from "prop-types";
+import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Flame, Star, Trophy, TrendingUp, Heart, X } from "lucide-react";
@@ -8,7 +9,6 @@ import { suggestedFeatureIds, TODAY_SUGGESTION_LIMIT } from "../../config/dashbo
 import { favouritableById } from "../../config/favouritableFeatures";
 import { useTierAccess } from "../../hooks/useTierAccess";
 import { FEATURE_STATUS, PURCHASABLE_STATUSES } from "../../utils/featureAccess";
-import Tooltip from "../../components/Tooltip";
 
 // ── StatCard ────────────────────────────────────────────────────────────────
 // One design at every width, rather than a small mobile card and a large
@@ -50,6 +50,10 @@ StatCard.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
 };
 
+/** Matches the tooltip's w-56, so the clamp below knows how wide it is. */
+const TOOLTIP_WIDTH = 224;
+const TOOLTIP_MARGIN = 8;
+
 // ── SectionLabel ─────────────────────────────────────────────────────────────
 const SectionLabel = ({ children, isDarkMode }) => (
   <h2
@@ -79,8 +83,36 @@ const TodayPanel = ({ tiles }) => {
   const { isDarkMode, user, showAlert } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { favouriteIds, isPending, toggle } = useFeatureFavourites();
+  const { favouriteIds, toggle } = useFeatureFavourites();
   const { featureStatus, isVisible } = useTierAccess();
+
+  // The strip scrolls, and overflow-x also clips vertically — a tooltip drawn
+  // above a square was cut off by the scroller. So one tooltip is rendered
+  // outside it and parked over whichever square is being pointed at.
+  const stripRef = useRef(null);
+  const [hovered, setHovered] = useState(null);
+
+  const showTip = useCallback((tile, element) => {
+    const strip = stripRef.current;
+    if (!strip || !element) return;
+    const stripRect = strip.getBoundingClientRect();
+    const rect = element.getBoundingClientRect();
+
+    // Centred on the square, then clamped inside the strip: the first square
+    // sits near the left edge, and a 224px bubble centred on it hung off the
+    // side of the page.
+    const half = TOOLTIP_WIDTH / 2;
+    const centred = rect.x + rect.width / 2 - stripRect.x;
+    const min = half + TOOLTIP_MARGIN;
+    const max = Math.max(min, stripRect.width - half - TOOLTIP_MARGIN);
+
+    setHovered({
+      id: tile.id,
+      title: tile.title,
+      description: tile.description,
+      x: Math.min(Math.max(centred, min), max),
+    });
+  }, []);
 
   const stats = [
     { icon: Flame,      label: t("dashboard.day_streak"),     value: String(user?.dayStreak ?? 0),        color: "text-rose-500" },
@@ -196,11 +228,31 @@ const TodayPanel = ({ tiles }) => {
             features never pushes the sections off the fold. The vertical
             padding is load-bearing: overflow-x:auto also clips vertically, and
             each remove button hangs 8px outside its square. */}
-        <div
-          className={`flex gap-3 overflow-x-auto px-2 py-3 snap-x snap-mandatory neo-scrollbar ${
-            isDarkMode ? "neo-scrollbar-dark" : ""
-          }`}
-        >
+        <div className="relative" ref={stripRef} onMouseLeave={() => setHovered(null)}>
+          {hovered && (
+            <div
+              role="tooltip"
+              className={`pointer-events-none absolute bottom-full z-30 mb-1 w-56 max-w-[calc(100vw-2rem)] px-4 py-3 rounded-xl border-4 text-center ${
+                isDarkMode
+                  ? "bg-slate-900 border-slate-600 text-slate-100 shadow-[4px_4px_0px_0px_#475569]"
+                  : "bg-slate-900 border-slate-900 text-white shadow-[4px_4px_0px_0px_#0f172a]"
+              }`}
+              style={{ left: hovered.x, transform: "translateX(-50%)" }}
+            >
+              <p className="text-xs font-black uppercase tracking-widest">{hovered.title}</p>
+              {hovered.description && (
+                <p className="mt-1 text-[11px] font-bold leading-snug opacity-80">
+                  {hovered.description}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div
+            className={`flex gap-3 overflow-x-auto px-2 py-3 snap-x snap-mandatory neo-scrollbar ${
+              isDarkMode ? "neo-scrollbar-dark" : ""
+            }`}
+          >
             {shownTiles.length === 0 ? (
               <p className={`text-sm font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
                 {t("dashboard.today.favourites_hint")}
@@ -211,22 +263,23 @@ const TodayPanel = ({ tiles }) => {
                 // wrapper is `w-full` with no height, so an `h-full` button
                 // inside it collapsed to its content and came out 64x36.
                 <div key={tile.id} className="relative shrink-0 snap-start">
-                  <Tooltip text={tile.description} isDarkMode={isDarkMode}>
-                    <button
-                      type="button"
-                      onClick={() => handleShortcut(tile)}
-                      // The title is the accessible name now that the label is
-                      // gone from the face of the square.
-                      aria-label={tile.title}
-                      className={`w-16 h-16 flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-0.5 ${
-                        isDarkMode
-                          ? "bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]"
-                          : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
-                      } ${tile.locked || tile.unavailable ? "opacity-50" : ""}`}
-                    >
-                      <tile.icon size={28} className={tile.color} />
-                    </button>
-                  </Tooltip>
+                  <button
+                    type="button"
+                    onClick={() => handleShortcut(tile)}
+                    onMouseEnter={(e) => showTip(tile, e.currentTarget)}
+                    onFocus={(e) => showTip(tile, e.currentTarget)}
+                    onBlur={() => setHovered(null)}
+                    // The title is the accessible name now that the label is
+                    // gone from the face of the square.
+                    aria-label={tile.title}
+                    className={`w-16 h-16 flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-0.5 ${
+                      isDarkMode
+                        ? "bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]"
+                        : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
+                    } ${tile.locked || tile.unavailable ? "opacity-50" : ""}`}
+                  >
+                    <tile.icon size={28} className={tile.color} />
+                  </button>
 
                   {/* Unpin, without a trip to the feature's own page.
                       A sibling of the square rather than a child: the square is
@@ -240,7 +293,6 @@ const TodayPanel = ({ tiles }) => {
                     <button
                       type="button"
                       onClick={() => toggle(tile.id)}
-                      disabled={isPending(tile.id)}
                       aria-label={t("dashboard.today.remove_favourite", { name: tile.title })}
                       title={t("dashboard.today.remove_favourite", { name: tile.title })}
                       className={`absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center rounded-full border-2 transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed ${
@@ -255,6 +307,7 @@ const TodayPanel = ({ tiles }) => {
                 </div>
               ))
             )}
+          </div>
         </div>
       </section>
     </>

@@ -5,9 +5,7 @@ import { useTierAccess } from "../hooks/useTierAccess";
 import { CHALLENGE_GAMES as GAMES } from "../config/favouritableFeatures";
 import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from "../utils/featureAccess";
 import StatusBadge from "./StatusBadge";
-import ReportButton from "./ReportButton";
-import FavouriteFeatureButton from "./FavouriteFeatureButton";
-import { Breadcrumb } from "./ui";
+import { Breadcrumb, FeatureHeader } from "./ui";
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 const GameCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel }) => (
@@ -89,18 +87,13 @@ const ChallengesMenu = ({ isDarkMode }) => {
         items={[{ label: t('common.back', 'Back'), onClick: () => navigate('/dashboard') }]}
       />
 
-      {/* Page title + report flag */}
-      <div className="flex items-center justify-between gap-2">
-        <h1 className={`text-3xl sm:text-5xl font-black uppercase tracking-tighter leading-none ${
-          isDarkMode ? 'text-white' : 'text-slate-900'
-        }`}>
-          {t('challenges.title', 'Challenges')}
-        </h1>
-        <div className="flex items-center gap-1">
-          <FavouriteFeatureButton featureId="challenges" />
-          <ReportButton isDarkMode={isDarkMode} context="ChallengesMenu" />
-        </div>
-      </div>
+      <FeatureHeader
+        title={t('challenges.title', 'Challenges')}
+        isDarkMode={isDarkMode}
+        accentColor="rose"
+        favouriteId="challenges"
+        reportContext="ChallengesMenu"
+      />
 
       <div className="grid grid-cols-1 gap-3 mt-2">
         {gameCards.map((game) => (

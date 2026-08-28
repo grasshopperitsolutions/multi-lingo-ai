@@ -6,9 +6,7 @@ import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from '../utils/f
 import { Lock } from 'lucide-react';
 import { EXAM_EXERCISES as EXERCISES } from '../config/favouritableFeatures';
 import StatusBadge from './StatusBadge';
-import ReportButton from './ReportButton';
-import FavouriteFeatureButton from './FavouriteFeatureButton';
-import { Breadcrumb } from './ui';
+import { Breadcrumb, FeatureHeader } from './ui';
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 const ExamCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel }) => (
@@ -89,18 +87,13 @@ const ExamTrainingMenu = ({ isDarkMode }) => {
         items={[{ label: t('common.back', 'Back'), onClick: () => navigate('/dashboard') }]}
       />
 
-      {/* Page title + report flag */}
-      <div className="flex items-center justify-between gap-2">
-        <h1 className={`text-3xl sm:text-5xl font-black uppercase tracking-tighter leading-none ${
-          isDarkMode ? 'text-white' : 'text-slate-900'
-        }`}>
-          {t('exam.training', 'Exam Training')}
-        </h1>
-        <div className="flex items-center gap-1">
-          <FavouriteFeatureButton featureId="exam_training" />
-          <ReportButton isDarkMode={isDarkMode} context="ExamTrainingMenu" />
-        </div>
-      </div>
+      <FeatureHeader
+        title={t('exam.training', 'Exam Training')}
+        isDarkMode={isDarkMode}
+        accentColor="teal"
+        favouriteId="exam_training"
+        reportContext="ExamTrainingMenu"
+      />
 
       <div className="grid grid-cols-1 gap-3 mt-2">
         {exerciseCards.map((ex) => (

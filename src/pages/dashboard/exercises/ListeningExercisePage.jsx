@@ -16,6 +16,8 @@ const ListeningExercisePage = () => {
     <FeaturePageShell
       isDarkMode={isDarkMode}
       accentColor="teal"
+      title={t("exam.listening")}
+      reportContext="ListeningExercise"
       breadcrumbItems={[
         { label: t("common.back", "Back"), onClick: () => navigate("/dashboard") },
         { label: t("exam.training", "Exam Training"), onClick: () => navigate("/dashboard/exam-training") },

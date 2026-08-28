@@ -811,6 +811,8 @@
   "challenges": {
     "theme": {
       "title": "Theme",
+      "apply": "Apply theme",
+      "unapplied_hint": "Press Apply to use this theme on your next challenge.",
       "unavailable": "Themes are not available in this challenge.",
       "no_interests_prefix": "Pick your interests in",
       "settings_link": "settings",

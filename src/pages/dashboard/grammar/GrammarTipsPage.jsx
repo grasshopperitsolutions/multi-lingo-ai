@@ -148,7 +148,7 @@ const GrammarTipsPage = () => {
 
   if (!supported) {
     return (
-      <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems}>
+      <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems} title={t("grammar.tips")} reportContext="GrammarTipsPage">
         <Card isDarkMode={isDarkMode}>
           <p className={`font-bold ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
             {t("grammar.not_available_for_language")}
@@ -167,7 +167,7 @@ const GrammarTipsPage = () => {
   const favouriteTipIds = getFavouriteIds(user, FAVOURITE_KINDS.GRAMMAR_TIP);
 
   return (
-    <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems}>
+    <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems} title={t("grammar.tips")} reportContext="GrammarTipsPage">
       <div className="flex flex-col sm:flex-row sm:items-end gap-3">
         <NeoDropdown
           options={categoryOptions}

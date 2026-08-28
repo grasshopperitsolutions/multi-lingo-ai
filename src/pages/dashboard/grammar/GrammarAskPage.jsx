@@ -123,7 +123,7 @@ const GrammarAskPage = () => {
 
   if (!supported) {
     return (
-      <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems}>
+      <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems} title={t("grammar.ask")} reportContext="GrammarAskPage">
         <Card isDarkMode={isDarkMode}>
           <p className={`font-bold ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
             {t("grammar.not_available_for_language")}
@@ -144,7 +144,7 @@ const GrammarAskPage = () => {
   }`;
 
   return (
-    <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems}>
+    <FeaturePageShell isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems} title={t("grammar.ask")} reportContext="GrammarAskPage">
       <Card isDarkMode={isDarkMode}>
         <label htmlFor="grammar-question" className={labelClasses}>
           {t("grammar.your_question")}

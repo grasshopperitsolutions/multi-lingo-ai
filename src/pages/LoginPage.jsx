@@ -122,7 +122,7 @@ const LoginPage = () => {
 
         {/* Login card */}
         <div
-          className={`w-full max-w-md rounded-3xl border-4 p-10 transition-colors
+          className={`w-full max-w-md rounded-3xl border-4 p-6 sm:p-10 transition-colors
           ${
             isDarkMode
               ? "bg-slate-800 border-slate-700 shadow-[8px_8px_0px_0px_#1e293b]"
@@ -144,8 +144,16 @@ const LoginPage = () => {
             {t('login.subtitle')}
           </p>
 
-          {/* Social Buttons — icon-only, horizontal row */}
-          <div className="flex flex-row justify-center gap-4">
+          {/* Social buttons.
+              A grid, not a flex row: an unavailable provider is wrapped in
+              TooltipButton, whose root is a plain block div, so in a flex row
+              the wrapper became the flex item and any sizing on the button
+              never reached the row. Grid cells stretch either way.
+
+              The buttons were also fixed at w-16 h-16 with no shrink-0, so on a
+              narrow phone flex compressed the width while the height stayed —
+              which is why they stopped looking square. */}
+          <div className="grid grid-cols-4 gap-3 sm:gap-4">
             {/* Google */}
             {(() => {
               const button = (
@@ -153,7 +161,7 @@ const LoginPage = () => {
                   onClick={handleGoogle}
                   disabled={isLoading || !providers.google}
                   aria-label={t('login.google')}
-                  className={`w-16 h-16 flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
+                  className={`w-full max-w-[4rem] aspect-square mx-auto flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
                   ${
                     isDarkMode
                       ? "bg-slate-700 border-slate-600 text-white shadow-[4px_4px_0px_0px_#1e293b]"
@@ -182,7 +190,7 @@ const LoginPage = () => {
                   onClick={handleApple}
                   disabled={isLoading || !providers.apple}
                   aria-label={t('login.apple')}
-                  className={`w-16 h-16 flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
+                  className={`w-full max-w-[4rem] aspect-square mx-auto flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
                   ${
                     isDarkMode
                       ? "bg-slate-700 border-slate-600 text-white shadow-[4px_4px_0px_0px_#1e293b]"
@@ -208,7 +216,7 @@ const LoginPage = () => {
                   onClick={handleFacebook}
                   disabled={isLoading || !providers.facebook}
                   aria-label={t('login.facebook')}
-                  className={`w-16 h-16 flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
+                  className={`w-full max-w-[4rem] aspect-square mx-auto flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
                   ${
                     isDarkMode
                       ? "bg-slate-700 border-slate-600 text-white shadow-[4px_4px_0px_0px_#1e293b]"
@@ -234,7 +242,7 @@ const LoginPage = () => {
                   onClick={handleX}
                   disabled={isLoading || !providers.twitter}
                   aria-label={t('login.x')}
-                  className={`w-16 h-16 flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
+                  className={`w-full max-w-[4rem] aspect-square mx-auto flex items-center justify-center rounded-xl border-4 transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-40 disabled:pointer-events-none
                   ${
                     isDarkMode
                       ? "bg-slate-700 border-slate-600 text-white shadow-[4px_4px_0px_0px_#1e293b]"

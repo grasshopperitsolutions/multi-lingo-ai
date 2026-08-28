@@ -26,7 +26,7 @@ import { FavouriteButton } from "./ui";
  */
 const FavouriteFeatureButton = ({ featureId, className }) => {
   const { isDarkMode } = useAppContext();
-  const { isFavourite, isPending, toggle } = useFeatureFavourites();
+  const { isFavourite, toggle } = useFeatureFavourites();
   const { pathname } = useLocation();
 
   const resolvedId = featureId ?? favouriteIdForRoute(pathname);
@@ -37,7 +37,6 @@ const FavouriteFeatureButton = ({ featureId, className }) => {
       <FavouriteButton
         isFavourite={isFavourite(resolvedId)}
         onToggle={() => toggle(resolvedId)}
-        disabled={isPending(resolvedId)}
         isDarkMode={isDarkMode}
       />
     </span>
