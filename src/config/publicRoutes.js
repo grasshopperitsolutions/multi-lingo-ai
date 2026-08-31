@@ -2,10 +2,12 @@
  * The crawlable public routes, and which i18n keys supply their head tags.
  *
  * Single source of truth for two consumers that must not drift:
- *   - scripts/generate-seo-pages.mjs — bakes these into static HTML at build
- *     time, resolving the keys against src/locales/en/translation.json.
+ *   - scripts/generate-seo-pages.mjs — bakes the head tags into static HTML at
+ *     build time. It does NOT resolve these keys: crawler-facing copy is
+ *     hardcoded English in src/config/seoStrings.js, keyed by the same paths.
  *   - usePublicPageTitle — keeps document.title correct during client-side
- *     navigation, resolving the same keys through i18next.
+ *     navigation, resolving these keys through i18next so the tab follows the
+ *     interface language.
  *
  * Plain ESM with no JSX or imports so the Node build script can load it
  * directly, exactly as Vite does.

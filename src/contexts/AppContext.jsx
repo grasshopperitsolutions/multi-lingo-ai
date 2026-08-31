@@ -18,7 +18,7 @@ import { normalizeCode } from "../utils/languageCode";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
 import { getTranslations, clearTranslationsCache, fillMissingTranslations } from "../services/translationService";
-import { loadRemoteTranslations, registerMissingKeyHandler } from "../i18n";
+import { loadRemoteTranslations, registerMissingKeyHandler, BASE_LOCALE } from "../i18n";
 import Loader from "../components/Loader";
 
 const AppContext = createContext();
@@ -360,7 +360,7 @@ export const AppProvider = ({ children }) => {
       // Clear cache so we get fresh data
       clearTranslationsCache();
 
-      // Fetch translations from Firestore (falls back to local en-US)
+      // Fetch translations from Firestore (falls back to the local base locale)
       const translations = await getTranslations(lang, token);
 
       // Register with i18next
@@ -373,9 +373,12 @@ export const AppProvider = ({ children }) => {
       // Check for missing/absent translations and fill or seed them
       // (non-blocking). fillMissingTranslations() also handles the case
       // where "lang" has no Firestore doc at all yet — it detects that and
-      // seeds the full document from en-US instead of patching one that
-      // doesn't exist.
-      if (token && lang !== "en-US") {
+      // seeds the full document from the base locale instead of patching one
+      // that doesn't exist.
+      //
+      // Skipped only for the base locale, which is the bundled source and has
+      // nothing to translate from. en-US is a normal target like any other.
+      if (token && lang !== BASE_LOCALE) {
         fillMissingTranslations(lang, token)
           .then((count) => {
             if (count > 0) {

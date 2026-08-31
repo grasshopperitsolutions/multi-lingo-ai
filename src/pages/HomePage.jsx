@@ -350,26 +350,14 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* TODO — "Wall of Love" reviews section removed pending a decision on
-          how it fits the practice-companion positioning.
-
-          The 28 reviews are all testimonials for Nuno's own tutoring rather
-          than for the app, which reads as a category mismatch on a software
-          landing page — but becomes strong social proof if reframed (e.g.
-          "From Nuno's students") next to the "Who made this" section above.
-
-          Nothing was deleted: home.reviews and home.wall_of_love_heading are
-          still in translation.json, and src/components/RotatingReviews.jsx is
-          untouched. To restore, re-add here:
-
-            <section className="w-full px-4 py-20 relative z-10">
-              <div className="text-center mb-16">
-                <h2 className="...">{t("home.wall_of_love_heading")}</h2>
-              </div>
-              <RotatingReviews reviews={t("home.reviews", { returnObjects: true })} />
-            </section>
-
-          plus the RotatingReviews import. */}
+      {/* The "Wall of Love" testimonials were removed from the locale files.
+          They were quotes from named students about Nuno's own tutoring, and
+          the locale files are now the source every other language is machine-
+          translated from — which would have rewritten what real, identifiable
+          people said, in every language. Social proof lives in "Who made this"
+          above instead. src/components/RotatingReviews.jsx is kept but unused;
+          restoring the section means supplying the quotes in their original
+          language from outside the translation pipeline. */}
 
       {/* Dynamic Language Demo */}
       <section className="max-w-5xl mx-auto px-4 py-16">

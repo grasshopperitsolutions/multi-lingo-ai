@@ -178,7 +178,7 @@ function getResponseSchemaForType(type) {
             maxItems: 5,
           },
         },
-        required: ['transcript', 'questions'],
+        required: ['instructions', 'transcript', 'questions'],
       };
 
     case 'true-false':
@@ -217,7 +217,7 @@ function getResponseSchemaForType(type) {
             },
           },
         },
-        required: ['transcript', 'statements', 'questions'],
+        required: ['instructions', 'transcript', 'statements', 'questions'],
       };
 
     case 'fill-blanks':
@@ -245,7 +245,7 @@ function getResponseSchemaForType(type) {
             maxItems: 5,
           },
         },
-        required: ['transcript', 'passage', 'wordBank', 'blanks'],
+        required: ['instructions', 'transcript', 'passage', 'wordBank', 'blanks'],
       };
 
     default:

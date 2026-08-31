@@ -2,10 +2,10 @@
  * translationService.js
  *
  * Manages dynamic loading and seeding of UI translation strings from Firestore.
- * en-US is always the local bundled file (the canonical source — it ships
- * with the deployed code and is never read from or written to Firestore).
- * All other locales are AI-translated from that local en-US source and
- * cached/persisted in Firestore.
+ * The base locale (pt-PT) is always the local bundled file — the canonical
+ * source, shipped with the deployed code, never read from or written to
+ * Firestore. Every other locale, en-US included, is AI-translated from that
+ * local source and cached/persisted in Firestore.
  */
 
 import { getDocument, createDocument, patchDocument, queryCollection, getTokenOrAnonymous } from "./firestoreService";
@@ -14,7 +14,15 @@ import { askAI } from "./aiService";
 import { loadRemoteTranslations } from "../i18n";
 import { parseAIJSON } from "../utils/parseAIJSON";
 import { decodeEntitiesDeep } from "../utils/decodeHtmlEntities";
-import enTranslation from "../locales/en/translation.json";
+import ptTranslation from "../locales/pt/translation.json";
+import { BASE_LOCALE } from "../i18n";
+
+/**
+ * The canonical strings, straight from the bundled base-locale file.
+ * Never Firestore: that copy is only ever seeded and has no write path
+ * keeping it in sync with the deployed code, so it can silently drift.
+ */
+const SOURCE_TRANSLATIONS = ptTranslation;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -308,22 +316,23 @@ function splitIntoChunks(sourceData, budget = CHUNK_SIZE_BUDGET_BYTES) {
 /**
  * Fetch UI translations for a given locale.
  *
- * 1. en-US always returns the local bundled file directly (canonical, no Firestore).
- * 2. Other locales: checks the in-memory cache first.
+ * 1. The base locale always returns the local bundled file directly
+ *    (canonical, no Firestore).
+ * 2. Other locales — en-US included: checks the in-memory cache first.
  * 3. Falls back to Firestore.
- * 4. Falls back to the local en-US bundle if no Firestore doc exists yet.
+ * 4. Falls back to the local base-locale bundle if no Firestore doc exists yet.
  *
  * @param {string} locale - BCP-47 locale code, e.g. "pt-PT".
  * @param {string} token  - Firebase ID token.
  * @returns {Promise<object>} The translation key-value map.
  */
 export async function getTranslations(locale, token) {
-  // en-US is always the local bundled file — it ships with the deployed
-  // code, so it's the canonical source and can never drift from what's
-  // actually running. Never read it from Firestore (which is only ever
-  // seeded once and has no write path keeping it in sync).
-  if (locale === "en-US") {
-    return enTranslation;
+  // The base locale is always the local bundled file — it ships with the
+  // deployed code, so it's the canonical source and can never drift from
+  // what's actually running. Never read it from Firestore (which is only
+  // ever seeded once and has no write path keeping it in sync).
+  if (locale === BASE_LOCALE) {
+    return SOURCE_TRANSLATIONS;
   }
 
   // 1. In-memory cache
@@ -353,10 +362,10 @@ export async function getTranslations(locale, token) {
     throw err; // Let the caller handle the error (e.g. show "app unavailable")
   }
 
-  // 3. No Firestore doc yet for this (non-English) locale — fall back to
-  // the local en-US bundle until it's seeded.
-  console.warn(`[translationService] "${locale}" has no Firestore doc yet — falling back to local en-US until it's seeded`);
-  return enTranslation;
+  // 3. No Firestore doc yet for this locale — fall back to the local
+  // base-locale bundle until it's seeded.
+  console.warn(`[translationService] "${locale}" has no Firestore doc yet — falling back to local ${BASE_LOCALE} until it's seeded`);
+  return SOURCE_TRANSLATIONS;
 }
 
 /**
@@ -369,18 +378,19 @@ export function clearTranslationsCache() {
 }
 
 /**
- * Check if a locale's translations are missing any keys that exist in en-US.
- * If missing keys are found, use AI to translate them and update Firestore.
+ * Check if a locale's translations are missing any keys that exist in the
+ * base locale. If missing keys are found, use AI to translate them and
+ * update Firestore.
  *
  * This keeps the Firestore cache populated as new UI strings are added to
- * the en-US source over time.
+ * the base-locale source over time.
  *
  * @param {string} locale - BCP-47 locale to check, e.g. "pt-PT".
  * @param {string} token  - Firebase ID token.
  * @returns {Promise<number>} Number of missing keys that were added.
  */
 export async function fillMissingTranslations(locale, token) {
-  if (!token || locale === "en-US") return 0;
+  if (!token || locale === BASE_LOCALE) return 0;
 
   // De-dupe concurrent calls for the same locale (a single render can
   // trigger several missing-key callbacks at once).
@@ -392,10 +402,7 @@ export async function fillMissingTranslations(locale, token) {
   const run = async () => {
     console.info(`[translationService] fillMissingTranslations("${locale}") — starting`);
 
-    // 1. The canonical en-US translations are always the local bundled
-    // file — never Firestore, which is only ever seeded once and has no
-    // write path keeping it in sync with the deployed code.
-    const sourceData = enTranslation;
+    const sourceData = SOURCE_TRANSLATIONS;
 
     // 2. Get the current locale translations. getDocument() resolves to
     // `null` (not a throw) on a 404, so a genuinely-missing locale doc is
@@ -406,7 +413,7 @@ export async function fillMissingTranslations(locale, token) {
     try {
       const doc = await getDocument(LOCALES_COLLECTION, locale, token);
       if (!doc) {
-        console.warn(`[translationService] fillMissingTranslations("${locale}") — no locale doc exists yet, seeding from en-US instead of patching`);
+        console.warn(`[translationService] fillMissingTranslations("${locale}") — no locale doc exists yet, seeding from ${BASE_LOCALE} instead of patching`);
         const seeded = await seedLanguageTranslations(locale, token);
         const seededKeyCount = Object.keys(flattenToDotPaths(seeded)).length;
         console.info(`[translationService] fillMissingTranslations("${locale}") — seeded ${seededKeyCount} keys via seedLanguageTranslations`);
@@ -506,10 +513,10 @@ export async function fillMissingTranslations(locale, token) {
 
 /**
  * Seed UI translations for a new language by asking AI to translate the
- * canonical en-US strings.
+ * canonical base-locale strings.
  *
  * Flow:
- * 1. Use the local en-US bundle as the canonical source.
+ * 1. Use the local base-locale bundle as the canonical source.
  * 2. Split it into small chunks (splitIntoChunks) and translate each via a
  *    separate ask-ai call — the full ~56KB source in one call kept running
  *    past the standard ask-ai timeout regardless of Vercel duration/plan
@@ -529,10 +536,7 @@ export async function seedLanguageTranslations(locale, token) {
 
   console.info(`[translationService] seedLanguageTranslations("${locale}") — starting`);
 
-  // 1. The canonical en-US translations are always the local bundled
-  // file — never Firestore, which is only ever seeded once and has no
-  // write path keeping it in sync with the deployed code.
-  const sourceData = enTranslation;
+  const sourceData = SOURCE_TRANSLATIONS;
 
   // 2. Translate in small chunks, one ask-ai call per chunk — same
   // JSON-subtree-in/JSON-subtree-out prompt already used successfully by
@@ -597,12 +601,12 @@ function sleep(ms) {
 }
 
 /**
- * Re-translate the full local en-US source and hard-overwrite every given
+ * Re-translate the full local base-locale source and hard-overwrite every given
  * language's Firestore locale doc from scratch (admin "force resync" action).
  *
  * Unlike fillMissingTranslations() (incremental, presence-only diff), this
  * always re-translates and replaces the entire document — the only way to
- * propagate an edited (not just newly-added) English string into every
+ * propagate an edited (not just newly-added) base-locale string into every
  * other locale. Languages are processed strictly sequentially (never
  * concurrently) to avoid hammering the AI backend with parallel requests;
  * a failure on one language is caught and recorded, never aborting the
@@ -618,7 +622,7 @@ function sleep(ms) {
  * @returns {Promise<{ total: number, succeeded: number, failed: number, results: object[] }>}
  */
 export async function forceOverwriteAllTranslations(languages, token, { onProgress } = {}) {
-  const targets = (languages ?? []).filter((lang) => lang.code !== "en-US");
+  const targets = (languages ?? []).filter((lang) => lang.code !== BASE_LOCALE);
   const total = targets.length;
 
   if (total === 0) {

@@ -54,15 +54,18 @@ const CollapsibleCard = ({ title, isDarkMode, defaultOpen = false, children, cla
       {/*
         Open: cap the height and let the body scroll itself. Before this the
         wrapper was `overflow-hidden`, so anything past max-h was simply
-        clipped and unreachable. The scrollbar is hidden because a native one
-        cuts through the flat neo-brutalist surface; the content still scrolls
-        by wheel, touch and keyboard.
+        clipped and unreachable. The bar used to be hidden, because a native
+        one cuts through the flat neo-brutalist surface — there is a styled one
+        now, so it is shown: a scrollable panel with no visible bar gives no
+        hint that there is anything below the fold.
         Closed: overflow-hidden is what makes the collapse animation clip.
       */}
       <div
         className={`transition-all duration-300 ease-in-out ${
           isOpen
-            ? 'max-h-[600px] opacity-100 overflow-y-auto scrollbar-hidden'
+            ? `max-h-[600px] opacity-100 overflow-y-auto neo-scrollbar ${
+                isDarkMode ? 'neo-scrollbar-dark' : ''
+              }`
             : 'max-h-0 opacity-0 overflow-hidden'
         }`}
       >

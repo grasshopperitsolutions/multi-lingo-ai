@@ -53,6 +53,17 @@ There is no project test suite configured; do not assume one exists.
 
 This project loads locales from Firestore and then syncs them into i18next. The key rules are:
 
+- pt-PT is the base locale: `src/locales/pt/translation.json` is the ONLY locale
+  bundled with the code, and it is the source every other locale is translated
+  from. The constant is `BASE_LOCALE`, exported from `src/i18n.js` — use it
+  rather than writing the literal. Add new UI strings there and nowhere else.
+- en-US is not special any more. There is no local English locale file; en-US is
+  an ordinary Firestore target locale, translated from pt-PT like the rest.
+- The one hardcoded English left is `src/config/seoStrings.js` — crawler-facing
+  head copy and FAQ structured data for the 5 public routes, baked into static
+  HTML by `scripts/generate-seo-pages.mjs`. It is deliberately NOT a locale file:
+  that audience does not follow the interface language. The locale files still
+  carry `seo.*_title` for the browser tab (usePublicPageTitle); reword both.
 - Keep locale loading dynamic; do not assume a static list is enough.
 - Use the existing translation loading flow instead of inventing a new one.
 - Do not add a hardcoded supportedLngs list unless the existing behavior is deliberately reworked.
