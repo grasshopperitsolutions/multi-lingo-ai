@@ -578,6 +578,14 @@ export const AppProvider = ({ children }) => {
         // Absent means "not chosen yet", which useDashboardPresentation
         // resolves by viewport rather than by guessing a default here.
         dashboardPresentation: profile?.dashboardPresentation ?? null,
+        // Notification opt-outs. Left undefined when unset so the Settings
+        // card renders the defaults — the backend applies the same defaults
+        // at send time, and it is the backend's check that actually counts.
+        notificationPrefs: profile?.notificationPrefs ?? null,
+        // Per-browser FCM registration tokens. Needed here so enabling or
+        // disabling push can append/remove this browser without clobbering
+        // the user's other devices.
+        fcmTokens: profile?.fcmTokens ?? [],
       }));
     } catch (err) {
       showAlert("error", `Could not load your profile: ${err.message}`);

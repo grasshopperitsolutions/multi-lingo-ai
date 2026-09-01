@@ -210,7 +210,8 @@
       "submit": "Enviar Mensagem",
       "sending": "A enviar...",
       "success": "Mensagem enviada com sucesso! Entraremos em contacto em breve.",
-      "error": "Preenche todos os campos obrigatórios"
+      "error": "Preenche todos os campos obrigatórios",
+      "error_send": "Não foi possível enviar a mensagem. Tenta novamente daqui a pouco."
     }
   },
   "footer": {
@@ -377,7 +378,24 @@
     "lang_es_es": "Espanhol (Espanha)",
     "lang_es_mx": "Espanhol (México)",
     "lang_fr_fr": "Francês",
-    "lang_de_de": "Alemão"
+    "lang_de_de": "Alemão",
+    "notifications": {
+      "title": "Notificações",
+      "intro": "Escolhe como queres ser avisado. Emails sobre a tua conta e pagamentos são sempre enviados.",
+      "channel_email": "Email",
+      "channel_push": "Navegador",
+      "category_announcements": "Novidades",
+      "category_announcements_hint": "Novas funcionalidades e anúncios.",
+      "category_reminders": "Lembretes de prática",
+      "category_reminders_hint": "Avisos para manteres a tua sequência de dias.",
+      "transactional_note": "Emails sobre a tua conta, subscrição e pagamentos não podem ser desativados.",
+      "enable_push": "Ativar notificações do navegador",
+      "push_enabled": "Notificações do navegador ativas neste dispositivo",
+      "push_blocked": "As notificações estão bloqueadas nas definições do teu navegador. Tens de as permitir aí primeiro.",
+      "push_unsupported": "O teu navegador não suporta notificações web.",
+      "push_ios_hint": "No iPhone ou iPad, adiciona primeiro a app ao ecrã principal.",
+      "push_failed": "Não foi possível ativar as notificações do navegador."
+    }
   },
   "translator": {
     "input_placeholder": "Escreve ou cola o texto aqui…",
@@ -1002,5 +1020,53 @@
     "message_low": "Isto vai usar uma das chamadas que te restam hoje. O teu limite renova-se amanhã.",
     "mute_today": "Não me avisar outra vez hoje",
     "confirm": "Continuar"
+  },
+  "email": {
+    "common": {
+      "app_name": "Multi Lingo AI",
+      "greeting": "Olá {{name}},",
+      "greeting_fallback": "Olá,",
+      "button_open": "Abrir o Multi Lingo AI",
+      "footer_tagline": "Pratica línguas com IA.",
+      "footer_prefs": "Gerir as tuas preferências de notificação",
+      "footer_transactional": "Recebeste este email porque diz respeito à tua conta.",
+      "footer_optional": "Recebeste este email porque aceitaste receber novidades."
+    },
+    "welcome": {
+      "subject": "Bem-vindo ao Multi Lingo AI",
+      "heading": "A tua prática começa aqui",
+      "body": "A tua conta está pronta. Escolhe um dialeto, define os teus interesses e começa a praticar — o tradutor, os jogos de palavras e o treino para exames estão à tua espera.",
+      "cta": "Começar a praticar"
+    },
+    "subscription_activated": {
+      "subject": "O teu plano {{tier}} está ativo",
+      "heading": "Estás no plano {{tier}}",
+      "body": "A tua subscrição está ativa e todas as funcionalidades {{tier}} estão desbloqueadas. Pratica à vontade.",
+      "cta": "Ir para o painel"
+    },
+    "subscription_cancel_scheduled": {
+      "subject": "O teu plano termina a {{date}}",
+      "heading": "Cancelamento agendado",
+      "body": "O teu plano {{tier}} termina a {{date}}. Manténs acesso total até lá e podes voltar quando quiseres.",
+      "cta": "Gerir o plano"
+    },
+    "subscription_ended": {
+      "subject": "O teu plano terminou",
+      "heading": "De volta ao plano gratuito",
+      "body": "A tua subscrição terminou e a tua conta está agora no plano gratuito Explorer. O teu histórico de prática está intacto — podes voltar ao plano completo quando quiseres.",
+      "cta": "Ver os planos"
+    },
+    "payment_failed": {
+      "subject": "Não conseguimos processar o teu pagamento",
+      "heading": "Problema com o pagamento",
+      "body": "O último pagamento do teu plano não foi concluído. Atualizar o cartão mantém o teu acesso sem interrupções — voltamos a tentar automaticamente assim que estiver resolvido.",
+      "cta": "Atualizar o cartão"
+    },
+    "account_deleted": {
+      "subject": "A tua conta foi eliminada",
+      "heading": "A tua conta foi eliminada",
+      "body": "A tua conta Multi Lingo AI e todos os dados associados foram eliminados permanentemente, e qualquer subscrição ativa foi cancelada. Nada disto é recuperável. Obrigado por teres praticado connosco.",
+      "cta": ""
+    }
   }
 }
