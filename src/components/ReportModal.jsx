@@ -2,12 +2,12 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { Flag, X, MessageSquare, Loader2, CheckCircle2 } from 'lucide-react';
-import { openWhatsAppReport } from '../services/reportService';
+import { submitReport } from '../services/reportService';
 import NeoDropdown from './NeoDropdown';
 
 /**
- * ReportModal — lets the user pick a category, write a description,
- * and send a pre-filled WhatsApp message.
+ * ReportModal — lets the user pick a category, write a description, and
+ * file a report, which is stored in Firestore for the Admin page to triage.
  *
  * Props:
  *   isDarkMode  boolean
@@ -34,14 +34,22 @@ const ReportModal = ({ isDarkMode, context, onClose }) => {
 
   const canSubmit = message.trim().length >= 5;
 
-  const handleSubmit = () => {
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async () => {
     if (!canSubmit) return;
     setIsLoading(true);
-    setTimeout(() => {
-      openWhatsAppReport({ category, message, context });
-      setIsLoading(false);
+    setError(null);
+    try {
+      await submitReport({ category, message, context });
       setSubmitted(true);
-    }, 400);
+    } catch (err) {
+      // The message stays in the textarea so a retry costs nothing.
+      console.error('[ReportModal] Failed to submit report:', err.message);
+      setError(t('report.error', 'Could not send your report. Please try again.'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -120,7 +128,7 @@ const ReportModal = ({ isDarkMode, context, onClose }) => {
             >
               {t(
                 'report.successMessage',
-                'WhatsApp opened with your report. Please press Send to submit it.'
+                'Your report has been sent. We will look into it shortly.'
               )}
             </p>
             <button
@@ -180,6 +188,12 @@ const ReportModal = ({ isDarkMode, context, onClose }) => {
               />
             </div>
 
+            {error && (
+              <p className="mb-4 text-sm font-bold text-rose-500" role="alert">
+                {error}
+              </p>
+            )}
+
             {/* Actions */}
             <div className="flex flex-col gap-3">
               <button
@@ -194,7 +208,7 @@ const ReportModal = ({ isDarkMode, context, onClose }) => {
                 {isLoading ? (
                   <><Loader2 size={18} className="animate-spin" /> {t('common.loading', 'Loading…')}</>
                 ) : (
-                  t('report.send', 'Send via WhatsApp')
+                  t('report.send', 'Send report')
                 )}
               </button>
               <button

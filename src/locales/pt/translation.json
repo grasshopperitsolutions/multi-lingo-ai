@@ -736,11 +736,12 @@
     "buttonAriaLabel": "Reportar um problema",
     "title": "Reportar um problema",
     "successTitle": "Obrigado!",
-    "successMessage": "O WhatsApp abriu com o teu relatório. Carrega em Enviar para o submeteres.",
+    "successMessage": "O teu relatório foi enviado. Vamos analisá-lo em breve.",
     "category": "Categoria",
     "description": "Descrição",
     "placeholder": "Descreve o problema em poucas palavras…",
-    "send": "Enviar via WhatsApp"
+    "send": "Enviar relatório",
+    "error": "Não foi possível enviar o teu relatório. Tenta novamente."
   },
   "categories": {
     "general": "Geral",

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../contexts/AppContext";
 import { useTierAccess } from "../../hooks/useTierAccess";
@@ -117,7 +117,15 @@ const DashboardLayout = () => {
               <h1 className={`text-base sm:text-3xl font-black uppercase tracking-tighter truncate ${
                 isDarkMode ? "text-white" : "text-slate-900"
               }`}>
-                {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || t("dashboard.learner") })}
+                {/* Doubles as the way back to the hub from any child route.
+                    The underline is always applied but transparent until
+                    hover, so revealing it shifts nothing. */}
+                <Link
+                  to="/dashboard"
+                  className="underline decoration-2 decoration-transparent underline-offset-4 transition-colors duration-200 hover:decoration-yellow-400"
+                >
+                  {t("dashboard.welcome", { name: user?.displayName?.split(" ")[0] || t("dashboard.learner") })}
+                </Link>
               </h1>
               {/* Tier Badge */}
               {tier !== "explorer" && (

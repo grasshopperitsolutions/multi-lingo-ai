@@ -12,6 +12,7 @@ import { getTiersConfig, saveTierConfig } from "../services/tiersConfigService";
 import { getFeatures, saveFeature } from "../services/featuresService";
 import { listAllUserProfiles, setUserTier, deleteAccount } from "../services/userService";
 import { getLanguages } from "../services/supportedLanguagesService";
+import { getReports, setReportRead, removeReport } from "../services/reportService";
 import { forceOverwriteAllTranslations, seedLanguageTranslations } from "../services/translationService";
 import { createCategory, updateCategory, deleteCategory } from "../services/categoriesService";
 import PromptsSection from "../components/admin/PromptsSection";
@@ -19,6 +20,7 @@ import PromptEditModal from "../components/admin/PromptEditModal";
 import LoginProvidersSection from "../components/admin/LoginProvidersSection";
 import UsersSection from "../components/admin/UsersSection";
 import NotificationsSection from "../components/admin/NotificationsSection";
+import ReportsSection from "../components/admin/ReportsSection";
 import LocalesSection from "../components/admin/LocalesSection";
 import CategoriesSection from "../components/admin/CategoriesSection";
 import CategoryEditModal from "../components/admin/CategoryEditModal";
@@ -73,6 +75,8 @@ const AdminPage = () => {
   const isTiersSection = activeSectionId === "tiers";
   const isFeaturesSection = activeSectionId === "features";
   const isNotificationsSection = activeSectionId === "notifications";
+  const isReportsSection = activeSectionId === "reports";
+  const [reportBusyId, setReportBusyId] = useState(null);
 
   const loadSection = useCallback(async (section) => {
     setIsLoadingDocs(true);
@@ -86,6 +90,8 @@ const AdminPage = () => {
             ? await getTiersConfig()
             : section.id === "features"
               ? await getFeatures()
+            : section.id === "reports"
+              ? await getReports()
             : section.id === "users" || section.id === "notifications"
               ? await listAllUserProfiles(await auth.currentUser.getIdToken())
               : await getConfigSectionDocs(section.collection);
@@ -174,6 +180,38 @@ const AdminPage = () => {
       setIsSavingCategory(false);
     }
   }, [showAlert, refreshCategoriesDocs]);
+
+  const refreshReports = useCallback(async () => {
+    // Fetch first, then set: the state updater is synchronous, and awaiting
+    // inside it is both a parse error and the wrong place for I/O.
+    const docs = await getReports();
+    setDocsBySection((prev) => ({ ...prev, reports: docs }));
+  }, []);
+
+  const handleToggleReportRead = useCallback(async (id, read) => {
+    setReportBusyId(id);
+    try {
+      await setReportRead(id, read);
+      await refreshReports();
+    } catch (err) {
+      showAlert("error", `Could not update the report: ${err.message}`);
+    } finally {
+      setReportBusyId(null);
+    }
+  }, [showAlert, refreshReports]);
+
+  const handleDeleteReport = useCallback(async (id) => {
+    setReportBusyId(id);
+    try {
+      await removeReport(id);
+      showAlert("success", "Report deleted.");
+      await refreshReports();
+    } catch (err) {
+      showAlert("error", `Could not delete the report: ${err.message}`);
+    } finally {
+      setReportBusyId(null);
+    }
+  }, [showAlert, refreshReports]);
 
   const handleDeleteCategory = useCallback(async (id) => {
     setIsDeletingCategory(true);
@@ -433,6 +471,16 @@ const AdminPage = () => {
             isLoadingDocs={isLoadingDocs}
             error={error}
             onToggle={handleToggleProvider}
+          />
+        ) : isReportsSection ? (
+          <ReportsSection
+            reports={docs}
+            isDarkMode={isDarkMode}
+            isLoadingDocs={isLoadingDocs}
+            error={error}
+            busyId={reportBusyId}
+            onToggleRead={handleToggleReportRead}
+            onDelete={handleDeleteReport}
           />
         ) : isNotificationsSection ? (
           <NotificationsSection
