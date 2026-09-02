@@ -1,0 +1,41 @@
+<svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Multi Lingo AI">
+  <!-- Full-bleed background: required for a "maskable" icon, which Android
+       and Chrome crop to a platform-specific shape (circle, squircle, ...).
+       All artwork below stays inside the middle 80% safe zone so nothing
+       important is cropped away. -->
+  <rect width="192" height="192" fill="#FACC15" />
+
+  <!-- Body -->
+  <path
+    d="M96 154C58 154 30 126 30 96C30 66 58 38 96 38C134 38 162 66 162 96C162 126 134 154 96 154Z"
+    fill="#0F172A"
+  />
+
+  <!-- Comb -->
+  <path d="M82 40C82 26 120 26 120 40Z" fill="#E11D48" />
+  <circle cx="101" cy="30" r="8" fill="#E11D48" />
+  <circle cx="115" cy="36" r="6" fill="#E11D48" />
+
+  <!-- Beak -->
+  <path d="M148 70L166 76L148 82Z" fill="#FACC15" />
+
+  <!-- Eye -->
+  <circle cx="132" cy="70" r="6" fill="#FFFFFF" />
+  <circle cx="134" cy="70" r="3" fill="#0F172A" />
+
+  <!-- Heart and dot motifs from the Barcelos rooster -->
+  <path
+    d="M66 88C66 82 72 78 76 78C80 78 86 82 86 88C86 94 76 102 76 102C76 102 66 94 66 88Z"
+    fill="#E11D48"
+  />
+  <circle cx="106" cy="88" r="6" fill="#FACC15" />
+  <circle cx="86" cy="118" r="8" fill="#3B82F6" />
+
+  <!-- Legs -->
+  <path
+    d="M84 154V168M108 154V168"
+    stroke="#FACC15"
+    stroke-width="7"
+    stroke-linecap="round"
+  />
+</svg>

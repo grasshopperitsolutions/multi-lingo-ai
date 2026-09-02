@@ -2,7 +2,22 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-import enTranslation from './locales/en/translation.json';
+import ptTranslation from './locales/pt/translation.json';
+
+/**
+ * The one locale that ships with the code, and the source every other locale is
+ * AI-translated from.
+ *
+ * It is pt-PT rather than English on purpose: Portuguese marks gender, number,
+ * formality and verb mood explicitly, so a translation generated from it starts
+ * with distinctions English leaves implicit and would otherwise have to be
+ * guessed. Translating pt-PT -> X loses less than en-US -> X.
+ *
+ * en-US is no longer special. It is an ordinary target locale served from
+ * Firestore like every other one, so getTranslations('en-US') goes to the
+ * network and is re-seeded from this file like any other language.
+ */
+export const BASE_LOCALE = 'pt-PT';
 
 // Store a reference to the fillMissingTranslations function so it can be
 // called when i18next detects a missing key.
@@ -12,17 +27,24 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
+    // The only bundled locale. Everything else — en-US included — is fetched
+    // from Firestore at runtime. Not a ceiling: loadRemoteTranslations()
+    // deep-merges Firestore bundles over this one, so an edited pt-PT document
+    // still wins over the shipped file.
     resources: {
-      'en-US': { translation: enTranslation },
+      [BASE_LOCALE]: { translation: ptTranslation },
     },
-    fallbackLng: 'en-US',
+    // Falling back to the bundled source means a key missing from a Firestore
+    // locale renders Portuguese rather than the raw key name.
+    fallbackLng: BASE_LOCALE,
     // No supportedLngs allowlist — the app dynamically seeds an unbounded
     // set of locales via AI (see supportedLanguagesService.seedLanguage).
     // i18next's LanguageUtils caches supportedLngs once at init() and never
     // re-reads it, so appending to it at runtime (as loadRemoteTranslations
     // used to try) has no effect: every dynamically-added locale gets
     // silently rejected from t()'s resolve hierarchy and falls back to
-    // en-US — translations fetch fine, i18n.language switches fine, but
+    // the base locale — translations fetch fine, i18n.language switches
+    // fine, but
     // rendered text never changes. Leaving this unset avoids the whole
     // class of bug, since any code passed to changeLanguage() already comes
     // from a controlled source (the language picker / AI seeding flow).
@@ -34,7 +56,7 @@ i18n
     // the missing keys and persist them to Firestore).
     saveMissing: true,
     saveMissingHandler: (lng, ns, key) => {
-      if (_fillMissingFn && lng && lng !== 'en-US' && typeof key === 'string') {
+      if (_fillMissingFn && lng && lng !== BASE_LOCALE && typeof key === 'string') {
         console.info(`[i18n] missing key detected: locale="${lng}" ns="${ns}" key="${key}" — triggering fillMissingTranslations`);
         // Fire-and-forget — don't block the UI
         _fillMissingFn(lng).catch((err) =>

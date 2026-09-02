@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
+import NotificationSettings from "../components/NotificationSettings";
 import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
 import { normalizeCode } from "../utils/languageCode";
@@ -728,6 +729,14 @@ const SettingsPage = () => {
         isSeedingLanguage={isSeedingLanguage}
         isDirty={isDirty}
       />
+
+        {/* ── Notifications ── */}
+        <NotificationSettings
+          isDarkMode={isDarkMode}
+          user={user}
+          sectionClasses={sectionClasses}
+          onSaved={refreshUser}
+        />
 
         {/* ── Subscription Section ── */}
         <div className={sectionClasses}>

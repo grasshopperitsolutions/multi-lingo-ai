@@ -12,6 +12,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import NeoDropdown from "../components/NeoDropdown";
+import { sendContactMessage } from "../services/notificationService";
 
 const ContactPage = () => {
   const { isDarkMode, showAlert } = useAppContext();
@@ -26,7 +27,7 @@ const ContactPage = () => {
     message: "",
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.name || !formData.email || !formData.message) {
@@ -36,13 +37,9 @@ const ContactPage = () => {
 
     setIsLoading(true);
 
-    // Simulate form submission
-    setTimeout(() => {
-      setIsLoading(false);
-      showAlert(
-        "success",
-        t('contact.form.success'),
-      );
+    try {
+      await sendContactMessage(formData);
+      showAlert("success", t('contact.form.success'));
       setFormData({
         name: "",
         email: "",
@@ -50,7 +47,14 @@ const ContactPage = () => {
         subject: "general",
         message: "",
       });
-    }, 1500);
+    } catch (err) {
+      // The form is deliberately not cleared here, so a failed send doesn't
+      // cost the user the message they just typed.
+      console.error("[ContactPage] Failed to send message:", err.message);
+      showAlert("error", t('contact.form.error_send'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const inputClasses = `w-full px-4 py-3 rounded-xl border-4 font-bold outline-none transition-all
@@ -99,7 +103,7 @@ const ContactPage = () => {
 
           <div className="space-y-4 pt-4">
             <a
-              href="mailto:grasshopper.it.solutions@gmail.com"
+              href="mailto:general@grasshoppersolutions.online"
               className={`p-6 rounded-2xl border-4 flex items-center gap-4 block hover:-translate-y-1 transition-all ${isDarkMode ? "bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#facc15]" : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#000]"}`}
             >
               <div className="w-12 h-12 bg-rose-400 rounded-lg border-2 border-slate-900 flex items-center justify-center">

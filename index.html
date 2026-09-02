@@ -5,6 +5,14 @@
     <link rel="icon" type="image/svg+xml" href="/barcelos-rooster.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- PWA. Required for web push on iOS/iPadOS: Safari only delivers push
+         to a site the user has added to their Home Screen, and it will only
+         offer that for an installable app with a manifest. Harmless
+         elsewhere — it also makes the app installable on Android/desktop. -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#facc15" />
+    <link rel="apple-touch-icon" href="/icons/icon.svg" />
+
     <!-- GitHub Pages SPA: restore path from ?p= query param set by 404.html -->
     <script>
       (function() {

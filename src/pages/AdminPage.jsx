@@ -18,6 +18,7 @@ import PromptsSection from "../components/admin/PromptsSection";
 import PromptEditModal from "../components/admin/PromptEditModal";
 import LoginProvidersSection from "../components/admin/LoginProvidersSection";
 import UsersSection from "../components/admin/UsersSection";
+import NotificationsSection from "../components/admin/NotificationsSection";
 import LocalesSection from "../components/admin/LocalesSection";
 import CategoriesSection from "../components/admin/CategoriesSection";
 import CategoryEditModal from "../components/admin/CategoryEditModal";
@@ -71,6 +72,7 @@ const AdminPage = () => {
   const isCategoriesSection = activeSectionId === "categories";
   const isTiersSection = activeSectionId === "tiers";
   const isFeaturesSection = activeSectionId === "features";
+  const isNotificationsSection = activeSectionId === "notifications";
 
   const loadSection = useCallback(async (section) => {
     setIsLoadingDocs(true);
@@ -84,7 +86,7 @@ const AdminPage = () => {
             ? await getTiersConfig()
             : section.id === "features"
               ? await getFeatures()
-            : section.id === "users"
+            : section.id === "users" || section.id === "notifications"
               ? await listAllUserProfiles(await auth.currentUser.getIdToken())
               : await getConfigSectionDocs(section.collection);
       setDocsBySection((prev) => ({ ...prev, [section.id]: docs }));
@@ -431,6 +433,11 @@ const AdminPage = () => {
             isLoadingDocs={isLoadingDocs}
             error={error}
             onToggle={handleToggleProvider}
+          />
+        ) : isNotificationsSection ? (
+          <NotificationsSection
+            isDarkMode={isDarkMode}
+            users={docs}
           />
         ) : isUsersSection ? (
           <UsersSection

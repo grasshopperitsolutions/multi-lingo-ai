@@ -22,6 +22,9 @@ export const CONFIG_SECTIONS = [
   { id: "features", label: "Features", collection: "appConfig/config/features" },
   { id: "tiers", label: "Tiers & Limits", collection: "appConfig/config/tiersConfig" },
   { id: "users", label: "Users", collection: "Firebase Auth + users/*" },
+  // Not a collection — a composer that posts to /api/email. It reuses the
+  // users list so an admin can target one person by name.
+  { id: "notifications", label: "Notifications", collection: "POST /api/email" },
 ];
 
 /**

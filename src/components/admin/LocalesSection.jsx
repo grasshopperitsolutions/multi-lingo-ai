@@ -22,7 +22,7 @@ function matchesSearch(doc, term) {
 /**
  * LocalesSection — admin panel for the appConfig/config/locales Firestore
  * collection. Lets an admin force-retranslate-and-overwrite every known
- * language's UI strings from the current local en-US source in one batch
+ * language's UI strings from the current local pt-PT source in one batch
  * (sequential, one language at a time, to avoid concurrent AI calls), or
  * refresh a single language on demand. Each locale's translation JSON is
  * large, so entries are collapsed by default and filterable by locale code.

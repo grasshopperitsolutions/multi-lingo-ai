@@ -8,6 +8,7 @@ import {
   TwitterAuthProvider,
 } from 'firebase/auth';
 import { auth } from '../firebase';
+import i18n from '../i18n';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 
@@ -25,10 +26,17 @@ const socialLogin = async (provider, action) => {
     const popupResult = await signInWithPopup(auth, provider);
     const idToken = await popupResult.user.getIdToken();
 
+    // Sent so the backend can seed interfaceLang on a brand-new profile.
+    // Without it a first-time user's welcome email would go out in a
+    // default language before they have ever chosen one. i18n.language is
+    // whatever the browser detector resolved (or a previous visit stored);
+    // the backend validates it and falls back to en-US on anything odd.
+    const interfaceLang = i18n.language || undefined;
+
     const response = await fetch(`${PROXY_URL}/api/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, idToken }),
+      body: JSON.stringify({ action, idToken, interfaceLang }),
     });
 
     if (!response.ok) {

@@ -18,7 +18,7 @@ import { normalizeCode } from "../utils/languageCode";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
 import { getTranslations, clearTranslationsCache, fillMissingTranslations } from "../services/translationService";
-import { loadRemoteTranslations, registerMissingKeyHandler } from "../i18n";
+import { loadRemoteTranslations, registerMissingKeyHandler, BASE_LOCALE } from "../i18n";
 import Loader from "../components/Loader";
 
 const AppContext = createContext();
@@ -360,7 +360,7 @@ export const AppProvider = ({ children }) => {
       // Clear cache so we get fresh data
       clearTranslationsCache();
 
-      // Fetch translations from Firestore (falls back to local en-US)
+      // Fetch translations from Firestore (falls back to the local base locale)
       const translations = await getTranslations(lang, token);
 
       // Register with i18next
@@ -373,9 +373,12 @@ export const AppProvider = ({ children }) => {
       // Check for missing/absent translations and fill or seed them
       // (non-blocking). fillMissingTranslations() also handles the case
       // where "lang" has no Firestore doc at all yet — it detects that and
-      // seeds the full document from en-US instead of patching one that
-      // doesn't exist.
-      if (token && lang !== "en-US") {
+      // seeds the full document from the base locale instead of patching one
+      // that doesn't exist.
+      //
+      // Skipped only for the base locale, which is the bundled source and has
+      // nothing to translate from. en-US is a normal target like any other.
+      if (token && lang !== BASE_LOCALE) {
         fillMissingTranslations(lang, token)
           .then((count) => {
             if (count > 0) {
@@ -575,6 +578,14 @@ export const AppProvider = ({ children }) => {
         // Absent means "not chosen yet", which useDashboardPresentation
         // resolves by viewport rather than by guessing a default here.
         dashboardPresentation: profile?.dashboardPresentation ?? null,
+        // Notification opt-outs. Left undefined when unset so the Settings
+        // card renders the defaults — the backend applies the same defaults
+        // at send time, and it is the backend's check that actually counts.
+        notificationPrefs: profile?.notificationPrefs ?? null,
+        // Per-browser FCM registration tokens. Needed here so enabling or
+        // disabling push can append/remove this browser without clobbering
+        // the user's other devices.
+        fcmTokens: profile?.fcmTokens ?? [],
       }));
     } catch (err) {
       showAlert("error", `Could not load your profile: ${err.message}`);

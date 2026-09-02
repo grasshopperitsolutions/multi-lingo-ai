@@ -19,8 +19,10 @@
  * files are hit before the 404.html SPA fallback ever comes into play. The
  * fallback still handles unknown paths and any client-side route.
  *
- * Copy comes from src/locales/en/translation.json — the same source the app
- * uses, so there is one place to edit and no risk of the two drifting apart.
+ * Copy comes from src/config/seoStrings.js — hand-written English, not the
+ * locale files. This output is only ever read by crawlers and social scrapers,
+ * an audience that does not follow the interface language, so the marketing
+ * pages present in English worldwide while the app itself localises.
  *
  * NOT handled here (deliberate, pending a separate decision):
  *   - hreflang alternates are emitted exactly as SEOMeta used to emit them.
@@ -34,14 +36,11 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SEO_STRINGS, SEO_FAQS } from '../src/config/seoStrings.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
 const BASE_URL = 'https://multi-lingo.online';
-
-const t = JSON.parse(
-  readFileSync(join(ROOT, 'src/locales/en/translation.json'), 'utf8')
-);
 
 /** Locales advertised as hreflang alternates. See the note above. */
 const HREFLANG = ['en-US', 'pt-PT', 'es-ES', 'fr-FR', 'x-default'];
@@ -52,11 +51,11 @@ const HREFLANG = ['en-US', 'pt-PT', 'es-ES', 'fr-FR', 'x-default'];
  * in index.html and is inherited by every generated file).
  */
 const ROUTES = [
-  { path: '/',        title: t.seo.home_title,     description: t.seo.home_description,    jsonLd: faqPageSchema() },
-  { path: '/pricing', title: t.seo.pricing_title,  description: t.seo.pricing_description },
-  { path: '/contact', title: t.seo.contact_title,  description: t.seo.contact_description },
-  { path: '/terms',   title: t.seo.terms_title,    description: t.seo.terms_description },
-  { path: '/privacy', title: t.seo.privacy_title,  description: t.seo.privacy_description },
+  { path: '/',        title: SEO_STRINGS.home_title,     description: SEO_STRINGS.home_description,    jsonLd: faqPageSchema() },
+  { path: '/pricing', title: SEO_STRINGS.pricing_title,  description: SEO_STRINGS.pricing_description },
+  { path: '/contact', title: SEO_STRINGS.contact_title,  description: SEO_STRINGS.contact_description },
+  { path: '/terms',   title: SEO_STRINGS.terms_title,    description: SEO_STRINGS.terms_description },
+  { path: '/privacy', title: SEO_STRINGS.privacy_title,  description: SEO_STRINGS.privacy_description },
 ];
 
 /**
@@ -65,7 +64,7 @@ const ROUTES = [
  * meant it never reached the DOM at all — baking it in restores it.
  */
 function faqPageSchema() {
-  const faqs = t.home?.faqs;
+  const faqs = SEO_FAQS;
   if (!Array.isArray(faqs) || faqs.length === 0) return null;
 
   return {

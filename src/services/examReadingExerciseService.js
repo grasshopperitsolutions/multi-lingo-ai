@@ -228,7 +228,7 @@ function getResponseSchemaForType(type) {
           },
           instructions: { type: 'array', items: { type: 'string' } },
         },
-        required: ['passage', 'questions'],
+        required: ['instructions', 'passage', 'questions'],
       };
 
     case 'true-false':
@@ -252,7 +252,7 @@ function getResponseSchemaForType(type) {
           },
           instructions: { type: 'array', items: { type: 'string' } },
         },
-        required: ['passage', 'statements'],
+        required: ['instructions', 'passage', 'statements'],
       };
 
     case 'best-title':
@@ -276,7 +276,7 @@ function getResponseSchemaForType(type) {
           },
           instructions: { type: 'array', items: { type: 'string' } },
         },
-        required: ['passage', 'titles'],
+        required: ['instructions', 'passage', 'titles'],
       };
 
     case 'ordering':
@@ -299,7 +299,7 @@ function getResponseSchemaForType(type) {
           },
           instructions: { type: 'array', items: { type: 'string' } },
         },
-        required: ['items'],
+        required: ['instructions', 'items'],
       };
 
     case 'cloze':
@@ -324,7 +324,7 @@ function getResponseSchemaForType(type) {
           },
           instructions: { type: 'array', items: { type: 'string' } },
         },
-        required: ['passage', 'blanks'],
+        required: ['instructions', 'passage', 'blanks'],
       };
 
     case 'fill-blanks':
@@ -349,7 +349,7 @@ function getResponseSchemaForType(type) {
           },
           instructions: { type: 'array', items: { type: 'string' } },
         },
-        required: ['passage', 'wordBank', 'blanks'],
+        required: ['instructions', 'passage', 'wordBank', 'blanks'],
       };
 
     case 'matching':
@@ -388,7 +388,7 @@ function getResponseSchemaForType(type) {
           },
           instructions: { type: 'array', items: { type: 'string' } },
         },
-        required: ['passage', 'pairs', 'extraItems'],
+        required: ['instructions', 'passage', 'pairs', 'extraItems'],
       };
 
     case 'notice-sign':
@@ -413,7 +413,7 @@ function getResponseSchemaForType(type) {
           },
           instructions: { type: 'array', items: { type: 'string' } },
         },
-        required: ['notices'],
+        required: ['instructions', 'notices'],
       };
 
     default:
