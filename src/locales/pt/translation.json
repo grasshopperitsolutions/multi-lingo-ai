@@ -9,62 +9,56 @@
     "light_mode": "Modo Claro",
     "dark_mode": "Modo Escuro",
     "language": "Idioma",
-    "lang_en": "Inglês",
-    "lang_pt": "Português",
-    "lang_es": "Espanhol",
-    "lang_fr": "Francês",
-    "lang_de": "Alemão",
-    "open_menu": "Abrir menu",
-    "close_menu": "Fechar menu",
+    "open_menu": "Abrir",
+    "close_menu": "Fechar",
     "pricing": "Preços",
     "brand": "Multi Lingo AI",
     "primary": "Principal"
   },
   "seo": {
     "home_title": "Multi Lingo AI | Pratica qualquer língua, para a vida real",
-    "home_description": "Um companheiro de prática de línguas, não mais um curso. Calão, gramática e histórias que vais mesmo usar — a par do teu professor, aula ou aplicação. Apoio mais completo para português, inglês e espanhol.",
+    "home_description": "O teu companheiro de prática de línguas, não apenas mais um curso. Exercícios de exame estilo europeu (CEFR), desafios, gramática e histórias que vais mesmo usar — a par do teu professor, aula ou aplicação.",
     "pricing_title": "Preços | Multi Lingo AI",
     "pricing_description": "Compara os planos do Multi Lingo AI. Todos os planos têm as mesmas ferramentas de prática — o que muda é quanto podes praticar por dia. Há um plano gratuito.",
     "contact_title": "Contacto | Multi Lingo AI",
-    "contact_description": "Dúvidas, sugestões ou apoio para o Multi Lingo AI — o companheiro de prática de línguas criado por um professor no ativo.",
+    "contact_description": "Dúvidas, sugestões ou apoio para o Multi Lingo AI — o companheiro de prática de línguas criado por um poliglota mochileiro.",
     "terms_title": "Termos de Serviço | Multi Lingo AI",
     "terms_description": "Termos de Serviço do Multi Lingo AI, o companheiro de prática de línguas para quem estuda qualquer idioma.",
     "privacy_title": "Política de Privacidade | Multi Lingo AI",
     "privacy_description": "Política de Privacidade do Multi Lingo AI — como os teus dados são recolhidos, usados e protegidos enquanto praticas uma língua."
   },
   "common": {
-    "loading": "A carregar...",
+    "loading": "Espere por favor...",
     "cancel": "Cancelar",
     "close": "Fechar",
-    "error": "Algo correu mal. Tenta novamente.",
+    "error": "Uh oh... Por favor, tenta novamente.",
     "back": "Voltar",
     "stop": "Parar",
     "remove": "Remover",
     "next": "Seguinte",
-    "try_again": "Tentar novamente"
+    "try_again": "Tentar outra vez"
   },
   "avatar": {
-    "alt_fallback": "Avatar"
+    "alt_fallback": "Imagem de perfil"
   },
   "barcelos_rooster": {
     "alt": "Galo de Barcelos"
   },
   "confirm_modal": {
-    "loading": "A carregar",
-    "cancel": "Cancelar",
-    "close": "Fechar"
+    "loading": "A carregar"
   },
   "home": {
-    "badge": "Criado por um professor de línguas no ativo",
-    "hero_line1": "Prática",
-    "hero_highlight": "para a vida real",
-    "hero_line2": "entre as tuas aulas",
+    "badge": "Criado por um poliglota mochileiro",
+    "hero_line1": "Vem praticar",
+    "hero_highlight": "como nunca antes",
+    "hero_line2": "entre pausas, aulas, viagens...",
     "subtitle": "O teu professor dá-te as regras. A tua aplicação dá-te a sequência de dias. Nós damos-te a prática — o calão, as expressões e as palavras de que vais mesmo precisar lá fora.",
-    "cta_start": "Começar a praticar",
+    "cta_start": "Aceitar o desafio",
     "marquee": [
       "PRATICA TODOS OS DIAS",
       "CALÃO REAL, NÃO DE MANUAL",
       "ENTRE AS TUAS AULAS",
+      "DURANTE A TUA VIAGEM",
       "PARA A VIDA REAL"
     ],
     "features": {
@@ -74,7 +68,7 @@
       "dictionary_desc": "Procura qualquer palavra e recebe o sentido local — explicado na tua língua, com sinónimos naquela que estás a praticar.",
       "stories": "Histórias para Ler e Ouvir",
       "stories_desc": "Histórias curtas ao teu nível, lado a lado nas duas línguas. Toca em qualquer palavra, ouve qualquer parágrafo.",
-      "games": "Jogos de Prática",
+      "games": "Desafios e Jogos de Palavras",
       "games_desc": "Cinco jogos de palavras que transformam cinco minutos livres em prática a sério.",
       "more": "Há mais a caminho — prática de voz, comida e viagens, rádio e TV."
     },
@@ -115,7 +109,7 @@
     "faq_heading": "Tens Dúvidas?",
     "final_cta_heading": "A tua próxima aula é daqui a uns dias.",
     "final_cta_subtitle": "Mantém a língua quente até lá. Começar é grátis, sem cartão.",
-    "final_cta_button": "Começar a praticar grátis",
+    "final_cta_button": "Aceitar o desafio já!",
     "faqs": [
       {
         "question": "São suportadas várias línguas?",
@@ -139,7 +133,7 @@
       },
       {
         "question": "O que torna o Multi Lingo AI diferente?",
-        "answer": "É escrito por um professor de línguas no ativo, em vez de ser gerado em bloco. A biblioteca de gramática vem de aulas reais, e o foco está na língua que as pessoas usam mesmo — calão, expressões e situações do dia a dia, não frases de manual."
+        "answer": "É escrito por um poliglota mochileiro, em vez de ser gerado em bloco. A biblioteca de gramática vem de aulas reais, e o foco está na língua que as pessoas usam mesmo — calão, expressões e situações do dia a dia, não frases de manual."
       },
       {
         "question": "Posso falar com uma pessoa a sério?",
@@ -216,12 +210,9 @@
   },
   "footer": {
     "tagline": "Prática de línguas para a vida real. Criado por um professor no ativo.",
-    "links": "Ligações",
-    "legal": "Legal",
     "terms": "Termos de Serviço",
     "privacy": "Política de Privacidade",
     "contact": "Contacto",
-    "rights": "Todos os direitos reservados.",
     "built_by": "Cria o teu próprio site com a Grasshopper IT Solutions",
     "brand": "Multi Lingo AI"
   },
@@ -358,27 +349,16 @@
     "upload_failed": "Não foi possível carregar a imagem de perfil. Tenta novamente.",
     "account_deleted": "A tua conta foi eliminada permanentemente.",
     "delete_failed": "Não foi possível eliminar a conta. Tenta novamente.",
-    "portuguese_label": "Português (Portugal)",
     "errors": {
       "not_signed_in": "Tens de ter sessão iniciada para guardares as definições.",
       "save_failed": "Não foi possível guardar as definições. Tenta novamente.",
       "network_error": "Não foi possível contactar o servidor. Verifica a tua ligação e tenta novamente."
     },
     "success_message": "Definições guardadas com sucesso!",
-    "delete_not_implemented": "A eliminação de conta ainda não está implementada.",
     "language_learning": "Prática de Línguas",
     "learning_language": "Língua a Praticar",
-    "learning_locked_hint": "Bloqueado — de momento, o português europeu é a única língua disponível.",
     "interests": "Interesses",
     "interests_hint": "Escolhe os temas de que gostas para personalizarmos a tua prática.",
-    "lang_pt_pt": "Português (Portugal)",
-    "lang_pt_br": "Português (Brasil)",
-    "lang_en_us": "Inglês (EUA)",
-    "lang_en_gb": "Inglês (Reino Unido)",
-    "lang_es_es": "Espanhol (Espanha)",
-    "lang_es_mx": "Espanhol (México)",
-    "lang_fr_fr": "Francês",
-    "lang_de_de": "Alemão",
     "notifications": {
       "title": "Notificações",
       "intro": "Escolhe como queres ser avisado. Emails sobre a tua conta e pagamentos são sempre enviados.",
@@ -418,7 +398,6 @@
   },
   "dashboard": {
     "books": {
-      "section_title": "A Tua Estante",
       "shelf_hint": "Escolhe um livro para o abrires",
       "put_it_back": "Arrumar",
       "previous_page": "Página anterior",
@@ -450,11 +429,9 @@
     "welcome_subtitle": "Bem-vindo de volta ao teu centro de línguas",
     "your_progress": "O Teu Progresso",
     "languages": "Línguas",
-    "sessions": "Sessões",
     "day_streak": "Dias Seguidos",
     "words": "Palavras",
     "awards": "Prémios",
-    "what_you_can_do": "O Que Podes Fazer",
     "back": "Voltar ao Painel",
     "not_implemented": "Esta funcionalidade está quase a chegar — fica atento!",
     "coming_soon": "Brevemente...",
@@ -501,14 +478,11 @@
     "reading_desc": "Compreende e analisa textos escritos",
     "full_exam": "Exame Completo",
     "full_exam_desc": "Simula uma sessão completa de exame de certificação",
-    "select_level": "Escolhe o teu nível",
-    "language_note": "O exercício é em português europeu (pt-PT).",
     "language_note_dynamic": "O exercício é em {{lang}}.",
     "your_answers": "As Tuas Respostas",
     "no_answer": "Sem resposta",
     "correct_answer": "Correta",
     "generating": "A gerar o exercício...",
-    "get_exercise": "Pedir Exercício",
     "task": "A Tua Tarefa",
     "word_count_target": "Objetivo: {{min}}–{{max}} palavras",
     "timer": "Cronómetro",
@@ -531,26 +505,20 @@
     "word_count": "Número de palavras",
     "breakdown": "Detalhe da Pontuação",
     "general_feedback": "Comentário Geral",
-    "improve": "Melhorar o Meu Texto",
     "param_a_name": "Cumprimento da Tarefa",
     "param_b_name": "Coerência e Coesão",
     "param_c_name": "Riqueza Lexical",
     "param_d_name": "Domínio e Correção Gramatical",
     "param_e_name": "Correção Ortográfica",
-    "reading_passage": "Texto de Leitura",
     "vocabulary": "Vocabulário",
     "comprehension_questions": "Perguntas de Compreensão",
     "questions_answered": "perguntas respondidas",
     "check_answers": "Verificar as Minhas Respostas",
     "training": "Preparação para Exames",
-    "listening_lang_unsupported": "Os exercícios de compreensão oral só estão disponíveis, de momento, em pt-PT. A língua que praticas é {{lang}}.",
     "audio": "Áudio",
-    "hide_transcript": "Ocultar Transcrição",
-    "show_transcript": "Mostrar Transcrição",
     "transcript": "Transcrição",
     "instructions": "Instruções",
     "sidebar": {
-      "settings": "Definições",
       "level": "Nível",
       "type": "Tipo",
       "generate": "Gerar",
@@ -594,14 +562,6 @@
       "results_title": "Resultados do Exame",
       "total_score": "Pontuação Total",
       "start_new": "Começar Novo Exame",
-      "instructions_listening": "Ouve o áudio e responde às perguntas.",
-      "instructions_reading": "Lê o texto e responde às perguntas.",
-      "instructions_writing": "Escreve um texto a partir do enunciado abaixo.",
-      "instructions_translated": "As instruções traduzidas para a tua língua aparecem abaixo.",
-      "time_listening": "Tempo sugerido: 30 min",
-      "time_reading_writing": "Tempo sugerido: 45 min",
-      "generate_btn": "Gerar Exame",
-      "start_btn": "Começar Exame",
       "generating_title": "A gerar o teu exame...",
       "exercise_n": "Exercício {{n}}",
       "review_listening": "Compreensão oral — as tuas respostas",
@@ -640,22 +600,9 @@
   },
   "exam_exercises": {
     "text": "Texto",
-    "best_title": "Melhor Título",
-    "example": "Exemplo",
-    "column_a": "Coluna A",
-    "column_b": "Coluna B",
-    "matches": "Correspondências",
-    "select": "Escolher",
-    "extra": "extra",
-    "task": "Tarefa",
-    "transcription_placeholder": "Copia aqui a frase do texto...",
     "true": "Verdadeiro",
     "false": "Falso",
-    "correct": "Correta",
-    "correction_placeholder": "Versão corrigida...",
-    "word_bank": "Banco de Palavras",
-    "extra_words": "* Há {{count}} palavra(s) a mais",
-    "select_word": "Escolhe uma palavra"
+    "correct": "Correta"
   },
   "dictionary": {
     "lang_tooltip": "A escrever em {{lang}}",
@@ -810,7 +757,6 @@
     "step_language": "Que língua queres praticar?",
     "step_interests": "Escolhe os teus interesses",
     "interests_hint": "Vamos usá-los para personalizar os teus conteúdos.",
-    "finish": "Começar a praticar!",
     "next": "Seguinte",
     "back": "Voltar",
     "other_option": "Outro",
@@ -821,7 +767,6 @@
     "title": "Escolhe o Teu Plano",
     "subtitle": "Todos os planos têm as mesmas funcionalidades. O que muda é quanto podes praticar por dia. Começa grátis e muda de plano quando precisares de mais.",
     "badge_coming_soon": "Brevemente",
-    "badge_limited": "Limitado neste plano",
     "plans_heading": "Planos",
     "monthly": "Mensal",
     "yearly": "Anual",
@@ -834,7 +779,6 @@
     "get_started": "Começar",
     "redirecting": "A redirecionar...",
     "save_x": "Poupa {{percent}}%",
-    "try_free_days": "Experimenta grátis durante {{days}} dias",
     "features": {
       "ai_calls": "{{count}} chamadas de IA{{suffix}}",
       "grammar": "Biblioteca de Gramática",
@@ -863,7 +807,6 @@
     "cancel_scheduled_message": "A tua subscrição vai terminar a {{date}} — até lá, aproveita o resto do teu acesso {{tier}}. Mudaste de ideias? Basta voltares a gerir a subscrição para a retomares.",
     "update_payment": "Atualizar Pagamento",
     "past_due_message": "O teu pagamento está em atraso. Atualiza o método de pagamento para evitares a interrupção do serviço.",
-    "trial_badge": "{{days}} dias grátis",
     "errors": {
       "upgrade_required": "Esta funcionalidade só está disponível nos planos Voyager e superiores."
     },
@@ -1006,8 +949,7 @@
   "session": {
     "expired_title": "Sessão Expirada",
     "expired_message": "A tua sessão expirou. Entra novamente para continuares.",
-    "refresh_button": "Entrar Novamente",
-    "checking": "A verificar a sessão..."
+    "refresh_button": "Entrar Novamente"
   },
   "features": {
     "coming_soon": "Brevemente",
@@ -1036,7 +978,7 @@
       "subject": "Bem-vindo ao Multi Lingo AI",
       "heading": "A tua prática começa aqui",
       "body": "A tua conta está pronta. Escolhe um dialeto, define os teus interesses e começa a praticar — o tradutor, os jogos de palavras e o treino para exames estão à tua espera.",
-      "cta": "Começar a praticar"
+      "cta": "Aceitar o desafio"
     },
     "subscription_activated": {
       "subject": "O teu plano {{tier}} está ativo",
