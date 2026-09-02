@@ -165,7 +165,8 @@
     "privacy": " Política de Privacidade ",
     "signing_in": "A entrar com {{provider}}…",
     "back_home": "Voltar",
-    "provider_unavailable": "Indisponível"
+    "provider_unavailable": "Indisponível",
+    "account_created": "Conta criada com sucesso. Bem-vindo ao Multi Lingo AI!"
   },
   "contact": {
     "title": "Fala",

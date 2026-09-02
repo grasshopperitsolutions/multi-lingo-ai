@@ -18,7 +18,7 @@ import { normalizeCode } from "../utils/languageCode";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
 import { getTranslations, clearTranslationsCache, fillMissingTranslations } from "../services/translationService";
-import { loadRemoteTranslations, registerMissingKeyHandler, BASE_LOCALE } from "../i18n";
+import i18n, { loadRemoteTranslations, registerMissingKeyHandler, BASE_LOCALE } from "../i18n";
 import Loader from "../components/Loader";
 
 const AppContext = createContext();
@@ -588,6 +588,18 @@ export const AppProvider = ({ children }) => {
         fcmTokens: profile?.fcmTokens ?? [],
       }));
     } catch (err) {
+      // A brand-new account always lands here once. signInWithPopup fires
+      // onAuthStateChanged as soon as the popup closes, which starts this
+      // read before POST /api/auth has finished creating users/{uid} — so
+      // the first attempt 404s. The sign-in then completes with the custom
+      // token, onAuthStateChanged fires again, and the retry succeeds.
+      //
+      // Nothing is wrong at that moment, so it gets the good news rather
+      // than an error the user can do nothing about.
+      if (err.status === 404) {
+        showAlert("success", i18n.t("login.account_created"));
+        return;
+      }
       showAlert("error", `Could not load your profile: ${err.message}`);
     } finally {
       setIsLoadingUser(false);

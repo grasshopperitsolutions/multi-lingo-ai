@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Bell, BellRing, Check, Loader2, Mail, Monitor } from "lucide-react";
@@ -57,6 +57,34 @@ const NotificationSettings = ({ isDarkMode, user, sectionClasses, onSaved }) => 
   const pushGranted = permission === "granted";
   const pushBlocked = permission === "denied";
   const pushSupported = isPushAvailable();
+
+  // Browser permission and the stored token can drift apart, and the UI
+  // reads the permission — so it says "active" while the backend has nothing
+  // to send to. Deleting an account is the obvious way in: the new user
+  // document has no fcmTokens, but Chrome still reports `granted`, and the
+  // Enable button that would re-register is hidden precisely because
+  // permission is granted. Push then fails silently forever.
+  //
+  // enablePushNotifications() is idempotent — it only writes when this
+  // browser's token is genuinely missing from the list — so re-running it
+  // whenever permission is already granted costs nothing and repairs the gap.
+  const reconciled = useRef(false);
+  useEffect(() => {
+    if (reconciled.current || permission !== "granted" || !isPushAvailable()) return;
+    reconciled.current = true;
+
+    (async () => {
+      const firebaseUser = auth?.currentUser;
+      if (!firebaseUser) return;
+      try {
+        const token = await firebaseUser.getIdToken();
+        await enablePushNotifications(token, firebaseUser.uid, user?.fcmTokens ?? []);
+      } catch (err) {
+        // Silent: this is background repair, not something the user asked for.
+        console.warn("[NotificationSettings] Could not re-register the push token:", err.message);
+      }
+    })();
+  }, [permission, user?.fcmTokens]);
 
   const persist = async (next) => {
     const firebaseUser = auth?.currentUser;

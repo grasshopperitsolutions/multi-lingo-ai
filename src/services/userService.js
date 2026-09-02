@@ -32,7 +32,14 @@ export const getUserProfile = async (token, uid) => {
     }
   );
   const json = await response.json();
-  if (!response.ok) throw new Error(json?.error || json?.message || 'Failed to load profile');
+  if (!response.ok) {
+    const error = new Error(json?.error || json?.message || 'Failed to load profile');
+    // Carried so callers can tell "no profile document yet" (404, expected on
+    // a brand-new account) apart from a genuine failure. Every existing
+    // caller ignores it and keeps the previous throw-on-error behaviour.
+    error.status = response.status;
+    throw error;
+  }
   return json?.data?.data ?? {};
 };
 
