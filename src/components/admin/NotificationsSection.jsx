@@ -35,11 +35,16 @@ const NotificationsSection = ({ isDarkMode, users = [] }) => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
+  // listAllUserProfiles() returns { uid, ... } — there is no `id` field.
+  // Using u.id gave every <option> an undefined value, so React omitted the
+  // attribute entirely and the browser fell back to the option's text as its
+  // value; the backend then looked up a display name as a document id and
+  // 404'd for every user.
   const sortedUsers = useMemo(
     // Sorted in code, not via a Firestore orderBy: a user document missing
     // the sort field would be dropped from the query entirely.
     () => [...users].sort((a, b) =>
-      (a.displayName || a.email || a.id || "").localeCompare(b.displayName || b.email || b.id || "")
+      (a.displayName || a.email || a.uid || "").localeCompare(b.displayName || b.email || b.uid || "")
     ),
     [users]
   );
@@ -116,8 +121,8 @@ const NotificationsSection = ({ isDarkMode, users = [] }) => {
           <select value={targetUid} onChange={(e) => setTargetUid(e.target.value)} className={inputClasses}>
             <option value="">Pick a user…</option>
             {sortedUsers.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.displayName || u.email || u.id}{u.email && u.displayName ? ` — ${u.email}` : ""}
+              <option key={u.uid} value={u.uid}>
+                {u.displayName || u.email || u.uid}{u.email && u.displayName ? ` — ${u.email}` : ""}
               </option>
             ))}
           </select>
