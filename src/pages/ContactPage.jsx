@@ -8,8 +8,6 @@ import {
   Clock,
   MessageCircle,
   HelpCircle,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import NeoDropdown from "../components/NeoDropdown";
 import { sendContactMessage } from "../services/notificationService";
@@ -18,7 +16,6 @@ const ContactPage = () => {
   const { isDarkMode, showAlert } = useAppContext();
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
-  const [openFaq, setOpenFaq] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -63,25 +60,6 @@ const ContactPage = () => {
         ? "bg-slate-800 border-slate-700 text-white focus:border-yellow-400 placeholder-slate-500"
         : "bg-white border-slate-900 text-slate-900 focus:border-blue-600 placeholder-slate-400"
     }`;
-
-  const faqs = [
-    {
-      question: t('contact.faq_q1'),
-      answer: t('contact.faq_a1'),
-    },
-    {
-      question: t('contact.faq_q2'),
-      answer: t('contact.faq_a2'),
-    },
-    {
-      question: t('contact.faq_q3'),
-      answer: t('contact.faq_a3'),
-    },
-    {
-      question: t('contact.faq_q4'),
-      answer: t('contact.faq_a4'),
-    },
-  ];
 
   return (
     <>
@@ -272,40 +250,6 @@ const ContactPage = () => {
               )}
             </button>
           </form>
-        </div>
-      </div>
-
-      {/* FAQ Section - keep this hidden untill specificaly asked to change */}
-      <div className="mt-24 hidden">
-        <h2 className="text-4xl font-black uppercase tracking-tighter mb-12 text-center">
-          {t('contact.faq_title')}
-        </h2>
-
-        <div className="max-w-3xl mx-auto space-y-4">
-          {faqs.map((faq, index) => (
-            <div
-              key={index}
-              className={`rounded-2xl border-4 overflow-hidden transition-all ${isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#000]"}`}
-            >
-              <button
-                onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                className="w-full p-6 font-bold text-left flex items-center justify-between"
-              >
-                <span className="text-lg font-black">{faq.question}</span>
-                {openFaq === index ? (
-                  <ChevronUp size={24} className="flex-shrink-0" />
-                ) : (
-                  <ChevronDown size={24} className="flex-shrink-0" />
-                )}
-              </button>
-
-              {openFaq === index && (
-                <div className="px-6 pb-6 font-medium opacity-80 leading-relaxed">
-                  {faq.answer}
-                </div>
-              )}
-            </div>
-          ))}
         </div>
       </div>
       </div>

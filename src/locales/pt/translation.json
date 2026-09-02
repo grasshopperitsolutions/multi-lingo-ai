@@ -62,35 +62,35 @@
       "PARA A VIDA REAL"
     ],
     "features": {
-      "grammar": "Biblioteca de Gramática",
-      "grammar_desc": "Escrita por um professor a sério, não gerada. Tabelas de verbos, regras de pronúncia e os erros que se cometem mesmo.",
-      "dictionary": "Calão e Dicionário",
-      "dictionary_desc": "Procura qualquer palavra e recebe o sentido local — explicado na tua língua, com sinónimos naquela que estás a praticar.",
-      "stories": "Histórias para Ler e Ouvir",
-      "stories_desc": "Histórias curtas ao teu nível, lado a lado nas duas línguas. Toca em qualquer palavra, ouve qualquer parágrafo.",
+      "grammar": "Gramática",
+      "grammar_desc": "Pregunta à IA todas as tuas duvidas! Exercicios, tabelas de verbos, regras de pronúncia e os erros que se cometem mesmo!",
+      "dictionary": "Dicionário",
+      "dictionary_desc": "Procura qualquer palavra ou expressão e recebe uma tradução local — explicado na tua língua de preferência, com sinónimos coloquiais semelhantes!",
+      "stories": "Histórias",
+      "stories_desc": "Pequenas histórias ao teu nível, lado a lado nas duas línguas. Toca em qualquer palavra, ouve qualquer parágrafo!",
       "games": "Desafios e Jogos de Palavras",
-      "games_desc": "Cinco jogos de palavras que transformam cinco minutos livres em prática a sério.",
-      "more": "Há mais a caminho — prática de voz, comida e viagens, rádio e TV."
+      "games_desc": "Diversos jogos de palavras que transformam cinco minutos livres em prática a sério.",
+      "more": "Há muito mais a caminho! Novas funcionalidades e mais conhecimento e melhorias de IA todas as semanas!"
     },
-    "what_it_is_heading": "O que isto é",
+    "what_it_is_heading": "O que queres que seja",
     "what_it_is": [
       "Prática entre as tuas aulas",
       "Calão e expressões locais a sério",
       "Repetições, sempre que tens cinco minutos",
       "Criado por quem ensina isto todas as semanas"
     ],
-    "what_it_isnt_heading": "O que não é",
+    "what_it_isnt_heading": "O que não queres que seja",
     "what_it_isnt": [
-      "Um curso ou um programa",
+      "Um curso ou um programa aborrecido",
       "Um substituto do teu professor",
       "Uma sequência de dias que tens de proteger",
       "Mais um invólucro genérico de IA"
     ],
-    "who_made_this_heading": "Quem fez isto",
-    "who_made_this_body": "Escrito e criado por um professor multilingue no ativo e mochileiro de longa data. As explicações de gramática saem diretamente de aulas reais. O calão vem de ter precisado dele de verdade.",
+    "who_made_this_heading": "Por quem?",
+    "who_made_this_body": "Escrito e criado por um tutor poliglota e mochileiro de longa data. As explicações de gramática são baseadas em aulas reais.",
     "universal_input": {
-      "title": "Começa pela língua que já falas",
-      "subtitle": "A maioria das aplicações assume que pensas em inglês. Esta não. Diz-lhe o que falas — tailandês, gaélico, calão australiano — e tudo passa a ser explicado a partir daí."
+      "title": "Começa pela língua que já dominas",
+      "subtitle": "A maioria das aplicações assume que pensas em inglês. Esta não. Diz-lhe o que falas — tailandês, gaélico, calão australiano — e tudo é explicado a partir daí."
     },
     "language_pills": [
       "Gaélico ➜ FR",
@@ -98,17 +98,17 @@
       "Inglês dos EUA ➜ DE",
       "Calão Australiano ➜ PT"
     ],
-    "how_it_works_heading": "Como o usarias",
+    "how_it_works_heading": "Como usa a app",
     "how_it_works_step1_title": "Traz o que não ficou",
     "how_it_works_step1_desc": "Uma palavra da tua aula, uma regra em que erras sempre, algo que ouviste por acaso numa viagem.",
     "how_it_works_step2_title": "Pratica-o à tua maneira",
-    "how_it_works_step2_desc": "Procura, treina, lê dentro de uma história ou ouve como se diz. Cinco minutos contam.",
+    "how_it_works_step2_desc": "Procura, treina, lê dentro de uma história ou ouve como se pronuncía. Cinco minutos contam.",
     "how_it_works_step3_title": "Usa-o lá fora",
-    "how_it_works_step3_desc": "Chega à tua próxima aula — ou à tua próxima viagem — já tendo usado aquilo a sério.",
+    "how_it_works_step3_desc": "Chega à tua próxima aula com menos erros. Chega ao teu próximo destino com palavras novas.",
     "cta_watch_demo": "Ver Demonstração",
     "faq_heading": "Tens Dúvidas?",
     "final_cta_heading": "A tua próxima aula é daqui a uns dias.",
-    "final_cta_subtitle": "Mantém a língua quente até lá. Começar é grátis, sem cartão.",
+    "final_cta_subtitle": "Mantém a língua quente até lá. Começar é grátis. Torna-te um Explorador!",
     "final_cta_button": "Aceitar o desafio já!",
     "faqs": [
       {
@@ -154,38 +154,29 @@
     ]
   },
   "login": {
-    "title": "Entrar",
-    "subtitle": "Escolhe o método de entrada que preferes para continuar.",
+    "title": "Fazer Login",
+    "subtitle": "Escolhe o teu método favorito para continuar.",
     "google": "Continuar com Google",
     "apple": "Continuar com Apple",
     "facebook": "Continuar com Facebook",
     "x": "Continuar com X",
-    "terms_note": "Ao entrares, aceitas os nossos",
-    "terms": "Termos",
-    "privacy": "Política de Privacidade",
+    "terms_note": "Ao entrares, aceitas os nossos ",
+    "terms": " Termos ",
+    "privacy": " Política de Privacidade ",
     "signing_in": "A entrar com {{provider}}…",
-    "back_home": "Voltar ao Início",
-    "provider_unavailable": "Entrada indisponível — brevemente"
+    "back_home": "Voltar",
+    "provider_unavailable": "Indisponível"
   },
   "contact": {
     "title": "Fala",
-    "subtitle": "Tens dúvidas sobre praticar línguas? O nosso bando está cá para te ajudar a levantar voo.",
     "title_touch": "Connosco",
+    "subtitle": "Tens dúvidas sobre praticar línguas? Estamos prontos para te ajudar.",
     "email_label": "Envia-nos um email",
     "whatsapp_label": "WhatsApp (resposta mais rápida)",
     "location_label": "Localização",
     "location_value": "🌍 Totalmente remoto e em todo o mundo",
     "hours_label": "Horário",
     "hours_value": "🟢 24/7 / Todos os dias",
-    "faq_title": "Perguntas Frequentes",
-    "faq_q1": "Em quanto tempo recebo resposta?",
-    "faq_a1": "Costumamos responder em 24 horas nos dias úteis. Para assuntos urgentes, usa o WhatsApp para uma resposta mais rápida.",
-    "faq_q2": "Têm planos à medida para escolas?",
-    "faq_a2": "Sim! Temos pacotes especiais para escolas e institutos de línguas. Envia-nos uma mensagem para falarmos do que precisas.",
-    "faq_q3": "Posso pedir novas funcionalidades?",
-    "faq_a3": "Sem dúvida! Adoramos ouvir as sugestões de quem usa. Muitas das nossas melhores funcionalidades vieram diretamente de pedidos.",
-    "faq_q4": "O Multi Lingo AI é mesmo 100% remoto?",
-    "faq_a4": "Sim! Somos uma equipa totalmente distribuída, a trabalhar a partir de praias, cafés e espaços de cowork por todo o mundo. Sem escritório, sem código de vestuário, só boa prática de línguas.",
     "form": {
       "name": "Nome Completo",
       "name_placeholder": "Nuno Silva",
