@@ -72,23 +72,36 @@ const cellKey = (row, col) => `${row}-${col}`;
 // ClueIcon — the little picture, when the concept has one
 // ---------------------------------------------------------------------------
 
-const ClueIcon = ({ icon }) => {
+const ClueIcon = ({ icon, size = "md" }) => {
   // Sanitised here, at the point of injection, because this is the only place
   // that can guarantee it happened. See utils/sanitizeSvg.
   const safeSvg = useMemo(() => sanitizeSvg(icon?.iconSvg), [icon?.iconSvg]);
+
+  const svgSize =
+    size === "lg"
+      ? "w-6 h-6 sm:w-7 sm:h-7"
+      : size === "sm"
+        ? "w-3 h-3 sm:w-4 sm:h-4"
+        : "w-4 h-4 sm:w-5 sm:h-5";
+  const emojiSize =
+    size === "lg"
+      ? "text-base sm:text-lg"
+      : size === "sm"
+        ? "text-xs sm:text-sm"
+        : "text-sm sm:text-base";
 
   if (safeSvg) {
     return (
       <span
         aria-hidden="true"
-        className="block w-4 h-4 sm:w-5 sm:h-5 mx-auto shrink-0 [&>svg]:w-full [&>svg]:h-full"
+        className={`block ${svgSize} mx-auto shrink-0 [&>svg]:w-full [&>svg]:h-full`}
         dangerouslySetInnerHTML={{ __html: safeSvg }}
       />
     );
   }
   if (icon?.emoji) {
     return (
-      <span aria-hidden="true" className="block text-sm sm:text-base leading-none text-center shrink-0">
+      <span aria-hidden="true" className={`block ${emojiSize} leading-none text-center shrink-0`}>
         {icon.emoji}
       </span>
     );
@@ -98,6 +111,7 @@ const ClueIcon = ({ icon }) => {
 
 ClueIcon.propTypes = {
   icon: PropTypes.shape({ emoji: PropTypes.string, iconSvg: PropTypes.string }),
+  size: PropTypes.oneOf(["sm", "md", "lg"]),
 };
 
 // ---------------------------------------------------------------------------
@@ -112,10 +126,6 @@ const ClueCell = ({ clues, icons, isDarkMode, activeEntryId, onSelectClue }) => 
   >
     {clues.map((clue, i) => {
       const icon = icons.get(clue.conceptId);
-      // A generated short clue is written to fit a cell. The pooled `hint` is a
-      // dictionary definition, so it is clamped here and read in full in the
-      // panel under the grid.
-      const label = icon?.shortClue ?? clue.hint;
       const isActive = clue.entryId === activeEntryId;
 
       return (
@@ -127,15 +137,7 @@ const ClueCell = ({ clues, icons, isDarkMode, activeEntryId, onSelectClue }) => 
           i > 0 ? (isDarkMode ? "border-t-2 border-slate-600" : "border-t-2 border-slate-900") : ""
         } ${isActive ? (isDarkMode ? "bg-slate-700" : "bg-amber-200") : ""}`}
       >
-        <ClueIcon icon={icon} />
-        <span
-          lang="und"
-          className={`block w-full text-center font-black uppercase leading-[1.05] break-words hyphens-auto line-clamp-3 ${
-            clues.length > 1 ? "text-[6px] sm:text-[7px]" : "text-[7px] sm:text-[9px]"
-          } ${isDarkMode ? "text-slate-200" : "text-slate-900"}`}
-        >
-          {label}
-        </span>
+        <ClueIcon icon={icon} size="lg" />
 
         {/* The arrow is the whole navigation system here — it is what says
             which way this clue's answer runs. */}
