@@ -47,6 +47,12 @@
   "confirm_modal": {
     "loading": "A carregar"
   },
+  "error_boundary": {
+    "title": "Algo correu mal",
+    "message": "Esta parte da aplicação deixou de responder. O teu progresso guardado está seguro.",
+    "retry": "Tentar novamente",
+    "reload": "Recarregar a página"
+  },
   "home": {
     "badge": "Criado por um poliglota mochileiro",
     "hero_line1": "Vem praticar",

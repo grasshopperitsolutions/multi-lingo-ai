@@ -1,6 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import PropTypes from "prop-types";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
 import { useTierAccess } from "./hooks/useTierAccess";
 import { usePublicPageTitle } from "./hooks/usePublicPageTitle";
@@ -21,6 +21,7 @@ import AlertMessage from "./components/Alert";
 import GlobalCompassCursor from "./components/GlobalCompassCursor";
 import Loader from "./components/Loader";
 import AiGenerationConfirm from "./components/AiGenerationConfirm";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 // ── /dashboard/* pages — route-level code splitting ──────────────────────────
 const DashboardLayout = lazy(() => import("./pages/dashboard/DashboardLayout"));
@@ -119,6 +120,7 @@ RequireAdmin.propTypes = {
 
 const AppLayout = () => {
   const { isDarkMode, alert, closeAlert } = useAppContext();
+  const { pathname } = useLocation();
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
   // Detect touch/mobile devices — compass cursor is mouse-only
@@ -158,6 +160,9 @@ const AppLayout = () => {
         className={`min-h-screen transition-colors duration-500 flex flex-col overflow-x-hidden
         ${isDarkMode ? "bg-slate-900 text-slate-100" : "bg-blue-50 text-slate-900"}`}
       >
+        {/* Keyed on the pathname so navigating away from a page that crashed
+            recovers it, instead of stranding the user on the fallback. */}
+        <ErrorBoundary resetKey={pathname} isDarkMode={isDarkMode}>
         <Routes>
           {/* Public pages — with Header and Footer */}
           <Route path="/*" element={<PublicLayout />} />
@@ -215,6 +220,7 @@ const AppLayout = () => {
           <Route path="/admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
           <Route path="/app-unavailable" element={<AppUnavailablePage />} />
         </Routes>
+        </ErrorBoundary>
       </div>
     </>
   );
