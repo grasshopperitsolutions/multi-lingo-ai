@@ -39,12 +39,6 @@ const isSessionExpiredError = (err) => {
   return msg.includes("expired token") || msg.includes("invalid or expired");
 };
 
-const formatTime = (seconds) => {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, "00")}`;
-};
-
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -92,17 +86,32 @@ GridCell.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
 };
 
+/**
+ * The list grows with WORD_COUNT, and at twenty words it pushed the grid off
+ * screen on desktop and buried it on mobile. Capping the height and scrolling
+ * the list keeps the board the thing you see first. An inline style rather than
+ * a Tailwind class because arbitrary viewport heights were not being applied
+ * reliably here.
+ */
+const LIST_MAX_HEIGHT = "min(45vh, 26rem)";
+
 const WordListPanel = ({ words, foundWords, isDarkMode, t }) => (
   <div className={`rounded-2xl border-4 p-4 flex flex-col gap-3 ${
     isDarkMode
       ? "bg-slate-800 border-slate-700"
       : "bg-white border-slate-900 shadow-[3px_3px_0px_0px_#0f172a]"
   }`}>
-    <p className={`font-black uppercase text-xs tracking-widest mb-1 ${
+    <p className={`font-black uppercase text-xs tracking-widest ${
       isDarkMode ? "text-slate-400" : "text-slate-500"
     }`}>
       {t("challenges.word_search_panel")}
     </p>
+    <div
+      className={`flex flex-col gap-3 overflow-y-auto pr-1 neo-scrollbar ${
+        isDarkMode ? "neo-scrollbar-dark" : ""
+      }`}
+      style={{ maxHeight: LIST_MAX_HEIGHT }}
+    >
     {words.map(({ word, hint, conceptId }) => {
       const found = foundWords.has(conceptId);
       return (
@@ -122,6 +131,7 @@ const WordListPanel = ({ words, foundWords, isDarkMode, t }) => (
         </div>
       );
     })}
+    </div>
   </div>
 );
 
@@ -160,10 +170,7 @@ const WordSearchGame = ({ isDarkMode }) => {
   const [foundWords,    setFoundWords]    = useState(new Set());
   const [flashCells,    setFlashCells]    = useState(new Set());
 
-  // ── Timer ────────────────────────────────────────────────────────────────
-  const [elapsed,  setElapsed]  = useState(0);
-  const [gameWon,  setGameWon]  = useState(false);
-  const timerRef = useRef(null);
+  const [gameWon, setGameWon] = useState(false);
 
   // ── Loading / error ──────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
@@ -183,13 +190,6 @@ const WordSearchGame = ({ isDarkMode }) => {
   useEffect(() => {
     progressRef.current = progress;
   }, [progress]);
-
-  // ── Timer management ─────────────────────────────────────────────────────
-  useEffect(() => {
-    if (loading || gameWon) return;
-    timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
-    return () => clearInterval(timerRef.current);
-  }, [loading, gameWon]);
 
   // ── Stats fetch ───────────────────────────────────────────────────────────
   const fetchStats = useCallback(async () => {
@@ -269,7 +269,6 @@ const WordSearchGame = ({ isDarkMode }) => {
     setFoundCells(new Set());
     setFoundWords(new Set());
     setFlashCells(new Set());
-    setElapsed(0);
     setGameWon(false);
     setProgress(prog);
     markedRef.current       = new Set();
@@ -277,7 +276,6 @@ const WordSearchGame = ({ isDarkMode }) => {
   }, []);
 
   const resetGame = useCallback(() => {
-    clearInterval(timerRef.current);
     setLoading(true);
     setError(null);
     setWords([]);
@@ -287,7 +285,6 @@ const WordSearchGame = ({ isDarkMode }) => {
     setFoundCells(new Set());
     setFoundWords(new Set());
     setFlashCells(new Set());
-    setElapsed(0);
     setGameWon(false);
     markedRef.current       = new Set();
     gameRecordedRef.current = false;
@@ -374,7 +371,6 @@ const WordSearchGame = ({ isDarkMode }) => {
     if (gameRecordedRef.current) return;
     gameRecordedRef.current = true;
 
-    clearInterval(timerRef.current);
     Promise.resolve().then(() => setGameWon(true));
 
     if (!user?.token || !user?.uid) return;
@@ -521,9 +517,6 @@ const WordSearchGame = ({ isDarkMode }) => {
             <h3 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter text-center text-emerald-500">
               {t("challenges.victory_title")}
             </h3>
-            <p className={`text-lg font-bold ${ isDarkMode ? "text-slate-300" : "text-slate-700" }`}>
-              Time: <span className="font-black text-yellow-400">{formatTime(elapsed)}</span>
-            </p>
             <p className={`text-sm ${ isDarkMode ? "text-slate-400" : "text-slate-500" }`}>
               {t("challenges.words_count", { count: words.length })}
             </p>
@@ -555,15 +548,6 @@ const WordSearchGame = ({ isDarkMode }) => {
 
       {/* ── CENTER: timer + mobile word list + grid + controls ── */}
       <div className="flex flex-col items-center flex-1 min-w-0 w-full">
-
-        {/* Timer */}
-        <div className="flex items-center justify-start w-full mb-6">
-          <span className={`font-black text-lg tabular-nums ${
-            isDarkMode ? "text-yellow-400" : "text-yellow-600"
-          }`}>
-            {formatTime(elapsed)}
-          </span>
-        </div>
 
         {/* Word list — above grid on mobile, hidden on desktop */}
         <div className="w-full mb-4 lg:hidden">

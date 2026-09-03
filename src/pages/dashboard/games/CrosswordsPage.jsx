@@ -1,10 +1,13 @@
+import { lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BrainCircuit } from "lucide-react";
 import { useAppContext } from "../../../contexts/AppContext";
-import { FeaturePageShell, ComingSoonContent } from "../../../components/ui";
+import { FeaturePageShell } from "../../../components/ui";
+import Loader from "../../../components/Loader";
 
-const CrosswordsComingSoonPage = () => {
+const CrosswordGame = lazy(() => import("../../../components/CrosswordGame"));
+
+const CrosswordsPage = () => {
   const { isDarkMode } = useAppContext();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -13,21 +16,19 @@ const CrosswordsComingSoonPage = () => {
     <FeaturePageShell
       isDarkMode={isDarkMode}
       accentColor="rose"
+      title={t("challenges.crosswords")}
+      reportContext="CrosswordsPage"
       breadcrumbItems={[
         { label: t("common.back", "Back"), onClick: () => navigate("/dashboard") },
         { label: t("challenges.title", "Challenges"), onClick: () => navigate("/dashboard/challenges") },
         { label: t("challenges.crosswords") },
       ]}
     >
-      <ComingSoonContent
-        icon={BrainCircuit}
-        title={t("challenges.crosswords")}
-        description={t("challenges.crosswords_desc")}
-        color="text-blue-500"
-        isDarkMode={isDarkMode}
-      />
+      <Suspense fallback={<Loader isDarkMode={isDarkMode} />}>
+        <CrosswordGame isDarkMode={isDarkMode} />
+      </Suspense>
     </FeaturePageShell>
   );
 };
 
-export default CrosswordsComingSoonPage;
+export default CrosswordsPage;

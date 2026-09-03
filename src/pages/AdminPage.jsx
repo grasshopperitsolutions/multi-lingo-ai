@@ -57,7 +57,6 @@ const AdminPage = () => {
   const [featureModal, setFeatureModal] = useState(null); // null | { feature: object|null }
   const [isSavingFeature, setIsSavingFeature] = useState(false);
   const [togglingFeatureId, setTogglingFeatureId] = useState(null);
-  // TEMPORARY — prompt seeding.
 
   // Categories actually in use, so the edit modal's dropdown reflects reality
   // instead of a hardcoded list that drifts as new prompts are added.

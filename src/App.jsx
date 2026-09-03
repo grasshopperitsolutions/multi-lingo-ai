@@ -35,7 +35,7 @@ const WordSearchPage = lazy(() => import("./pages/dashboard/games/WordSearchPage
 const WordLinkPage = lazy(() => import("./pages/dashboard/games/WordLinkPage"));
 const WordLadderPage = lazy(() => import("./pages/dashboard/games/WordLadderPage"));
 const WordQuizComingSoonPage = lazy(() => import("./pages/dashboard/games/WordQuizComingSoonPage"));
-const CrosswordsComingSoonPage = lazy(() => import("./pages/dashboard/games/CrosswordsComingSoonPage"));
+const CrosswordsPage = lazy(() => import("./pages/dashboard/games/CrosswordsPage"));
 
 const ExamTrainingMenu = lazy(() => import("./components/ExamTrainingMenu"));
 const ListeningExercisePage = lazy(() => import("./pages/dashboard/exercises/ListeningExercisePage"));
@@ -186,7 +186,7 @@ const AppLayout = () => {
             <Route path="challenges/word-link" element={<WordLinkPage />} />
             <Route path="challenges/word-ladder" element={<WordLadderPage />} />
             <Route path="challenges/word-quiz" element={<WordQuizComingSoonPage />} />
-            <Route path="challenges/crosswords" element={<CrosswordsComingSoonPage />} />
+            <Route path="challenges/crosswords" element={<CrosswordsPage />} />
 
             <Route path="exam-training" element={<ExamTrainingMenu isDarkMode={isDarkMode} />} />
             <Route path="exam-training/listening" element={<ListeningExercisePage />} />
