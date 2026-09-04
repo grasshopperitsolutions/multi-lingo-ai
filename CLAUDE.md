@@ -36,7 +36,7 @@ There is no project test suite configured; do not assume one exists.
 
 ## Architecture summary
 
-- Vite 8 (rolldown bundler) + React 19 SPA
+- Vite 8 (rolldown bundler) + React 18 SPA
 - React Router v7 (`BrowserRouter` + `<Routes>`; the v6 API this app uses carried over unchanged)
 - Single global store in src/contexts/AppContext.jsx
 - Firebase Auth only in the frontend; no Firestore/Storage SDK usage on the client
@@ -62,10 +62,13 @@ There is no project test suite configured; do not assume one exists.
 
 Dependabot is configured in `.github/dependabot.yml`, grouped so minor/patch updates arrive as two PRs a week and majors arrive individually — because with no test suite, ten green PRs at once is how a real break gets merged.
 
-Two upgrades are currently blocked, and both will keep being proposed:
+Three upgrades are currently blocked, and all three will keep being proposed:
 
+- **React 19** — blocked by this repo, not by upstream. 41 components still declare defaults via `Component.defaultProps`, which React 19 **removes for function components**. Every one of those defaults silently becomes `undefined`: the first symptom seen was the dashboard feature grid losing its `gridClassName` and collapsing to a single column, but the blast radius is every component that declares one. React 18.3 already logs a deprecation warning for each one. The fix is to convert them to default parameter values in the destructuring — `({ gridClassName = "grid grid-cols-2 lg:grid-cols-3 gap-4" })` — after which React 19 is a normal upgrade. Do that as its own change, not bundled with anything else.
 - **ESLint 10** — `eslint-plugin-react` has no release that accepts it (peer-caps at `^9.7`). Forcing it with `--legacy-peer-deps` is not the answer.
 - **firebase-admin 14** in the sibling API repo — unrelated to this app, but the same lesson: it passed every local check and took production down. See that repo's CLAUDE.md.
+
+`defaultProps` is a trap worth naming: nothing catches it. It type-checks, lints, builds, and renders — the component just quietly uses `undefined` instead of the default. `grep -rn "\.defaultProps" src/` is the inventory.
 
 ## Critical repo rules
 
