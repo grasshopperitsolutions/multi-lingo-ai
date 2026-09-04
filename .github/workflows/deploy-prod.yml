@@ -6,6 +6,14 @@ on:
     workflows: ["CI"]
     types:
       - completed
+    # Without this, ANY successful CI run deploys — CI triggers on every
+    # push, so a push to a feature branch or a Dependabot branch would
+    # publish to production Pages. It would publish master's code rather
+    # than the branch's (a workflow_run checkout defaults to the default
+    # branch), so it was never shipping untested work, but it did mean a
+    # spurious production deploy per branch push.
+    branches:
+      - master
   workflow_dispatch:
 
 permissions:

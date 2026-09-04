@@ -1,0 +1,37 @@
+version: 2
+updates:
+  # Grouped more aggressively than the API repo's config on purpose. CI here
+  # is lint + build only — there is no test suite (see CLAUDE.md) — so a
+  # dependency that changes runtime behaviour passes every check and reaches
+  # users on the next deploy. Fewer, larger PRs means each one actually gets
+  # opened and looked at, rather than ten arriving at once and being merged
+  # on the strength of a green tick that never exercised the app.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      # Build tooling: a break here fails the build loudly and immediately,
+      # which is the one thing CI is good at catching.
+      dev-tooling:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      # Runtime libraries shipped to the browser. Grouped for minor/patch
+      # only, since those are the ones where a green build is reasonable
+      # evidence.
+      runtime-minor:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+    # Majors are deliberately left ungrouped: react, react-router, firebase
+    # and pdfjs-dist each deserve their own PR and their own manual pass
+    # through the app, because nothing in CI can tell you they still work.
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
