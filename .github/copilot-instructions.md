@@ -12,7 +12,8 @@ This file is the project brief for AI agents working in this repo. Treat it as t
 - When an issue touches auth, Firestore, storage, AI requests, onboarding, billing, or subscription logic, inspect the sibling API repo at C:\Nuno\Projects\GrasshopperWebSite\proxies\multi-lingo-ai-api before assuming it should be implemented here.
 - The frontend repo is the UI/client layer only; the API repo is the backend source of truth.
 - Use the shared proxy wrapper and existing service patterns instead of raw fetch calls.
-- Do not assume a test suite exists; run lint after changes and fix issues before considering work complete.
+- Do not assume a test suite exists; run lint and build after changes, then verify behavioural changes in a browser against the dev server. Neither automated check runs the app.
+- Error reporting is errors-only by design (`src/sentry.js`); do not enable Session Replay, tracing, or analytics without a privacy policy change.
 
 ## Project boundary
 

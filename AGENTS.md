@@ -19,7 +19,7 @@ If a task involves auth, Firestore, storage, AI requests, planning, billing, sub
 - Reuse existing services, components, and route patterns.
 - Use the shared API proxy wrapper instead of raw fetches.
 - If the task concerns locale loading or translations, follow the i18n skill in [.github/skills/i18n/SKILL.md](.github/skills/i18n/SKILL.md).
-- Run lint after frontend edits.
+- Run lint after frontend edits, then build, then open the affected screen in a browser. There is no test suite here, so lint and build are the only automated checks and neither one runs the app.
 
 ## User-scoped list data: "seen" vs "favourites"
 
@@ -80,5 +80,8 @@ features. Toggle the flag in Admin > Features.
 
 - that a backend exists in this repo
 - that there is a test suite for this frontend
+- that a green lint and build mean the app works — verify behavioural changes in a browser
 - that user-facing strings can be hardcoded without checking i18n rules
+- that editing an existing locale string reaches the other locales; only *missing* keys are auto-filled
+- that analytics, Sentry tracing, or Session Replay can be added freely — the privacy policy makes explicit promises about what this app does not collect
 - that a new endpoint should be created here when the API repo already owns the backend
