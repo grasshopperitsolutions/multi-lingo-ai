@@ -20,6 +20,7 @@ import PropTypes from "prop-types";
 import { getTranslations, clearTranslationsCache, fillMissingTranslations } from "../services/translationService";
 import i18n, { loadRemoteTranslations, registerMissingKeyHandler, BASE_LOCALE } from "../i18n";
 import Loader from "../components/Loader";
+import { setSentryUser } from "../sentry";
 
 const AppContext = createContext();
 
@@ -340,6 +341,13 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      // Tag error reports with the account that hit them. Anonymous guest
+      // sessions stay unattributed — their uid is per-browser and would
+      // just be noise.
+      setSentryUser(
+        firebaseUser && !firebaseUser.isAnonymous ? firebaseUser.uid : null
+      );
+
       if (firebaseUser && !firebaseUser.isAnonymous && tokenExpired) {
         // User re-authenticated (e.g. signed in again from another tab)
         setTokenExpired(false);

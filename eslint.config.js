@@ -55,4 +55,12 @@ export default [
       "react-hooks/set-state-in-effect": "off",
     },
   },
+  {
+    // Build tooling runs in Node, not the browser — `process` and friends are
+    // globals here, not undefined variables.
+    files: ["vite.config.js", "eslint.config.js", "scripts/**/*.{js,mjs}"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ];

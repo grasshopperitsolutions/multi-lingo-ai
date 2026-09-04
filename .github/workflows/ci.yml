@@ -37,3 +37,4 @@ jobs:
           VITE_FIREBASE_APP_ID: ""
           VITE_PROXY_URL: ""
           VITE_FIREBASE_VAPID_KEY: ""
+          VITE_SENTRY_DSN: ""

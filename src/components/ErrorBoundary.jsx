@@ -2,6 +2,7 @@ import { Component } from "react";
 import PropTypes from "prop-types";
 import { AlertTriangle, RefreshCw, RotateCcw } from "lucide-react";
 import i18n from "../i18n";
+import { Sentry } from "../sentry";
 
 /**
  * Catches render-time exceptions so one broken component can't blank the
@@ -61,8 +62,16 @@ class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    // The only record of the crash until error monitoring is wired up.
     console.error("[ErrorBoundary] Uncaught render error:", error, info?.componentStack);
+
+    // React swallows the error once a boundary handles it, so without this
+    // the crash never reaches Sentry's global handler — a caught error is
+    // invisible unless the boundary reports it itself. The component stack
+    // is the part that makes it diagnosable: it names the component that
+    // threw, which a minified call stack alone does not.
+    Sentry.captureException(error, {
+      contexts: { react: { componentStack: info?.componentStack } },
+    });
   }
 
   handleRetry = () => this.setState({ error: null });

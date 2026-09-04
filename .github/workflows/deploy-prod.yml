@@ -49,6 +49,13 @@ jobs:
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
           VITE_PROXY_URL: ${{ secrets.VITE_PROXY_URL }}
           VITE_FIREBASE_VAPID_KEY: ${{ secrets.VITE_FIREBASE_VAPID_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          # Source maps are generated, uploaded and then deleted — they never
+          # reach the published site. Omit any of these three and vite.config.js
+          # drops the plugin and stops emitting maps, so the build still passes.
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
