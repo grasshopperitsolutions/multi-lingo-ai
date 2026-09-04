@@ -1,6 +1,10 @@
-import { Link } from "react-router-dom";
+// `Link` / `Home` are commented out with the "Return to Home" button below —
+// if the app is unavailable there is no working home to go back to, so the
+// button is hidden on purpose. Uncomment all three when restoring the button.
+// import { Link } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
-import { AlertTriangle, Home } from "lucide-react";
+// import { Home } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 const AppUnavailablePage = () => {
   const { isDarkMode } = useAppContext();
@@ -42,6 +46,12 @@ const AppUnavailablePage = () => {
           Please try again later.
         </p>
 
+        {/* "Return to Home" button deliberately hidden — the app being
+            unavailable means there is no working home to navigate to, and
+            sending users back in would just show them a broken app. They
+            should wait for the service to be restored instead. The button
+            is commented out, not deleted, so it can be restored easily:
+
         <Link
           to="/"
           className={`inline-flex items-center gap-3 px-8 py-4 rounded-2xl border-4 font-black uppercase tracking-widest text-lg transition-all active:scale-95 hover:-translate-y-1
@@ -53,6 +63,7 @@ const AppUnavailablePage = () => {
           <Home size={20} />
           Return to Home
         </Link>
+        */}
       </div>
     </div>
   );
