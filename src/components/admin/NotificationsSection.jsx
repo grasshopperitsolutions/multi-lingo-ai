@@ -105,7 +105,9 @@ const NotificationsSection = ({ isDarkMode, users = [] }) => {
     <div className="space-y-6">
       <p className={`text-sm font-bold ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
         Sends an announcement. Users who turned off announcement notifications are skipped
-        automatically — the counts below show how many were actually reached.
+        automatically. Email goes into an outbox rather than out immediately: the mail
+        provider allows a limited number per day, so a large announcement is released over
+        several days instead of being partly rejected. Push is delivered straight away.
       </p>
 
       {/* Audience */}
@@ -232,12 +234,19 @@ const NotificationsSection = ({ isDarkMode, users = [] }) => {
       {result && (
         <div className={`p-4 rounded-xl border-4 ${isDarkMode ? "bg-emerald-950/40 border-emerald-800" : "bg-emerald-50 border-emerald-600"}`}>
           <p className={`text-sm font-black uppercase tracking-widest mb-2 ${isDarkMode ? "text-emerald-300" : "text-emerald-700"}`}>
-            Sent to {result.total} {result.total === 1 ? "user" : "users"}
+            Queued for {result.total} {result.total === 1 ? "user" : "users"}
           </p>
           <ul className={`text-xs font-bold space-y-1 ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
-            <li>Email — {result.emailSent} delivered, {result.emailSkipped} skipped</li>
+            <li>Email — {result.emailQueued} queued, {result.emailSkipped} skipped</li>
             <li>Push — {result.pushSent} delivered, {result.pushSkipped} skipped</li>
           </ul>
+          {result.queueDepth > 0 && (
+            <p className={`mt-3 text-xs font-bold ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
+              {result.queueDepth} waiting in the outbox. It releases {result.dailyCap} a day,
+              so this finishes in about {Math.ceil(result.queueDepth / result.dailyCap)}{" "}
+              {Math.ceil(result.queueDepth / result.dailyCap) === 1 ? "day" : "days"}.
+            </p>
+          )}
         </div>
       )}
     </div>

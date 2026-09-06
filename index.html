@@ -11,7 +11,12 @@
          elsewhere — it also makes the app installable on Android/desktop. -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#facc15" />
-    <link rel="apple-touch-icon" href="/icons/icon.svg" />
+
+    <!-- iOS ignores the manifest's icons entirely and reads this tag instead;
+         it also ignores SVG here, so this must be a PNG or the Home Screen
+         gets a screenshot of the page as the icon. 180x180 is Apple's size. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Multi Lingo" />
 
     <!-- GitHub Pages SPA: restore path from ?p= query param set by 404.html -->
     <script>

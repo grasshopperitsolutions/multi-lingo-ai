@@ -57,6 +57,18 @@ There is no project test suite configured; do not assume one exists.
 - Categories are `transactional` (always delivered, not opt-outable), `announcements` and `reminders`. Nothing currently sends `reminders`.
 - The toggles are a convenience, not the enforcement point — the backend re-checks the stored preference before every send.
 - The report button writes to Firestore (`appConfig/config/reports`) via `src/services/reportService.js`, and admins read/triage them in the admin page. It no longer sends to WhatsApp.
+- **Broadcast email is queued, not sent.** The composer reports how many were queued and how deep the outbox is; the API releases 75 a day (Resend's free tier is 100/day, and the rest is headroom for transactional mail). Push still goes out immediately. See `lib/mail-queue.ts` in the API repo.
+
+## Email templates
+
+`src/components/admin/EmailTemplatesSection.jsx` edits the transactional email copy. It is **not** a separate template store: it writes the `email.*` keys of the pt-PT locale document, the same keys the API resolves through `lib/email-copy.ts`. That is deliberate — a standalone template collection would sit outside the AI-fill pipeline and every language but one would go stale.
+
+Two consequences worth knowing before touching it:
+
+- Edits land on the base locale only. Reaching the other languages is the existing force resync in the Locales section, which re-translates from pt-PT and **overwrites hand-tuned per-language wording**. The editor says so on screen.
+- `saveEmailTemplates` patches only the keys that actually changed, using dot-notation paths through the same `patchDocument` the translation pipeline uses. Writing the whole `email` object back would clobber any key not listed in `TEMPLATE_GROUPS`.
+
+`TEMPLATE_GROUPS` is an explicit list rather than something derived from the bundle, because `email.common.*` is shared chrome that appears in every message and should not look like it belongs to one email. `TEMPLATE_VARIABLES` mirrors the `{{...}}` placeholders actually present in the base copy — dropping one renders a literal `{{tier}}` in a real email.
 
 ## Dependencies
 

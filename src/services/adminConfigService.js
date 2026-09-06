@@ -26,6 +26,9 @@ export const CONFIG_SECTIONS = [
   // users list so an admin can target one person by name.
   { id: "reports", label: "Reports", collection: "appConfig/config/reports" },
   { id: "notifications", label: "Notifications", collection: "POST /api/email" },
+  // Also not a collection — an editor over the email.* keys of the base
+  // locale document, so the copy stays inside the translation pipeline.
+  { id: "emailTemplates", label: "Email Templates", collection: "appConfig/config/locales" },
 ];
 
 /**

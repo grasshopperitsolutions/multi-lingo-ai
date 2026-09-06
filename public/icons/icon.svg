@@ -1,9 +1,35 @@
 <svg viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Multi Lingo AI">
-  <!-- Full-bleed background: required for a "maskable" icon, which Android
-       and Chrome crop to a platform-specific shape (circle, squircle, ...).
-       All artwork below stays inside the middle 80% safe zone so nothing
-       important is cropped away. -->
-  <rect width="192" height="192" fill="#FACC15" />
+  <!-- No background plate: this is the transparent master. The two PNG slots
+       that cannot be transparent — the iOS apple-touch-icon and the Android
+       maskable icon — get a white plate composited underneath at build time
+       (scripts/generate-icons.mjs), because iOS renders transparency as black
+       and a maskable icon must be full-bleed.
+
+       The beak and the legs are the only artwork that extends past the navy
+       body, so they are the only parts that ever sit directly on the page
+       background. Yellow on white is about 1.2:1 contrast — invisible — so
+       both are drawn twice: a navy shape underneath, slightly larger, then
+       the yellow on top. That keeps the brand yellow while staying legible
+       on a white plate and on a dark browser tab alike. -->
+
+  <!-- Tail feathers. Drawn before the body so the body covers where they
+       attach, which reads as the plume coming from behind the bird.
+
+       Redrawn rather than scaled from the old 100-unit favicon: a straight
+       1.92x scale put the sweep at x=10, far outside anything a cropped icon
+       would keep. This version stays inside 20..172 on both axes, but note
+       that the maskable safe zone is a *circle* of 80% diameter rather than a
+       square — the tail tip still falls outside it, which is why
+       scripts/generate-icons.mjs renders the maskable variant at 80% scale
+       instead of full bleed. -->
+  <path
+    d="M34 100C20 88 20 52 44 42C28 32 56 22 70 38"
+    fill="none"
+    stroke="#E11D48"
+    stroke-width="8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
 
   <!-- Body -->
   <path
@@ -16,7 +42,8 @@
   <circle cx="101" cy="30" r="8" fill="#E11D48" />
   <circle cx="115" cy="36" r="6" fill="#E11D48" />
 
-  <!-- Beak -->
+  <!-- Beak: navy backing, then yellow -->
+  <path d="M145 66L172 76L145 86Z" fill="#0F172A" />
   <path d="M148 70L166 76L148 82Z" fill="#FACC15" />
 
   <!-- Eye -->
@@ -31,7 +58,13 @@
   <circle cx="106" cy="88" r="6" fill="#FACC15" />
   <circle cx="86" cy="118" r="8" fill="#3B82F6" />
 
-  <!-- Legs -->
+  <!-- Legs: navy backing stroke, then the yellow stroke on top -->
+  <path
+    d="M84 154V168M108 154V168"
+    stroke="#0F172A"
+    stroke-width="13"
+    stroke-linecap="round"
+  />
   <path
     d="M84 154V168M108 154V168"
     stroke="#FACC15"

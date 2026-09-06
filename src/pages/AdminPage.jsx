@@ -20,6 +20,7 @@ import PromptEditModal from "../components/admin/PromptEditModal";
 import LoginProvidersSection from "../components/admin/LoginProvidersSection";
 import UsersSection from "../components/admin/UsersSection";
 import NotificationsSection from "../components/admin/NotificationsSection";
+import EmailTemplatesSection from "../components/admin/EmailTemplatesSection";
 import ReportsSection from "../components/admin/ReportsSection";
 import LocalesSection from "../components/admin/LocalesSection";
 import CategoriesSection from "../components/admin/CategoriesSection";
@@ -74,6 +75,7 @@ const AdminPage = () => {
   const isTiersSection = activeSectionId === "tiers";
   const isFeaturesSection = activeSectionId === "features";
   const isNotificationsSection = activeSectionId === "notifications";
+  const isEmailTemplatesSection = activeSectionId === "emailTemplates";
   const isReportsSection = activeSectionId === "reports";
   const [reportBusyId, setReportBusyId] = useState(null);
 
@@ -93,6 +95,10 @@ const AdminPage = () => {
               ? await getReports()
             : section.id === "users" || section.id === "notifications"
               ? await listAllUserProfiles(await auth.currentUser.getIdToken())
+            // The template editor loads the one locale document it needs
+            // itself; the generic loader would pull down every locale.
+            : section.id === "emailTemplates"
+              ? []
               : await getConfigSectionDocs(section.collection);
       setDocsBySection((prev) => ({ ...prev, [section.id]: docs }));
     } catch (err) {
@@ -486,6 +492,8 @@ const AdminPage = () => {
             isDarkMode={isDarkMode}
             users={docs}
           />
+        ) : isEmailTemplatesSection ? (
+          <EmailTemplatesSection isDarkMode={isDarkMode} />
         ) : isUsersSection ? (
           <UsersSection
             users={docs}
