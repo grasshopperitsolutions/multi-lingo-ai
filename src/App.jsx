@@ -51,7 +51,7 @@ const GrammarAskPage = lazy(() => import("./pages/dashboard/grammar/GrammarAskPa
 const GrammarPracticeComingSoonPage = lazy(() => import("./pages/dashboard/grammar/GrammarPracticeComingSoonPage"));
 
 const AiTutorPage = lazy(() => import("./pages/dashboard/coming-soon/AiTutorPage"));
-const RealPersonTutorPage = lazy(() => import("./pages/dashboard/coming-soon/RealPersonTutorPage"));
+const TutorsPage = lazy(() => import("./pages/dashboard/TutorsPage"));
 const VoicePracticePage = lazy(() => import("./pages/dashboard/coming-soon/VoicePracticePage"));
 const StoryGeneratorPage = lazy(() => import("./pages/dashboard/StoryGeneratorPage"));
 const HistoryCulturePage = lazy(() => import("./pages/dashboard/HistoryCulturePage"));
@@ -205,7 +205,7 @@ const AppLayout = () => {
             <Route path="grammar/ask" element={<GrammarAskPage />} />
             <Route path="grammar/practice" element={<GrammarPracticeComingSoonPage />} />
             <Route path="ai-tutor" element={<AiTutorPage />} />
-            <Route path="real-person-tutor" element={<RealPersonTutorPage />} />
+            <Route path="real-person-tutor" element={<TutorsPage />} />
             <Route path="voice-practice" element={<VoicePracticePage />} />
             <Route path="story-generator" element={<StoryGeneratorPage />} />
             <Route path="history-culture" element={<HistoryCulturePage />} />

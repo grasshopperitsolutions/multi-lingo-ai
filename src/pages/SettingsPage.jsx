@@ -30,6 +30,8 @@ import {
 import { useTierAccess } from "../hooks/useTierAccess";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
 import NotificationSettings from "../components/NotificationSettings";
+import TutorProfileSection from "../components/TutorProfileSection";
+import { syncTutorDisplayName } from "../services/tutorService";
 import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
 import { normalizeCode } from "../utils/languageCode";
@@ -612,6 +614,13 @@ const SettingsPage = () => {
         interests,
         onboardingCompleted: user?.onboardingCompleted ?? true,
       });
+      // The tutor card denormalizes the display name, because the public
+      // directory cannot read `users` to look it up. This is the one field
+      // that can drift, so it is mirrored here rather than left to rot until
+      // the next tutor-profile save. No-op for anyone without a profile, and
+      // never throws.
+      await syncTutorDisplayName(firebaseUser.uid, displayName);
+
       setInterfaceLang(finalInterfaceLang);
       setLearningDialect(finalLearningDialect);
       changeLanguage(finalInterfaceLang);
@@ -729,6 +738,16 @@ const SettingsPage = () => {
         isSeedingLanguage={isSeedingLanguage}
         isDirty={isDirty}
       />
+
+        {/* ── Tutor profile ── */}
+        {/* Renders the editor for maestro/vip/admin and the application form
+            for everyone else; the component decides which, because the tier
+            check and the copy that explains it belong together. */}
+        <TutorProfileSection
+          isDarkMode={isDarkMode}
+          user={user}
+          sectionClasses={sectionClasses}
+        />
 
         {/* ── Notifications ── */}
         <NotificationSettings

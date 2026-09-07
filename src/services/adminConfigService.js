@@ -29,6 +29,7 @@ export const CONFIG_SECTIONS = [
   // Also not a collection — an editor over the email.* keys of the base
   // locale document, so the copy stays inside the translation pipeline.
   { id: "emailTemplates", label: "Email Templates", collection: "appConfig/config/locales" },
+  { id: "tutorApplications", label: "Tutor Applications", collection: "appConfig/config/tutorApplications" },
 ];
 
 /**

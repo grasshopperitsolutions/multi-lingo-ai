@@ -13,6 +13,11 @@ import { getFeatures, saveFeature } from "../services/featuresService";
 import { listAllUserProfiles, setUserTier, deleteAccount } from "../services/userService";
 import { getLanguages } from "../services/supportedLanguagesService";
 import { getReports, setReportRead, removeReport } from "../services/reportService";
+import {
+  listTutorApplications,
+  setApplicationRead,
+  removeApplication,
+} from "../services/tutorService";
 import { forceOverwriteAllTranslations, seedLanguageTranslations } from "../services/translationService";
 import { createCategory, updateCategory, deleteCategory } from "../services/categoriesService";
 import PromptsSection from "../components/admin/PromptsSection";
@@ -21,6 +26,7 @@ import LoginProvidersSection from "../components/admin/LoginProvidersSection";
 import UsersSection from "../components/admin/UsersSection";
 import NotificationsSection from "../components/admin/NotificationsSection";
 import EmailTemplatesSection from "../components/admin/EmailTemplatesSection";
+import TutorApplicationsSection from "../components/admin/TutorApplicationsSection";
 import ReportsSection from "../components/admin/ReportsSection";
 import LocalesSection from "../components/admin/LocalesSection";
 import CategoriesSection from "../components/admin/CategoriesSection";
@@ -76,8 +82,10 @@ const AdminPage = () => {
   const isFeaturesSection = activeSectionId === "features";
   const isNotificationsSection = activeSectionId === "notifications";
   const isEmailTemplatesSection = activeSectionId === "emailTemplates";
+  const isTutorApplicationsSection = activeSectionId === "tutorApplications";
   const isReportsSection = activeSectionId === "reports";
   const [reportBusyId, setReportBusyId] = useState(null);
+  const [applicationBusyId, setApplicationBusyId] = useState(null);
 
   const loadSection = useCallback(async (section) => {
     setIsLoadingDocs(true);
@@ -93,6 +101,8 @@ const AdminPage = () => {
               ? await getFeatures()
             : section.id === "reports"
               ? await getReports()
+            : section.id === "tutorApplications"
+              ? await listTutorApplications()
             : section.id === "users" || section.id === "notifications"
               ? await listAllUserProfiles(await auth.currentUser.getIdToken())
             // The template editor loads the one locale document it needs
@@ -192,6 +202,36 @@ const AdminPage = () => {
     const docs = await getReports();
     setDocsBySection((prev) => ({ ...prev, reports: docs }));
   }, []);
+
+  const refreshApplications = useCallback(async () => {
+    const docs = await listTutorApplications();
+    setDocsBySection((prev) => ({ ...prev, tutorApplications: docs }));
+  }, []);
+
+  const handleToggleApplicationRead = useCallback(async (id, read) => {
+    setApplicationBusyId(id);
+    try {
+      await setApplicationRead(id, read);
+      await refreshApplications();
+    } catch (err) {
+      showAlert("error", `Could not update the application: ${err.message}`);
+    } finally {
+      setApplicationBusyId(null);
+    }
+  }, [showAlert, refreshApplications]);
+
+  const handleDeleteApplication = useCallback(async (id) => {
+    setApplicationBusyId(id);
+    try {
+      await removeApplication(id);
+      showAlert("success", "Application deleted.");
+      await refreshApplications();
+    } catch (err) {
+      showAlert("error", `Could not delete the application: ${err.message}`);
+    } finally {
+      setApplicationBusyId(null);
+    }
+  }, [showAlert, refreshApplications]);
 
   const handleToggleReportRead = useCallback(async (id, read) => {
     setReportBusyId(id);
@@ -494,6 +534,16 @@ const AdminPage = () => {
           />
         ) : isEmailTemplatesSection ? (
           <EmailTemplatesSection isDarkMode={isDarkMode} />
+        ) : isTutorApplicationsSection ? (
+          <TutorApplicationsSection
+            applications={docs}
+            isDarkMode={isDarkMode}
+            isLoadingDocs={isLoadingDocs}
+            error={error}
+            busyId={applicationBusyId}
+            onToggleRead={handleToggleApplicationRead}
+            onDelete={handleDeleteApplication}
+          />
         ) : isUsersSection ? (
           <UsersSection
             users={docs}
