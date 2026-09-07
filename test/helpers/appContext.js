@@ -32,6 +32,9 @@ export function makeAppContext(overrides = {}) {
 
     // ── presentation ──
     isDarkMode: false,
+    // Header and DashboardLayout call this from the theme toggle. It was
+    // missing here until the AppProvider test compared the two objects.
+    setIsDarkMode: vi.fn(),
     alert: null,
     showAlert: vi.fn(),
     closeAlert: vi.fn(),

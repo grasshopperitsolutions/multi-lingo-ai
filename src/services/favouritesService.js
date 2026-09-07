@@ -105,8 +105,17 @@ function fieldFor(kind) {
  * Read one kind's favourites straight off an already-loaded user object.
  *
  * Synchronous and network-free: AppContext already holds the profile, so a
- * component rendering hearts should use this rather than re-fetching. Returns
- * a new array each call, so never mutate the result expecting it to stick.
+ * component rendering hearts should use this rather than re-fetching.
+ *
+ * Returns the profile's own array by reference, not a copy. That is
+ * deliberate and load-bearing: useFeatureFavourites passes the result
+ * straight into a useCallback dependency list, so a fresh array per call
+ * would rebuild that callback on every render. The reference changes exactly
+ * when the field is replaced, which is when dependents should re-run.
+ *
+ * The cost of that is that the caller MUST NOT mutate what it gets back —
+ * pushing onto it edits the AppContext user in place, with no re-render and
+ * no write to Firestore. Build a new array instead, as toggle() does.
  *
  * @param {Object} user - the user object from AppContext
  * @param {string} kind - one of FAVOURITE_KINDS

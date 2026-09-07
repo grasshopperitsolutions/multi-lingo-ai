@@ -33,13 +33,19 @@ npm run test:watch
 npm run test:coverage
 ```
 
-**`npm test` is a dependency guard, not a feature test suite.** It exists because two production outages were caused by dependency bumps that passed `lint` and `build` cleanly, and it is scoped to exactly that failure mode:
+**344 tests across 16 files, ~56% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
 
-- `test/canaries/` — one assertion per library behaviour the app depends on but no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing.
-- `test/smoke/` — 14 pages mount, paint, stay out of the error boundary, and render no raw translation keys.
-- `test/helpers/appContext.js` — a complete inert AppContext value. Add any key the real provider gains, or pages destructuring it fail in a way that looks like a dependency break.
+- `test/canaries/` — one assertion per library behaviour no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing, every literal `t()` key resolving in the pt-PT bundle.
+- `test/smoke/pages.test.jsx` — 37 pages mount, paint, stay out of the error boundary, and render no raw translation keys. **Feature pages assert the route shell only**: each is a Suspense wrapper, so the assertion passes while the lazy chunk is still loading. The heavy components are covered directly instead.
+- `test/unit/` — utils and puzzle generation (~92%), the service layer, AppProvider, the games and exercises mounted directly with fixtures, admin sections and modals, and ErrorBoundary.
+- `test/helpers/appContext.js` — a complete inert AppContext value. It must stay a **superset** of the real provider's value; `appContext.test.jsx` compares the two and fails if the fake falls behind, because a page destructuring a missing key breaks in a way that looks like a dependency regression.
 
-What it does **not** cover: application behaviour. There are no tests for services, hooks, forms, or tier gating. So the verification bar for anything behavioural is unchanged — run the dev server and exercise the affected screen in the browser. "It builds and tests pass" is still not evidence that a feature works.
+Two conventions worth knowing before adding a test:
+
+- `test/setup.js` makes an **unmocked `fetch` reject loudly**, which is right for unit tests — it names the call you forgot. For a component render it is wrong: the component catches the rejection and renders its error state, so the test passes against an error screen. Integration-style files override it with an empty success envelope; copy that pattern rather than removing the strict default.
+- Mock **at the seam the code actually uses**. `userService` calls `fetch` directly rather than going through `apiFetch`, and its internal calls go through module-local bindings that a `vi.spyOn` on the namespace never sees.
+
+Coverage is uneven on purpose: `src/utils` is ~92%, `src/services` ~54%, `src/components` ~53%, and interaction paths are thin — most components are asserted to *render*, not to behave. So the verification bar for anything behavioural is unchanged: run the dev server and exercise the affected screen in the browser. "It builds and tests pass" is still not evidence that a feature works.
 
 ## Architecture summary
 
@@ -203,5 +209,5 @@ features. Toggle the flag in Admin > Features.
 
 - that a backend exists in this repo
 - that a new endpoint should be created here when the API repo already owns the backend
-- that a passing `npm test` means a feature works — it guards dependencies, not behaviour
+- that a passing `npm test` means a feature works — most components are only asserted to render
 - that user-facing content can be hardcoded without checking translation rules
