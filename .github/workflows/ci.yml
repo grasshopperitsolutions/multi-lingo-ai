@@ -44,6 +44,17 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Blocking, unlike the audit above. deploy-prod waits on this workflow,
+      # which is exactly the behaviour wanted here: a dependency bump that
+      # breaks rendering must not reach Pages. Both production incidents so far
+      # passed lint and build cleanly, so this is the only step that would have
+      # caught them.
+      #
+      # Before build on purpose — a failing test should stop the run at the
+      # cheap step rather than after a full Vite build and SEO page generation.
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build
         env:

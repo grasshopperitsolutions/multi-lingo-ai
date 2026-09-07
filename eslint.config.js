@@ -56,6 +56,20 @@ export default [
     },
   },
   {
+    // Tests run in jsdom under Vitest: browser globals plus Node's, plus the
+    // `describe`/`it`/`expect` set that `globals: true` injects. They are also
+    // not application components, so the react/prop-types rule — which exists
+    // to keep real components documented — only fires on throwaway probes.
+    files: ["test/**/*.{js,jsx}", "vitest.config.js"],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node, ...globals.vitest },
+    },
+    rules: {
+      "react/prop-types": "off",
+      "react-refresh/only-export-components": "off",
+    },
+  },
+  {
     // Build tooling runs in Node, not the browser — `process` and friends are
     // globals here, not undefined variables.
     files: ["vite.config.js", "eslint.config.js", "scripts/**/*.{js,mjs}"],

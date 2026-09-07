@@ -28,11 +28,18 @@ npm run dev
 npm run build
 npm run preview
 npm run lint
+npm test              # vitest run — blocking in CI
+npm run test:watch
+npm run test:coverage
 ```
 
-There is no project test suite configured; do not assume one exists.
+**`npm test` is a dependency guard, not a feature test suite.** It exists because two production outages were caused by dependency bumps that passed `lint` and `build` cleanly, and it is scoped to exactly that failure mode:
 
-**This is the single most important fact about working here.** `lint` and `build` are the only automated checks, and neither one runs the app. A change that compiles and lints can still be broken at runtime, and CI will happily go green on it — after which `deploy-prod` publishes to production. So the verification bar for anything behavioural is: run the dev server and exercise the affected screen in the browser. "It builds" is not evidence.
+- `test/canaries/` — one assertion per library behaviour the app depends on but no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing.
+- `test/smoke/` — 14 pages mount, paint, stay out of the error boundary, and render no raw translation keys.
+- `test/helpers/appContext.js` — a complete inert AppContext value. Add any key the real provider gains, or pages destructuring it fail in a way that looks like a dependency break.
+
+What it does **not** cover: application behaviour. There are no tests for services, hooks, forms, or tier gating. So the verification bar for anything behavioural is unchanged — run the dev server and exercise the affected screen in the browser. "It builds and tests pass" is still not evidence that a feature works.
 
 ## Architecture summary
 
@@ -83,15 +90,17 @@ Two consequences worth knowing before touching it:
 
 ## Dependencies
 
-Dependabot is configured in `.github/dependabot.yml`, grouped so minor/patch updates arrive as two PRs a week and majors arrive individually — because with no test suite, ten green PRs at once is how a real break gets merged.
+Dependabot is configured in `.github/dependabot.yml`, grouped so minor/patch updates arrive as two PRs a week and majors arrive individually — ten green PRs at once is how a real break gets merged. `npm test` now runs blocking in CI ahead of `build`, so a bump that breaks rendering fails the PR instead of reaching Pages.
 
 Three upgrades are currently blocked, and all three will keep being proposed:
 
 - **React 19** — blocked by this repo, not by upstream. 41 components still declare defaults via `Component.defaultProps`, which React 19 **removes for function components**. Every one of those defaults silently becomes `undefined`: the first symptom seen was the dashboard feature grid losing its `gridClassName` and collapsing to a single column, but the blast radius is every component that declares one. React 18.3 already logs a deprecation warning for each one. The fix is to convert them to default parameter values in the destructuring — `({ gridClassName = "grid grid-cols-2 lg:grid-cols-3 gap-4" })` — after which React 19 is a normal upgrade. Do that as its own change, not bundled with anything else.
+
+  **Standing decision: stay on React 18 and let CI reject the bump.** `test/canaries/react-defaultprops.test.jsx` fails the moment React stops honouring defaults, and also reproduces the single-column dashboard symptom directly. That PR failing is the guard working — never make it pass by weakening the test.
 - **ESLint 10** — `eslint-plugin-react` has no release that accepts it (peer-caps at `^9.7`). Forcing it with `--legacy-peer-deps` is not the answer.
 - **firebase-admin 14** in the sibling API repo — unrelated to this app, but the same lesson: it passed every local check and took production down. See that repo's CLAUDE.md.
 
-`defaultProps` is a trap worth naming: nothing catches it. It type-checks, lints, builds, and renders — the component just quietly uses `undefined` instead of the default. `grep -rn "\.defaultProps" src/` is the inventory.
+`defaultProps` is a trap worth naming: no *static* check catches it. It type-checks, lints, builds, and renders — the component just quietly uses `undefined` instead of the default. Only the canary above catches it, and only because it renders a component and asserts on the result. `grep -rn "\.defaultProps" src/` is the inventory.
 
 ## Critical repo rules
 
@@ -194,5 +203,5 @@ features. Toggle the flag in Admin > Features.
 
 - that a backend exists in this repo
 - that a new endpoint should be created here when the API repo already owns the backend
-- that there is a test framework in this frontend
+- that a passing `npm test` means a feature works — it guards dependencies, not behaviour
 - that user-facing content can be hardcoded without checking translation rules
