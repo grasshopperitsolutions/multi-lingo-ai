@@ -124,7 +124,11 @@ export async function saveTutorProfile(profile) {
     // the public directory cannot read `users` to look it up.
     displayName: user.displayName?.trim() ?? "",
     description: profile.description?.trim() ?? "",
-    photoURL: profile.photoURL?.trim() || null,
+    // From the account, like the name and the email. It used to come from a
+    // URL field in the form whose *placeholder* was the account picture, so a
+    // tutor who left it alone published photoURL: null and their card showed
+    // no image. One identity, one picture, changed in one place.
+    photoURL: user.photoURL ?? null,
     languages: profile.languages ?? [],
     // Denormalized from the account so the public page needs no user lookup —
     // which it could not do anyway, since `users` is not publicly readable.
@@ -150,29 +154,93 @@ export async function saveTutorProfile(profile) {
 }
 
 /**
- * Mirrors an account display-name change onto the tutor profile.
+ * Creates the minimal hidden profile "Become a tutor" writes.
+ *
+ * Nothing here is a guess the tutor has to correct later: name, picture and
+ * email come from the account exactly as saveTutorProfile takes them, so the
+ * document this creates and the document a first real save would produce
+ * agree field-for-field. Only `description` and `languages` start empty —
+ * the two things only the tutor can supply — and `published` starts false,
+ * because a directory listing with an empty description is not something
+ * anyone should see yet.
+ *
+ * This is the one place a tutor document is created without the caller
+ * having filled in a description first; every other write path (saveTutor-
+ * Profile) requires one. That is deliberate: existing is not the same as
+ * listed, and the whole point of a draft is to let it be neither complete
+ * nor public for a while.
+ */
+export async function createTutorDraft() {
+  const user = auth?.currentUser;
+  if (!user) throw new Error("You must be signed in to become a tutor");
+
+  const token = await user.getIdToken();
+
+  const payload = {
+    displayName: user.displayName?.trim() ?? "",
+    description: "",
+    photoURL: user.photoURL ?? null,
+    languages: [],
+    email: user.email ?? null,
+    phone: null,
+    whatsapp: false,
+    links: [],
+    published: false,
+  };
+
+  // Same call saveTutorProfile makes — create-or-update via a POST keyed to
+  // the caller's own uid. The server's own-doc-id + tier policy is what
+  // actually decides whether this succeeds; an ineligible tier gets a 403
+  // here exactly as it would from saveTutorProfile.
+  await createDocument(TUTORS_COLLECTION, payload, user.uid, token);
+  return payload;
+}
+
+/**
+ * Mirrors an account identity change onto the tutor profile.
  *
  * The name is denormalized onto the tutor document because the public
  * directory has no way to read `users`. That makes this the one field that
  * can drift, so the settings save path calls this straight after updating the
  * account name.
  *
- * A no-op when the user has no profile, and never throws: failing to mirror a
- * name must not fail the settings save that triggered it.
+ * The picture rides along for the same reason: the directory cannot read
+ * `users`, so the card renders a copy, and a tutor who changes their avatar in
+ * Settings would otherwise keep the old one in the directory forever.
+ *
+ * A no-op when the user has no profile, and never throws: failing to mirror an
+ * identity must not fail the settings save that triggered it.
+ *
+ * @param {string} uid
+ * @param {string} displayName
+ * @param {string|null} [photoURL] - pass undefined to leave the stored one alone
  */
-export async function syncTutorDisplayName(uid, displayName) {
+export async function syncTutorIdentity(uid, displayName, photoURL) {
   if (!uid || !displayName?.trim()) return;
   try {
     const existing = await getTutorProfile(uid);
     if (!existing) return;
-    if (existing.displayName === displayName.trim()) return;
+
+    const patch = {};
+    if (existing.displayName !== displayName.trim()) patch.displayName = displayName.trim();
+    if (photoURL !== undefined && existing.photoURL !== photoURL) patch.photoURL = photoURL ?? null;
+
+    // Nothing drifted — skip the write rather than touching updatedAt for no
+    // reason on every settings save.
+    if (Object.keys(patch).length === 0) return;
 
     const token = await auth.currentUser.getIdToken();
-    await updateDocument(TUTORS_COLLECTION, uid, { displayName: displayName.trim() }, token);
+    await updateDocument(TUTORS_COLLECTION, uid, patch, token);
   } catch (err) {
-    console.warn(`[tutorService] Could not mirror the display name onto the tutor profile: ${err.message}`);
+    console.warn(`[tutorService] Could not mirror the account identity onto the tutor profile: ${err.message}`);
   }
 }
+
+/**
+ * @deprecated Use syncTutorIdentity, which also mirrors the picture.
+ * Kept so an older call site cannot silently stop mirroring the name.
+ */
+export const syncTutorDisplayName = (uid, displayName) => syncTutorIdentity(uid, displayName);
 
 /** Removes the signed-in user's profile from the directory. */
 export async function unpublishTutorProfile() {

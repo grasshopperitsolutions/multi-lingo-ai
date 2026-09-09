@@ -22,6 +22,7 @@ import GlobalCompassCursor from "./components/GlobalCompassCursor";
 import Loader from "./components/Loader";
 import AiGenerationConfirm from "./components/AiGenerationConfirm";
 import ErrorBoundary from "./components/ErrorBoundary";
+import RequireAuth from "./components/RequireAuth";
 
 // ── /dashboard/* pages — route-level code splitting ──────────────────────────
 const DashboardLayout = lazy(() => import("./pages/dashboard/DashboardLayout"));
@@ -173,11 +174,13 @@ const AppLayout = () => {
           <Route
             path="/dashboard"
             element={
-              <RequireOnboarding>
-                <Suspense fallback={<Loader fullScreen isDarkMode={isDarkMode} />}>
-                  <DashboardLayout />
-                </Suspense>
-              </RequireOnboarding>
+              <RequireAuth>
+                <RequireOnboarding>
+                  <Suspense fallback={<Loader fullScreen isDarkMode={isDarkMode} />}>
+                    <DashboardLayout />
+                  </Suspense>
+                </RequireOnboarding>
+              </RequireAuth>
             }
           >
             <Route index element={<DashboardHomePage />} />

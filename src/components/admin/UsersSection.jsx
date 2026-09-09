@@ -116,9 +116,9 @@ const UsersSection = ({ users, isDarkMode, isLoadingDocs, error, currentUid, onS
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Search by name, email, uid..."
-        filters={TIER_OPTIONS}
-        activeFilters={activeTiers}
-        onFilterToggle={toggleTierFilter}
+        filterGroups={[
+          { id: "tier", label: "Tier", options: TIER_OPTIONS, activeValues: activeTiers, onToggle: toggleTierFilter },
+        ]}
         isDarkMode={isDarkMode}
       />
 

@@ -222,13 +222,25 @@ describe("ErrorBoundary", () => {
 });
 
 describe("remaining leaf components", () => {
-  it("TutorApplicationForm renders its fields", async () => {
+  it("TutorApplicationForm renders its fields once opened", async () => {
     const { container } = await mount(
       () => import("../../src/components/TutorApplicationForm"),
-      { sectionClasses: "" },
+      { defaultOpen: true },
     );
 
     await waitFor(() => expect(container.querySelectorAll("input, textarea").length).toBeGreaterThan(0));
+  });
+
+  it("TutorApplicationForm renders no inputs while collapsed", async () => {
+    const { container } = await mount(
+      () => import("../../src/components/TutorApplicationForm"),
+      { defaultOpen: false },
+    );
+
+    // SettingsSection unmounts its body rather than hiding it, so a collapsed
+    // card leaves no focusable fields stranded in the tab order.
+    await waitFor(() => expect(container.textContent.trim().length).toBeGreaterThan(0));
+    expect(container.querySelectorAll("input, textarea")).toHaveLength(0);
   });
 
   it("GlobalCompassCursor renders at a position", async () => {

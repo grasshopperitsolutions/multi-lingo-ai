@@ -281,6 +281,58 @@ describe("tutorService", () => {
 
     expect(fs.updateDocument).not.toHaveBeenCalled();
   });
+
+  describe("createTutorDraft", () => {
+    it("writes a hidden, empty-description profile from the account", async () => {
+      const fs = await import("../../src/services/firestoreService");
+      const { createTutorDraft } = await import("../../src/services/tutorService");
+
+      const payload = await createTutorDraft();
+
+      // Nothing here is a guess the tutor corrects later — same identity
+      // fields saveTutorProfile takes, so a later real save agrees with this
+      // one field-for-field.
+      expect(payload.displayName).toBe("Nuno");
+      expect(payload.email).toBe("nuno@example.com");
+      expect(payload.description).toBe("");
+      expect(payload.languages).toEqual([]);
+      expect(payload.links).toEqual([]);
+
+      // A directory listing with an empty description is not something
+      // anyone should see yet.
+      expect(payload.published).toBe(false);
+
+      const [collection, data, docId] = fs.createDocument.mock.calls[0];
+      expect(collection).toBe("tutors");
+      expect(docId).toBe("u1");
+      expect(data.published).toBe(false);
+    });
+
+    it("requires a signed-in user", async () => {
+      currentUser.value = null;
+      const { createTutorDraft } = await import("../../src/services/tutorService");
+
+      await expect(createTutorDraft()).rejects.toThrow(/signed in/i);
+    });
+
+    it("uses the same create call saveTutorProfile does — no new endpoint", async () => {
+      const fs = await import("../../src/services/firestoreService");
+      const { createTutorDraft, saveTutorProfile } = await import("../../src/services/tutorService");
+
+      await createTutorDraft();
+      const draftCall = fs.createDocument.mock.calls[0];
+
+      fs.createDocument.mockClear();
+      await saveTutorProfile({ description: "Real profile", links: [] });
+      const saveCall = fs.createDocument.mock.calls[0];
+
+      // Same collection, same doc-id argument position — the server's
+      // own-doc-id + tier policy is what actually enforces eligibility here,
+      // exactly as it does for a real save.
+      expect(draftCall[0]).toBe(saveCall[0]);
+      expect(draftCall[2]).toBe(saveCall[2]);
+    });
+  });
 });
 
 describe("tutorUrlValidation", () => {

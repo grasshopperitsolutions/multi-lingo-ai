@@ -28,10 +28,12 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useTierAccess } from "../hooks/useTierAccess";
+import { useMediaQuery, MOBILE_QUERY } from "../hooks/useMediaQuery";
+import { SettingsSection } from "../components/ui";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
 import NotificationSettings from "../components/NotificationSettings";
 import TutorProfileSection from "../components/TutorProfileSection";
-import { syncTutorDisplayName } from "../services/tutorService";
+import { syncTutorIdentity } from "../services/tutorService";
 import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
 import { normalizeCode } from "../utils/languageCode";
@@ -177,6 +179,7 @@ const SettingsForm = ({
   showOtherLearning, setShowOtherLearning,
   isSeedingInterface, isSeedingLanguage,
   isDirty,
+  sectionsOpenByDefault,
 }) => {
   const { t } = useTranslation();
 
@@ -184,12 +187,6 @@ const SettingsForm = ({
     ${ isDarkMode
       ? "bg-slate-700 border-slate-600 text-white focus:border-yellow-400 placeholder-slate-400"
       : "bg-white border-slate-900 text-slate-900 focus:border-blue-600 placeholder-slate-400"
-    }`;
-
-  const sectionClasses = `p-8 rounded-[2rem] border-4 mb-6
-    ${ isDarkMode
-      ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
-      : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
     }`;
 
   const labelClasses = `block font-black uppercase text-xs tracking-widest mb-2
@@ -200,10 +197,11 @@ const SettingsForm = ({
   return (
     <form onSubmit={handleSave}>
       {/* ── Profile ── */}
-      <div className={sectionClasses}>
-        <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
-          {t("settings.profile")}
-        </h2>
+      <SettingsSection
+        title={t("settings.profile")}
+        isDarkMode={isDarkMode}
+        defaultOpen={sectionsOpenByDefault}
+      >
         <AvatarUpload
           user={user}
           isDarkMode={isDarkMode}
@@ -237,13 +235,14 @@ const SettingsForm = ({
             />
           </div>
         </div>
-      </div>
+      </SettingsSection>
 
       {/* ── Appearance ── */}
-      <div className={sectionClasses}>
-        <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
-          {t("settings.appearance")}
-        </h2>
+      <SettingsSection
+        title={t("settings.appearance")}
+        isDarkMode={isDarkMode}
+        defaultOpen={sectionsOpenByDefault}
+      >
         <div className="space-y-5">
           <div>
             <label className={labelClasses}>
@@ -301,14 +300,15 @@ const SettingsForm = ({
             )}
           </div>
         </div>
-      </div>
+      </SettingsSection>
 
       {/* ── Language Learning ── */}
-      <div className={sectionClasses}>
-        <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
-          <BookOpen size={16} className="inline mr-2" />
-          {t("settings.language_learning")}
-        </h2>
+      <SettingsSection
+        title={t("settings.language_learning")}
+        icon={<BookOpen size={16} className="inline mr-2" />}
+        isDarkMode={isDarkMode}
+        defaultOpen={sectionsOpenByDefault}
+      >
         <div className="space-y-6">
           <div>
             <label className={labelClasses}>
@@ -372,7 +372,7 @@ const SettingsForm = ({
             )}
           </div>
         </div>
-      </div>
+      </SettingsSection>
 
       {/* ── Save ── */}
       <Tooltip text={isDirty ? t("settings.unsaved_changes") : ""} isDarkMode={isDarkMode}>
@@ -431,6 +431,9 @@ SettingsForm.propTypes = {
   isSaving:           PropTypes.bool.isRequired,
   isUploading:        PropTypes.bool.isRequired,
   handleSave:         PropTypes.func.isRequired,
+  /** Whether the cards start expanded — false on a phone, where seven open
+   *  cards make the page a very long scroll. */
+  sectionsOpenByDefault: PropTypes.bool.isRequired,
   previewUrl:         PropTypes.string,
   onFileSelect:       PropTypes.func.isRequired,
   supportedLanguages: PropTypes.arrayOf(PropTypes.shape({
@@ -456,6 +459,19 @@ SettingsForm.propTypes = {
 // ── Settings Page ───────────────────────────────────────────────────────────────
 const SettingsPage = () => {
   const { isDarkMode, setIsDarkMode, user, isLoadingUser, logoutUser, showAlert, refreshUser, changeLanguage, supportedLanguages, isLoadingLanguages, refreshSupportedLanguages, categories, isLoadingCategories } = useAppContext();
+
+  /**
+   * On a phone every card starts closed: seven expanded forms make Settings a
+   * very long scroll with no overview of what is on the page. On a desktop
+   * there is room, so the cards open — except the tutor profile, which almost
+   * nobody edits and which is the longest card here.
+   *
+   * Declared up here with the other hooks, above the isLoadingUser early
+   * return, because a hook after a conditional return runs in a different
+   * order on the two paths.
+   */
+  const isMobile = useMediaQuery(MOBILE_QUERY);
+  const sectionsOpenByDefault = !isMobile;
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -591,10 +607,14 @@ const SettingsPage = () => {
         setShowOtherLearning(false);
       }
 
+      // Kept so the tutor mirror below can send the new picture in the same
+      // pass; uploadProfileImage has already written it to the user document.
+      let uploadedPhotoURL;
+
       if (pendingFile) {
         setIsUploading(true);
         try {
-          await uploadProfileImage(token, firebaseUser.uid, pendingFile);
+          uploadedPhotoURL = await uploadProfileImage(token, firebaseUser.uid, pendingFile);
           setPendingFile(null);
           setPreviewUrl(null);
         } catch {
@@ -614,12 +634,16 @@ const SettingsPage = () => {
         interests,
         onboardingCompleted: user?.onboardingCompleted ?? true,
       });
-      // The tutor card denormalizes the display name, because the public
-      // directory cannot read `users` to look it up. This is the one field
-      // that can drift, so it is mirrored here rather than left to rot until
-      // the next tutor-profile save. No-op for anyone without a profile, and
-      // never throws.
-      await syncTutorDisplayName(firebaseUser.uid, displayName);
+      // The tutor card denormalizes the display name and the picture, because
+      // the public directory cannot read `users` to look either up. Those are
+      // the two fields that can drift, so they are mirrored here rather than
+      // left to rot until the next tutor-profile save. No-op for anyone
+      // without a profile, and never throws.
+      await syncTutorIdentity(
+        firebaseUser.uid,
+        displayName,
+        uploadedPhotoURL ?? user?.photoURL,
+      );
 
       setInterfaceLang(finalInterfaceLang);
       setLearningDialect(finalLearningDialect);
@@ -659,12 +683,6 @@ const SettingsPage = () => {
   };
 
   const isBusy = isSaving || isUploading || isSeedingInterface || isSeedingLanguage;
-
-  const sectionClasses = `p-8 rounded-[2rem] border-4 mb-6
-    ${ isDarkMode
-      ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
-      : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
-    }`;
 
   return (
     <>
@@ -737,6 +755,7 @@ const SettingsPage = () => {
         isSeedingInterface={isSeedingInterface}
         isSeedingLanguage={isSeedingLanguage}
         isDirty={isDirty}
+        sectionsOpenByDefault={sectionsOpenByDefault}
       />
 
         {/* ── Tutor profile ── */}
@@ -744,25 +763,32 @@ const SettingsPage = () => {
             for everyone else; the component decides which, because the tier
             check and the copy that explains it belong together. */}
         <TutorProfileSection
+          id="tutorSettings"
           isDarkMode={isDarkMode}
           user={user}
-          sectionClasses={sectionClasses}
+          // Closed by default regardless of viewport — see sectionsOpenByDefault's
+          // own comment, this is the longest, least-often-edited card here —
+          // except when arriving via the "Update my profile" link on the tutor
+          // directory page (/settings#tutorSettings), which should open straight
+          // to it rather than making the visitor find and expand it themselves.
+          defaultOpen={typeof window !== "undefined" && window.location.hash === "#tutorSettings"}
         />
 
         {/* ── Notifications ── */}
         <NotificationSettings
           isDarkMode={isDarkMode}
           user={user}
-          sectionClasses={sectionClasses}
+          defaultOpen={sectionsOpenByDefault}
           onSaved={refreshUser}
         />
 
         {/* ── Subscription Section ── */}
-        <div className={sectionClasses}>
-          <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
-            <CreditCard size={16} className="inline mr-2" />
-            {t("subscription.title")}
-          </h2>
+        <SettingsSection
+          title={t("subscription.title")}
+          icon={<CreditCard size={16} className="inline mr-2" />}
+          isDarkMode={isDarkMode}
+          defaultOpen={sectionsOpenByDefault}
+        >
 
           {/* Current Tier Badge */}
           <div className="flex items-center gap-3 mb-4">
@@ -976,13 +1002,14 @@ const SettingsPage = () => {
               </>
             )}
           </div>
-        </div>
+        </SettingsSection>
 
         {/* Account Actions */}
-        <div className={sectionClasses}>
-          <h2 className={`text-lg font-black uppercase tracking-widest mb-6 ${ isDarkMode ? "text-white" : "text-slate-900" }`}>
-            {t("settings.account")}
-          </h2>
+        <SettingsSection
+          title={t("settings.account")}
+          isDarkMode={isDarkMode}
+          defaultOpen={sectionsOpenByDefault}
+        >
           <div className="space-y-3">
             <button
               onClick={handleLogout}
@@ -1003,7 +1030,7 @@ const SettingsPage = () => {
               {t("settings.delete_account")}
             </button>
           </div>
-        </div>
+        </SettingsSection>
 
         <div className="h-24" aria-hidden="true" />
       </main>

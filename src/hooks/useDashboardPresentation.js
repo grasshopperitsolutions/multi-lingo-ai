@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { useAppContext } from "../contexts/AppContext";
+import { useMediaQuery } from "./useMediaQuery";
 
 /** The two ways the dashboard can present its groups. */
 export const PRESENTATION = {
@@ -11,30 +11,6 @@ export const PRESENTATION = {
  *  page at a time and the shelf falls back to the tab bar by default. */
 const NARROW_QUERY = "(max-width: 1023px)";
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
-
-/**
- * Subscribe to a media query.
- *
- * @param {string} query
- * @returns {boolean}
- */
-function useMediaQuery(query) {
-  const [matches, setMatches] = useState(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return false;
-    return window.matchMedia(query).matches;
-  });
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return undefined;
-    const list = window.matchMedia(query);
-    const onChange = (event) => setMatches(event.matches);
-    list.addEventListener("change", onChange);
-    setMatches(list.matches);
-    return () => list.removeEventListener("change", onChange);
-  }, [query]);
-
-  return matches;
-}
 
 /**
  * useDashboardPresentation

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
+import { SettingsSection } from "./ui";
 import { useTranslation } from "react-i18next";
 import { Bell, BellRing, Check, Loader2, Mail, Monitor } from "lucide-react";
 import { auth } from "../firebase";
@@ -46,7 +47,7 @@ const normalize = (stored) => {
   return result;
 };
 
-const NotificationSettings = ({ isDarkMode, user, sectionClasses, onSaved }) => {
+const NotificationSettings = ({ isDarkMode, user, defaultOpen = true, onSaved }) => {
   const { t } = useTranslation();
 
   const [prefs, setPrefs] = useState(() => normalize(user?.notificationPrefs));
@@ -199,11 +200,12 @@ const NotificationSettings = ({ isDarkMode, user, sectionClasses, onSaved }) => 
   };
 
   return (
-    <div className={sectionClasses}>
-      <h2 className={`text-lg font-black uppercase tracking-widest mb-2 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
-        <Bell size={16} className="inline mr-2" />
-        {t("settings.notifications.title")}
-      </h2>
+    <SettingsSection
+      title={t("settings.notifications.title")}
+      icon={<Bell size={16} className="inline mr-2" />}
+      isDarkMode={isDarkMode}
+      defaultOpen={defaultOpen}
+    >
       <p className={`text-sm font-bold mb-6 ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
         {t("settings.notifications.intro")}
       </p>
@@ -287,14 +289,15 @@ const NotificationSettings = ({ isDarkMode, user, sectionClasses, onSaved }) => 
           {t("settings.notifications.transactional_note")}
         </p>
       </div>
-    </div>
+    </SettingsSection>
   );
 };
 
 NotificationSettings.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
   user: PropTypes.object,
-  sectionClasses: PropTypes.string.isRequired,
+  /** Whether the card starts expanded — the page decides, from viewport. */
+  defaultOpen: PropTypes.bool,
   onSaved: PropTypes.func,
 };
 

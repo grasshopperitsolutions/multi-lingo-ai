@@ -90,27 +90,18 @@ const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPromp
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
             searchPlaceholder="Search by name, category, status, description..."
-            filters={categoryFilters}
-            activeFilters={activeCategories}
-            onFilterToggle={toggleCategory}
+            filterGroups={[
+              { id: "category", label: "Category", options: categoryFilters, activeValues: activeCategories, onToggle: toggleCategory },
+            ]}
             isDarkMode={isDarkMode}
           />
-          <div className="flex items-center gap-3">
-            <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-              {filteredPrompts.length} of {prompts.length} prompt{prompts.length === 1 ? "" : "s"}
-            </p>
-            {activeCategories.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setActiveCategories([])}
-                className={`text-xs font-black uppercase tracking-widest underline transition-colors ${
-                  isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"
-                }`}
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
+          {/* The bar's own clear button (inside the search input) now covers
+              this — it clears the search text and every filter group in one
+              click, so a second, category-only "Clear filters" link here
+              would just be a narrower duplicate of it. */}
+          <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+            {filteredPrompts.length} of {prompts.length} prompt{prompts.length === 1 ? "" : "s"}
+          </p>
         </>
       )}
 

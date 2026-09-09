@@ -3,7 +3,6 @@ import { Outlet, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../contexts/AppContext";
 import { useTierAccess } from "../../hooks/useTierAccess";
-import Loader from "../../components/Loader";
 import Avatar from "../../components/Avatar";
 import TooltipButton from "../../components/TooltipButton";
 import MobileMenuDrawer from "../../components/MobileMenuDrawer";
@@ -58,14 +57,13 @@ const DashboardLayout = () => {
     return () => meta.remove();
   }, []);
 
+  // Defensive only — RequireAuth (App.jsx) redirects a signed-out visitor to
+  // `/` before this ever mounts. It used to return a full-screen Loader here
+  // with nothing to ever resolve it, which was the infinite spinner a guest
+  // hit on any /dashboard/* URL. `null` is the correct fallback for a state
+  // that should be unreachable, not a spinner that promises progress.
   if (!user) {
-    return (
-      <Loader
-        fullScreen
-        message={t("dashboard.loading")}
-        isDarkMode={isDarkMode}
-      />
-    );
+    return null;
   }
 
   // ── Persist theme to Firestore (fire-and-forget) ───────────────────────────

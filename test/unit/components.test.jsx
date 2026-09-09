@@ -129,7 +129,12 @@ const PANELS = [
     () => import("../../src/components/NotificationSettings"),
     { user: { uid: "u", token: "t", notificationPrefs: {} }, sectionClasses: "", onSaved: vi.fn() },
   ],
-  ["TutorProfileSection", () => import("../../src/components/TutorProfileSection"), {}],
+  // TutorProfileSection is deliberately not in this sweep: with the generic
+  // fetch stub here, getTutorProfile resolves to null (no tutor document),
+  // and the component correctly renders nothing at all for that case — see
+  // its own file header. `settled()` below waits for real content and would
+  // time out against that correct-but-empty render. tutorProfileSection.test.jsx
+  // covers it properly, with a tutorService mock that returns a profile.
   ["Header", () => import("../../src/components/Header"), {}],
   ["Footer", () => import("../../src/components/Footer"), {}],
   ["GrammarMenu", () => import("../../src/components/GrammarMenu"), {}],

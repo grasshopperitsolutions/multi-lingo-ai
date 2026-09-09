@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
+import { SettingsSection } from "./ui";
 import { useTranslation } from "react-i18next";
 import { Check, Loader2, Send, UserRound } from "lucide-react";
 import { submitTutorApplication } from "../services/tutorService";
@@ -15,7 +16,7 @@ import { URL_ERROR_KEYS } from "../services/tutorUrlValidation";
  * checks. A separate `approved` boolean would be a second source of truth
  * that could disagree with the tier.
  */
-const TutorApplicationForm = ({ isDarkMode, sectionClasses }) => {
+const TutorApplicationForm = ({ isDarkMode, defaultOpen = false, id = undefined }) => {
   const { t } = useTranslation();
 
   const [instagram, setInstagram] = useState("");
@@ -57,11 +58,13 @@ const TutorApplicationForm = ({ isDarkMode, sectionClasses }) => {
   const hintClasses = `mt-1 text-xs font-bold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`;
 
   return (
-    <div className={sectionClasses}>
-      <h2 className={`text-lg font-black uppercase tracking-widest mb-2 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
-        <UserRound size={16} className="inline mr-2" />
-        {t("tutors.apply_title")}
-      </h2>
+    <SettingsSection
+      id={id}
+      title={t("tutors.apply_title")}
+      icon={<UserRound size={16} className="inline mr-2" />}
+      isDarkMode={isDarkMode}
+      defaultOpen={defaultOpen}
+    >
       <p className={`text-sm font-bold mb-6 ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
         {t("tutors.apply_intro")}
       </p>
@@ -127,13 +130,18 @@ const TutorApplicationForm = ({ isDarkMode, sectionClasses }) => {
           </button>
         </div>
       )}
-    </div>
+    </SettingsSection>
   );
 };
 
 TutorApplicationForm.propTypes = {
   isDarkMode: PropTypes.bool.isRequired,
-  sectionClasses: PropTypes.string.isRequired,
+  /** Whether the card starts expanded. Defaults closed, like the editor it
+   *  stands in for. */
+  defaultOpen: PropTypes.bool,
+  /** Forwarded to the wrapping SettingsSection, so #tutorSettings finds this
+   *  card too when the visitor isn't eligible to publish yet. */
+  id: PropTypes.string,
 };
 
 export default TutorApplicationForm;
