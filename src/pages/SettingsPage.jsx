@@ -33,6 +33,7 @@ import { SettingsSection } from "../components/ui";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
 import NotificationSettings from "../components/NotificationSettings";
 import TutorProfileSection from "../components/TutorProfileSection";
+import WordBankSection from "../components/WordBankSection";
 import { syncTutorIdentity } from "../services/tutorService";
 import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
@@ -757,6 +758,11 @@ const SettingsPage = () => {
         isDirty={isDirty}
         sectionsOpenByDefault={sectionsOpenByDefault}
       />
+
+        {/* ── Word bank ── */}
+        {/* Collected while reading, managed here. Closed by default like the
+            other long lists — it grows without bound as someone practises. */}
+        <WordBankSection isDarkMode={isDarkMode} defaultOpen={false} />
 
         {/* ── Tutor profile ── */}
         {/* Renders the editor for maestro/vip/admin and the application form

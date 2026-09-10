@@ -118,9 +118,11 @@ export async function getStoryPoolStatus({ token, level, targetLang, seenStoryId
  * @param {Array<{id: string, label: string}>} [params.interests] - from useInterestTopics().topics
  * @param {string[]} [params.seenStoryIds]
  * @param {string} [params.description] - custom topic; skips the cache when set
+ * @param {string[]} [params.requiredWords] - words from the reader's word bank the
+ *   story must use; also skips the cache, since no cached story can contain them
  * @returns {Promise<{ storyId: string, level: string, targetLang: string, title: string, paragraphs: string[], source: 'db'|'ai' }>}
  */
-export async function getStory({ token, level, targetLang, interests = [], seenStoryIds = [], description = '' }) {
+export async function getStory({ token, level, targetLang, interests = [], seenStoryIds = [], description = '', requiredWords = [] }) {
   if (!token) throw new Error('[storyService] token is required');
   if (!level) throw new Error('[storyService] level is required');
   if (!targetLang) throw new Error('[storyService] targetLang is required');
@@ -128,13 +130,16 @@ export async function getStory({ token, level, targetLang, interests = [], seenS
   const seenSet = new Set(seenStoryIds);
   const pool = await _fetchReadyStories(token, { level, targetLang });
 
-  // A custom description is a specific request — go straight to generation.
-  // The result still lands in the shared pool, so it isn't wasted on one reader.
-  if (description.trim()) {
+  // A custom description or a set of required words is a specific request —
+  // go straight to generation. No cached story can be guaranteed to contain
+  // the reader's own words, so the pool cannot serve this at all. The result
+  // still lands in the shared pool, so it isn't wasted on one reader.
+  if (description.trim() || requiredWords.length > 0) {
     return _generateStory({
       token, level, targetLang, interests,
       existingTitles: pool.map((s) => s.title),
       description: description.trim(),
+      requiredWords,
     });
   }
 
@@ -233,7 +238,7 @@ export async function getStoryTranslation({ token, storyId, sourceLang, sourceTi
 // Generation
 // ---------------------------------------------------------------------------
 
-async function _generateStory({ token, level, targetLang, interests, existingTitles, description = '' }) {
+async function _generateStory({ token, level, targetLang, interests, existingTitles, description = '', requiredWords = [] }) {
   const paragraphCount = PARAGRAPH_COUNT_BY_LEVEL[level] ?? DEFAULT_PARAGRAPH_COUNT;
   const grammarDescription = getGrammarDescription(level);
   // An explicit description wins over interests: the reader asked for
@@ -244,6 +249,20 @@ async function _generateStory({ token, level, targetLang, interests, existingTit
   const avoidTitles = existingTitles.filter(Boolean).join('; ') || '(none yet)';
 
   const promptDoc = await getPrompt('story-generate-prompt');
+
+  // The word bank asks for specific words to appear. The template is
+  // admin-edited in Firestore, so it may not carry the placeholder yet —
+  // renderTemplate would silently drop the words and the reader would get a
+  // story with none of them in it, which looks like the feature is broken
+  // rather than like the prompt is out of date.
+  if (requiredWords.length > 0 && !String(promptDoc.template).includes('{{requiredWords}}')) {
+    console.warn(
+      '[storyService] The "story-generate-prompt" template has no {{requiredWords}} placeholder, ' +
+      `so the ${requiredWords.length} selected word(s) will not reach the model. ` +
+      'Add it in Admin > Prompts.',
+    );
+  }
+
   const prompt = renderTemplate(promptDoc.template, {
     targetLang,
     level,
@@ -251,6 +270,9 @@ async function _generateStory({ token, level, targetLang, interests, existingTit
     grammarDescription,
     avoidTitles,
     paragraphCount,
+    // A plain list, not a sentence: the instruction around it belongs in the
+    // editable template, not baked in here.
+    requiredWords: requiredWords.join(', ') || '(none)',
   });
 
   const providerParams = {

@@ -4,7 +4,9 @@ import { useTranslation } from "react-i18next";
 import { X, Volume2, Square, Loader2 } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { useTts } from "../hooks/useTts";
+import { useWordFavourites } from "../hooks/useWordFavourites";
 import { lookupWord } from "../services/dictionaryService";
+import { FavouriteButton } from "./ui";
 
 /**
  * WordLookupSheet
@@ -22,6 +24,7 @@ const WordLookupSheet = ({ word, targetLang, isDarkMode, onClose }) => {
   const { t } = useTranslation();
   const { user, interfaceLang } = useAppContext();
   const { ttsState, playTts, stopTts } = useTts();
+  const { isFavourite, toggle } = useWordFavourites();
 
   const [activeWord, setActiveWord] = useState(word);
   const [entries, setEntries] = useState([]);
@@ -106,6 +109,11 @@ const WordLookupSheet = ({ word, targetLang, isDarkMode, onClose }) => {
           >
             {isPlaying ? <Square size={12} /> : <Volume2 size={12} />}
           </button>
+          <FavouriteButton
+            isFavourite={isFavourite(activeWord)}
+            onToggle={() => toggle(activeWord)}
+            isDarkMode={isDarkMode}
+          />
         </div>
 
         <div className="mt-3 min-h-[3rem]">
@@ -138,6 +146,13 @@ const WordLookupSheet = ({ word, targetLang, isDarkMode, onClose }) => {
                     }`}>
                       {t(`dictionary.word_type.${entry.wordType}`, entry.wordType)}
                     </span>
+                  )}
+                  {entry.translation && (
+                    <p className={`text-base font-black tracking-tight mb-1 ${
+                      isDarkMode ? "text-yellow-400" : "text-blue-700"
+                    }`}>
+                      {entry.translation}
+                    </p>
                   )}
                   <p className={`text-sm ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
                     {entry.definition}

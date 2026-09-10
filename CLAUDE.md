@@ -33,7 +33,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-**687 tests across 24 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
+**700 tests across 25 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
 
 - `test/canaries/` — one assertion per library behaviour no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing, every literal `t()` key resolving in the pt-PT bundle.
 - `test/smoke/pages.test.jsx` — 37 pages mount, paint, stay out of the error boundary, and render no raw translation keys. **Feature pages assert the route shell only**: each is a Suspense wrapper, so the assertion passes while the lazy chunk is still loading. The heavy components are covered directly instead.
@@ -139,6 +139,16 @@ Three upgrades are currently blocked, and all three will keep being proposed:
 - Run npm run lint after frontend edits and resolve warnings before considering the work done, then `npm run build`, then verify the affected screen in a browser against the dev server. The first two do not exercise the app.
 - Do not add analytics, tracking, or Sentry features beyond error capture without reading the privacy policy strings in `src/locales/pt/translation.json` first — several of them make explicit promises about what this app does not do.
 - Editing an existing locale string does not propagate: `fillMissingTranslations` only fills keys that are *missing*. Changing wording in pt-PT needs the admin force resync, or every other locale keeps the old text.
+
+## Story translations are collapsed, the title is not
+
+The bilingual reader shows the target-language paragraph with its translation
+**closed**, one toggle per card plus a show-all for the whole story. Open by
+default was the original design and it defeats the exercise: with both columns
+on screen the eye goes to the language it already knows and the target text is
+never really read. The title is the deliberate exception — always translated,
+because it is the one line that tells a reader whether the story is worth
+starting.
 
 ## i18n workflow
 
@@ -254,6 +264,51 @@ for the viewer, or `isFeatureVisible(feature, tierId)` from
 `utils/featureAccess` when asking about a tier other than the viewer's (the
 pricing page). Adding a dashboard tile without that filter leaks hidden
 features. Toggle the flag in Admin > Features.
+
+## The word bank is the WORD favourite kind, not a new mechanism
+
+Words a reader collects while practising are `FAVOURITE_KINDS.WORD` in
+`favouritesService` — the `favWordIds` array on `users/{uid}` that had been
+declared and unused since the favourites service was written. `useWordFavourites`
+wraps it exactly as `useFeatureFavourites` wraps the FEATURE kind: optimistic
+write, roll back and surface the error if the write fails. Do not add a
+parallel "wordBank" field.
+
+The id **is** the word, normalised in the hook (`normaliseWord`: trim, collapse
+inner whitespace, lower-case) so a word tapped in a title and the same word
+tapped in a paragraph are one entry. Normalising at that boundary rather than
+per call site is what lets a caller ask `isFavourite(rawToken)` and get the
+right answer.
+
+**Tap and hold are two actions on one word.** Tap opens the dictionary sheet,
+hold (500ms, `useLongPress`) banks the word. A double tap was the other option
+and was rejected: disambiguating it costs the tap a ~300ms delay, and the tap
+is the primary action. The hook fires its click from `pointerup` — by then it
+knows whether the hold already fired — and suppresses `contextmenu`, which
+otherwise raises the selection UI over the word being held on touch. The word
+spans carry `select-none` for the same reason.
+
+**`getFavouriteIds` returns a fresh `[]` when the field does not exist yet.**
+The array is returned by reference when it is there — deliberately, so
+callbacks keyed on it are stable — but a profile with no `favWordIds` gets a
+new empty array on every call. An effect that depends on that array therefore
+re-runs on every render; if it also sets state with a newly built array, the
+result is an infinite render loop that hangs anything mounting the page. Key
+such effects on the contents (a joined string), and return the previous state
+unchanged when nothing moved so React can bail out.
+
+**Selected words force a generation.** No cached story can be guaranteed to
+contain the reader's own words, so `getStory` treats `requiredWords` exactly
+like a custom `description`: skip the pool, generate, and let the result land
+in the shared pool anyway. That is why the sidebar's selection is gated on the
+same rule as the custom-request box (`canAccess("custom_requests") ||
+cacheExhausted`) — a second unlocked route to the same AI call would make the
+tier gate meaningless. Removing a word is never gated; it is housekeeping.
+
+The words reach the model through `{{requiredWords}}` in the admin-edited
+`story-generate-prompt`. A template without that placeholder drops them
+silently, so `_generateStory` warns when words were requested and the
+placeholder is absent — same guard as `{{speechPace}}` in `getTtsService`.
 
 ## Two things the signed-out visitor breaks if you forget them
 

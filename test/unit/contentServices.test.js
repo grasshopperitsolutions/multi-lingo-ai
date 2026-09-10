@@ -40,7 +40,9 @@ const queryCollection = vi.fn(async (collection) => {
 /** Prompts every content service expects to exist. */
 const seedPrompts = () =>
   setCollection("prompts", [
-    { id: "story-generate-prompt", template: "Write a story at {{level}}" },
+    // Carries {{requiredWords}} because the live template does: the word
+    // bank reaches the model through that placeholder and nothing else.
+    { id: "story-generate-prompt", template: "Write a story at {{level}}. Use: {{requiredWords}}" },
     { id: "story-translate-prompt", template: "Translate {{title}}" },
     { id: "grammar-topics-prompt", template: "Topics for {{lang}}" },
     { id: "grammar-tip-prompt", template: "A tip about {{category}}" },
@@ -267,6 +269,66 @@ describe("storyService", () => {
     // A root document without its canonical content is skipped rather than
     // thrown on, so one broken row cannot take the whole feature down.
     expect(askAI).toHaveBeenCalled();
+  });
+
+  it("bypasses the cache when the reader picked words from their bank", async () => {
+    setCollection("stories", [
+      { id: "s1", level: "B1", targetLang: "pt-PT", status: "ready", title: "A Casa" },
+    ]);
+    getDocument.mockResolvedValue({ title: "A Casa", paragraphs: ["Era uma vez."] });
+    askAI.mockResolvedValue(
+      aiText(JSON.stringify({ title: "Nova", paragraphs: ["Com as palavras."], level: "B1" })),
+    );
+
+    const { getStory } = await import("../../src/services/storyService");
+    const story = await getStory({
+      token: "tok",
+      level: "B1",
+      targetLang: "pt-PT",
+      seenStoryIds: [],
+      requiredWords: ["casa", "cão"],
+    });
+
+    // There is a perfectly good unseen story in the pool, and it is still the
+    // wrong answer: no cached story can be guaranteed to contain the reader's
+    // own words, so this has to generate.
+    expect(askAI).toHaveBeenCalled();
+    expect(story.source).toBe("ai");
+  });
+
+  it("puts the picked words in the prompt", async () => {
+    setCollection("stories", []);
+    askAI.mockResolvedValue(
+      aiText(JSON.stringify({ title: "Nova", paragraphs: ["Texto."], level: "B1" })),
+    );
+
+    const { getStory } = await import("../../src/services/storyService");
+    await getStory({
+      token: "tok",
+      level: "B1",
+      targetLang: "pt-PT",
+      seenStoryIds: [],
+      requiredWords: ["cão", "praia"],
+    });
+
+    const prompt = askAI.mock.calls[0][1];
+    expect(prompt).toContain("cão");
+    expect(prompt).toContain("praia");
+  });
+
+  it("still draws from the pool when no words were picked", async () => {
+    setCollection("stories", [
+      { id: "s1", level: "B1", targetLang: "pt-PT", status: "ready", title: "A Casa" },
+    ]);
+    getDocument.mockResolvedValue({ title: "A Casa", paragraphs: ["Era uma vez."] });
+
+    const { getStory } = await import("../../src/services/storyService");
+    const story = await getStory({
+      token: "tok", level: "B1", targetLang: "pt-PT", seenStoryIds: [], requiredWords: [],
+    });
+
+    expect(askAI).not.toHaveBeenCalled();
+    expect(story.source).toBe("db");
   });
 
   it("skips a story the user has already seen", async () => {

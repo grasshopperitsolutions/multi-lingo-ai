@@ -1003,7 +1003,24 @@
     "translating": "A traduzir...",
     "translation_unavailable": "A tradução não está disponível de momento — a mostrar apenas o original.",
     "description_placeholder": "Ou descreve sobre o que deve ser a história...",
-    "tap_word_hint": "Toca em qualquer palavra para a consultares."
+    "tap_word_hint": "Toca em qualquer palavra para a consultares.",
+    "hold_word_hint": "Mantém premida para a guardares no banco de palavras.",
+    "show_translation": "Ver tradução",
+    "hide_translation": "Ocultar tradução",
+    "show_all_translations": "Ver todas as traduções",
+    "hide_all_translations": "Ocultar todas as traduções"
+  },
+  "word_bank": {
+    "title": "Banco de palavras",
+    "empty_state": "Mantém premida uma palavra numa história para a guardares aqui.",
+    "select_hint": "Escolhe até {{count}} palavras para entrarem na próxima história.",
+    "select_locked": "Escolher palavras para a próxima história faz parte dos pedidos personalizados.",
+    "remove": "Remover \"{{word}}\" do banco de palavras",
+    "added": "\"{{word}}\" guardada no banco de palavras.",
+    "removed": "\"{{word}}\" removida do banco de palavras.",
+    "settings_title": "Banco de palavras",
+    "settings_description": "As palavras que guardaste enquanto praticavas. Usa-as no gerador de histórias ou remove as que já dominas.",
+    "settings_empty": "Ainda não guardaste nenhuma palavra. Mantém premida uma palavra numa história para a guardares."
   },
   "favourites": {
     "add": "Adicionar aos favoritos",

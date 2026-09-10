@@ -38,9 +38,12 @@
 
 /**
  * @typedef {Object} LookupEntry
- * @property {string}   wordType   - One of WORD_TYPES
- * @property {string}   definition - Short, plain-language definition in interfaceLang
- * @property {string[]} synonyms   - Synonyms in learningLang
+ * @property {string}   wordType    - One of WORD_TYPES
+ * @property {string}   translation - The word itself in interfaceLang, one or two
+ *                                    words, no explanation. May be empty when the
+ *                                    stored prompt predates this field.
+ * @property {string}   definition  - Short, plain-language definition in interfaceLang
+ * @property {string[]} synonyms    - Synonyms in learningLang
  */
 
 /**
@@ -140,10 +143,15 @@ function buildResponseSchema(types, commonSenses) {
               enum: WORD_TYPES,
               description: 'The grammatical category this definition describes.',
             },
+            // The one- or two-word equivalent, before the explanation. A
+            // reader who tapped a word mid-story usually wants "what does
+            // this mean" answered in a glance; the definition is what they
+            // read next, if they still need it.
+            translation: { type: 'string' },
             definition: { type: 'string' },
             synonyms: { type: 'array', items: { type: 'string' } },
           },
-          required: ['wordType', 'definition', 'synonyms'],
+          required: ['wordType', 'translation', 'definition', 'synonyms'],
         },
       },
     },
@@ -225,6 +233,10 @@ export async function lookupWord({ token, word, interfaceLang, learningLang, wor
   const entries = (Array.isArray(parsed?.entries) ? parsed.entries : [])
     .map((e) => ({
       wordType: WORD_TYPES.includes(e?.wordType) ? e.wordType : 'other',
+      // Optional on the way in: the prompt template is admin-edited, so a
+      // template that predates this field still returns usable entries —
+      // they just render without the gloss line.
+      translation: String(e?.translation ?? '').trim(),
       definition: String(e?.definition ?? '').trim(),
       synonyms: Array.isArray(e?.synonyms)
         ? e.synonyms.map((s) => String(s).trim()).filter(Boolean)
