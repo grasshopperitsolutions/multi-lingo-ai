@@ -28,7 +28,14 @@ const SettingsSection = ({
 }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
-  const shellClasses = `rounded-[2rem] border-4 mb-6 overflow-hidden transition-colors
+  // Deliberately NOT overflow-hidden. A dropdown inside a card opens as an
+  // absolutely-positioned panel, and an ancestor's overflow clips it no matter
+  // what z-index it carries — the language pickers lost their bottom rows
+  // inside the card. Nothing here needs clipping: the body is unmounted when
+  // closed rather than collapsed behind max-height, so the only thing that
+  // could bleed past the rounded corner is the header's hover background,
+  // which is rounded to match instead (2rem shell minus the 4px border).
+  const shellClasses = `rounded-[2rem] border-4 mb-6 transition-colors
     ${isDarkMode
       ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
       : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"}`;
@@ -40,6 +47,7 @@ const SettingsSection = ({
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
         className={`w-full flex items-center justify-between gap-3 px-6 sm:px-8 py-5 text-left transition-colors
+          rounded-t-[1.75rem] ${isOpen ? "" : "rounded-b-[1.75rem]"}
           ${isDarkMode ? "hover:bg-slate-700/40" : "hover:bg-slate-50"}`}
       >
         <span
