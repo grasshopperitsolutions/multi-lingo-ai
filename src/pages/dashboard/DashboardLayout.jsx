@@ -226,8 +226,10 @@ const DashboardLayout = () => {
             </TooltipButton>
             {showLangMenu && (
               <div
-                className={`absolute right-0 mt-2 rounded-2xl border-4 shadow-lg z-50 overflow-hidden
-                  ${isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900"}`}
+                // One row per seeded language, so the list has no natural
+                // ceiling — same cap as the public header's picker.
+                className={`absolute right-0 mt-2 rounded-2xl border-4 shadow-lg z-50 max-h-52 overflow-x-hidden overflow-y-auto neo-scrollbar
+                  ${isDarkMode ? "neo-scrollbar-dark bg-slate-800 border-slate-700" : "bg-white border-slate-900"}`}
               >
                 {interfaceLanguageOptions.map((lang) => (
                   <button

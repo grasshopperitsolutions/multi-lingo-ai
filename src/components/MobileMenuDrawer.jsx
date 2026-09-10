@@ -111,7 +111,13 @@ const MobileMenuDrawer = ({ onThemeToggle, onClose }) => {
           <Globe size={12} className="inline mr-1 mb-0.5" />
           {t("nav.language")}
         </p>
-        <div className="grid grid-cols-2 gap-2 px-4 pb-4">
+        {/* The drawer itself doesn't scroll — it grows and pushes the page
+            down — so an uncapped list buries Dashboard/Settings/Logout under
+            however many languages have been seeded. Two columns, so this
+            holds about eight before it scrolls. */}
+        <div className={`grid grid-cols-2 gap-2 px-4 pb-4 max-h-52 overflow-y-auto neo-scrollbar ${
+          isDarkMode ? "neo-scrollbar-dark" : ""
+        }`}>
           {interfaceLanguageOptions.map((lang) => (
             <button
               key={lang.code}

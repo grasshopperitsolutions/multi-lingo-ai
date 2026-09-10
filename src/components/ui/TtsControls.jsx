@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
-import { Volume2, Turtle, Pause, Square } from 'lucide-react';
+import { Volume2, Turtle, Pause, Square, Loader2 } from 'lucide-react';
 import TooltipButton from '../TooltipButton';
 import { SPEECH_PACE } from '../../services/getTtsService';
 
@@ -48,10 +48,15 @@ const TtsControls = ({
   const { t } = useTranslation();
 
   const isActive  = ttsState.activeKey === ttsKey;
-  const isPlaying = isActive && !ttsState.isPaused;
-  const isPaused  = isActive && ttsState.isPaused;
   const hasText   = !!text?.trim();
   const isSlowKey = ttsState.activeKey === `${ttsKey}-slow`;
+  // Gemini synthesis takes seconds, and until onStart fires there is nothing
+  // to hear. Without this the button flipped straight to "pause" and looked
+  // like playback had already begun on a clip that hadn't been generated yet.
+  const isGenerating     = isActive  && ttsState.isGenerating;
+  const isSlowGenerating = isSlowKey && ttsState.isGenerating;
+  const isPlaying = isActive && !ttsState.isPaused && !isGenerating;
+  const isPaused  = isActive && ttsState.isPaused;
 
   const handlePlayPause = () => {
     if (isPlaying) {
@@ -67,11 +72,13 @@ const TtsControls = ({
     ? 'text-slate-400 hover:text-white'
     : 'text-slate-500 hover:text-slate-900';
 
-  const playLabel = isPlaying
-    ? t('translator.pause', 'Pause')
-    : isPaused
-      ? t('translator.resume', 'Resume')
-      : t('translator.listen', 'Listen');
+  const playLabel = isGenerating
+    ? t('translator.generating', 'Preparing audio…')
+    : isPlaying
+      ? t('translator.pause', 'Pause')
+      : isPaused
+        ? t('translator.resume', 'Resume')
+        : t('translator.listen', 'Listen');
 
   const buttonBase = 'p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed';
 
@@ -83,9 +90,14 @@ const TtsControls = ({
           onClick={handlePlayPause}
           disabled={!hasText}
           aria-label={playLabel}
+          aria-busy={isGenerating}
           className={`${buttonBase} ${isActive ? activeColor : idleColor}`}
         >
-          {isPlaying ? <Pause size={16} fill="currentColor" /> : <Volume2 size={16} />}
+          {isGenerating
+            ? <Loader2 size={16} className="animate-spin" />
+            : isPlaying
+              ? <Pause size={16} fill="currentColor" />
+              : <Volume2 size={16} />}
         </button>
       </TooltipButton>
 
@@ -95,9 +107,10 @@ const TtsControls = ({
           onClick={() => playTts({ key: `${ttsKey}-slow`, text, lang, token, pace: SPEECH_PACE.SLOW })}
           disabled={!hasText}
           aria-label={t('translator.listen_slow', 'Listen slowly')}
+          aria-busy={isSlowGenerating}
           className={`${buttonBase} ${isSlowKey ? activeColor : idleColor}`}
         >
-          <Turtle size={16} />
+          {isSlowGenerating ? <Loader2 size={16} className="animate-spin" /> : <Turtle size={16} />}
         </button>
       </TooltipButton>
 

@@ -33,7 +33,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-**680 tests across 23 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
+**687 tests across 24 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
 
 - `test/canaries/` — one assertion per library behaviour no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing, every literal `t()` key resolving in the pt-PT bundle.
 - `test/smoke/pages.test.jsx` — 37 pages mount, paint, stay out of the error boundary, and render no raw translation keys. **Feature pages assert the route shell only**: each is a Suspense wrapper, so the assertion passes while the lazy chunk is still loading. The heavy components are covered directly instead.
@@ -161,6 +161,35 @@ This project loads locales from Firestore and then syncs them into i18next. The 
 - Use the translation service and existing keys before adding new strings.
 - When working on locale loading, follow the i18n skill in .github/skills/i18n/SKILL.md.
 
+### Translating a locale: chunked, parallel, and tolerant of a bad chunk
+
+`seedLanguageTranslations` (a brand-new language) and `fillMissingTranslations`
+(new keys added to an existing one) both go through `translateChunks`. The base
+document is ~56KB, well past the backend's hard `MAX_PROMPT_LENGTH = 8000`, so
+it is split by `splitIntoChunks` into subtrees of `CHUNK_SIZE_BUDGET_BYTES` and
+each is translated by its own `ask-ai` call.
+
+Those calls run **`CHUNK_CONCURRENCY` (4) at a time**. They used to run one
+after another, which made adding a language take the sum of ~14 round-trips —
+long enough that people navigated away mid-run. Four is chosen against Gemini's
+rate limit on the shared API key, not against Vercel concurrency, which is far
+higher on Pro: firing all fourteen at once would earn a 429 for every other AI
+feature in the app at the same moment.
+
+**A chunk that fails is skipped, not fatal.** `requestTranslatedChunk` still
+escalates the output budget and then bisects the chunk, but when even that
+fails, `translateChunks` records the failure and moves on. Its keys are simply
+absent from the document — and *missing* is the state this app already handles:
+i18next falls back to the base-locale string, `saveMissingHandler` reports it,
+and the next `fillMissingTranslations` run translates it. Do not "fix" this by
+writing empty strings instead: `findMissingDeep` tests `key in target`, so a
+`""` counts as present and would never be repaired, and i18next renders it as a
+legitimate (blank) translation. The two guards on top of the skip are that a
+seed where *every* chunk failed throws rather than creating an empty document
+that looks seeded, and that the prompt-length check runs over all chunks up
+front — it trips on a misconfigured prompt template, not on content, so it
+would fail identically for all of them.
+
 ## Backend contract to remember
 
 If a task touches any of the following, inspect the sibling API repo before deciding on the fix:
@@ -225,6 +254,39 @@ for the viewer, or `isFeatureVisible(feature, tierId)` from
 `utils/featureAccess` when asking about a tier other than the viewer's (the
 pricing page). Adding a dashboard tile without that filter leaks hidden
 features. Toggle the flag in Admin > Features.
+
+## Two things the signed-out visitor breaks if you forget them
+
+The public surface (landing page, pricing, contact) is browsed by people with
+no account, and two habits keep biting:
+
+- **`user` is `null` for a guest, and "default them to explorer" is wrong.**
+  `PricingPage` used `user?.subscriptionTier ?? "explorer"`, which badged the
+  free tier "current plan" and *disabled its button* — for the exact visitor
+  the landing page's CTAs send there to register. Treat "no plan" as its own
+  state (`user ? … : null`), not as the lowest tier.
+- **A guest still carries a Firebase uid.** `getTokenOrAnonymous`
+  (`firestoreService`) signs them in anonymously so public reads and the
+  contact form can pass the API's `verifyAuth` — that is what stops
+  `/api/email` being an open relay, and it is why the landing page can read
+  `tiersConfig` and locale documents at all. **Do not remove anonymous auth**
+  without giving the API an unauthenticated read path first. The uid it mints
+  is per-browser and per-visit, so it identifies nothing: the backend decides
+  guest-vs-user from the token's own `firebase.sign_in_provider`
+  (`verifyAuthSession`), never from anything the client sends.
+
+## TTS locale names come from the code, not a table
+
+`getTtsService` builds its accent instruction ("read this in European
+Portuguese, as spoken in Portugal") with `Intl.DisplayNames` off the BCP-47
+code. It used to be a hardcoded `LOCALE_METADATA` map, which meant every
+language added through Admin > Languages arrived with no region and fell back
+to "the appropriate region" — missing for exactly the languages nobody had
+hand-edited the file for. CLDR already knows the dialect names ("pt-PT" →
+European Portuguese, "es-MX" → Mexican Spanish), so a new language works the
+day it is seeded. Names resolve in **English** on purpose: the prompt around
+them is English, and `supportedLanguages.label` holds the language's name in
+its own tongue, which reads as an instruction to switch languages mid-sentence.
 
 ## Do not assume
 

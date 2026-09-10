@@ -118,7 +118,7 @@ const HomePage = () => {
 
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-6 sm:space-y-0 sm:space-x-6">
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/pricing')}
               className={`w-full sm:w-auto px-10 py-5 text-2xl font-black rounded-full border-4 flex items-center justify-center transition-all active:scale-95 group uppercase tracking-tight
               ${
                 isDarkMode
@@ -508,7 +508,7 @@ const HomePage = () => {
             {t("home.final_cta_subtitle")}
           </p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/pricing')}
             className={`px-8 sm:px-12 py-5 sm:py-6 text-xl sm:text-2xl font-black rounded-full border-4 flex items-center justify-center transition-all active:scale-95 group uppercase tracking-tight mx-auto
           ${isDarkMode ? "bg-slate-700 border-slate-600 text-white hover:bg-slate-600 shadow-[8px_8px_0px_0px_#64748b]" : "bg-white border-slate-900 text-slate-900 shadow-[8px_8px_0px_0px_#0f172a] hover:bg-slate-900 hover:text-white hover:shadow-none hover:translate-y-2 hover:translate-x-2"}`}
           >

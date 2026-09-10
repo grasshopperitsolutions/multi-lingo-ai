@@ -81,8 +81,11 @@ const Header = () => {
             </button>
             {showLangMenu && (
               <div
-                className={`absolute right-0 mt-2 rounded-2xl border-4 shadow-lg z-50 overflow-hidden
-                  ${isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900"}`}
+                // One row per seeded language, so this list has no natural
+                // ceiling — uncapped it ran off the bottom of the viewport and
+                // the languages underneath could not be reached at all.
+                className={`absolute right-0 mt-2 rounded-2xl border-4 shadow-lg z-50 max-h-52 overflow-x-hidden overflow-y-auto neo-scrollbar
+                  ${isDarkMode ? "neo-scrollbar-dark bg-slate-800 border-slate-700" : "bg-white border-slate-900"}`}
               >
                 {interfaceLanguageOptions.map((lang) => (
                   <button
@@ -173,7 +176,7 @@ const Header = () => {
             <>
               <Link
                 to="/pricing"
-                className={`flex px-5 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all active:scale-95
+                className={`flex px-5 py-3 rounded-full font-black uppercase tracking-wider border-2 transition-all hover:scale-110 active:scale-95
                 ${
                   isDarkMode
                     ? "bg-transparent border-slate-600 text-slate-300 hover:bg-slate-700"

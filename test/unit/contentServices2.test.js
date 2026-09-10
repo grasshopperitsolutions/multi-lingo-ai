@@ -132,6 +132,86 @@ describe("translationService", () => {
   });
 });
 
+describe("translationService — seeding a new language", () => {
+  /**
+   * The prompt template is admin-edited in Firestore, so a test can make it
+   * anything. Rendering to just the chunk's JSON lets the fake AI echo its
+   * input back as a perfect "translation", which is what makes the chunking
+   * itself — not the translating — the thing under test.
+   */
+  const seedTranslationPrompt = () =>
+    setCollection("prompts", [
+      { id: "translation-fill-missing-prompt", template: "{{missingKeysJson}}", maxTokens: 8192 },
+    ]);
+
+  it("sends one AI call per chunk and writes the merged document once", async () => {
+    seedTranslationPrompt();
+    askAI.mockImplementation(async (_token, prompt) => aiText(prompt));
+
+    const { seedLanguageTranslations } = await import("../../src/services/translationService");
+    const result = await seedLanguageTranslations("de-DE", "tok");
+
+    expect(askAI.mock.calls.length).toBeGreaterThan(1); // the source is chunked
+    expect(createDocument).toHaveBeenCalledTimes(1);
+    // Echoed back verbatim, so a complete run reproduces the source tree.
+    expect(Object.keys(result).length).toBeGreaterThan(10);
+  });
+
+  it("runs several chunks at once rather than one after another", async () => {
+    seedTranslationPrompt();
+
+    let inFlight = 0;
+    let peak = 0;
+    askAI.mockImplementation(async (_token, prompt) => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      inFlight -= 1;
+      return aiText(prompt);
+    });
+
+    const { seedLanguageTranslations } = await import("../../src/services/translationService");
+    await seedLanguageTranslations("de-DE", "tok");
+
+    // Sequential would peak at 1. The pool is bounded, so it must not simply
+    // fire every chunk at once either.
+    expect(peak).toBeGreaterThan(1);
+    expect(peak).toBeLessThanOrEqual(4);
+  });
+
+  it("skips a chunk it cannot translate instead of losing the whole run", async () => {
+    seedTranslationPrompt();
+
+    let call = 0;
+    askAI.mockImplementation(async (_token, prompt) => {
+      call += 1;
+      if (call === 2) throw new Error("gemini said no");
+      return aiText(prompt);
+    });
+
+    const { seedLanguageTranslations } = await import("../../src/services/translationService");
+    const result = await seedLanguageTranslations("de-DE", "tok");
+
+    // The document is still written, minus the failed chunk's keys. Those keys
+    // are now *missing*, which is the state i18next falls back to the base
+    // locale for and fillMissingTranslations retries — far better than
+    // throwing away every chunk that did translate.
+    expect(createDocument).toHaveBeenCalledTimes(1);
+    expect(Object.keys(result).length).toBeGreaterThan(0);
+  });
+
+  it("refuses to create an empty locale document when every chunk fails", async () => {
+    seedTranslationPrompt();
+    askAI.mockRejectedValue(new Error("AI backend down"));
+
+    const { seedLanguageTranslations } = await import("../../src/services/translationService");
+
+    // An empty document would look seeded and so would never be retried.
+    await expect(seedLanguageTranslations("de-DE", "tok")).rejects.toThrow(/all \d+ chunk/);
+    expect(createDocument).not.toHaveBeenCalled();
+  });
+});
+
 describe("getWordService", () => {
   it("serves a pooled word without spending an AI call", async () => {
     setCollection("wordPool", [

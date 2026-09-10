@@ -450,7 +450,12 @@ const TutorProfileSection = ({ isDarkMode, user, defaultOpen = false, id = undef
                 setProfile({ ...profile, phone: joinPhone(iso, splitPhone(profile?.phone).national) });
                 setSaved(false);
               }}
-              className={`${inputClasses} w-auto shrink-0`}
+              // Sized to its own content, but capped: the option list holds
+              // names like "United States Minor Outlying Islands (+246)", and
+              // an uncapped `w-auto` stretched the select to fit the widest
+              // one, pushing the number field off the edge of the card. The
+              // dropdown still shows every name in full when it opens.
+              className={`${inputClasses} w-auto shrink-0 max-w-[11rem]`}
             >
               <optgroup label={t("tutors.phone_country_suggested")}>
                 {suggested.map((country) => (
@@ -477,7 +482,9 @@ const TutorProfileSection = ({ isDarkMode, user, defaultOpen = false, id = undef
                 setProfile({ ...profile, phone: joinPhone(dialIso, e.target.value) });
                 setSaved(false);
               }}
-              className={inputClasses}
+              // min-w-0 so it can actually give way — a flex item defaults to
+              // min-width:auto and refuses to shrink below its content.
+              className={`${inputClasses} flex-1 min-w-0`}
             />
           </div>
           <p className={hintClasses}>{t("tutors.phone_hint")}</p>

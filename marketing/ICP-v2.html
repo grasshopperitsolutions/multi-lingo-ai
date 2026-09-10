@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi Lingo AI — Ideal Customer Profile v2</title>
+<style>
+  :root{
+    --ink:#1c1c28; --muted:#5c5c6e; --line:#e2e2ec; --bg:#ffffff;
+    --accent:#e94560; --accent-soft:#fdeef1; --blue:#2f6fed; --blue-soft:#eef3fe;
+    --paper:#f6f6fa;
+  }
+  *{box-sizing:border-box}
+  html{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink)}
+  body{margin:0;background:var(--paper);line-height:1.5;font-size:14px}
+  .page{max-width:900px;margin:0 auto;background:var(--bg);padding:48px 56px;
+    box-shadow:0 1px 6px rgba(0,0,0,.08);margin-bottom:24px}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:-.02em}
+  h2{font-size:19px;margin:36px 0 10px;color:var(--accent);border-bottom:2px solid var(--accent);padding-bottom:4px}
+  h3{font-size:15px;margin:20px 0 6px}
+  p{margin:0 0 10px}
+  .lede{color:var(--muted);font-size:15px}
+  .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);font-size:11px;
+    font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 9px;border-radius:999px}
+  ul{margin:0 0 10px;padding-left:20px}
+  li{margin:3px 0}
+  table{width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:13px}
+  th,td{text-align:left;vertical-align:top;padding:7px 10px;border-bottom:1px solid var(--line)}
+  th{background:var(--paper);width:150px;font-weight:700}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .callout{background:var(--blue-soft);border-left:4px solid var(--blue);padding:12px 16px;border-radius:4px;margin:12px 0}
+  .callout.warn{background:var(--accent-soft);border-left-color:var(--accent)}
+
+  /* Persona cards */
+  .persona{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:18px 0;page-break-inside:avoid;break-inside:avoid}
+  .persona header{display:flex;gap:16px;align-items:center;padding:16px 18px;background:var(--paper);border-bottom:1px solid var(--line)}
+  .avatar{width:64px;height:64px;border-radius:50%;background:var(--accent);color:#fff;display:flex;
+    align-items:center;justify-content:center;font-size:24px;font-weight:700;flex:0 0 64px}
+  .persona.p2 .avatar{background:var(--blue)}
+  .persona.p3 .avatar{background:#6b4bd6}
+  .persona h3{margin:0;font-size:17px}
+  .persona .role{color:var(--muted);font-size:12.5px}
+  .persona .body{padding:16px 18px}
+  .persona .quote{font-style:italic;color:var(--ink);background:#fff;border-left:3px solid var(--accent);
+    padding:8px 12px;margin:0 0 12px}
+  .persona.p2 .quote{border-left-color:var(--blue)}
+  .persona.p3 .quote{border-left-color:#6b4bd6}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .cols h4{margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .cols ul{padding-left:18px;font-size:13px}
+  .adbox{background:#111;color:#eee;border-radius:8px;padding:12px 14px;font-size:12.5px;margin-top:10px}
+  .adbox b{color:#fff}
+
+  .toolbar{position:sticky;top:0;background:#111;color:#fff;padding:10px 16px;font-size:13px;display:flex;
+    gap:12px;align-items:center;z-index:10}
+  .toolbar button{background:var(--accent);color:#fff;border:0;padding:7px 14px;border-radius:6px;font-size:13px;cursor:pointer}
+  .toolbar span{opacity:.7}
+  .editable{outline:none}
+  .editable:focus{background:#fffbe6}
+
+  @media print{
+    .toolbar{display:none}
+    body{background:#fff;font-size:11.5px}
+    .page{box-shadow:none;margin:0;max-width:none;padding:0 0 18px}
+    h2{margin-top:22px}
+    .persona,table,.callout{break-inside:avoid}
+    @page{margin:16mm}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button onclick="window.print()">Print / Save as PDF</button>
+  <span>This file is editable — click any text and type. Changes are saved in this browser only (use “Print → Save as PDF” to export a copy).</span>
+</div>
+
+<div class="page editable" contenteditable="true">
+
+<span class="tag">Internal · Go-to-market</span>
+<h1>Multi Lingo AI — Ideal Customer Profile (v2)</h1>
+<p class="lede">Practice any language for real life — slang, expressions and grammar you’ll actually use, alongside your teacher, class or app. Built by a working tutor.</p>
+<p class="lede" style="font-size:13px">Grasshopper IT Solutions LLC · v2 · 9 Sep 2026 · Purpose: brief for Meta Ads (later Google Ads) and the public landing page.</p>
+
+<h2>1. The one-paragraph ICP</h2>
+<p><b>An adult (28–48) who is already actively practising Portuguese, Spanish or English</b> — with a tutor, a class, or 6+ months into a paid app — <b>and who stalls between sessions.</b> They don’t want another course; they want to keep the language warm, pick up how people <i>actually</i> speak, and walk into the next lesson or their next trip further ahead than they left it. They already pay for learning, so a few euro for the practice layer is an easy yes. They are reachable on Meta because they self-identify with language-learning, travel, expat and heritage-culture interests, and they convert on a free-to-start offer tied to a concrete moment (a trip, a plateau, a move).</p>
+
+<h2>2. Demographics &amp; firmographics</h2>
+<table>
+  <tr><th>Age</th><td>28–48 core (skew 32–42). Secondary 22–27 (students/serial app users) and 49–60 (heritage / retirement-abroad).</td></tr>
+  <tr><th>Gender</th><td>Slight female skew (~55/45) — consistent with consumer language-learning; do not narrow targeting on it.</td></tr>
+  <tr><th>Location (target-language)</th><td>Portugal, Brazil, Spain, Mexico. English-speaking source markets: US, UK, Ireland, Canada, Australia.</td></tr>
+  <tr><th>Location (diaspora / movers)</th><td>Portuguese &amp; Spanish heritage communities in US (CA, MA, NJ, FL, TX), France, Luxembourg, Switzerland, UK. Relocators to Lisbon, Porto, Madrid, Barcelona, Mexico City, São Paulo.</td></tr>
+  <tr><th>Language</th><td>Interface follows the user’s own language (any source language supported). Ads &amp; landing page in English worldwide; add PT and ES ad sets once English is dialled in.</td></tr>
+  <tr><th>Education / income</th><td>Some tertiary education; household income mid-to-upper for their market. Already spends €8–13/mo on a language app and/or €12–40/hr on a tutor.</td></tr>
+  <tr><th>Occupation</th><td>Knowledge workers, remote workers, teachers, healthcare, tech, hospitality, retirees, trailing partners of relocated professionals.</td></tr>
+  <tr><th>Device / behaviour</th><td>Mobile-first, short bursts (commute, queue, sofa). Web app + opt-in push. Instagram &amp; Facebook feed + Reels/Stories are the primary placements.</td></tr>
+  <tr><th>Tech attitude</th><td>Comfortable with AI tools; wary of “just a GPT wrapper”. Tutor-authored grammar and dialect awareness are the trust signals.</td></tr>
+  <tr><th>Spend on this product</th><td>Starts Free. Upgrades to Voyager (€7.99/mo) or Maestro (€24.99/mo) around a trigger event; annual plan (~17% off) converts the committed.</td></tr>
+</table>
+
+<h2>3. How the ICP feels — before and with the app</h2>
+<div class="grid2">
+  <div>
+    <h3>Before (the itch)</h3>
+    <ul>
+      <li><b>Guilty</b> — the streak is slipping and the lesson was days ago.</li>
+      <li><b>Stuck</b> — “I’ve done months of this and still freeze in a real conversation.”</li>
+      <li><b>Self-conscious</b> — sounds like a textbook; gets blank looks or a switch to English.</li>
+      <li><b>Frustrated</b> — the app only teaches one dialect and assumes I think in English.</li>
+      <li><b>Impatient</b> — wants the useful bits now, not lesson 1 again.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>With Multi Lingo AI (the relief)</h3>
+    <ul>
+      <li><b>In control</b> — practises the exact loose end (a word, a shaky rule), any order, any length.</li>
+      <li><b>Unblocked</b> — grammar answered on demand, from real teaching, in their own language.</li>
+      <li><b>Capable</b> — collects slang and local expressions that actually land.</li>
+      <li><b>Low-guilt</b> — no streak to protect; five minutes counts.</li>
+      <li><b>Ahead</b> — shows up to the lesson / the trip having gained ground.</li>
+    </ul>
+  </div>
+</div>
+
+<h2>4. Goals (self-achievement framing)</h2>
+<p>These are the outcomes the ICP is reaching for. Use this language in ad copy and on the landing page.</p>
+<ul>
+  <li><b>“Grow my vocabulary with words I’ll actually use”</b> — everyday words, collocations, expressions — not word lists.</li>
+  <li><b>“Sound local, not foreign”</b> — the right slang and register for <i>my</i> dialect (European vs Brazilian Portuguese, Spain vs Mexico).</li>
+  <li><b>“Get fluent with expressions”</b> — stop translating in my head; reach for the phrase people really say.</li>
+  <li><b>“Fix the grammar that keeps tripping me up”</b> — own the two or three rules I always get wrong.</li>
+  <li><b>“Be understood on my next trip / with my partner’s family”</b> — a concrete, near-term social win.</li>
+  <li><b>“Make my lessons count for more”</b> — arrive prepared, spend paid time on speaking, not review.</li>
+  <li><b>“Keep momentum without it running my life”</b> — steady progress, on my schedule.</li>
+</ul>
+
+<h2>5. Buyer personas</h2>
+
+<div class="persona p1">
+  <header>
+    <div class="avatar">CI</div>
+    <div>
+      <h3>“Committed Clara” — the In-Betweener</h3>
+      <div class="role">38 · Marketing manager · Manchester, UK · practising European Portuguese · has a weekly iTalki tutor</div>
+    </div>
+  </header>
+  <div class="body">
+    <p class="quote">“I have my lesson on Tuesdays and then nothing until the next one. By the time we start again I’ve half-forgotten what we did.”</p>
+    <table>
+      <tr><th>Bought a house</th><td>Small place in the Algarve; visits 3–4×/year; wants to chat with neighbours, not just order coffee.</td></tr>
+      <tr><th>Spends today</th><td>€25/lesson × 4/mo + Duolingo Plus. Adding €8/mo is trivial if it makes lessons pay off.</td></tr>
+      <tr><th>Trigger</th><td>Next trip booked 6 weeks out; embarrassed after last visit’s conversations stalled.</td></tr>
+    </table>
+    <div class="cols">
+      <div><h4>Goals</h4><ul><li>Expand real-life vocabulary between lessons</li><li>Sound less like a phrasebook to neighbours</li><li>Come to lessons already warmed up</li></ul></div>
+      <div><h4>Objections</h4><ul><li>“I already have a tutor and an app.”</li><li>“Is this just ChatGPT with a logo?”</li><li>“No time for another course.”</li></ul></div>
+    </div>
+    <div class="cols">
+      <div><h4>Where to reach her</h4><ul><li>IG/FB Reels &amp; feed</li><li>Interests: iTalki, Preply, “learning Portuguese”, Algarve, expat groups</li><li>Lookalike of registered users</li></ul></div>
+      <div><h4>What makes her register</h4><ul><li>“Companion, not course — works with your tutor”</li><li>Free to start, no card</li><li>Trip-countdown hook</li></ul></div>
+    </div>
+    <div class="adbox"><b>Meta ad angle:</b> “You’ve got the tutor. You’ve got the app. This is the bit in between.” Reel: split screen — Tuesday lesson vs. Saturday sofa, 5-min practice. CTA: <b>Start free →</b> landing page.</div>
+  </div>
+</div>
+
+<div class="persona p2">
+  <header>
+    <div class="avatar">HR</div>
+    <div>
+      <h3>“Heritage Hugo” — the Reconnector</h3>
+      <div class="role">29 · Software developer · Newark, NJ, USA · grew up hearing Portuguese from grandparents · never formally studied</div>
+    </div>
+  </header>
+  <div class="body">
+    <p class="quote">“I understand my avó fine, but when I try to answer it comes out like a five-year-old. I want to actually talk with my family.”</p>
+    <table>
+      <tr><th>Starting point</th><td>Strong listening, weak speaking, zero grammar vocabulary. Doesn’t want a beginner course — it feels below him and above him at once.</td></tr>
+      <tr><th>Spends today</th><td>Tried Babbel, quit. Not currently paying for anything. High disposable income.</td></tr>
+      <tr><th>Trigger</th><td>Trip to the Azores this year; grandparent’s health; a cousin’s wedding.</td></tr>
+    </table>
+    <div class="cols">
+      <div><h4>Goals</h4><ul><li>Speak at family register, not textbook</li><li>Learn the expressions his family actually uses</li><li>Close the understand/speak gap</li></ul></div>
+      <div><h4>Objections</h4><ul><li>“Courses start too basic and bore me.”</li><li>“I don’t know grammar terms in any language.”</li><li>“Which Portuguese will it teach — the right one?”</li></ul></div>
+    </div>
+    <div class="cols">
+      <div><h4>Where to reach him</h4><ul><li>IG Reels, FB</li><li>Interests: Portugal, Azores, Luso-American culture, Benfica/Sporting, fado, iTalki</li><li>Geo: NJ/MA/CA/RI Portuguese communities</li></ul></div>
+      <div><h4>What makes him register</h4><ul><li>“Explains in the language you already speak”</li><li>Dialect-aware (European vs Brazilian)</li><li>“Skip the beginner stuff — practise what you’re missing”</li></ul></div>
+    </div>
+    <div class="adbox"><b>Meta ad angle:</b> “You understand your family. Now answer them.” Reel: voiceover of someone switching from stilted to natural. Interest + heritage-geo targeting. CTA: <b>Practise free →</b>.</div>
+  </div>
+</div>
+
+<div class="persona p3">
+  <header>
+    <div class="avatar">SA</div>
+    <div>
+      <h3>“Streak-worn Sofia” — the App Plateau</h3>
+      <div class="role">24 · Grad student · Lisbon, PT · practising Spanish · 600-day app streak, still can’t hold a conversation</div>
+    </div>
+  </header>
+  <div class="body">
+    <p class="quote">“I’ve been ‘learning’ Spanish for two years and I still can’t follow a WhatsApp voice note from my Madrid friends.”</p>
+    <table>
+      <tr><th>Starting point</th><td>Good passive base, mechanical output, bored of the same app loop. Actively googling “what to do after Duolingo”.</td></tr>
+      <tr><th>Spends today</th><td>Free app + occasional language exchange. Price-sensitive; will live on Free tier for a while.</td></tr>
+      <tr><th>Trigger</th><td>Erasmus semester in Madrid; wants to not be the quiet one.</td></tr>
+    </table>
+    <div class="cols">
+      <div><h4>Goals</h4><ul><li>Turn passive knowledge into speaking</li><li>Get the slang her friends use</li><li>Practise without the streak-guilt treadmill</li></ul></div>
+      <div><h4>Objections</h4><ul><li>“Another subscription?”</li><li>“How is this different from the app I already have?”</li><li>Needs it to feel light/fun, not like study.</li></ul></div>
+    </div>
+    <div class="cols">
+      <div><h4>Where to reach her</h4><ul><li>IG Reels/Stories, TikTok (later)</li><li>Interests: Duolingo, language exchange, Erasmus, Madrid, r/languagelearning-style creators</li><li>Lookalike of engaged free users</li></ul></div>
+      <div><h4>What makes her register</h4><ul><li>“The stuff your app skips — slang, real talk”</li><li>Free forever tier, games, 5-min sessions</li><li>No streak to protect</li></ul></div>
+    </div>
+    <div class="adbox"><b>Meta ad angle:</b> “Day 600. Still can’t order a coffee like a local?” Fast-cut Reel of app fatigue → real phrases. CTA: <b>Try it free →</b>. Optimise for registration, nurture to paid later.</div>
+  </div>
+</div>
+
+<h2>6. Reaching them &amp; getting the registration (Meta Ads → landing page)</h2>
+<p>The landing page is the only real public surface. Every ad’s job is a <b>click to the landing page and a free registration</b>. Keep the funnel one step.</p>
+
+<h3>Audiences to build (Meta)</h3>
+<table>
+  <tr><th>Cold — interest</th><td>Stack language-learning + adjacent intent: Duolingo, Babbel, Busuu, Rosetta Stone, iTalki, Preply, “language exchange”, Memrise, Pimsleur; plus context: Portugal / Spain / Mexico / Brazil travel, expat life, Erasmus, digital nomad, fado/flamenco, heritage-culture pages.</td></tr>
+  <tr><th>Cold — broad</th><td>Advantage+ / broad targeting with strong creative once the pixel has ~50 registrations/wk. Let Meta find them.</td></tr>
+  <tr><th>Geo overlays</th><td>Heritage clusters (NJ/MA/CA/RI, France, Luxembourg, Switzerland, UK) for the Reconnector; Lisbon/Porto/Madrid/Barcelona/CDMX for relocators &amp; students.</td></tr>
+  <tr><th>Lookalikes</th><td>1–3% LAL of: all registrants, then <i>activated</i> users (completed ≥1 practice session), then payers once volume allows. Payer LAL is the goal.</td></tr>
+  <tr><th>Retargeting</th><td>Landing-page visitors who didn’t register (7/14/30d); registered-but-inactive; free users who hit the daily AI cap (upgrade ads).</td></tr>
+</table>
+
+<h3>Funnel &amp; events</h3>
+<ul>
+  <li><b>Objective:</b> Sales/Leads → optimise for <code>CompleteRegistration</code>. Not link clicks.</li>
+  <li><b>Pixel/CAPI events:</b> <code>ViewContent</code> (landing), <code>CompleteRegistration</code> (account created), <code>StartTrial</code>-equivalent (first practice session), <code>Subscribe</code> + value (paid).</li>
+  <li><b>Primary KPI:</b> cost per registration. <b>Secondary:</b> % of registrations that complete a first session within 24h (creative-quality signal). <b>North star:</b> cost per activated user, then blended CAC vs. LTV.</li>
+  <li><b>Landing page must:</b> match the ad’s promise above the fold, one CTA (“Start free”), social-proof line (“built by a working tutor”), no pricing wall before signup, 3-bullet “what you get”, FAQ answering “do I need a teacher?” and “is this a course?”.</li>
+</ul>
+
+<h3>Creative angles (test in parallel, 3–5 per persona)</h3>
+<ul>
+  <li><b>Companion, not course</b> — “Keep your tutor. Keep your app. Fill the gap between them.”</li>
+  <li><b>Sound local</b> — textbook phrase vs. what people actually say (side-by-side).</li>
+  <li><b>Between lessons</b> — the Tuesday-to-Tuesday memory drop-off.</li>
+  <li><b>Post-streak</b> — “600 days in, still can’t hold a conversation.”</li>
+  <li><b>Heritage</b> — “You understand your family. Now answer them.”</li>
+  <li><b>Your language, not English</b> — the universal-input hook.</li>
+  <li><b>Trip countdown</b> — “3 weeks to Lisbon. Practise what you’ll actually say.”</li>
+  <li>Format mix: founder-to-camera (tutor credibility), fast-cut UGC-style Reel, static carousel (feature tour), single-image (offer).</li>
+</ul>
+
+<h3>Words to use / avoid</h3>
+<div class="grid2">
+  <div><h4 style="color:var(--blue)">Use</h4><ul><li>practice, keep it warm, sound local, real expressions, slang, alongside your teacher, in your language, 5 minutes, free to start</li></ul></div>
+  <div><h4 style="color:var(--accent)">Avoid</h4><ul><li>learn / learning, course, curriculum, lessons (as our offer), fluent-in-3-months, streak, “master a language”, generic “AI-powered”</li></ul></div>
+</div>
+
+<h2>7. Not the ICP (exclude / suppress)</h2>
+<ul>
+  <li>Absolute beginners with no teacher or course — there’s no syllabus to start them on.</li>
+  <li>“One app to replace everything” seekers — the pitch is deliberately a companion.</li>
+  <li>People who want live human conversation <i>now</i> — live tutor sessions are planned, not shipped.</li>
+  <li>Enterprise / L&amp;D / schools — no team product today.</li>
+  <li>Bargain-only users who won’t pay and won’t return — fine on Free, don’t spend to acquire.</li>
+  <li>Learners of unsupported languages expecting Portuguese-level depth.</li>
+</ul>
+
+<h2>8. First 30 days — how to use this doc</h2>
+<ol>
+  <li>Ship a landing page variant per persona (same offer, different hero).</li>
+  <li>Launch 1 campaign, 3 ad sets (interest / heritage-geo / broad), 3–5 creatives each, optimised for <code>CompleteRegistration</code>.</li>
+  <li>Budget to ~50 registrations/week before judging; then build activated-user + payer lookalikes.</li>
+  <li>Kill creatives below breakeven cost-per-registration; scale winners; add PT/ES ad sets.</li>
+  <li>Revisit this doc monthly with real data: which persona actually registers cheapest, activates best, pays most.</li>
+</ol>
+
+<p class="lede" style="font-size:12px;margin-top:24px">Sources: product marketing copy (SEO strings, pt-PT base locale), pricing/tier config, tutor-directory design, project positioning notes. Personas are composites for targeting, not real individuals. Figures current 9 Sep 2026.</p>
+
+</div>
+
+<script>
+  // lightweight local persistence of edits
+  var KEY = "mla-icp-v2";
+  var page = document.querySelector(".page");
+  try{ var saved = localStorage.getItem(KEY); if(saved) page.innerHTML = saved; }catch(e){}
+  var t;
+  page.addEventListener("input", function(){
+    clearTimeout(t);
+    t = setTimeout(function(){ try{ localStorage.setItem(KEY, page.innerHTML); }catch(e){} }, 600);
+  });
+</script>
+
+</body>
+</html>

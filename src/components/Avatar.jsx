@@ -3,7 +3,14 @@ import { useTranslation } from "react-i18next";
 
 /**
  * Reusable Avatar component.
- * Renders the user's photo if `src` is provided, otherwise shows a silhouette placeholder.
+ * Renders the user's photo if `src` is provided, otherwise a placeholder.
+ *
+ * The placeholder is a deliberately chunky silhouette rather than the usual
+ * grey blob: flat brand fill, heavy ink outline, and a slight tilt, so a
+ * profile with no picture still looks like it belongs to this app instead of
+ * looking broken. It stays anonymous on purpose — initials would render as
+ * junk for the accounts that have no display name, which is most of the
+ * accounts that also have no photo.
  */
 const Avatar = ({ src, alt, size = 64, isDarkMode = false, className = "" }) => {
   const { t } = useTranslation();
@@ -28,11 +35,23 @@ const Avatar = ({ src, alt, size = 64, isDarkMode = false, className = "" }) => 
           viewBox="0 0 64 64"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
+          role="img"
+          aria-label={alt || t("avatar.alt_fallback")}
         >
-          <circle cx="32" cy="32" r="32" fill="#e2e8f0" />
-          <circle cx="32" cy="26" r="10" fill="#94a3b8" />
-          <ellipse cx="32" cy="50" rx="16" ry="10" fill="#94a3b8" />
+          <rect width="64" height="64" fill={isDarkMode ? "#1e293b" : "#facc15"} />
+          {/* Tilted as a group so head and shoulders stay joined; the round
+              container crops the shoulders, which is what gives it the
+              cut-out, sticker-like look. */}
+          <g
+            transform="rotate(-4 32 32)"
+            stroke={isDarkMode ? "#facc15" : "#0f172a"}
+            strokeWidth="5"
+            strokeLinejoin="round"
+            fill={isDarkMode ? "#0f172a" : "#ffffff"}
+          >
+            <circle cx="32" cy="24" r="11" />
+            <path d="M11 62 v-4 a21 17 0 0 1 42 0 v4" />
+          </g>
         </svg>
       )}
     </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BookOpen, Volume2, Square, MousePointerClick } from "lucide-react";
+import { BookOpen, Volume2, Square, MousePointerClick, Loader2 } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { useInterestTopics } from "../hooks/useInterestTopics";
@@ -219,7 +219,11 @@ const StoryReader = ({ isDarkMode }) => {
           <div className="flex flex-col gap-3">
             {story.paragraphs.map((paragraph, index) => {
               const ttsKey = `story-para-${index}`;
-              const isPlaying = ttsState.activeKey === ttsKey;
+              const isActive = ttsState.activeKey === ttsKey;
+              // Gemini synthesis takes seconds; until it lands there is nothing
+              // to stop, so the button shows a spinner rather than a stop square.
+              const isGenerating = isActive && ttsState.isGenerating;
+              const isPlaying = isActive && !isGenerating;
               const translatedParagraph = translation?.paragraphs?.[index];
 
               return (
@@ -231,16 +235,27 @@ const StoryReader = ({ isDarkMode }) => {
                     <button
                       type="button"
                       onClick={() =>
-                        isPlaying
+                        isActive
                           ? stopTts()
                           : playTts({ key: ttsKey, text: paragraph, lang: story.targetLang, token: user?.token })
                       }
-                      aria-label={isPlaying ? t("common.stop", "Stop") : t("grammar.listen", "Listen")}
+                      aria-label={
+                        isGenerating
+                          ? t("translator.generating", "Preparing audio…")
+                          : isPlaying
+                            ? t("common.stop", "Stop")
+                            : t("grammar.listen", "Listen")
+                      }
+                      aria-busy={isGenerating}
                       className={`mb-2 p-1.5 rounded-lg border-2 transition-transform hover:scale-110 active:scale-95 ${
                         isDarkMode ? "border-amber-500/50 text-amber-400" : "border-amber-400 text-amber-600"
                       }`}
                     >
-                      {isPlaying ? <Square size={12} /> : <Volume2 size={12} />}
+                      {isGenerating
+                        ? <Loader2 size={12} className="animate-spin" />
+                        : isPlaying
+                          ? <Square size={12} />
+                          : <Volume2 size={12} />}
                     </button>
                     <p className={`leading-relaxed ${isDarkMode ? "text-white" : "text-slate-900"}`}>
                       {tokenizeWords(paragraph).map((token, i) =>

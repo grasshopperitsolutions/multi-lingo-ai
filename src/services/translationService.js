@@ -176,8 +176,9 @@ function setPath(obj, path, value) {
  *   2. Still failing? Split the chunk in half and translate each half
  *      separately — less output per call, recursively, until it fits.
  *
- * There is no "skip it" step: a locale is translated in full or not at all, so
- * an unrecoverable chunk aborts the run rather than silently leaving holes.
+ * Only once both fail does this throw, and the caller (translateChunks) then
+ * skips that chunk rather than aborting the run — see its header for why
+ * missing keys are a better outcome than no locale at all.
  */
 const TOKEN_ESCALATION = [1, 2, 3];
 
@@ -307,6 +308,101 @@ function splitIntoChunks(sourceData, budget = CHUNK_SIZE_BUDGET_BYTES) {
   return chunks.map((chunkEntries) =>
     chunkEntries.reduce((acc, { path, value }) => setPath(acc, path, value), {})
   );
+}
+
+/**
+ * How many chunk translations are in flight at once.
+ *
+ * The chunks are independent JSON subtrees, so running them one after another
+ * was pure wall-clock waste — seeding a new language took the sum of ~14 AI
+ * round-trips, long enough that people gave up and navigated away mid-run.
+ * Four at a time cuts that to roughly a quarter with no change to the
+ * backend's 8000-char prompt cap and no loss of per-chunk isolation.
+ *
+ * Four rather than "all of them": the ceiling that matters is Gemini's own
+ * rate limit on the shared API key, not Vercel concurrency (Pro allows far
+ * more than this), and a burst of fourteen large generations is the kind of
+ * thing that earns a 429 for every other AI feature in the app at the same
+ * moment.
+ */
+const CHUNK_CONCURRENCY = 4;
+
+/**
+ * Translates every chunk with a bounded-concurrency pool.
+ *
+ * A chunk that cannot be translated even after requestTranslatedChunk has
+ * escalated its token budget and bisected it is **skipped, not fatal**. Its
+ * keys are simply left out of the returned tree, which makes them *missing*
+ * from the locale document — and missing is the one state this app already
+ * handles well: i18next falls back to the base-locale string (readable
+ * Portuguese, not a blank screen), saveMissingHandler reports it, and the
+ * next fillMissingTranslations() run picks it up and translates it. Aborting
+ * the whole run instead, as this used to, threw away thirteen good chunks
+ * because of one bad one.
+ *
+ * The prompt-length guard is the exception and still throws: it trips on a
+ * misconfigured (admin-edited) prompt template rather than on any particular
+ * content, so it would fail for every chunk alike. It runs over all chunks
+ * up front, before a single call is billed.
+ *
+ * @returns {Promise<{translated: object, failures: object[]}>}
+ */
+async function translateChunks({ chunks, locale, token, promptDoc, baseMaxTokens, label }) {
+  const prepared = chunks.map((chunk, index) => {
+    // Compact (not pretty-printed) JSON: matches the size splitIntoChunks
+    // budgeted against, and saves ~15-20% of characters over indent:2 for free.
+    const missingKeysJson = JSON.stringify(chunk);
+    const prompt = renderTemplate(promptDoc.template, { locale, missingKeysJson });
+
+    if (prompt.length > 7800) {
+      throw new Error(
+        `[translationService] ${label} — chunk ${index + 1}/${chunks.length} prompt is ${prompt.length} chars, too close to the backend's 8000-char cap. Shrink CHUNK_SIZE_BUDGET_BYTES or the translation-fill-missing-prompt template.`
+      );
+    }
+
+    return { chunk, prompt, index };
+  });
+
+  const results = new Array(prepared.length).fill(null);
+  const failures = [];
+  let next = 0;
+
+  const worker = async () => {
+    // Single-threaded JS: the read-and-increment can't interleave, so each
+    // chunk is claimed by exactly one worker.
+    while (next < prepared.length) {
+      const { chunk, prompt, index } = prepared[next++];
+      const chunkLabel = `${label} chunk ${index + 1}/${prepared.length}`;
+
+      try {
+        results[index] = await requestTranslatedChunk({
+          token, prompt, promptDoc, chunk, locale, baseMaxTokens, label: chunkLabel,
+        });
+        console.info(`[translationService] ${chunkLabel} done (${Object.keys(results[index]).length} section(s))`);
+      } catch (err) {
+        const keys = Object.keys(flattenToDotPaths(chunk));
+        failures.push({ index, keys, message: err.message });
+        console.error(
+          `[translationService] ${chunkLabel} FAILED and was skipped — ${keys.length} key(s) left untranslated ` +
+          `and will be picked up by the missing-key fill: ${formatKeyList(keys)}. Reason: ${err.message}`
+        );
+      }
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(CHUNK_CONCURRENCY, prepared.length) }, worker)
+  );
+
+  // Deep merge, not Object.assign — a large section (e.g. "home") can be
+  // split across several chunks, so a shallow assign would let a later
+  // chunk's partial "home" silently wipe out an earlier chunk's.
+  let translated = {};
+  for (const part of results) {
+    if (part) translated = deepMergeClone(translated, part);
+  }
+
+  return { translated, failures };
 }
 
 // ---------------------------------------------------------------------------
@@ -443,41 +539,29 @@ export async function fillMissingTranslations(locale, token) {
     const promptDoc = await getPrompt('translation-fill-missing-prompt');
     const chunks = splitIntoChunks(missingTree);
 
-    let translatedTree = {};
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
-      // Compact JSON: matches the size splitIntoChunks budgeted against.
-      const missingKeysJson = JSON.stringify(chunk);
-      const prompt = renderTemplate(promptDoc.template, { locale, missingKeysJson });
+    // 5. Ask AI, several chunks at a time. A chunk that can't be translated
+    // is skipped rather than aborting the fill: its keys stay missing, so the
+    // next run tries them again, while everything that did translate lands now.
+    const { translated: translatedTree, failures } = await translateChunks({
+      chunks,
+      locale,
+      token,
+      promptDoc,
+      // Raised well above the SDK default (1024) because even one chunk can
+      // span several sections at once — 1024 silently truncated the JSON.
+      baseMaxTokens: promptDoc.maxTokens ?? 4096,
+      label: `fillMissingTranslations("${locale}")`,
+    });
 
-      // Guard against the backend's hard MAX_PROMPT_LENGTH = 8000 cap
-      // (multi-lingo-ai-api/api/ask-ai.ts) — the prompt template is
-      // admin-edited in Firestore, so its length isn't guaranteed.
-      if (prompt.length > 7800) {
-        throw new Error(
-          `[translationService] fillMissingTranslations("${locale}") — chunk ${i + 1}/${chunks.length} prompt is ${prompt.length} chars, too close to the backend's 8000-char cap. Shrink CHUNK_SIZE_BUDGET_BYTES or the translation-fill-missing-prompt template.`
-        );
-      }
+    if (failures.length > 0) {
+      console.warn(
+        `[translationService] fillMissingTranslations("${locale}") — ${failures.length}/${chunks.length} chunk(s) failed and were skipped; their keys stay missing and will be retried on the next fill.`
+      );
+    }
 
-      // 5. Ask AI. maxOutputTokens is raised well above the SDK default
-      // (1024) because even one chunk can span several sections at once —
-      // 1024 was silently truncating the JSON response.
-      //
-      // All or nothing: requestTranslatedChunk escalates the output budget and
-      // then splits the chunk, and only throws once neither can rescue it. A
-      // throw here aborts the whole fill rather than writing a partial patch.
-      const translatedChunk = await requestTranslatedChunk({
-        token,
-        prompt,
-        promptDoc,
-        chunk,
-        locale,
-        baseMaxTokens: promptDoc.maxTokens ?? 4096,
-        label: `fillMissingTranslations("${locale}") chunk ${i + 1}/${chunks.length}`,
-      });
-
-      translatedTree = deepMergeClone(translatedTree, translatedChunk);
-      console.info(`[translationService] fillMissingTranslations("${locale}") — chunk ${i + 1}/${chunks.length} done (${Object.keys(translatedChunk).length} section(s))`);
+    if (Object.keys(translatedTree).length === 0) {
+      console.error(`[translationService] fillMissingTranslations("${locale}") — nothing translated, skipping the Firestore write`);
+      return 0;
     }
 
     // 6. Persist only the new leaves — a surgical dot-notation patch, no
@@ -520,7 +604,9 @@ export async function fillMissingTranslations(locale, token) {
  * 2. Split it into small chunks (splitIntoChunks) and translate each via a
  *    separate ask-ai call — the full ~56KB source in one call kept running
  *    past the standard ask-ai timeout regardless of Vercel duration/plan
- *    settings, so several small calls replace the one big one.
+ *    settings, so several small calls replace the one big one. The calls run
+ *    CHUNK_CONCURRENCY at a time, and a chunk that fails outright is skipped
+ *    rather than aborting the seed (translateChunks explains the trade).
  * 3. Merge the translated chunks in memory and persist the full document to
  *    Firestore in a single write (same "hard overwrite" semantics as before —
  *    no partial doc is ever visible to readers).
@@ -544,45 +630,32 @@ export async function seedLanguageTranslations(locale, token) {
   const chunks = splitIntoChunks(sourceData);
   const promptDoc = await getPrompt('translation-fill-missing-prompt');
 
-  console.info(`[translationService] seedLanguageTranslations("${locale}") — translating in ${chunks.length} chunk(s)`);
+  console.info(`[translationService] seedLanguageTranslations("${locale}") — translating in ${chunks.length} chunk(s), ${CHUNK_CONCURRENCY} at a time`);
 
-  let translatedData = {};
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    // Compact (not pretty-printed) JSON: matches the size splitIntoChunks
-    // budgeted against, and saves ~15-20% of characters over indent:2 for free.
-    const missingKeysJson = JSON.stringify(chunk);
-    const prompt = renderTemplate(promptDoc.template, { locale, missingKeysJson });
+  const { translated: translatedData, failures } = await translateChunks({
+    chunks,
+    locale,
+    token,
+    promptDoc,
+    baseMaxTokens: promptDoc.maxTokens ?? 8192,
+    label: `seedLanguageTranslations("${locale}")`,
+  });
 
-    // Guard against the backend's hard MAX_PROMPT_LENGTH = 8000 cap
-    // (multi-lingo-ai-api/api/ask-ai.ts) — fail with a clear message instead
-    // of letting the backend reject it with a generic 400. Should not
-    // trigger given CHUNK_SIZE_BUDGET_BYTES's margin, but the prompt
-    // template is admin-edited in Firestore, so its length isn't guaranteed.
-    if (prompt.length > 7800) {
-      throw new Error(
-        `[translationService] seedLanguageTranslations("${locale}") — chunk ${i + 1}/${chunks.length} prompt is ${prompt.length} chars, too close to the backend's 8000-char cap. Shrink CHUNK_SIZE_BUDGET_BYTES or the translation-fill-missing-prompt template.`
-      );
-    }
+  // Every chunk failing is not "a few holes" — it means the AI path is down,
+  // and writing the document anyway would leave an empty locale that looks
+  // seeded and so is never retried.
+  if (chunks.length > 0 && failures.length === chunks.length) {
+    throw new Error(
+      `[translationService] seedLanguageTranslations("${locale}") — all ${chunks.length} chunk(s) failed; refusing to create an empty locale document. Last reason: ${failures[failures.length - 1].message}`
+    );
+  }
 
-    // All or nothing: a locale is written whole or not at all, so an
-    // unrecoverable chunk aborts the seed instead of creating a document with
-    // silent holes in it.
-    const translatedChunk = await requestTranslatedChunk({
-      token,
-      prompt,
-      promptDoc,
-      chunk,
-      locale,
-      baseMaxTokens: promptDoc.maxTokens ?? 8192,
-      label: `seedLanguageTranslations("${locale}") chunk ${i + 1}/${chunks.length}`,
-    });
-
-    // Deep merge, not Object.assign — a large section (e.g. "home") can now
-    // be split across multiple chunks, so a shallow assign would let a later
-    // chunk's partial "home" silently wipe out an earlier chunk's.
-    translatedData = deepMergeClone(translatedData, translatedChunk);
-    console.info(`[translationService] seedLanguageTranslations("${locale}") — chunk ${i + 1}/${chunks.length} done (${Object.keys(translatedChunk).length} section(s))`);
+  if (failures.length > 0) {
+    const skippedKeys = failures.flatMap((f) => f.keys);
+    console.warn(
+      `[translationService] seedLanguageTranslations("${locale}") — ${failures.length}/${chunks.length} chunk(s) failed. ` +
+      `${skippedKeys.length} key(s) are left out of the document and will fall back to ${BASE_LOCALE} until fillMissingTranslations picks them up.`
+    );
   }
 
   // 3. Persist to Firestore — one write of the fully-merged document.

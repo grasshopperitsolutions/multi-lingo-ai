@@ -113,7 +113,9 @@
 }
 
 /* ── Neo-brutalist scrollbars ───────────────────────────────────────────────
-   Opt-in via .neo-scrollbar, so nothing gets restyled by accident.
+   Applied by class, so no scroll container is restyled by accident. The root
+   element carries it (see the note above the rule) to cover the page itself;
+   everything else opts in where it scrolls.
 
    Chrome gives up on ::-webkit-scrollbar entirely the moment EITHER
    scrollbar-width or scrollbar-color is set to a non-auto value — it switches
@@ -152,6 +154,12 @@
   100% { --neo-scroll-b: #facc15; }
 }
 
+/* The class also sits on the root element (index.html), which is what styles
+   the page's own scrollbar: the app shell has no inner scroll container, so
+   every screen scrolls the document, and a browser takes the document
+   scrollbar's styling from the root element. Its dark variant can't ride on a
+   React className like every other surface here, so AppContext toggles
+   .neo-scrollbar-dark on the root element when the theme changes. */
 .neo-scrollbar {
   animation: neo-scroll-a 12s linear infinite, neo-scroll-b 12s linear infinite;
 }

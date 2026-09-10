@@ -131,7 +131,9 @@ function FilterDropdown({ group, isDarkMode }) {
           role="listbox"
           aria-multiselectable="true"
           aria-label={group.label}
-          className={`absolute z-50 mt-2 min-w-[12rem] max-h-64 overflow-y-auto rounded-xl border-4 ${
+          className={`absolute z-50 mt-2 min-w-[12rem] max-h-52 overflow-y-auto rounded-xl border-4 neo-scrollbar ${
+            isDarkMode ? "neo-scrollbar-dark " : ""
+          }${
             isDarkMode
               ? "bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]"
               : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"

@@ -94,46 +94,77 @@ const ALL_VOICES = [...GEMINI_VOICES.female, ...GEMINI_VOICES.male];
 const AUDIO_CACHE_LIMIT = 12;
 
 /**
- * Locale metadata used to build dialect-aware TTS prompts.
- * Each entry maps a BCP-47 locale to human-readable language/region info
- * so Gemini TTS reads with the correct accent and pronunciation.
+ * Synthesis is much slower than a text completion — a story paragraph read
+ * aloud regularly runs past aiService's 25s default, which aborted the request
+ * client-side while the backend was still generating (and still billing) the
+ * clip. The backend's own ceiling is ask-ai's 120s maxDuration, so 50s sits
+ * well inside it while still failing fast on a genuinely stuck call.
  */
-const LOCALE_METADATA = {
-  // ── Portuguese ────────────────────────────────────────────────────────────
-  'pt-PT': { language: 'European Portuguese',    region: 'Portugal' },
-  'pt-BR': { language: 'Brazilian Portuguese',   region: 'Brazil' },
-  // ── English ───────────────────────────────────────────────────────────────
-  'en-US': { language: 'American English',       region: 'the United States' },
-  'en-GB': { language: 'British English',        region: 'the United Kingdom' },
-  'en-AU': { language: 'Australian English',     region: 'Australia' },
-  // ── Spanish ───────────────────────────────────────────────────────────────
-  'es-ES': { language: 'Castilian Spanish',      region: 'Spain' },
-  'es-MX': { language: 'Mexican Spanish',        region: 'Mexico' },
-  'es-AR': { language: 'Rioplatense Spanish',    region: 'Argentina' },
-  // ── Catalan ───────────────────────────────────────────────────────────────
-  'ca':    { language: 'Catalan',                region: 'Catalonia' },
-  'ca-ES': { language: 'Catalan',                region: 'Catalonia, Spain' },
-  'ca-AD': { language: 'Andorran Catalan',       region: 'Andorra' },
-  'ca-FR': { language: 'Northern Catalan',       region: 'the Pyrenees-Orientales region of France' },
-  'ca-IT': { language: 'Algherese Catalan',      region: 'Alghero, Sardinia, Italy' },
-  // ── French ────────────────────────────────────────────────────────────────
-  'fr-FR': { language: 'French',                 region: 'France' },
-  'fr-CA': { language: 'Canadian French',        region: 'Canada' },
-  // ── Other European ────────────────────────────────────────────────────────
-  'de-DE': { language: 'German',                 region: 'Germany' },
-  'it-IT': { language: 'Italian',                region: 'Italy' },
-  'nl-NL': { language: 'Dutch',                  region: 'the Netherlands' },
-  'pl-PL': { language: 'Polish',                 region: 'Poland' },
-  'ru-RU': { language: 'Russian',                region: 'Russia' },
-  'tr-TR': { language: 'Turkish',                region: 'Turkey' },
-  // ── Asian ─────────────────────────────────────────────────────────────────
-  'ja-JP': { language: 'Japanese',               region: 'Japan' },
-  'zh-CN': { language: 'Mandarin Chinese',       region: 'mainland China' },
-  'zh-TW': { language: 'Traditional Chinese',    region: 'Taiwan' },
-  'ko-KR': { language: 'Korean',                 region: 'South Korea' },
-  // ── Middle East ───────────────────────────────────────────────────────────
-  'ar-SA': { language: 'Arabic',                 region: 'Saudi Arabia' },
-};
+const TTS_TIMEOUT_MS = 50000;
+
+/**
+ * Dialect-aware language/region names for the TTS prompt, derived from the
+ * BCP-47 code itself.
+ *
+ * This used to be a hardcoded LOCALE_METADATA map, which meant every language
+ * added through Admin > Languages arrived with no region at all and fell back
+ * to "the appropriate region" — the accent instruction Gemini needs was
+ * missing for exactly the languages nobody had hand-edited this file for.
+ *
+ * Intl.DisplayNames reads the same CLDR data the browser ships with, and it
+ * already knows the dialect names this map was hand-maintaining: "pt-PT" is
+ * "European Portuguese", "es-MX" is "Mexican Spanish", "fr-CA" is "Canadian
+ * French". A new language works the day it is seeded, with no code change.
+ *
+ * The names are resolved in English on purpose. The prompt wrapped around
+ * them is English, and the supportedLanguages `label` field holds the
+ * language's name in its own tongue ("Português"), which reads as an
+ * instruction to switch languages mid-sentence rather than as an accent.
+ *
+ * Results are memoised per code — Intl.DisplayNames construction is not free
+ * and playback calls this on every clip.
+ */
+const _localeMetaCache = new Map();
+
+function _describeLocale(code) {
+  if (_localeMetaCache.has(code)) return _localeMetaCache.get(code);
+
+  const fallback = { language: code, region: 'the appropriate region' };
+  let meta = fallback;
+
+  try {
+    const languageNames = new Intl.DisplayNames(['en'], { type: 'language' });
+    const regionNames   = new Intl.DisplayNames(['en'], { type: 'region' });
+
+    // Intl.Locale parses the subtags; maximize() fills in the region a
+    // language-only code implies ("ca" -> "ca-Latn-ES"), so a bare code still
+    // gets a real place name instead of the generic fallback.
+    const locale = new Intl.Locale(code);
+    const region = locale.region ?? locale.maximize?.().region ?? null;
+
+    // .of() echoes its input back when CLDR doesn't know the tag, which is
+    // the same string as the fallback — so an unknown code degrades exactly
+    // as it did before rather than printing something misleading.
+    let language = languageNames.of(code) ?? code;
+    const regionName = region ? (regionNames.of(region) ?? null) : null;
+
+    // CLDR names a dialect it has a word for ("European Portuguese") but
+    // falls back to "German (Germany)" when it doesn't. The parenthetical
+    // only repeats the region the prompt states on the next line, so drop it.
+    if (regionName && language.endsWith(` (${regionName})`)) {
+      language = language.slice(0, -(regionName.length + 3));
+    }
+
+    meta = { language, region: regionName ?? fallback.region };
+  } catch {
+    // A malformed code (Intl.Locale throws on those) keeps the generic
+    // wording — a bad locale must never stop playback.
+    meta = fallback;
+  }
+
+  _localeMetaCache.set(code, meta);
+  return meta;
+}
 
 // ---------------------------------------------------------------------------
 // Global singleton — tracks the currently active playback session.
@@ -377,10 +408,7 @@ export function stopSpeaking() {
  * @returns {Promise<{prompt: string, model: string}>} Instructional prompt + model to use for Gemini TTS
  */
 async function _buildTtsPrompt(text, lang, pace) {
-  const meta = LOCALE_METADATA[lang] ?? {
-    language: lang,
-    region: 'the appropriate region',
-  };
+  const meta = _describeLocale(lang);
 
   const promptDoc = await getPrompt('tts-build-prompt');
 
@@ -430,7 +458,7 @@ async function _speakWithGemini(token, text, lang, pace, seq, onStart, onEnd, on
     { provider: 'gemini', model, tts: true, voice, language: lang },
     // Playback isn't the user asking for new content, and clips are cached per
     // (voice, locale, text) — a prompt here would fire mid-exercise.
-    { skipConfirm: true },
+    { skipConfirm: true, timeout: TTS_TIMEOUT_MS },
   );
 
   // A stop (or a different clip) landed while we were generating — throw the

@@ -3,6 +3,14 @@ import { ChevronDown } from "lucide-react";
 import PropTypes from "prop-types";
 import LanguageFlagIcon from "./LanguageFlagIcon";
 
+/**
+ * Past this many options the panel stops growing and scrolls instead. The
+ * interface-language picker on the landing page is the reason: one entry per
+ * seeded language, so the list runs off the bottom of the viewport and the
+ * options underneath are simply unreachable.
+ */
+const SCROLL_AFTER_OPTIONS = 5;
+
 const NeoDropdown = ({
   options,
   value,
@@ -36,6 +44,8 @@ const NeoDropdown = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const isScrollable = allOptions.length > SCROLL_AFTER_OPTIONS;
 
   const baseClasses = isDarkMode
     ? "bg-slate-800 border-slate-700 text-slate-100 shadow-[4px_4px_0px_0px_#1e293b]"
@@ -81,7 +91,14 @@ const NeoDropdown = ({
 
       {isOpen && (
         <div
-          className={`absolute z-50 mt-2 w-full rounded-xl border-4 overflow-hidden ${
+          // Scrolling only kicks in on a long list, so a short one keeps the
+          // rounded corners clipping its first and last row. overflow-x stays
+          // hidden either way — the corners are the whole look of this thing.
+          className={`absolute z-50 mt-2 w-full rounded-xl border-4 ${
+            isScrollable
+              ? `max-h-60 overflow-x-hidden overflow-y-auto neo-scrollbar ${isDarkMode ? "neo-scrollbar-dark" : ""}`
+              : "overflow-hidden"
+          } ${
             isDarkMode
               ? "bg-slate-800 border-slate-700 shadow-[4px_4px_0px_0px_#1e293b]"
               : "bg-white border-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"

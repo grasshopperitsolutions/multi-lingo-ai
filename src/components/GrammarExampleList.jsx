@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { Volume2, Square } from "lucide-react";
+import { Volume2, Square, Loader2 } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { useTts } from "../hooks/useTts";
 
@@ -25,7 +25,11 @@ const GrammarExampleList = ({ examples, targetLang, isDarkMode, keyPrefix }) => 
     <ul className="flex flex-col gap-2">
       {examples.map((example, index) => {
         const ttsKey = `${keyPrefix}-${index}`;
-        const isPlaying = ttsState.activeKey === ttsKey;
+        const isActive = ttsState.activeKey === ttsKey;
+        // Nothing is audible until Gemini returns the clip — show the wait
+        // rather than a stop square over silence.
+        const isGenerating = isActive && ttsState.isGenerating;
+        const isPlaying = isActive && !isGenerating;
 
         return (
           <li
@@ -37,18 +41,29 @@ const GrammarExampleList = ({ examples, targetLang, isDarkMode, keyPrefix }) => 
             <button
               type="button"
               onClick={() =>
-                isPlaying
+                isActive
                   ? stopTts()
                   : playTts({ key: ttsKey, text: example.target, lang: targetLang, token: user?.token })
               }
-              aria-label={isPlaying ? t("common.stop", "Stop") : t("grammar.listen", "Listen")}
+              aria-label={
+                isGenerating
+                  ? t("translator.generating", "Preparing audio…")
+                  : isPlaying
+                    ? t("common.stop", "Stop")
+                    : t("grammar.listen", "Listen")
+              }
+              aria-busy={isGenerating}
               className={`shrink-0 p-2 rounded-lg border-2 transition-transform hover:scale-110 active:scale-95 ${
                 isDarkMode
                   ? "border-amber-500/50 text-amber-400 hover:bg-slate-800"
                   : "border-amber-400 text-amber-600 hover:bg-amber-50"
               }`}
             >
-              {isPlaying ? <Square size={14} /> : <Volume2 size={14} />}
+              {isGenerating
+                ? <Loader2 size={14} className="animate-spin" />
+                : isPlaying
+                  ? <Square size={14} />
+                  : <Volume2 size={14} />}
             </button>
 
             <div className="min-w-0">

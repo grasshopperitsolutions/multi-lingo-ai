@@ -145,6 +145,12 @@ export const AppProvider = ({ children }) => {
   // readable at call time.
   const aiQuotaRef = useRef({ unlimited: true, remaining: Infinity });
 
+  // The document scrollbar is styled on <html> (see index.html), so the theme
+  // half of it cannot ride on a React className like every other surface here.
+  useEffect(() => {
+    document.documentElement.classList.toggle("neo-scrollbar-dark", isDarkMode);
+  }, [isDarkMode]);
+
   // Mirror the current tier's allowance into the ref the confirm handler reads.
   // Same derivation as useTierAccess, kept here because the handler is outside
   // React's render cycle.

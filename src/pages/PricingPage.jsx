@@ -308,7 +308,10 @@ const PricingPage = () => {
   const navigate = useNavigate();
   const [loadingPlan, setLoadingPlan] = useState(null);
 
-  const currentTier = user?.subscriptionTier ?? "explorer";
+  // A signed-out visitor has no plan at all. Defaulting them to "explorer"
+  // badged the free tier as "current" and disabled its button, which is the
+  // one CTA a guest is most likely to want.
+  const currentTier = user ? (user.subscriptionTier ?? "explorer") : null;
 
   const handleSelect = async (plan, interval) => {
     if (!user) {
