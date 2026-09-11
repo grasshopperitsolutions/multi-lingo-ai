@@ -33,7 +33,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-**700 tests across 25 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
+**710 tests across 27 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
 
 - `test/canaries/` — one assertion per library behaviour no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing, every literal `t()` key resolving in the pt-PT bundle.
 - `test/smoke/pages.test.jsx` — 37 pages mount, paint, stay out of the error boundary, and render no raw translation keys. **Feature pages assert the route shell only**: each is a Suspense wrapper, so the assertion passes while the lazy chunk is still loading. The heavy components are covered directly instead.
@@ -124,6 +124,9 @@ Three upgrades are currently blocked, and all three will keep being proposed:
 - **React 19** — blocked by this repo, not by upstream. 41 components still declare defaults via `Component.defaultProps`, which React 19 **removes for function components**. Every one of those defaults silently becomes `undefined`: the first symptom seen was the dashboard feature grid losing its `gridClassName` and collapsing to a single column, but the blast radius is every component that declares one. React 18.3 already logs a deprecation warning for each one. The fix is to convert them to default parameter values in the destructuring — `({ gridClassName = "grid grid-cols-2 lg:grid-cols-3 gap-4" })` — after which React 19 is a normal upgrade. Do that as its own change, not bundled with anything else.
 
   **Standing decision: stay on React 18 and let CI reject the bump.** `test/canaries/react-defaultprops.test.jsx` fails the moment React stops honouring defaults, and also reproduces the single-column dashboard symptom directly. That PR failing is the guard working — never make it pass by weakening the test.
+- **jspdf** is the one runtime dependency added for a feature rather than the
+  toolchain. Pinned by the usual caret; it is loaded dynamically, so a broken
+  bump degrades the export rather than the app.
 - **ESLint 10** — `eslint-plugin-react` has no release that accepts it (peer-caps at `^9.7`). Forcing it with `--legacy-peer-deps` is not the answer.
 - **firebase-admin 14** in the sibling API repo — unrelated to this app, but the same lesson: it passed every local check and took production down. See that repo's CLAUDE.md.
 
@@ -264,6 +267,58 @@ for the viewer, or `isFeatureVisible(feature, tierId)` from
 `utils/featureAccess` when asking about a tier other than the viewer's (the
 pricing page). Adding a dashboard tile without that filter leaks hidden
 features. Toggle the flag in Admin > Features.
+
+## PDF export reaches exactly as far as the font does
+
+Stories and history/culture pieces export through `utils/readingPdf` — one
+builder, because both hand over the same `{title, paragraphs}` shape. It runs
+entirely in the browser: no AI call, no request, nothing billed, which is why
+it is offered to every tier rather than gated.
+
+**The limit is the font, and it is not a detail.** jsPDF's built-in Helvetica
+encodes WinAnsi (CP1252): Portuguese, Spanish, French, German, Italian, Dutch
+and Catalan print correctly, accents and curly quotes included. Cyrillic,
+Greek, Thai and CJK have no glyph and would come out blank — and this app
+seeds Russian, Thai, Japanese and Chinese. So `findUnsupportedCharacters`
+answers the question *before* anything is generated: `DownloadPdfButton` asks
+it and renders disabled with a reason, and `buildReadingPdf` throws
+`UNSUPPORTED_SCRIPT` if called anyway. A file full of blanks is worse than no
+file.
+
+Lifting the limit means embedding a real Unicode TTF via
+`addFileToVFS`/`addFont` — a font per script, several hundred KB each, fetched
+on demand rather than bundled. The seam is `selectFont()`; register a font and
+everything else in that module keeps working.
+
+The page is set in **Times**, jsPDF's built-in serif — a story should read
+like one, and it costs nothing and carries the same WinAnsi limit. Small
+uppercase running text (masthead, meta line, footer) stays in the sans, which
+is what `selectFont`'s `role` argument is for.
+
+**The opening capital is hand-laid.** jsPDF has no float and no text flow, so
+`drawDropCap` sizes a capital to span `CAP_LINES` body lines, wraps that many
+lines at a width narrowed by the capital, and hands the remainder back to be
+set normally. Two details are load-bearing: it shrinks the capital to the
+lines actually beside it (a three-line capital next to a two-line paragraph
+hangs in a hole), and it **declines** — returning null, so the paragraph is
+set plainly — when the text opens on punctuation or when the wrapped lines
+cannot be rejoined to the original prefix. Losing a flourish is fine; losing
+or duplicating a sentence is not. Only the first paragraph gets one, per book
+convention; `CAP_ON_EVERY_PARAGRAPH` flips that.
+
+**Two things keep the file small, and both were learned the hard way.** jsPDF
+stores an image's *decoded* pixels, so embedding the 512x512 app icon whole
+added 1MB — exactly 512 x 512 x 4 — to a one-page document. `loadLogo`
+re-encodes it at `LOGO_PIXELS` (128, generous for an 11mm mark at 300dpi), and
+the document is constructed with `compress: true`. Together those took a
+typical story from 1,054KB to 8KB. A missing icon degrades to a PDF without
+one rather than a failed export.
+
+Two structural notes. `buildReadingPdf` returns the document and
+`exportReadingPdf` saves it — split that way because `save()` returns nothing
+to assert on, so the layout would otherwise be untestable. And jsPDF is
+imported dynamically: it is its own ~130KB gzipped chunk that only downloads
+when somebody exports.
 
 ## The word bank is the WORD favourite kind, not a new mechanism
 

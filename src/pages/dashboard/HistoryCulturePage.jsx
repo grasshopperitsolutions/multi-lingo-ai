@@ -10,6 +10,7 @@ import { useInterestTopics } from "../../hooks/useInterestTopics";
 import { getFact, getFactPoolStatus } from "../../services/historyCultureService";
 import { markHistoryFactSeen } from "../../services/userService";
 import CustomRequestInput from "../../components/CustomRequestInput";
+import DownloadPdfButton from "../../components/DownloadPdfButton";
 import Loader from "../../components/Loader";
 import { FeaturePageShell, Card, ErrorBanner, PrimaryButton, TtsControls } from "../../components/ui";
 
@@ -159,6 +160,14 @@ const HistoryCulturePage = () => {
             {/* Read aloud in whatever language the piece actually came back in
                 (fact.locale), not the interface language — the translation is
                 best-effort and can fall back to the source. */}
+            {/* Both act on the whole piece — save it, or hear it. */}
+            <DownloadPdfButton
+              title={fact.title}
+              paragraphs={fact.paragraphs ?? []}
+              languageLabel={fact.locale}
+              isDarkMode={isDarkMode}
+            />
+
             <TtsControls
               ttsKey="history-fact"
               text={spokenText}

@@ -24,6 +24,7 @@ import {
   Loader2,
   BookOpen,
   CreditCard,
+  Palette,
   Star,
   ExternalLink,
 } from "lucide-react";
@@ -200,6 +201,7 @@ const SettingsForm = ({
       {/* ── Profile ── */}
       <SettingsSection
         title={t("settings.profile")}
+        icon={<User size={16} className="inline mr-2" />}
         isDarkMode={isDarkMode}
         defaultOpen={sectionsOpenByDefault}
       >
@@ -241,6 +243,7 @@ const SettingsForm = ({
       {/* ── Appearance ── */}
       <SettingsSection
         title={t("settings.appearance")}
+        icon={<Palette size={16} className="inline mr-2" />}
         isDarkMode={isDarkMode}
         defaultOpen={sectionsOpenByDefault}
       >
@@ -1013,6 +1016,7 @@ const SettingsPage = () => {
         {/* Account Actions */}
         <SettingsSection
           title={t("settings.account")}
+          icon={<LogOut size={16} className="inline mr-2" />}
           isDarkMode={isDarkMode}
           defaultOpen={sectionsOpenByDefault}
         >

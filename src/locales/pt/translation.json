@@ -1010,6 +1010,12 @@
     "show_all_translations": "Ver todas as traduções",
     "hide_all_translations": "Ocultar todas as traduções"
   },
+  "pdf": {
+    "download": "Guardar em PDF",
+    "preparing": "A preparar...",
+    "unsupported_script": "Ainda não é possível exportar este alfabeto para PDF.",
+    "failed": "Não foi possível criar o PDF."
+  },
   "word_bank": {
     "title": "Banco de palavras",
     "empty_state": "Mantém premida uma palavra numa história para a guardares aqui.",

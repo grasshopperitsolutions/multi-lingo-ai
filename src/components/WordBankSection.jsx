@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { X } from "lucide-react";
+import { X, BookMarked } from "lucide-react";
 import { useWordFavourites } from "../hooks/useWordFavourites";
 import { SettingsSection } from "./ui";
 
@@ -23,6 +23,9 @@ const WordBankSection = ({ isDarkMode, defaultOpen }) => {
   return (
     <SettingsSection
       title={t("word_bank.settings_title")}
+      // The same mark the sidebar carries on the story page, so the two read
+      // as one feature in two places.
+      icon={<BookMarked size={16} className="inline mr-2" />}
       isDarkMode={isDarkMode}
       defaultOpen={defaultOpen}
     >
