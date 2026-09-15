@@ -33,7 +33,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-**740 tests across 29 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
+**743 tests across 28 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
 
 - `test/canaries/` — one assertion per library behaviour no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing, every literal `t()` key resolving in the pt-PT bundle.
 - `test/smoke/pages.test.jsx` — 37 pages mount, paint, stay out of the error boundary, and render no raw translation keys. **Feature pages assert the route shell only**: each is a Suspense wrapper, so the assertion passes while the lazy chunk is still loading. The heavy components are covered directly instead.
@@ -322,9 +322,9 @@ when somebody exports.
 
 ## Personal items live in user subcollections — the first feature to use them
 
-`users/{uid}/personalNotes`, `/personalPhrases`, `/personalMistakes`,
-`/personalQuestions` and a single `/personalSettings/main` document, all
-through `personalService`. Nothing in the frontend had ever used a user
+`users/{uid}/personalPhrases`, `/personalMistakes` and `/personalQuestions`
+hold lists; `/personalNotes/board` and `/personalSettings/main` are each a
+single document. All of it goes through `personalService`. Nothing in the frontend had ever used a user
 subcollection, but the backend has always supported them: reads, queries, PUT,
 PATCH and DELETE are owner-gated by `usersSubcollectionOwner`, and account
 deletion already recurses into them, so this needed no policy entry and needs
@@ -332,14 +332,19 @@ no cleanup path.
 
 One subcollection per kind, not one collection with a `kind` field: the
 queries need no filter and so no composite index, and the server's 200-document
-page cap applies per kind instead of across all four.
+page cap applies per kind instead of across all three lists.
+
+The note board is deliberately **not** a list. A board is somewhere you keep
+adding to, and a list of notes would make you name and file every stray
+thought before writing it down — which is the friction that sends people to
+their phone's notes app instead. One document, no titles, no rows, no delete.
 
 Three rules, each of which fails **quietly** when broken:
 
-- **The settings document is written with POST and an explicit id, never PUT
-  or PATCH.** Both of those 404 on a document that does not exist, and it will
-  not exist on a user's first visit. POST-with-an-id merges at the root, which
-  makes it a safe upsert.
+- **A single-document subcollection is written with POST and an explicit id,
+  never PUT or PATCH.** Both of those 404 on a document that does not exist,
+  and neither the settings nor the board exists on a user's first visit.
+  POST-with-an-id merges at the root, which makes it a safe upsert.
 - **Never send `createdAt`** — the proxy stamps it and overwrites anything sent.
 - **Never `orderBy`.** Firestore drops documents missing the ordered field, so
   one row written before a field existed would vanish rather than sort oddly.
@@ -348,6 +353,10 @@ Three rules, each of which fails **quietly** when broken:
 `usePersonalSettings` debounces its writes by 800ms and flushes on unmount and
 on `visibilitychange`. That is not a nicety: the lesson counter is a tapping
 interaction, and four taps must be one write, not four writes racing.
+`usePersonalNoteBoard` does the same at 1200ms, because typing produces a
+change every few hundred milliseconds and a paragraph should be one write. It
+also reports its save state, since a page that autosaves and says nothing is
+asking to be trusted with the only copy of something you wrote.
 
 ## Professional tools: one tier key, one register, one prompt budget
 

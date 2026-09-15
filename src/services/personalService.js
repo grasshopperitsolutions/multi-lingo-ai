@@ -1,9 +1,10 @@
 /**
  * personalService.js
  *
- * Everything a user writes for themselves: notes, the phrases they are
- * collecting, mistakes worth remembering, questions for their next lesson,
- * and a small settings document holding the lesson counter and their goal.
+ * Everything a user writes for themselves: a free-text note board, the
+ * phrases they are collecting, mistakes worth remembering, questions for
+ * their next lesson, and a small settings document holding the lesson counter
+ * and their goal.
  *
  * ## Where it lives
  *
@@ -16,7 +17,11 @@
  *
  * One subcollection per kind rather than one collection with a `kind` field:
  * the queries need no filter and therefore no composite index, and the
- * server's 200-document page cap applies per kind instead of across all four.
+ * server's 200-document page cap applies per kind instead of across all three
+ * lists.
+ *
+ * Two of the five are a single document rather than a list — the note board
+ * and the settings — and both are written the same way, with rule 3 below.
  *
  * ## Three rules that are easy to get wrong
  *
@@ -40,9 +45,8 @@ import {
   getDocument,
 } from "./firestoreService";
 
-/** The subcollection each kind lives in, under `users/{uid}`. */
+/** The subcollection each *list* kind lives in, under `users/{uid}`. */
 export const PERSONAL_KINDS = {
-  NOTE: "personalNotes",
   PHRASE: "personalPhrases",
   MISTAKE: "personalMistakes",
   QUESTION: "personalQuestions",
@@ -50,6 +54,23 @@ export const PERSONAL_KINDS = {
 
 const SETTINGS_COLLECTION = "personalSettings";
 const SETTINGS_DOC_ID = "main";
+
+/**
+ * The note board is one document, not a collection of notes.
+ *
+ * A board is a place you keep adding to, so there is nothing to title, list,
+ * pick from or delete — a list of notes would make you name and file every
+ * stray thought before writing it down.
+ */
+const NOTE_BOARD_COLLECTION = "personalNotes";
+const NOTE_BOARD_DOC_ID = "board";
+
+/**
+ * As much as anybody will type onto one board, and far under Firestore's
+ * 1MB document ceiling — so the write fails visibly at the textarea rather
+ * than invisibly at the server.
+ */
+export const NOTE_BOARD_MAX_CHARS = 20000;
 
 /** The server caps a page at 200 however large a limit is asked for. */
 export const PERSONAL_PAGE_LIMIT = 200;
@@ -156,6 +177,40 @@ export async function savePersonalSettings({ token, uid, patch }) {
     `users/${uid}/${SETTINGS_COLLECTION}`,
     patch,
     SETTINGS_DOC_ID,
+    token,
+  );
+}
+
+/**
+ * The note board's text, or an empty board on a first visit.
+ *
+ * @returns {Promise<{text: string, updatedAt: string|null}>}
+ */
+export async function getNoteBoard({ token, uid }) {
+  if (!uid) throw new Error("[personalService] uid is required");
+
+  const doc = await getDocument(`users/${uid}/${NOTE_BOARD_COLLECTION}`, NOTE_BOARD_DOC_ID, token);
+  const data = doc?.data ?? {};
+
+  return {
+    text: typeof data.text === "string" ? data.text : "",
+    updatedAt: timestampToIso(data.updatedAt),
+  };
+}
+
+/**
+ * Save the board, creating it the first time.
+ *
+ * POST-with-an-id for the same reason the settings document uses it: PUT and
+ * PATCH both 404 on a document that does not exist, and it will not exist
+ * until somebody types on it.
+ */
+export async function saveNoteBoard({ token, uid, text }) {
+  if (!uid) throw new Error("[personalService] uid is required");
+  return createDocument(
+    `users/${uid}/${NOTE_BOARD_COLLECTION}`,
+    { text: String(text ?? "").slice(0, NOTE_BOARD_MAX_CHARS) },
+    NOTE_BOARD_DOC_ID,
     token,
   );
 }

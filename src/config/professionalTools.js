@@ -63,9 +63,9 @@ export const PROFESSIONAL_SECTIONS = [
 ];
 
 /**
- * The email tool's three modes. They are variants of one prompt document
- * (see promptSeedService), the same way examPromptTemplates picks a variant
- * by key — not three documents.
+ * The email tool's three modes. They are variants of one prompt document —
+ * `pro-email-prompt` carries a `variants` array keyed by these values, the
+ * same way examPromptTemplates picks a variant by key — not three documents.
  */
 export const EMAIL_MODES = {
   WRITE: "write",

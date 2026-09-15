@@ -32,15 +32,15 @@ describe("where the items live", () => {
     await addPersonalItem({
       token: "tok",
       uid: "u1",
-      kind: PERSONAL_KINDS.NOTE,
-      data: { title: "a", body: "b" },
+      kind: PERSONAL_KINDS.QUESTION,
+      data: { text: "a" },
     });
 
     // Owner-gated by the API without any policy entry, and cleaned up on
     // account deletion for free.
     expect(createDocument).toHaveBeenCalledWith(
-      "users/u1/personalNotes",
-      { title: "a", body: "b" },
+      "users/u1/personalQuestions",
+      { text: "a" },
       undefined,
       "tok",
     );
@@ -78,7 +78,7 @@ describe("listing", () => {
     });
 
     const { listPersonalItems, PERSONAL_KINDS } = await import("../../src/services/personalService");
-    const { items } = await listPersonalItems({ token: "tok", uid: "u1", kind: PERSONAL_KINDS.NOTE });
+    const { items } = await listPersonalItems({ token: "tok", uid: "u1", kind: PERSONAL_KINDS.PHRASE });
 
     expect(items.map((i) => i.id)).toEqual(["new", "old"]);
 
@@ -97,7 +97,7 @@ describe("listing", () => {
     });
 
     const { listPersonalItems, PERSONAL_KINDS } = await import("../../src/services/personalService");
-    const { items } = await listPersonalItems({ token: "tok", uid: "u1", kind: PERSONAL_KINDS.NOTE });
+    const { items } = await listPersonalItems({ token: "tok", uid: "u1", kind: PERSONAL_KINDS.PHRASE });
 
     expect(items.map((i) => i.id)).toContain("unstamped");
   });
@@ -110,7 +110,7 @@ describe("listing", () => {
       documents: Array.from({ length: PERSONAL_PAGE_LIMIT }, (_, i) => ({ id: `n${i}` })),
     });
 
-    const { atLimit } = await listPersonalItems({ token: "tok", uid: "u1", kind: PERSONAL_KINDS.NOTE });
+    const { atLimit } = await listPersonalItems({ token: "tok", uid: "u1", kind: PERSONAL_KINDS.PHRASE });
     expect(atLimit).toBe(true);
   });
 });
@@ -165,5 +165,44 @@ describe("removing", () => {
     await removePersonalItem({ token: "tok", uid: "u1", kind: PERSONAL_KINDS.MISTAKE, id: "m1" });
 
     expect(deleteDocument).toHaveBeenCalledWith("users/u1/personalMistakes", "m1", "tok");
+  });
+});
+
+describe("the note board", () => {
+  it("is one document at a fixed id, not a note per thought", async () => {
+    const { saveNoteBoard } = await import("../../src/services/personalService");
+
+    await saveNoteBoard({ token: "tok", uid: "u1", text: "hello" });
+
+    // Same POST-with-an-id upsert as the settings document, and for the same
+    // reason: PUT and PATCH 404 until somebody has typed something.
+    expect(createDocument).toHaveBeenCalledWith(
+      "users/u1/personalNotes",
+      { text: "hello" },
+      "board",
+      "tok",
+    );
+    expect(patchDocument).not.toHaveBeenCalled();
+  });
+
+  it("reads back an empty board before anything has been written", async () => {
+    getDocument.mockResolvedValue(null);
+
+    const { getNoteBoard } = await import("../../src/services/personalService");
+    const board = await getNoteBoard({ token: "tok", uid: "u1" });
+
+    // An empty string, not null — the textarea is controlled and React warns
+    // the moment its value goes undefined.
+    expect(board.text).toBe("");
+  });
+
+  it("caps what it sends rather than letting the server reject the write", async () => {
+    const { saveNoteBoard, NOTE_BOARD_MAX_CHARS } = await import(
+      "../../src/services/personalService"
+    );
+
+    await saveNoteBoard({ token: "tok", uid: "u1", text: "x".repeat(NOTE_BOARD_MAX_CHARS + 500) });
+
+    expect(createDocument.mock.calls[0][1].text).toHaveLength(NOTE_BOARD_MAX_CHARS);
   });
 });
