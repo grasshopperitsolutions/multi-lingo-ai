@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { Pencil, FileText } from "lucide-react";
+import { Pencil, FileText, Sprout } from "lucide-react";
 import Loader from "../Loader";
 import { GhostButton, SearchBar } from "../ui";
 
@@ -42,7 +42,7 @@ function matchesSearch(prompt, term) {
   return haystack.includes(term.toLowerCase());
 }
 
-const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPrompt }) => {
+const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPrompt, onSeedProTools, isSeeding }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategories, setActiveCategories] = useState([]);
 
@@ -99,9 +99,18 @@ const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPromp
               this — it clears the search text and every filter group in one
               click, so a second, category-only "Clear filters" link here
               would just be a narrower duplicate of it. */}
-          <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
-            {filteredPrompts.length} of {prompts.length} prompt{prompts.length === 1 ? "" : "s"}
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              {filteredPrompts.length} of {prompts.length} prompt{prompts.length === 1 ? "" : "s"}
+            </p>
+
+            {/* TEMPORARY — remove with src/services/promptSeedService.js once the
+                professional-tools prompts exist in every environment. */}
+            <GhostButton onClick={onSeedProTools} disabled={isSeeding} isDarkMode={isDarkMode}>
+              <Sprout size={14} />
+              {isSeeding ? "Seeding..." : "Seed pro-tools prompts (TEMPORARY)"}
+            </GhostButton>
+          </div>
         </>
       )}
 
@@ -172,6 +181,9 @@ PromptsSection.propTypes = {
   isLoadingDocs: PropTypes.bool.isRequired,
   error: PropTypes.string,
   onEditPrompt: PropTypes.func.isRequired,
+  /** TEMPORARY — see promptSeedService. */
+  onSeedProTools: PropTypes.func,
+  isSeeding: PropTypes.bool,
 };
 
 export default PromptsSection;

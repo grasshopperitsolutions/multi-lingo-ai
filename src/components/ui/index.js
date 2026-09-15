@@ -13,5 +13,7 @@ export { default as FeatureHeader } from './FeatureHeader';
 export { default as ComingSoonContent } from './ComingSoonContent';
 export { default as SearchBar } from './SearchBar';
 export { default as FavouriteButton } from './FavouriteButton';
+export { default as ToneToggle } from './ToneToggle';
+export { default as AiNotice } from './AiNotice';
 export { default as TtsControls } from './TtsControls';
 export { default as Pagination } from './Pagination';

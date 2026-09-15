@@ -31,6 +31,7 @@ const ACCENT = {
   emerald: { d: "text-emerald-400", l: "text-emerald-600" },
   amber: { d: "text-amber-400", l: "text-amber-600" },
   yellow: { d: "text-yellow-400", l: "text-yellow-600" },
+  indigo: { d: "text-indigo-400", l: "text-indigo-600" },
 };
 
 const Breadcrumb = ({ isDarkMode, items = [], accentColor = "rose" }) => {
@@ -95,15 +96,9 @@ Breadcrumb.propTypes = {
       onClick: PropTypes.func,
     }),
   ),
-  accentColor: PropTypes.oneOf([
-    "rose",
-    "violet",
-    "sky",
-    "teal",
-    "emerald",
-    "amber",
-    "yellow",
-  ]),
+  // Derived from ACCENT rather than hand-listed: the two drifted apart the
+  // moment `indigo` was added to the map, and every professional page warned.
+  accentColor: PropTypes.oneOf(Object.keys(ACCENT)),
 };
 
 Breadcrumb.defaultProps = {

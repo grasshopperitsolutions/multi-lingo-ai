@@ -21,6 +21,8 @@ import {
 import { forceOverwriteAllTranslations, seedLanguageTranslations } from "../services/translationService";
 import { createCategory, updateCategory, deleteCategory } from "../services/categoriesService";
 import PromptsSection from "../components/admin/PromptsSection";
+// TEMPORARY — remove with the seed button once the pro-tools prompts exist.
+import { seedProToolsPrompts } from "../services/promptSeedService";
 import PromptEditModal from "../components/admin/PromptEditModal";
 import LoginProvidersSection from "../components/admin/LoginProvidersSection";
 import UsersSection from "../components/admin/UsersSection";
@@ -53,6 +55,8 @@ const AdminPage = () => {
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
   const [error, setError] = useState(null);
   const [editingPrompt, setEditingPrompt] = useState(null);
+  // TEMPORARY — see promptSeedService.
+  const [isSeedingPrompts, setIsSeedingPrompts] = useState(false);
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [categoryModal, setCategoryModal] = useState(null); // null | { category: object|null }
   const [isSavingCategory, setIsSavingCategory] = useState(false);
@@ -126,6 +130,27 @@ const AdminPage = () => {
       showAlert("success", `${id} sign-in ${enabled ? "enabled" : "disabled"}.`);
     } catch (err) {
       showAlert("error", `Could not update provider: ${err.message}`);
+    }
+  }, [showAlert]);
+
+  // TEMPORARY — creates the professional-tools prompt documents, which the
+  // Admin editor cannot create itself. Delete with promptSeedService once the
+  // prompts exist in dev and prod. See that file's removal checklist.
+  const handleSeedProTools = useCallback(async () => {
+    setIsSeedingPrompts(true);
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const { created, skipped } = await seedProToolsPrompts(token);
+      showAlert(
+        "success",
+        `Seeded ${created.length} prompt(s)${skipped.length ? `, skipped ${skipped.length} that already existed` : ""}.`,
+      );
+      const docs = await getPrompts({ forceRefresh: true });
+      setDocsBySection((prev) => ({ ...prev, prompts: docs }));
+    } catch (err) {
+      showAlert("error", `Could not seed prompts: ${err.message}`);
+    } finally {
+      setIsSeedingPrompts(false);
     }
   }, [showAlert]);
 
@@ -477,6 +502,8 @@ const AdminPage = () => {
             isLoadingDocs={isLoadingDocs}
             error={error}
             onEditPrompt={setEditingPrompt}
+            onSeedProTools={handleSeedProTools}
+            isSeeding={isSeedingPrompts}
           />
         ) : isCategoriesSection ? (
           <CategoriesSection

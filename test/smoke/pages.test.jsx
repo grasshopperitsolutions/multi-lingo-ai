@@ -239,6 +239,8 @@ const signedIn = () =>
           "grammar_structures",
           "grammar_tips",
           "grammar_ask",
+          "professional_tools",
+          "personal_tools",
         ],
       },
     },
@@ -320,10 +322,17 @@ const FEATURE_PAGES = [
   ["FoodPage", () => import("../../src/pages/dashboard/coming-soon/FoodPage")],
   ["RadioTvPage", () => import("../../src/pages/dashboard/coming-soon/RadioTvPage")],
   ["PlanTripPage", () => import("../../src/pages/dashboard/coming-soon/PlanTripPage")],
-  [
-    "ProfessionalToolsPage",
-    () => import("../../src/pages/dashboard/coming-soon/ProfessionalToolsPage"),
-  ],
+  ["PersonalMenu", () => import("../../src/components/PersonalMenu")],
+  ["PersonalNotesPage", () => import("../../src/pages/dashboard/personal/PersonalNotesPage")],
+  ["LessonCounterPage", () => import("../../src/pages/dashboard/personal/LessonCounterPage")],
+  ["LessonPlanPage", () => import("../../src/pages/dashboard/personal/LessonPlanPage")],
+  ["PhrasebookPage", () => import("../../src/pages/dashboard/personal/PhrasebookPage")],
+  ["MistakeJournalPage", () => import("../../src/pages/dashboard/personal/MistakeJournalPage")],
+  ["GoalPage", () => import("../../src/pages/dashboard/personal/GoalPage")],
+  ["ProfessionalToolsMenu", () => import("../../src/components/ProfessionalToolsMenu")],
+  ["CvToolPage", () => import("../../src/pages/dashboard/professional/CvToolPage")],
+  ["EmailToolPage", () => import("../../src/pages/dashboard/professional/EmailToolPage")],
+  ["ToneRewriterPage", () => import("../../src/pages/dashboard/professional/ToneRewriterPage")],
 ];
 
 describe("feature page shells render", () => {

@@ -33,7 +33,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-**710 tests across 27 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
+**740 tests across 29 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
 
 - `test/canaries/` — one assertion per library behaviour no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing, every literal `t()` key resolving in the pt-PT bundle.
 - `test/smoke/pages.test.jsx` — 37 pages mount, paint, stay out of the error boundary, and render no raw translation keys. **Feature pages assert the route shell only**: each is a Suspense wrapper, so the assertion passes while the lazy chunk is still loading. The heavy components are covered directly instead.
@@ -319,6 +319,62 @@ Two structural notes. `buildReadingPdf` returns the document and
 to assert on, so the layout would otherwise be untestable. And jsPDF is
 imported dynamically: it is its own ~130KB gzipped chunk that only downloads
 when somebody exports.
+
+## Personal items live in user subcollections — the first feature to use them
+
+`users/{uid}/personalNotes`, `/personalPhrases`, `/personalMistakes`,
+`/personalQuestions` and a single `/personalSettings/main` document, all
+through `personalService`. Nothing in the frontend had ever used a user
+subcollection, but the backend has always supported them: reads, queries, PUT,
+PATCH and DELETE are owner-gated by `usersSubcollectionOwner`, and account
+deletion already recurses into them, so this needed no policy entry and needs
+no cleanup path.
+
+One subcollection per kind, not one collection with a `kind` field: the
+queries need no filter and so no composite index, and the server's 200-document
+page cap applies per kind instead of across all four.
+
+Three rules, each of which fails **quietly** when broken:
+
+- **The settings document is written with POST and an explicit id, never PUT
+  or PATCH.** Both of those 404 on a document that does not exist, and it will
+  not exist on a user's first visit. POST-with-an-id merges at the root, which
+  makes it a safe upsert.
+- **Never send `createdAt`** — the proxy stamps it and overwrites anything sent.
+- **Never `orderBy`.** Firestore drops documents missing the ordered field, so
+  one row written before a field existed would vanish rather than sort oddly.
+  Sorting is in code, as `reportService` does it.
+
+`usePersonalSettings` debounces its writes by 800ms and flushes on unmount and
+on `visibilitychange`. That is not a nicety: the lesson counter is a tapping
+interaction, and four taps must be one write, not four writes racing.
+
+## Professional tools: one tier key, one register, one prompt budget
+
+The three tools at `/dashboard/professional-tools` share the
+`professional_tools` key — no per-tool keys, so Admin has one row rather than
+four. `ProToolShell` carries the route gate, so no page can forget it.
+
+**The register is a bare value.** `{{tone}}` is `"formal"` or `"informal"` and
+nothing more; what that *means* in a given language lives in the
+admin-editable template, not in a map in the code. `_assertPlaceholders` warns
+when a stored template has no slot for a variable being passed — otherwise the
+toggle appears to work and silently changes nothing, the same trap
+`{{requiredWords}}` and `{{speechPace}}` already have guards for.
+
+**`fitToPromptBudget` measures the rendered prompt, never an estimate.**
+`/api/ask-ai` rejects anything over 8000 characters with a 400 the user cannot
+act on, and the template that wraps a CV is admin-editable — so a verbose edit
+in Firestore can push a document that fitted yesterday over the line today.
+Chunking was rejected deliberately: `askAI` raises the spend-confirm modal per
+call, so N chunks is N modals and N of the user's daily allowance for one
+document.
+
+`AiNotice` exists because Terms §3.3 already promises AI features are
+"identificadas como tal na interface" and that output must be reviewed before
+use. It renders in the `input` variant before anything is generated and above
+every result. Do **not** put it on the personal pages — a notice on a page with
+no AI teaches people to ignore it where it matters.
 
 ## The word bank is the WORD favourite kind, not a new mechanism
 

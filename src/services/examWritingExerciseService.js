@@ -9,20 +9,9 @@ import { getPrompt, renderTemplate } from './promptService';
 import { parseAIJSON } from '../utils/parseAIJSON';
 import { askAI } from './aiService';
 import { getWritingSpec, RUBRIC_MAX_SCORE } from '../config/examLevels';
+import { resolveLanguageName } from '../utils/languageCode';
 
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
-
-const LOCALE_TO_LANGUAGE_NAME = {
-  'en': 'English', 'en-US': 'English', 'en-GB': 'English',
-  'es': 'Spanish', 'es-ES': 'Spanish',
-  'fr': 'French', 'fr-FR': 'French',
-  'pt': 'European Portuguese', 'pt-PT': 'European Portuguese', 'pt-BR': 'Brazilian Portuguese',
-};
-
-function _resolveLanguageName(locale) {
-  if (!locale) return 'English';
-  return LOCALE_TO_LANGUAGE_NAME[locale] ?? LOCALE_TO_LANGUAGE_NAME[locale.split('-')[0]] ?? 'English';
-}
 
 const MAX_OUTPUT_TOKENS_GENERATION_BY_LEVEL = {
   A1: 2048, A2: 3072, B1: 4096, B2: 4096, C1: 6144, C2: 6144,
@@ -109,7 +98,7 @@ export async function evaluateWriting({
   const max = toWordBound(overrideMax, spec.maxWords);
   const wordCount = _countWords(userText);
   const wordCountPenalty = _calcWordCountPenalty(wordCount, min, max);
-  const feedbackLanguage = _resolveLanguageName(interfaceLang);
+  const feedbackLanguage = resolveLanguageName(interfaceLang);
 
   const promptDoc = await getPrompt('exam-writing-evaluation-prompt');
   const prompt = renderTemplate(promptDoc.template, {

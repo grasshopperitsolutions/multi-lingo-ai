@@ -32,6 +32,7 @@ import {
   Plane,
   Gamepad2,
   GraduationCap,
+  BookUser,
 } from "lucide-react";
 
 import { DASHBOARD_GROUP_IDS, FALLBACK_GROUP_ID, isGroupId } from "./dashboardGroups";
@@ -178,6 +179,15 @@ export const DASHBOARD_FEATURES = [
     color: "text-pink-500",
     titleKey: "dashboard.plan_trip",
     descKey: "dashboard.plan_trip_desc",
+  },
+  {
+    id: "personal_tools",
+    group: DASHBOARD_GROUP_IDS.PRACTICE,
+    route: "/dashboard/personal",
+    icon: BookUser,
+    color: "text-fuchsia-500",
+    titleKey: "dashboard.personal_tools",
+    descKey: "dashboard.personal_tools_desc",
   },
   {
     id: "professional_tools",

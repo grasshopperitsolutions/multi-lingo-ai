@@ -26,6 +26,7 @@ const ACCENT_BAR = {
   emerald: { dark: "bg-emerald-500", light: "bg-emerald-400" },
   amber:   { dark: "bg-amber-500",   light: "bg-amber-400" },
   yellow:  { dark: "bg-yellow-500",  light: "bg-yellow-400" },
+  indigo:  { dark: "bg-indigo-500",  light: "bg-indigo-400" },
 };
 
 // eslint-disable-next-line react-refresh/only-export-components

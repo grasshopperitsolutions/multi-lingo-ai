@@ -56,7 +56,17 @@ const TutorsPage = lazy(() => import("./pages/dashboard/TutorsPage"));
 const VoicePracticePage = lazy(() => import("./pages/dashboard/coming-soon/VoicePracticePage"));
 const StoryGeneratorPage = lazy(() => import("./pages/dashboard/StoryGeneratorPage"));
 const HistoryCulturePage = lazy(() => import("./pages/dashboard/HistoryCulturePage"));
-const ProfessionalToolsPage = lazy(() => import("./pages/dashboard/coming-soon/ProfessionalToolsPage"));
+const PersonalMenu = lazy(() => import("./components/PersonalMenu"));
+const PersonalNotesPage = lazy(() => import("./pages/dashboard/personal/PersonalNotesPage"));
+const LessonCounterPage = lazy(() => import("./pages/dashboard/personal/LessonCounterPage"));
+const LessonPlanPage = lazy(() => import("./pages/dashboard/personal/LessonPlanPage"));
+const PhrasebookPage = lazy(() => import("./pages/dashboard/personal/PhrasebookPage"));
+const MistakeJournalPage = lazy(() => import("./pages/dashboard/personal/MistakeJournalPage"));
+const GoalPage = lazy(() => import("./pages/dashboard/personal/GoalPage"));
+const ProfessionalToolsMenu = lazy(() => import("./components/ProfessionalToolsMenu"));
+const CvToolPage = lazy(() => import("./pages/dashboard/professional/CvToolPage"));
+const EmailToolPage = lazy(() => import("./pages/dashboard/professional/EmailToolPage"));
+const ToneRewriterPage = lazy(() => import("./pages/dashboard/professional/ToneRewriterPage"));
 const FoodPage = lazy(() => import("./pages/dashboard/coming-soon/FoodPage"));
 const RadioTvPage = lazy(() => import("./pages/dashboard/coming-soon/RadioTvPage"));
 const PlanTripPage = lazy(() => import("./pages/dashboard/coming-soon/PlanTripPage"));
@@ -212,7 +222,17 @@ const AppLayout = () => {
             <Route path="voice-practice" element={<VoicePracticePage />} />
             <Route path="story-generator" element={<StoryGeneratorPage />} />
             <Route path="history-culture" element={<HistoryCulturePage />} />
-            <Route path="professional-tools" element={<ProfessionalToolsPage />} />
+            <Route path="personal" element={<PersonalMenu isDarkMode={isDarkMode} />} />
+            <Route path="personal/notes" element={<PersonalNotesPage />} />
+            <Route path="personal/lessons" element={<LessonCounterPage />} />
+            <Route path="personal/plan" element={<LessonPlanPage />} />
+            <Route path="personal/phrasebook" element={<PhrasebookPage />} />
+            <Route path="personal/mistakes" element={<MistakeJournalPage />} />
+            <Route path="personal/goal" element={<GoalPage />} />
+            <Route path="professional-tools" element={<ProfessionalToolsMenu isDarkMode={isDarkMode} />} />
+            <Route path="professional-tools/cv" element={<CvToolPage />} />
+            <Route path="professional-tools/email" element={<EmailToolPage />} />
+            <Route path="professional-tools/tone" element={<ToneRewriterPage />} />
             <Route path="food" element={<FoodPage />} />
             <Route path="radio-tv" element={<RadioTvPage />} />
             <Route path="plan-trip" element={<PlanTripPage />} />
