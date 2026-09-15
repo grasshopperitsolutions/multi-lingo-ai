@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multi Lingo AI — Graphic Guidelines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0F172A;      /* slate-900  — ink, borders, shadows */
+    --yellow:#FACC15;    /* yellow-400 — primary brand / CTA */
+    --blue:#2563EB;      /* blue-600   — secondary / links */
+    --rose:#E11D48;      /* rose-600   — rooster accent, alerts */
+    --emerald:#10B981;   /* emerald-500 */
+    --sky:#0EA5E9;       /* sky-500 */
+    --teal:#14B8A6;      /* teal-500 */
+    --amber:#F59E0B;     /* amber-500 */
+    --paper:#EFF6FF;     /* blue-50    — light page background */
+    --slate800:#1E293B;
+    --slate700:#334155;
+    --slate500:#64748B;
+    --slate300:#CBD5E1;
+    --slate100:#F1F5F9;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    color:var(--navy);background:var(--paper);line-height:1.5;font-size:14.5px}
+  .sheet{max-width:1000px;margin:0 auto 24px;background:#fff;padding:44px 52px;
+    border:4px solid var(--navy);box-shadow:10px 10px 0 0 var(--navy);}
+
+  h1{font-size:44px;font-weight:900;text-transform:uppercase;letter-spacing:-.03em;line-height:.92;margin:0 0 10px}
+  h2{font-size:22px;font-weight:900;text-transform:uppercase;letter-spacing:-.02em;margin:40px 0 14px;
+    display:inline-block;border-bottom:8px solid var(--yellow);padding-bottom:3px}
+  h3{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;margin:22px 0 7px}
+  h4{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.09em;color:var(--slate500);margin:0 0 6px}
+  p{margin:0 0 10px}
+  .lede{font-size:16px;font-weight:600;font-style:italic;opacity:.9}
+  code{font-family:ui-monospace,'Cascadia Code',Consolas,monospace;font-size:12.5px;
+    background:var(--slate100);padding:1px 6px;border-radius:4px;border:1px solid var(--slate300)}
+  ul{margin:0 0 10px;padding-left:20px} li{margin:3px 0}
+  a{color:var(--blue)}
+
+  .pill{display:inline-block;background:var(--yellow);border:3px solid var(--navy);border-radius:999px;
+    padding:4px 14px;font-weight:900;text-transform:uppercase;font-size:11px;letter-spacing:.08em;
+    box-shadow:4px 4px 0 0 var(--navy)}
+
+  table{width:100%;border-collapse:collapse;margin:10px 0 16px;font-size:13px}
+  th,td{text-align:left;vertical-align:top;padding:7px 10px;border-bottom:2px solid var(--slate300)}
+  th{background:var(--slate100);font-weight:900;text-transform:uppercase;font-size:11px;letter-spacing:.06em}
+
+  /* swatches */
+  .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0 18px}
+  .sw{border:4px solid var(--navy);border-radius:12px;overflow:hidden;box-shadow:5px 5px 0 0 var(--navy)}
+  .sw .chip{height:74px}
+  .sw .meta{padding:8px 10px;background:#fff;font-size:11.5px;line-height:1.35}
+  .sw .meta b{display:block;font-weight:900;text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+  .sw .meta span{color:var(--slate500);font-family:ui-monospace,Consolas,monospace;font-size:11px}
+
+  .box{border:4px solid var(--navy);border-radius:16px;padding:16px 18px;margin:14px 0;
+    box-shadow:6px 6px 0 0 var(--navy);background:#fff}
+  .box.yellow{background:#FEF9C3} .box.blue{background:#EFF6FF} .box.rose{background:#FFF1F3}
+  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+
+  /* do / don't */
+  .dd{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:12px 0}
+  .dd > div{border:4px solid var(--navy);border-radius:16px;padding:14px 16px}
+  .dd .do{background:#ECFDF5;box-shadow:6px 6px 0 0 var(--emerald)}
+  .dd .dont{background:#FFF1F3;box-shadow:6px 6px 0 0 var(--rose)}
+  .dd h4{color:var(--navy)}
+
+  /* live component demos */
+  .demo{background:var(--paper);border:3px dashed var(--slate300);border-radius:14px;padding:22px;margin:12px 0;
+    display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+  .btn-cta{background:var(--yellow);color:var(--navy);border:4px solid var(--navy);border-radius:999px;
+    padding:14px 34px;font-weight:900;text-transform:uppercase;letter-spacing:-.01em;font-size:19px;
+    box-shadow:6px 6px 0 0 var(--navy);display:inline-block}
+  .btn-sec{background:var(--blue);color:#fff;border:4px solid var(--navy);border-radius:12px;
+    padding:11px 22px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;font-size:12px;
+    box-shadow:4px 4px 0 0 var(--navy);display:inline-block}
+  .card-demo{background:#fff;border:4px solid var(--navy);border-radius:16px;padding:16px;
+    box-shadow:6px 6px 0 0 var(--navy);max-width:230px}
+  .tilt{transform:rotate(-2deg)}
+  .marquee-demo{background:var(--yellow);border-top:4px solid var(--navy);border-bottom:4px solid var(--navy);
+    transform:rotate(-2deg);padding:12px 0;font-weight:900;text-transform:uppercase;letter-spacing:.14em;
+    font-size:17px;text-align:center;overflow:hidden;white-space:nowrap;margin:16px 0 26px}
+
+  /* logo lockup */
+  .lockup{display:inline-flex;align-items:center;gap:12px}
+  .lockup .plate{width:64px;height:64px;background:#fff;border:3px solid var(--navy);border-radius:14px;
+    display:flex;align-items:center;justify-content:center;box-shadow:5px 5px 0 0 var(--yellow)}
+  .lockup .word{font-size:27px;font-weight:900;text-transform:uppercase;letter-spacing:-.02em}
+
+  /* dark demo */
+  .darkdemo{background:var(--navy);border-radius:16px;padding:22px;color:#F1F5F9;margin:12px 0;
+    display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+  .darkdemo .card{background:var(--slate800);border:4px solid var(--slate700);border-radius:16px;padding:14px;
+    box-shadow:6px 6px 0 0 #1E293B;max-width:210px;font-size:13px}
+  .darkdemo .btn{background:var(--yellow);color:var(--navy);border:4px solid var(--navy);border-radius:999px;
+    padding:12px 26px;font-weight:900;text-transform:uppercase;box-shadow:6px 6px 0 0 var(--yellow)}
+
+  /* social format boxes */
+  .formats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0}
+  .fmt{border:4px solid var(--navy);border-radius:12px;padding:10px;text-align:center;background:#fff;
+    box-shadow:4px 4px 0 0 var(--navy)}
+  .fmt .ratio{background:var(--slate100);border:2px dashed var(--slate300);margin:0 auto 8px;position:relative}
+  .fmt .safe{position:absolute;inset:14% 6%;border:2px solid var(--rose);border-radius:3px}
+  .fmt b{display:block;font-size:11.5px;font-weight:900;text-transform:uppercase}
+  .fmt span{font-size:10.5px;color:var(--slate500);font-family:ui-monospace,Consolas,monospace}
+
+  .toolbar{position:sticky;top:0;background:var(--navy);color:#fff;padding:11px 18px;font-size:13px;
+    display:flex;gap:14px;align-items:center;z-index:99;border-bottom:4px solid var(--yellow)}
+  .toolbar button{background:var(--yellow);color:var(--navy);border:3px solid #fff;padding:7px 16px;
+    border-radius:999px;font-weight:900;text-transform:uppercase;font-size:12px;letter-spacing:.05em;cursor:pointer;font-family:inherit}
+  .toolbar span{opacity:.75}
+  [contenteditable]:focus{outline:none;background:#FEF9C3}
+
+  @media print{
+    .toolbar{display:none}
+    body{background:#fff;font-size:11px}
+    .sheet{box-shadow:none;border:0;max-width:none;margin:0;padding:0 0 14px}
+    h1{font-size:34px} h2{font-size:18px;margin-top:22px}
+    .box,.dd,.demo,.swatches,table,.formats,.darkdemo,.persona{break-inside:avoid}
+    @page{margin:14mm}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button onclick="window.print()">Print / Save as PDF</button>
+  <span>Editable — click any text and type. Edits save to this browser. Fonts and swatches are live, so what you see is the real brand.</span>
+</div>
+
+<div class="sheet" contenteditable="true">
+
+<span class="pill">Brand &amp; Graphic Guidelines · v1</span>
+<h1>Multi&nbsp;Lingo&nbsp;AI</h1>
+<p class="lede">Practice any language, for real life.</p>
+<p>For designers producing social media materials (Meta feed, Reels/Stories, carousels, Google Display). Every value here is taken from the live product, so anything you make will sit next to the app without a seam. Source of truth: <code>src/index.css</code>, <code>tailwind.config.js</code>, <code>src/components/ui/</code>.</p>
+
+<!-- ───────────────────────────────────────── -->
+<h2>1. The style in one line</h2>
+<div class="box yellow">
+  <p style="margin:0;font-size:17px;font-weight:800"><b>Neo-brutalist, playful, loud.</b> Fat black borders, hard shadows with zero blur, chunky uppercase type, saturated flat colour, and things tilted a few degrees off-square. Nothing soft, nothing gradient-y, nothing corporate.</p>
+</div>
+<p>It should feel like a <b>sticker pack or a street poster</b>, not an ed-tech dashboard. The competitors (Duolingo, Babbel) are rounded and friendly-corporate; we are deliberately harder-edged and more handmade. The one non-negotiable: <b>every surface is outlined and every outlined thing casts a solid offset shadow.</b></p>
+
+<!-- ───────────────────────────────────────── -->
+<h2>2. Logo</h2>
+<div class="cols2">
+  <div>
+    <p>The mark is a <b>Barcelos rooster</b> — the Portuguese folk symbol — reduced to flat geometry. It signals the product's Portuguese roots and its "real language, real culture" positioning. It is never redrawn, recoloured or outlined differently.</p>
+    <h3>Lockup</h3>
+    <p>Rooster sits on a <b>white rounded plate</b> (14px radius, 3px navy border, 5px yellow offset shadow), wordmark to the right in Outfit&nbsp;900, uppercase, tight tracking. Gap between plate and wordmark = ¼ of the plate width.</p>
+    <h3>Clear space &amp; minimum size</h3>
+    <ul>
+      <li>Clear space on all sides = the height of the plate's corner radius × 2 (roughly 28px at 64px plate).</li>
+      <li>Minimum plate size: <b>40px</b> on screen. Below that use the rooster alone, no wordmark.</li>
+      <li>Profile pictures / avatars: rooster on a <b>white</b> plate, full bleed. Never on yellow — the beak and legs are yellow and disappear.</li>
+    </ul>
+  </div>
+  <div>
+    <div class="demo" style="justify-content:center;flex-direction:column;gap:22px">
+      <div class="lockup">
+        <div class="plate">
+          <svg viewBox="0 0 192 192" width="46" height="46" role="img" aria-label="Multi Lingo AI">
+            <path d="M34 100C20 88 20 52 44 42C28 32 56 22 70 38" fill="none" stroke="#E11D48" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M96 154C58 154 30 126 30 96C30 66 58 38 96 38C134 38 162 66 162 96C162 126 134 154 96 154Z" fill="#0F172A"/>
+            <path d="M82 40C82 26 120 26 120 40Z" fill="#E11D48"/>
+            <circle cx="101" cy="30" r="8" fill="#E11D48"/><circle cx="115" cy="36" r="6" fill="#E11D48"/>
+            <path d="M145 66L172 76L145 86Z" fill="#0F172A"/><path d="M148 70L166 76L148 82Z" fill="#FACC15"/>
+            <circle cx="132" cy="70" r="6" fill="#FFFFFF"/><circle cx="134" cy="70" r="3" fill="#0F172A"/>
+            <path d="M66 88C66 82 72 78 76 78C80 78 86 82 86 88C86 94 76 102 76 102C76 102 66 94 66 88Z" fill="#E11D48"/>
+            <circle cx="106" cy="88" r="6" fill="#FACC15"/><circle cx="86" cy="118" r="8" fill="#3B82F6"/>
+            <path d="M84 154V168M108 154V168" stroke="#0F172A" stroke-width="13" stroke-linecap="round"/>
+            <path d="M84 154V168M108 154V168" stroke="#FACC15" stroke-width="7" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="word">Multi Lingo</span>
+      </div>
+      <p style="font-size:12px;color:var(--slate500);margin:0;text-align:center">
+        Master file: <code>public/barcelos-rooster.svg</code><br>
+        Social share image: <code>public/barcelos-rooster-og.png</code>
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="dd">
+  <div class="do"><h4>✓ Do</h4><ul>
+    <li>Keep the rooster on white or a very light plate.</li>
+    <li>Scale it uniformly; let it rotate up to 12° as a playful element.</li>
+    <li>Use the rooster alone as a small stamp, watermark (20% opacity) or sticker.</li>
+  </ul></div>
+  <div class="dont"><h4>✗ Don't</h4><ul>
+    <li>Recolour the body, comb or tail.</li>
+    <li>Add a drop shadow with blur, a gradient, or a glow.</li>
+    <li>Put the wordmark in any font other than Outfit&nbsp;900 uppercase.</li>
+    <li>Place the rooster directly on yellow or on a busy photo.</li>
+  </ul></div>
+</div>
+
+<!-- ───────────────────────────────────────── -->
+<h2>3. Colour</h2>
+<h3>Core — use these for almost everything</h3>
+<div class="swatches">
+  <div class="sw"><div class="chip" style="background:#FACC15"></div><div class="meta"><b>Brand Yellow</b><span>#FACC15</span><span>yellow-400</span></div></div>
+  <div class="sw"><div class="chip" style="background:#0F172A"></div><div class="meta"><b>Ink Navy</b><span>#0F172A</span><span>slate-900</span></div></div>
+  <div class="sw"><div class="chip" style="background:#2563EB"></div><div class="meta"><b>Action Blue</b><span>#2563EB</span><span>blue-600</span></div></div>
+  <div class="sw"><div class="chip" style="background:#E11D48"></div><div class="meta"><b>Rooster Rose</b><span>#E11D48</span><span>rose-600</span></div></div>
+</div>
+<table>
+  <tr><th style="width:130px">Colour</th><th style="width:120px">Role</th><th>Rules</th></tr>
+  <tr><td><b>Brand Yellow</b></td><td>Primary CTA, highlight bands, energy</td><td>The signature. Every asset should carry it somewhere. <b>Always with navy text</b> — never white text on yellow. It is also the app's <code>theme-color</code>.</td></tr>
+  <tr><td><b>Ink Navy</b></td><td>Text, all borders, all light-mode shadows</td><td>The outline colour of the entire system. Body copy and headings on light backgrounds.</td></tr>
+  <tr><td><b>Action Blue</b></td><td>Secondary buttons, links, hero highlight box</td><td>Takes <b>white</b> text. Use when yellow is already doing something else in the frame.</td></tr>
+  <tr><td><b>Rooster Rose</b></td><td>Accent, urgency, hearts/favourites, errors</td><td>Small doses only — accents, badges, a countdown. Never a large background.</td></tr>
+</table>
+
+<h3>Supporting accents — for variety across a campaign</h3>
+<div class="swatches">
+  <div class="sw"><div class="chip" style="background:#10B981"></div><div class="meta"><b>Emerald</b><span>#10B981</span><span>success, free tier</span></div></div>
+  <div class="sw"><div class="chip" style="background:#0EA5E9"></div><div class="meta"><b>Sky</b><span>#0EA5E9</span><span>calm accent</span></div></div>
+  <div class="sw"><div class="chip" style="background:#14B8A6"></div><div class="meta"><b>Teal</b><span>#14B8A6</span><span>alt accent</span></div></div>
+  <div class="sw"><div class="chip" style="background:#F59E0B"></div><div class="meta"><b>Amber</b><span>#F59E0B</span><span>warm accent</span></div></div>
+</div>
+
+<h3>Backgrounds &amp; neutrals</h3>
+<div class="swatches">
+  <div class="sw"><div class="chip" style="background:#EFF6FF"></div><div class="meta"><b>Paper Blue</b><span>#EFF6FF</span><span>light page bg</span></div></div>
+  <div class="sw"><div class="chip" style="background:#FFFFFF;border-bottom:4px solid #0F172A"></div><div class="meta"><b>White</b><span>#FFFFFF</span><span>cards, surfaces</span></div></div>
+  <div class="sw"><div class="chip" style="background:#1E293B"></div><div class="meta"><b>Slate 800</b><span>#1E293B</span><span>dark-mode card</span></div></div>
+  <div class="sw"><div class="chip" style="background:#64748B"></div><div class="meta"><b>Slate 500</b><span>#64748B</span><span>muted / captions</span></div></div>
+</div>
+
+<div class="box blue">
+  <h4 style="color:var(--blue)">Colour ratio for a social asset</h4>
+  <p style="margin:0">Roughly <b>60% background</b> (white / paper blue / navy) · <b>25% one hero colour</b> (yellow or blue) · <b>15% ink</b> (borders + type) · <b>a pinch of rose</b>. Two accent colours max per asset, plus navy. More than that and it stops reading as one brand.</p>
+</div>
+
+<h3>Dark mode</h3>
+<p>The app has a full dark theme and campaign assets may use it for contrast in a feed. The one rule that changes: <b>on dark, the offset shadow becomes yellow (#FACC15), not navy</b> — a navy shadow is invisible on a navy page. Cards go <code>#1E293B</code> with <code>#334155</code> borders and their own <code>#1E293B</code> shadow.</p>
+<div class="darkdemo">
+  <div class="btn">Start free</div>
+  <div class="card">Card on dark — slate-800 fill, slate-700 border, its own dark offset shadow.</div>
+  <div style="font-weight:900;text-transform:uppercase;font-size:20px;color:var(--yellow)">Headlines go yellow</div>
+</div>
+
+<!-- ───────────────────────────────────────── -->
+<h2>4. Typography</h2>
+<div class="cols2">
+  <div>
+    <p><b>Outfit</b> is the only typeface. Free on Google Fonts. Weights in use: <b>400</b> (body), <b>600</b> (emphasis), <b>800</b>, <b>900</b> (everything loud).</p>
+    <p style="font-size:12.5px;color:var(--slate500)"><code>fonts.google.com/specimen/Outfit</code> — if Outfit is unavailable, fall back to a geometric grotesque with a true Black: Poppins, Archivo or Montserrat Black. Never a serif, never a script.</p>
+    <h3>Rules</h3>
+    <ul>
+      <li><b>Headlines: 900, UPPERCASE, tracking tight</b> (−2% to −3%), line-height 0.9. They should feel packed.</li>
+      <li><b>Buttons &amp; labels: 900, UPPERCASE, tracking wide</b> (+8% to +14%) at small sizes.</li>
+      <li><b>Body: 400–600, sentence case,</b> normal tracking, line-height 1.5.</li>
+      <li><b>Subtitles are italic 600</b> — this is a brand tic from the landing page, keep it.</li>
+      <li>Never lowercase a headline. Never letterspace body copy.</li>
+    </ul>
+  </div>
+  <div>
+    <div class="demo" style="flex-direction:column;align-items:stretch;gap:10px">
+      <div style="font-weight:900;text-transform:uppercase;font-size:38px;letter-spacing:-.03em;line-height:.9">Come<br>practice</div>
+      <div style="display:inline-block;background:var(--blue);color:#fff;border:4px solid var(--navy);
+        padding:2px 14px;font-weight:900;text-transform:uppercase;font-size:30px;letter-spacing:-.03em;
+        transform:rotate(-2deg);box-shadow:6px 6px 0 0 var(--navy);width:fit-content">like never before</div>
+      <div style="font-weight:600;font-style:italic;font-size:15px;margin-top:8px">Your teacher gives you the rules. Your app gives you the streak. We give you the practice.</div>
+      <div style="font-weight:900;text-transform:uppercase;font-size:11px;letter-spacing:.12em;color:var(--slate500);margin-top:6px">Section label · 900 · wide tracking</div>
+    </div>
+  </div>
+</div>
+
+<h3>Type scale for social (1080×1080 canvas)</h3>
+<table>
+  <tr><th>Level</th><th style="width:110px">Size</th><th style="width:110px">Weight / case</th><th>Use</th></tr>
+  <tr><td>Hero headline</td><td>96–140 px</td><td>900 UPPER</td><td>3–6 words max. The whole point of the frame.</td></tr>
+  <tr><td>Highlight word</td><td>same as hero</td><td>900 UPPER</td><td>In a tilted filled box (yellow or blue). One per asset.</td></tr>
+  <tr><td>Subhead</td><td>40–52 px</td><td>600 italic</td><td>One sentence. Optional.</td></tr>
+  <tr><td>Body / list</td><td>30–36 px</td><td>400–600</td><td>Carousels only. Max 3 lines per slide.</td></tr>
+  <tr><td>Button / badge</td><td>28–34 px</td><td>900 UPPER, +12% track</td><td>The CTA and small stamps.</td></tr>
+  <tr><td>Legal / handle</td><td>20–24 px</td><td>600</td><td>multi-lingo.online</td></tr>
+</table>
+
+<!-- ───────────────────────────────────────── -->
+<h2>5. The neo-brutalist kit</h2>
+<p>Five mechanics. Get these right and anything you draw is on-brand.</p>
+
+<div class="cols2">
+  <div>
+    <h3>① Borders</h3>
+    <ul>
+      <li><b>4px solid navy</b> is the default on every card, button and box.</li>
+      <li>2–3px for small chips and the logo plate. 8px for a headline underline.</li>
+      <li>Borders are <b>always solid, always navy</b> on light; <code>#334155</code> on dark.</li>
+      <li>Scale up on large canvases: on a 1080px square, use <b>8–10px</b> so it reads the same.</li>
+    </ul>
+
+    <h3>② Hard shadows</h3>
+    <ul>
+      <li><b>Zero blur, zero spread.</b> Offset down-right.</li>
+      <li>Standard offsets: <code>4px 4px</code> (buttons), <code>6px 6px</code> (cards), <code>10px 10px</code> (hover / feature).</li>
+      <li>Colour: navy <code>#0F172A</code> on light, yellow <code>#FACC15</code> on dark.</li>
+      <li>On a 1080px canvas scale to <b>10–16px</b>.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>③ Corner radii</h3>
+    <ul>
+      <li><b>Pills / CTAs:</b> fully rounded (999px).</li>
+      <li><b>Cards:</b> 16px (<code>rounded-2xl</code>) · <b>Buttons:</b> 12px · <b>Feature cards:</b> 32px.</li>
+      <li>Never square corners, never a mix of radii on one object.</li>
+    </ul>
+
+    <h3>④ Tilt</h3>
+    <ul>
+      <li>Rotate elements <b>±1°, ±2°, ±6° or ±12°</b> — nothing in between, and never more than 12°.</li>
+      <li>Alternate direction between neighbours so a row of cards zig-zags.</li>
+      <li>Banners and marquee bands sit at <b>−2°</b> and bleed off both edges.</li>
+      <li>Hero highlight box: <b>−2°</b>.</li>
+    </ul>
+  </div>
+</div>
+
+<h3>⑤ Motion (for Reels / animated ads)</h3>
+<table>
+  <tr><th style="width:120px">Move</th><th style="width:130px">Spec</th><th>Where</th></tr>
+  <tr><td><b>Float</b></td><td>±15px Y, ±3° rotate, 4–6s loop, ease-in-out</td><td>Badges, stickers, floating icons</td></tr>
+  <tr><td><b>Wiggle</b></td><td>−5°↔+5° at 1.05 scale, 0.4s loop</td><td>Hover/attention on a single element</td></tr>
+  <tr><td><b>Marquee</b></td><td>Linear scroll, 15s full pass, seamless</td><td>Tilted yellow band of short caps phrases</td></tr>
+  <tr><td><b>Press</b></td><td>Shadow collapses to 0, element shifts +4px/+4px</td><td>Any button tap</td></tr>
+  <tr><td><b>Bounce</b></td><td>−12px, 0.8s, 3 blocks staggered 0.15s</td><td>Loading / transitions</td></tr>
+</table>
+<p style="font-size:12.5px;color:var(--slate500)">Motion is snappy and physical, never a slow fade. Cuts over dissolves. First 3 frames of a Reel must already show the yellow.</p>
+
+<div class="marquee-demo">PRACTICE EVERY DAY ✦ REAL SLANG, NOT TEXTBOOK ✦ BETWEEN YOUR LESSONS ✦ FOR REAL LIFE ✦</div>
+
+<h3>Component reference</h3>
+<div class="demo">
+  <div class="btn-cta">Start free →</div>
+  <div class="btn-sec">See plans</div>
+  <div class="card-demo tilt"><div style="font-weight:900;text-transform:uppercase;font-size:15px;margin-bottom:6px">Slang</div><div style="font-size:12.5px">Real expressions, sorted by dialect.</div></div>
+  <div class="pill">Free forever</div>
+</div>
+
+<!-- ───────────────────────────────────────── -->
+<h2>6. Imagery &amp; graphic elements</h2>
+<div class="cols2">
+  <div>
+    <h3>Photography</h3>
+    <ul>
+      <li><b>Real, candid, unposed.</b> People talking in markets, cafés, on trains, with family — the situations the product is for.</li>
+      <li>Warm, high-saturation, natural light. No corporate stock, no headsets, no people pointing at laptops.</li>
+      <li><b>Always framed:</b> a photo goes inside a navy-bordered box with an offset shadow, often tilted. A bare photo is off-brand.</li>
+      <li>Optional: knock the subject out and place them over a flat yellow field.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Icons &amp; decoration</h3>
+    <ul>
+      <li>Icon set is <b>Lucide</b> (lucide.dev) — outline, 2–3px stroke, matches the border language. Free and open source.</li>
+      <li>Decorative extras: speech bubbles with fat borders, hand-drawn arrows, stars/sparkles, flag chips, tilted stickers.</li>
+      <li><b>No</b> gradients, glassmorphism, soft drop shadows, 3D renders, or AI-slop illustration.</li>
+      <li>Flags are fine for dialect callouts (🇵🇹 🇧🇷 🇪🇸 🇲🇽 🇬🇧 🇺🇸) — put them in bordered chips, not floating.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ───────────────────────────────────────── -->
+<h2>7. Social media formats</h2>
+<div class="formats">
+  <div class="fmt"><div class="ratio" style="width:88px;height:88px"><div class="safe"></div></div><b>Feed square</b><span>1080×1080</span></div>
+  <div class="fmt"><div class="ratio" style="width:74px;height:92px"><div class="safe"></div></div><b>Feed portrait</b><span>1080×1350</span></div>
+  <div class="fmt"><div class="ratio" style="width:54px;height:96px"><div class="safe"></div></div><b>Story / Reel</b><span>1080×1920</span></div>
+  <div class="fmt"><div class="ratio" style="width:96px;height:50px"><div class="safe"></div></div><b>Link / OG</b><span>1200×630</span></div>
+</div>
+<p style="font-size:12.5px;color:var(--slate500)">Red outline = safe area. For Stories/Reels keep all type and the CTA inside the middle <b>~250px top / 340px bottom</b> margins — Meta's UI covers the rest.</p>
+
+<table>
+  <tr><th style="width:150px">Asset</th><th>Recipe</th></tr>
+  <tr><td><b>Single image ad</b></td><td>Paper-blue or white ground · hero headline 900 UPPER with <b>one</b> word in a tilted yellow or blue box · optional framed photo · yellow pill CTA bottom · rooster stamp in a corner.</td></tr>
+  <tr><td><b>Carousel</b></td><td>Slide 1 = hook headline only. Slides 2–4 = one idea each, big number badge in a circle at the top-left corner of a tilted card. Final slide = yellow ground + CTA. Alternate tilt direction slide to slide.</td></tr>
+  <tr><td><b>Reel / Story</b></td><td>Open on the yellow band or the hero word within 3 frames. Text appears in tilted boxes that snap in (no fade). Close on the lockup + "Start free" pill.</td></tr>
+  <tr><td><b>Quote / slang card</b></td><td>White card, 4px navy border, 6px shadow, tilted −2°. Target-language phrase in 900 UPPER, English gloss in italic 600 underneath. Flag chip for the dialect. Highest-performing organic format — make lots.</td></tr>
+  <tr><td><b>Profile picture</b></td><td>Rooster on white, full bleed, no wordmark.</td></tr>
+  <tr><td><b>Cover / banner</b></td><td>Tilted yellow marquee band across a paper-blue ground, lockup left-aligned.</td></tr>
+</table>
+
+<!-- ───────────────────────────────────────── -->
+<h2>8. Voice in graphics</h2>
+<div class="box rose">
+  <p style="margin:0 0 8px"><b>The single hardest rule: we never say "learn" or "learning".</b> The word frames the product as homework. We say <b>practice</b> — you practice a language while doing something you already want to do.</p>
+  <p style="margin:0;font-size:13px">Also avoid: <i>course, curriculum, lessons</i> (as our offer), <i>streak, master a language, fluent in 3 months, AI-powered</i>.</p>
+</div>
+<div class="dd">
+  <div class="do"><h4>✓ Words we use</h4><ul>
+    <li>practice · keep it warm · sound local</li>
+    <li>real slang · expressions people actually use</li>
+    <li>alongside your teacher · in your language</li>
+    <li>5 minutes · free to start</li>
+  </ul></div>
+  <div class="dont"><h4>✗ Words we don't</h4><ul>
+    <li>learn / learning · course · curriculum</li>
+    <li>streak · master a language</li>
+    <li>fluent in 3 months · unlock your potential</li>
+    <li>AI-powered · revolutionary · seamless</li>
+  </ul></div>
+</div>
+<p><b>Headline shape:</b> short, second person, a little confrontational. <i>"Day 600. Still can't order a coffee like a local?"</i> · <i>"You understand your family. Now answer them."</i> · <i>"Keep your tutor. Keep your app. Fill the gap between them."</i> Caps, tight, no exclamation marks stacked.</p>
+
+<!-- ───────────────────────────────────────── -->
+<h2>9. Accessibility floor</h2>
+<ul>
+  <li><b>Never white text on Brand Yellow</b> (≈1.2:1 — invisible). Yellow always pairs with navy.</li>
+  <li>Minimum 4.5:1 for body copy, 3:1 for headline-size type. Navy on white/paper/yellow all pass comfortably.</li>
+  <li>Never carry meaning in colour alone — pair with a label or an icon.</li>
+  <li>Reels: burn in captions. Assume sound off.</li>
+  <li>Keep the tilt on type under 3° — beyond that it gets hard to read at feed size.</li>
+</ul>
+
+<!-- ───────────────────────────────────────── -->
+<h2>10. Quick checklist before you export</h2>
+<div class="box">
+<ul style="margin:0">
+  <li>☐ Is there yellow in the frame?</li>
+  <li>☐ Does every box have a 4px+ navy border <b>and</b> a hard, zero-blur offset shadow?</li>
+  <li>☐ Is at least one element tilted (±1/2/6/12°)?</li>
+  <li>☐ Is the headline Outfit 900, uppercase, tight-tracked?</li>
+  <li>☐ Are there at most two accent colours plus navy?</li>
+  <li>☐ Is the word "learn" absent?</li>
+  <li>☐ Is the CTA a yellow pill with navy text?</li>
+  <li>☐ Is the rooster or the URL somewhere in the frame?</li>
+  <li>☐ Does all type sit inside the platform safe area?</li>
+  <li>☐ No gradients, no blurred shadows, no rounded-square-with-a-soft-shadow?</li>
+</ul>
+</div>
+
+<h3>Asset locations</h3>
+<table>
+  <tr><th style="width:230px">File</th><th>What it is</th></tr>
+  <tr><td><code>public/barcelos-rooster.svg</code></td><td>Logo master, transparent, 192×192 viewBox</td></tr>
+  <tr><td><code>public/barcelos-rooster-og.png</code></td><td>Social share image (1200×630)</td></tr>
+  <tr><td><code>public/icons/</code></td><td>App icons 192/512, maskable, apple-touch</td></tr>
+  <tr><td><code>src/index.css</code></td><td>Shadows, animations, scrollbar — the motion spec</td></tr>
+  <tr><td><code>src/components/ui/</code></td><td>Live button / card / badge components</td></tr>
+</table>
+
+<p style="font-size:12px;color:var(--slate500);margin-top:26px">Multi Lingo AI · Grasshopper IT Solutions LLC · multi-lingo.online · Guidelines v1, 14 Sep 2026. Values extracted from the production codebase — if the app changes, update this document.</p>
+
+</div>
+
+<script>
+  var KEY="mla-brand-guidelines", sheet=document.querySelector(".sheet"), t;
+  try{var s=localStorage.getItem(KEY); if(s) sheet.innerHTML=s;}catch(e){}
+  sheet.addEventListener("input",function(){clearTimeout(t);
+    t=setTimeout(function(){try{localStorage.setItem(KEY,sheet.innerHTML);}catch(e){}},600);});
+</script>
+</body>
+</html>
