@@ -33,7 +33,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-**743 tests across 28 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
+**760 tests across 29 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
 
 - `test/canaries/` — one assertion per library behaviour no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing, every literal `t()` key resolving in the pt-PT bundle.
 - `test/smoke/pages.test.jsx` — 37 pages mount, paint, stay out of the error boundary, and render no raw translation keys. **Feature pages assert the route shell only**: each is a Suspense wrapper, so the assertion passes while the lazy chunk is still loading. The heavy components are covered directly instead.
@@ -82,6 +82,24 @@ Two consequences worth knowing before touching it:
 - `saveEmailTemplates` patches only the keys that actually changed, using dot-notation paths through the same `patchDocument` the translation pipeline uses. Writing the whole `email` object back would clobber any key not listed in `TEMPLATE_GROUPS`.
 
 `TEMPLATE_GROUPS` is an explicit list rather than something derived from the bundle, because `email.common.*` is shared chrome that appears in every message and should not look like it belongs to one email. `TEMPLATE_VARIABLES` mirrors the `{{...}}` placeholders actually present in the base copy — dropping one renders a literal `{{tier}}` in a real email.
+
+## Settings cards are closed except Profile
+
+Every card on `/settings` starts collapsed apart from Profile, at every width.
+It used to open them all on a desktop and close them all on a phone; the
+desktop half was wrong for the same reason the phone half was right — nine
+expanded forms is a long scroll with no overview, and a wide screen just means
+scrolling past more of it. Closed cards are a table of contents.
+
+Two cards open themselves when the URL names them: `#tutorSettings` (the
+"Update my profile" link on the tutor directory) and `#personalWidgets` (the
+dashboard's "choose what to show"). `openFromHash` is read once during render,
+which works for a client-side navigation because React Router updates the
+location before the page renders.
+
+**A section component that defaults `defaultOpen` to `true` is a trap.**
+`NotificationSettings` did, so dropping the prop silently reopened it while
+every sibling stayed shut. All of them default to closed now.
 
 ## Tutor directory
 
@@ -357,6 +375,113 @@ interaction, and four taps must be one write, not four writes racing.
 change every few hundred milliseconds and a paragraph should be one write. It
 also reports its save state, since a page that autosaves and says nothing is
 asking to be trusted with the only copy of something you wrote.
+
+## The personal dashboard loads once and passes down
+
+`/dashboard/personal` is nine live widgets, not a menu — it replaced
+`PersonalMenu`, which was six links to six pages. The pages all still exist and
+stay routed; each widget that loses something at card size carries a small
+icon-only expand control to its own page. An icon rather than a labelled
+button on purpose: a row of "see all" links would put the menu straight back
+on the page it replaced.
+
+**`usePersonalDashboard` composing the five hooks is mandatory, and not for
+request count.** The lesson counter and the goal both read
+`personalSettings/main`; two `usePersonalSettings()` instances on one page
+would mean two independent 800ms debounce buffers writing to one document and
+two flushes on unmount. Today's patches are disjoint so POST-with-an-id merges
+them, but that is a race built on purpose. `test/unit/personalDashboard.test.jsx`
+asserts `getDocument` is called exactly once for that document.
+
+Two footguns the widgets have to respect, both already paid for once:
+
+- `usePersonalCollection`'s `add`/`update`/`remove` close over `items`, so
+  their identity changes on every list mutation. Never put one in a dependency
+  array, don't `React.memo` a widget that receives one, and **never
+  `useCallback`-wrap one** — that captures the first `update`, which closes over
+  the empty initial `items`, so one failed write rolls the list back to `[]`.
+- `getFavouriteIds` hands back a fresh `[]` when the profile has no
+  `favWordIds`, so the word bank's `words` is a new identity every render for a
+  user who has never saved one. `RecallWidget` derives its card from a seed
+  rather than an effect for exactly this reason.
+
+**Layout: a grid, not `TodayPanel`'s rails.** Rails suit a set that is
+unbounded, uniform and glanced at; this one is bounded, heterogeneous and
+operated. Three classes are load-bearing — `items-start` (without it every
+short card stretches to its tallest row sibling and its hard shadow detaches),
+`lg:` rather than `md:` (the content area is `max-w-5xl`, so the second column
+appears at the exact width the container stops growing — measured at 1023px it
+is one column, at 1024px two columns of 481px), and `gap-4` to clear the 6px
+offset shadow. Do **not** copy `TodayPanel`'s `px-2 py-3`: that exists only
+because `overflow-x: auto` clips vertically and was eating those shadows, and
+a grid has no overflow context.
+
+Tap targets here are set with explicit `min-w-[44px] min-h-[44px]`, not with
+padding around an icon. Padding lands a 15px icon at 39px, which looks fine and
+is not a thumb target — the shared `Breadcrumb` back arrow and `FeatureHeader`
+heart are still 14px and 28px, and are the remaining exceptions app-wide.
+
+**Which widgets appear is the user's choice**, in Settings rather than on the
+dashboard — a hide control on nine cards is nine controls you look past daily
+to reach the one you came for. `config/personalWidgets.js` is the single
+registry the page and the picker both render from, so order, column spans and
+copy cannot drift. Its `titleKey`/`descKey` are resolved from a variable, so
+the i18n canary (which scans for literal `t("...")` calls) cannot see them —
+`personalDashboard.test.jsx` checks them against the pt bundle instead.
+
+**`PersonalWidgetCard` takes a `widgetId`, not a title/icon/colour.** It looks
+all four up in the registry, so a widget's name, description, icon and chip
+colour exist once. Each widget used to pass its own `title`, `icon` and `color`
+while the registry held a second copy of the name for Settings; two copies of a
+string are two copies to keep in step, and the description now appears in both
+places, which would have made it three. An unregistered id throws with a named
+message rather than failing as `cannot read icon of undefined` inside the error
+boundary.
+
+The stored value is the **hidden** ids (`users/{uid}.hiddenPersonalWidgets`),
+never the shown ones. With a "shown" list every widget added later would be
+invisible to every existing user until they went and enabled it — a silent
+no-ship. It lives on the profile rather than in `personalSettings/main` because
+the profile is already in context on every page, so the dashboard and Settings
+both read it with no request at all.
+
+Two things that bit while building it, both worth knowing generally:
+
+- **`AppContext`'s `setUser` hydration block is an explicit allow-list.** A new
+  profile field left out of it is written correctly and then silently dropped
+  on the next load, which reads to the user as a setting that does not stick.
+  Adding a field anywhere means adding it there too.
+- **Toggles that write are debounced, not disabled while saving.** Disabling
+  the panel per write makes turning three things off three round trips you wait
+  out; allowing concurrent writes lets two full-array PUTs land out of order and
+  leaves the server disagreeing with the screen. Debouncing 600ms and sending
+  the whole array once has neither problem — the same shape the lesson counter
+  uses.
+
+Mobile sizing is tuned at 360px, which is where it gets used. The inputs, the
+card padding, the icon chips, the divider gaps and the two big numerals all
+step up at `sm:` rather than being one size everywhere; that took the empty
+dashboard from 4.4 screens of scroll to 3.6.
+
+**There are no single-line `<input type="text">` fields left in this area.**
+An input's placeholder cannot wrap — it is one line by spec — so a hint longer
+than the box is simply cut, and at 360px the next-lesson placeholder lost 91px
+of itself in English, with every longer language losing more. The typed value
+has the same problem: an input scrolls sideways, so a long phrase becomes a
+keyhole. `AutoGrowTextarea` replaces them: one row to start, height recomputed
+from `scrollHeight` on every value change (an effect on `value`, so clearing
+the draft after an add resets it), Enter submits and Shift+Enter makes a line.
+Date and number fields stay real inputs — their native pickers are the point.
+
+**Cards are bounded by height, not by item count.** The lists used to slice to
+five, which hid rows the user could just as well have scrolled to. They now
+render everything and cap the list region with `max-h-52 sm:max-h-64
+overflow-y-auto overscroll-contain scrollbar-hidden` — `.scrollbar-hidden`
+already exists in `index.css`, and `overscroll-contain` stops a flick inside a
+list carrying on into the page behind it. Row text is `break-words`, never
+`truncate`. With no scrollbar, the partially visible row at the cut is the only
+cue that there is more; that is deliberate, but it is the thing to revisit if
+anyone reports missing content.
 
 ## Professional tools: one tier key, one register, one prompt budget
 

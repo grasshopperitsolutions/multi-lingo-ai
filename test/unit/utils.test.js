@@ -249,3 +249,39 @@ describe("authFetch", () => {
     expect(onTokenExpired).not.toHaveBeenCalled();
   });
 });
+
+describe("daysUntil", () => {
+  /**
+   * Lived in GoalPage as a private function and was therefore untested, which
+   * is unfortunate for the one piece of arithmetic on the page a user reads as
+   * a fact about their own plans.
+   */
+  const iso = (offsetDays) => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + offsetDays);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+
+  it("counts today as zero, not one", async () => {
+    const { daysUntil } = await import("../../src/utils/dates");
+    expect(daysUntil(iso(0))).toBe(0);
+  });
+
+  it("counts forward", async () => {
+    const { daysUntil } = await import("../../src/utils/dates");
+    expect(daysUntil(iso(30))).toBe(30);
+  });
+
+  it("goes negative rather than clamping, so a passed date can say so", async () => {
+    const { daysUntil } = await import("../../src/utils/dates");
+    expect(daysUntil(iso(-5))).toBe(-5);
+  });
+
+  it("returns null for anything unusable instead of NaN", async () => {
+    const { daysUntil } = await import("../../src/utils/dates");
+    for (const value of ["", null, undefined, "not a date"]) {
+      expect(daysUntil(value)).toBeNull();
+    }
+  });
+});

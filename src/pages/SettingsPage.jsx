@@ -29,12 +29,12 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useTierAccess } from "../hooks/useTierAccess";
-import { useMediaQuery, MOBILE_QUERY } from "../hooks/useMediaQuery";
 import { SettingsSection } from "../components/ui";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
 import NotificationSettings from "../components/NotificationSettings";
 import TutorProfileSection from "../components/TutorProfileSection";
 import WordBankSection from "../components/WordBankSection";
+import PersonalWidgetSettings from "../components/personal/PersonalWidgetSettings";
 import { syncTutorIdentity } from "../services/tutorService";
 import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
@@ -181,7 +181,6 @@ const SettingsForm = ({
   showOtherLearning, setShowOtherLearning,
   isSeedingInterface, isSeedingLanguage,
   isDirty,
-  sectionsOpenByDefault,
 }) => {
   const { t } = useTranslation();
 
@@ -203,7 +202,7 @@ const SettingsForm = ({
         title={t("settings.profile")}
         icon={<User size={16} className="inline mr-2" />}
         isDarkMode={isDarkMode}
-        defaultOpen={sectionsOpenByDefault}
+        defaultOpen
       >
         <AvatarUpload
           user={user}
@@ -245,7 +244,6 @@ const SettingsForm = ({
         title={t("settings.appearance")}
         icon={<Palette size={16} className="inline mr-2" />}
         isDarkMode={isDarkMode}
-        defaultOpen={sectionsOpenByDefault}
       >
         <div className="space-y-5">
           <div>
@@ -311,7 +309,6 @@ const SettingsForm = ({
         title={t("settings.language_learning")}
         icon={<BookOpen size={16} className="inline mr-2" />}
         isDarkMode={isDarkMode}
-        defaultOpen={sectionsOpenByDefault}
       >
         <div className="space-y-6">
           <div>
@@ -437,7 +434,6 @@ SettingsForm.propTypes = {
   handleSave:         PropTypes.func.isRequired,
   /** Whether the cards start expanded — false on a phone, where seven open
    *  cards make the page a very long scroll. */
-  sectionsOpenByDefault: PropTypes.bool.isRequired,
   previewUrl:         PropTypes.string,
   onFileSelect:       PropTypes.func.isRequired,
   supportedLanguages: PropTypes.arrayOf(PropTypes.shape({
@@ -465,17 +461,20 @@ const SettingsPage = () => {
   const { isDarkMode, setIsDarkMode, user, isLoadingUser, logoutUser, showAlert, refreshUser, changeLanguage, supportedLanguages, isLoadingLanguages, refreshSupportedLanguages, categories, isLoadingCategories } = useAppContext();
 
   /**
-   * On a phone every card starts closed: seven expanded forms make Settings a
-   * very long scroll with no overview of what is on the page. On a desktop
-   * there is room, so the cards open — except the tutor profile, which almost
-   * nobody edits and which is the longest card here.
+   * Every card starts closed except Profile, at every width.
    *
-   * Declared up here with the other hooks, above the isLoadingUser early
-   * return, because a hook after a conditional return runs in a different
-   * order on the two paths.
+   * This used to open them all on a desktop and close them all on a phone, and
+   * the desktop half was wrong for the same reason the phone half was right:
+   * nine expanded forms is a very long scroll with no overview of what is
+   * actually on the page, and a wide screen does not fix that — it just means
+   * you scroll past more of it. Closed cards are a table of contents.
+   *
+   * Profile stays open because it is first and it is what people come here
+   * for. Two cards open themselves when the URL names them —
+   * `#tutorSettings` and `#personalWidgets` — so a link from elsewhere lands
+   * on the thing it promised rather than on a card you still have to find.
    */
-  const isMobile = useMediaQuery(MOBILE_QUERY);
-  const sectionsOpenByDefault = !isMobile;
+  const openFromHash = typeof window !== "undefined" ? window.location.hash : "";
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -759,7 +758,6 @@ const SettingsPage = () => {
         isSeedingInterface={isSeedingInterface}
         isSeedingLanguage={isSeedingLanguage}
         isDirty={isDirty}
-        sectionsOpenByDefault={sectionsOpenByDefault}
       />
 
         {/* ── Word bank ── */}
@@ -775,19 +773,24 @@ const SettingsPage = () => {
           id="tutorSettings"
           isDarkMode={isDarkMode}
           user={user}
-          // Closed by default regardless of viewport — see sectionsOpenByDefault's
-          // own comment, this is the longest, least-often-edited card here —
-          // except when arriving via the "Update my profile" link on the tutor
-          // directory page (/settings#tutorSettings), which should open straight
-          // to it rather than making the visitor find and expand it themselves.
-          defaultOpen={typeof window !== "undefined" && window.location.hash === "#tutorSettings"}
+          // Opens when arriving via the "Update my profile" link on the tutor
+          // directory page, which should land on the editor rather than make
+          // the visitor find and expand it themselves.
+          defaultOpen={openFromHash === "#tutorSettings"}
+        />
+
+        {/* ── Which widgets the personal dashboard shows ── */}
+        <PersonalWidgetSettings
+          isDarkMode={isDarkMode}
+          // Same as the tutor card: the dashboard's "choose what to show"
+          // button links straight here.
+          defaultOpen={openFromHash === "#personalWidgets"}
         />
 
         {/* ── Notifications ── */}
         <NotificationSettings
           isDarkMode={isDarkMode}
           user={user}
-          defaultOpen={sectionsOpenByDefault}
           onSaved={refreshUser}
         />
 
@@ -796,7 +799,6 @@ const SettingsPage = () => {
           title={t("subscription.title")}
           icon={<CreditCard size={16} className="inline mr-2" />}
           isDarkMode={isDarkMode}
-          defaultOpen={sectionsOpenByDefault}
         >
 
           {/* Current Tier Badge */}
@@ -1018,7 +1020,6 @@ const SettingsPage = () => {
           title={t("settings.account")}
           icon={<LogOut size={16} className="inline mr-2" />}
           isDarkMode={isDarkMode}
-          defaultOpen={sectionsOpenByDefault}
         >
           <div className="space-y-3">
             <button

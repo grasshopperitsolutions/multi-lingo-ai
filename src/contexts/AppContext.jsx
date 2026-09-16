@@ -592,6 +592,13 @@ export const AppProvider = ({ children }) => {
         // Absent means "not chosen yet", which useDashboardPresentation
         // resolves by viewport rather than by guessing a default here.
         dashboardPresentation: profile?.dashboardPresentation ?? null,
+        // Personal-dashboard widgets the user has turned off. Stored as the
+        // hidden ids, so a widget added later is on by default; absent means
+        // "nothing hidden", which is every user until they change something.
+        // This block is an allow-list — a field left out of it is written
+        // correctly and then silently dropped on the next load, which reads to
+        // the user as a setting that does not stick.
+        hiddenPersonalWidgets: profile?.hiddenPersonalWidgets ?? [],
         // Notification opt-outs. Left undefined when unset so the Settings
         // card renders the defaults — the backend applies the same defaults
         // at send time, and it is the backend's check that actually counts.

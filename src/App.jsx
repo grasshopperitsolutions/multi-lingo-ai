@@ -56,7 +56,7 @@ const TutorsPage = lazy(() => import("./pages/dashboard/TutorsPage"));
 const VoicePracticePage = lazy(() => import("./pages/dashboard/coming-soon/VoicePracticePage"));
 const StoryGeneratorPage = lazy(() => import("./pages/dashboard/StoryGeneratorPage"));
 const HistoryCulturePage = lazy(() => import("./pages/dashboard/HistoryCulturePage"));
-const PersonalMenu = lazy(() => import("./components/PersonalMenu"));
+const PersonalDashboard = lazy(() => import("./pages/dashboard/personal/PersonalDashboard"));
 const PersonalNotesPage = lazy(() => import("./pages/dashboard/personal/PersonalNotesPage"));
 const LessonCounterPage = lazy(() => import("./pages/dashboard/personal/LessonCounterPage"));
 const LessonPlanPage = lazy(() => import("./pages/dashboard/personal/LessonPlanPage"));
@@ -222,7 +222,7 @@ const AppLayout = () => {
             <Route path="voice-practice" element={<VoicePracticePage />} />
             <Route path="story-generator" element={<StoryGeneratorPage />} />
             <Route path="history-culture" element={<HistoryCulturePage />} />
-            <Route path="personal" element={<PersonalMenu isDarkMode={isDarkMode} />} />
+            <Route path="personal" element={<PersonalDashboard />} />
             <Route path="personal/notes" element={<PersonalNotesPage />} />
             <Route path="personal/lessons" element={<LessonCounterPage />} />
             <Route path="personal/plan" element={<LessonPlanPage />} />

@@ -4,18 +4,12 @@ import { useAppContext } from "../../../contexts/AppContext";
 import { useTierAccess } from "../../../hooks/useTierAccess";
 import { usePersonalSettings } from "../../../hooks/usePersonalSettings";
 import Loader from "../../../components/Loader";
+import { daysUntil } from "../../../utils/dates";
+import {
+  personalInputClasses,
+  personalLabelClasses,
+} from "../../../components/personal/fieldStyles";
 import { FeaturePageShell, Card } from "../../../components/ui";
-
-/** Whole days from today to `date`, or null if there is no usable date. */
-function daysUntil(date) {
-  if (!date) return null;
-  const target = new Date(`${date}T00:00:00`);
-  if (Number.isNaN(target.getTime())) return null;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return Math.round((target - today) / 86_400_000);
-}
 
 /**
  * GoalPage
@@ -41,15 +35,8 @@ const GoalPage = () => {
 
   const days = daysUntil(settings.goalDate);
 
-  const inputClasses = `w-full px-4 py-3 rounded-xl border-4 font-semibold outline-none transition-colors ${
-    isDarkMode
-      ? "bg-slate-900 border-slate-700 text-white placeholder-slate-500 focus:border-violet-400"
-      : "bg-white border-slate-900 text-slate-900 placeholder-slate-400 focus:border-violet-500"
-  }`;
-
-  const labelClasses = `block text-xs font-black uppercase tracking-widest mb-2 ${
-    isDarkMode ? "text-slate-400" : "text-slate-500"
-  }`;
+  const inputClasses = personalInputClasses(isDarkMode);
+  const labelClasses = personalLabelClasses(isDarkMode);
 
   return (
     <FeaturePageShell

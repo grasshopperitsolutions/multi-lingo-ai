@@ -47,7 +47,10 @@ const normalize = (stored) => {
   return result;
 };
 
-const NotificationSettings = ({ isDarkMode, user, defaultOpen = true, onSaved }) => {
+// `defaultOpen` starts closed like every other card on the Settings page. It
+// used to default to open, which meant dropping the prop silently reopened it
+// while its siblings stayed shut.
+const NotificationSettings = ({ isDarkMode, user, defaultOpen = false, onSaved }) => {
   const { t } = useTranslation();
 
   const [prefs, setPrefs] = useState(() => normalize(user?.notificationPrefs));

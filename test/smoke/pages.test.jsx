@@ -41,6 +41,7 @@ vi.mock("../../src/services/firestoreService", () => ({
   getDocument: vi.fn(async () => null),
   createDocument: vi.fn(async () => ({ id: "x" })),
   updateDocument: vi.fn(async () => ({})),
+  patchDocument: vi.fn(async () => ({})),
   deleteDocument: vi.fn(async () => ({})),
 }));
 
@@ -322,7 +323,7 @@ const FEATURE_PAGES = [
   ["FoodPage", () => import("../../src/pages/dashboard/coming-soon/FoodPage")],
   ["RadioTvPage", () => import("../../src/pages/dashboard/coming-soon/RadioTvPage")],
   ["PlanTripPage", () => import("../../src/pages/dashboard/coming-soon/PlanTripPage")],
-  ["PersonalMenu", () => import("../../src/components/PersonalMenu")],
+  ["PersonalDashboard", () => import("../../src/pages/dashboard/personal/PersonalDashboard")],
   ["PersonalNotesPage", () => import("../../src/pages/dashboard/personal/PersonalNotesPage")],
   ["LessonCounterPage", () => import("../../src/pages/dashboard/personal/LessonCounterPage")],
   ["LessonPlanPage", () => import("../../src/pages/dashboard/personal/LessonPlanPage")],
