@@ -27,6 +27,7 @@ import {
   Palette,
   Star,
   ExternalLink,
+  Clock,
 } from "lucide-react";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { SettingsSection } from "../components/ui";
@@ -39,6 +40,7 @@ import { syncTutorIdentity } from "../services/tutorService";
 import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
 import { normalizeCode } from "../utils/languageCode";
+import { detectTimezone, timezoneOptions } from "../utils/timezones";
 
 // ── Avatar Upload Widget ─────────────────────────────────────────────────────────
 const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading, t }) => {
@@ -163,6 +165,9 @@ InterestPills.propTypes = {
   t:          PropTypes.func.isRequired,
 };
 
+/** 418 zones, each formatted through Intl — built once, not per render. */
+const TIMEZONE_OPTIONS = timezoneOptions();
+
 // ── Settings Form ───────────────────────────────────────────────────────────
 const SettingsForm = ({
   user, isDarkMode,
@@ -170,7 +175,8 @@ const SettingsForm = ({
   interfaceLang, setInterfaceLang,
   learningDialect, setLearningDialect,
   interests, setInterests,
-  draftDarkMode, setDraftDarkMode,
+  isDarkModeOn, onToggleTheme, isSavingTheme,
+  timezone, setTimezone,
   isSaving, isUploading, handleSave,
   previewUrl, onFileSelect,
   supportedLanguages,
@@ -236,6 +242,27 @@ const SettingsForm = ({
               className={`${inputClasses} opacity-50 cursor-not-allowed break-all`}
             />
           </div>
+
+          {/* Timezone. Pre-filled from the browser, which is right for almost
+              everyone — the control exists for the people it is wrong for:
+              someone who travels, or whose device clock is set to somewhere
+              they do not live. It decides what hour a reminder arrives, so a
+              wrong one is not cosmetic. */}
+          <div>
+            <label className={labelClasses}>
+              <Clock size={12} className="inline mr-1" /> {t("settings.timezone")}
+            </label>
+            <NeoDropdown
+              options={TIMEZONE_OPTIONS}
+              value={timezone}
+              onChange={setTimezone}
+              isDarkMode={isDarkMode}
+              className="w-full"
+            />
+            <p className={`mt-2 text-xs font-bold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
+              {t("settings.timezone_hint")}
+            </p>
+          </div>
         </div>
       </SettingsSection>
 
@@ -248,20 +275,21 @@ const SettingsForm = ({
         <div className="space-y-5">
           <div>
             <label className={labelClasses}>
-              {draftDarkMode ? <Moon size={12} className="inline mr-1" /> : <Sun size={12} className="inline mr-1" />}
+              {isDarkModeOn ? <Moon size={12} className="inline mr-1" /> : <Sun size={12} className="inline mr-1" />}
               {t("settings.app_theme")}
             </label>
             <button
               type="button"
-              onClick={() => setDraftDarkMode(!draftDarkMode)}
+              onClick={onToggleTheme}
+              disabled={isSavingTheme}
               className={`w-full flex items-center justify-between px-5 py-3 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95
-                ${ draftDarkMode
+                ${ isDarkModeOn
                   ? "bg-slate-700 border-yellow-400 text-yellow-400 shadow-[4px_4px_0px_0px_#ca8a04]"
                   : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
                 }`}
             >
-              <span>{draftDarkMode ? t("settings.dark_mode") : t("settings.light_mode")}</span>
-              {draftDarkMode ? <Moon size={20} /> : <Sun size={20} />}
+              <span>{isDarkModeOn ? t("settings.dark_mode") : t("settings.light_mode")}</span>
+              {isDarkModeOn ? <Moon size={20} /> : <Sun size={20} />}
             </button>
           </div>
           <div>
@@ -427,7 +455,11 @@ SettingsForm.propTypes = {
   setLearningDialect: PropTypes.func.isRequired,
   interests:          PropTypes.arrayOf(PropTypes.string).isRequired,
   setInterests:       PropTypes.func.isRequired,
-  draftDarkMode:      PropTypes.bool.isRequired,
+  isDarkModeOn:       PropTypes.bool.isRequired,
+  onToggleTheme:      PropTypes.func.isRequired,
+  isSavingTheme:      PropTypes.bool.isRequired,
+  timezone:           PropTypes.string.isRequired,
+  setTimezone:        PropTypes.func.isRequired,
   setDraftDarkMode:   PropTypes.func.isRequired,
   isSaving:           PropTypes.bool.isRequired,
   isUploading:        PropTypes.bool.isRequired,
@@ -492,7 +524,9 @@ const SettingsPage = () => {
   const [interfaceLang,    setInterfaceLang]    = useState(user?.interfaceLang || "en-US");
   const [learningDialect,  setLearningDialect]  = useState(user?.learningDialect || "");
   const [interests,        setInterests]        = useState(user?.interests || []);
-  const [draftDarkMode,    setDraftDarkMode]    = useState(isDarkMode);
+  const [timezone,         setTimezone]         = useState(() => user?.timezone || detectTimezone());
+  const [isSavingTheme,    setIsSavingTheme]    = useState(false);
+
   const [isSaving,         setIsSaving]         = useState(false);
 
   const [pendingFile, setPendingFile] = useState(null);
@@ -523,7 +557,7 @@ const SettingsPage = () => {
     if (user?.interfaceLang)      setInterfaceLang(user.interfaceLang);
     if (user?.learningDialect)    setLearningDialect(user.learningDialect);
     setInterests(Array.isArray(user?.interests) ? user.interests : []);
-    setDraftDarkMode(isDarkMode);
+    setTimezone(user?.timezone || detectTimezone());
   }
 
   // ── Unsaved-changes detection ──────────────────────────────────────────
@@ -536,7 +570,7 @@ const SettingsPage = () => {
     interfaceLang,
     learningDialect,
     interests.join(","),
-    draftDarkMode,
+    timezone,
   ].join("|");
   const isDirty = draftKey !== prevSyncKey || pendingFile !== null;
 
@@ -632,9 +666,9 @@ const SettingsPage = () => {
       await updateUserProfile(token, firebaseUser.uid, {
         displayName,
         interfaceLang: finalInterfaceLang,
-        theme: draftDarkMode ? "dark" : "light",
         learningDialect: finalLearningDialect || null,
         interests,
+        timezone,
         onboardingCompleted: user?.onboardingCompleted ?? true,
       });
       // The tutor card denormalizes the display name and the picture, because
@@ -651,7 +685,6 @@ const SettingsPage = () => {
       setInterfaceLang(finalInterfaceLang);
       setLearningDialect(finalLearningDialect);
       changeLanguage(finalInterfaceLang);
-      setIsDarkMode(draftDarkMode);
       await refreshUser();
       showAlert("success", t("settings.success_message"));
     } catch (err) {
@@ -659,6 +692,37 @@ const SettingsPage = () => {
       showAlert("error", isNetwork ? t("settings.errors.network_error") : (err.message || t("settings.errors.save_failed")));
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  /**
+   * The theme is applied and written the moment it is clicked, not on Save.
+   *
+   * It is the one setting on this page whose effect you see immediately, so
+   * leaving it in the Save batch meant the screen had already changed while
+   * the stored value had not — reload before pressing Save and the theme
+   * sprang back. The header's own toggle has always persisted on click; this
+   * is the same behaviour in the place people look for it.
+   *
+   * PUT is a field-level update, so writing `theme` alone leaves every other
+   * profile field untouched. On failure the switch goes back rather than
+   * showing a theme the server does not have.
+   */
+  const handleToggleTheme = async () => {
+    const next = !isDarkMode;
+    const firebaseUser = auth?.currentUser;
+    if (!firebaseUser) return;
+
+    setIsDarkMode(next);
+    setIsSavingTheme(true);
+    try {
+      const token = await firebaseUser.getIdToken();
+      await updateUserProfile(token, firebaseUser.uid, { theme: next ? "dark" : "light" });
+    } catch (err) {
+      setIsDarkMode(!next);
+      showAlert("error", err.message || t("settings.errors.save_failed"));
+    } finally {
+      setIsSavingTheme(false);
     }
   };
 
@@ -740,8 +804,11 @@ const SettingsPage = () => {
         setLearningDialect={setLearningDialect}
         interests={interests}
         setInterests={setInterests}
-        draftDarkMode={draftDarkMode}
-        setDraftDarkMode={setDraftDarkMode}
+        isDarkModeOn={isDarkMode}
+        onToggleTheme={handleToggleTheme}
+        isSavingTheme={isSavingTheme}
+        timezone={timezone}
+        setTimezone={setTimezone}
         isSaving={isSaving}
         isUploading={isUploading}
         handleSave={handleSave}

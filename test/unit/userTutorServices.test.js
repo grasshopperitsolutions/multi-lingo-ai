@@ -333,6 +333,47 @@ describe("tutorService", () => {
       expect(draftCall[2]).toBe(saveCall[2]);
     });
   });
+
+  describe("deleting a profile", () => {
+    it("deletes the caller's own document and nobody else's", async () => {
+      const fs = await import("../../src/services/firestoreService");
+      const { deleteTutorProfile } = await import("../../src/services/tutorService");
+
+      await deleteTutorProfile();
+
+      // The uid is the document id, which is the whole basis of the server's
+      // own-doc-id policy: there is no path here that names another tutor.
+      expect(fs.deleteDocument).toHaveBeenCalledWith("tutors", "u1", "tok");
+    });
+
+    it("is a delete, not an unpublish — the two must not be confused", async () => {
+      const fs = await import("../../src/services/firestoreService");
+      const { deleteTutorProfile, unpublishTutorProfile } = await import(
+        "../../src/services/tutorService"
+      );
+      // clearAllMocks resets calls but not implementations, and an earlier
+      // test in this file leaves updateDocument rejecting.
+      fs.updateDocument.mockResolvedValue({});
+      fs.deleteDocument.mockResolvedValue({});
+
+      await unpublishTutorProfile();
+      expect(fs.updateDocument).toHaveBeenCalledWith("tutors", "u1", { published: false }, "tok");
+      expect(fs.deleteDocument).not.toHaveBeenCalled();
+
+      await deleteTutorProfile();
+      expect(fs.deleteDocument).toHaveBeenCalledTimes(1);
+    });
+
+    it("refuses when nobody is signed in rather than deleting at a stale uid", async () => {
+      currentUser.value = null;
+      const { deleteTutorProfile } = await import("../../src/services/tutorService");
+
+      await expect(deleteTutorProfile()).rejects.toThrow(/signed in/i);
+
+      const fs = await import("../../src/services/firestoreService");
+      expect(fs.deleteDocument).not.toHaveBeenCalled();
+    });
+  });
 });
 
 describe("tutorUrlValidation", () => {

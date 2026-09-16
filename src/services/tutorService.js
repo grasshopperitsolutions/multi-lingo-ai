@@ -250,6 +250,31 @@ export async function unpublishTutorProfile() {
   await updateDocument(TUTORS_COLLECTION, user.uid, { published: false }, token);
 }
 
+/**
+ * Deletes the caller's tutor profile for good.
+ *
+ * Distinct from `unpublishTutorProfile`, which only flips `published` and is
+ * what someone taking a break wants: the description, the links and the
+ * languages all survive, and the Stripe webhook uses the same flag when a
+ * subscription lapses so a renewed tutor comes back intact. This throws all of
+ * that away, which is why the UI puts it behind a confirm that says so.
+ *
+ * No new endpoint: DELETE /api/firestore runs the same `own-doc-id` +
+ * `writeTiers` check as every other write to `tutors`, so the server allows a
+ * tutor to remove their own document and nobody else's.
+ *
+ * One consequence of that tier gate worth knowing: a user whose subscription
+ * has lapsed out of the tutor tiers can no longer delete their own profile.
+ * The webhook has already unpublished it, so nothing is publicly visible, but
+ * the document stays until they resubscribe or an admin removes it.
+ */
+export async function deleteTutorProfile() {
+  const user = auth?.currentUser;
+  if (!user) throw new Error("You must be signed in");
+  const token = await user.getIdToken();
+  await deleteDocument(TUTORS_COLLECTION, user.uid, token);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Applications
 // ─────────────────────────────────────────────────────────────────────────────

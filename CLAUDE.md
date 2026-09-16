@@ -33,7 +33,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-**760 tests across 29 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
+**763 tests across 29 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
 
 - `test/canaries/` — one assertion per library behaviour no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing, every literal `t()` key resolving in the pt-PT bundle.
 - `test/smoke/pages.test.jsx` — 37 pages mount, paint, stay out of the error boundary, and render no raw translation keys. **Feature pages assert the route shell only**: each is a Suspense wrapper, so the assertion passes while the lazy chunk is still loading. The heavy components are covered directly instead.
@@ -83,6 +83,42 @@ Two consequences worth knowing before touching it:
 
 `TEMPLATE_GROUPS` is an explicit list rather than something derived from the bundle, because `email.common.*` is shared chrome that appears in every message and should not look like it belongs to one email. `TEMPLATE_VARIABLES` mirrors the `{{...}}` placeholders actually present in the base copy — dropping one renders a literal `{{tier}}` in a real email.
 
+## The theme saves on click; everything else on that page waits for Save
+
+`/settings` batches its fields behind a Save button, and the theme was in that
+batch. It is the one setting whose effect you see immediately, so the screen
+had already changed while the stored value had not — reload before pressing
+Save and the theme sprang back. `handleToggleTheme` now applies and writes it
+on click, and rolls the switch back if the write fails. The header's own toggle
+has always behaved this way; this is the same behaviour where people look for
+it.
+
+It writes **only** `theme`. PUT `/api/firestore` is `docRef.update()`, a
+field-level write, so a one-field payload leaves the rest of the profile alone
+— the header toggle sends four fields defensively, which is unnecessary but
+harmless. `theme` is out of the Save payload and out of the dirty check, so
+changing it no longer makes the form look unsaved.
+
+## Timezone
+
+`users/{uid}.timezone` is an IANA zone, picked in Settings › Profile and
+pre-filled from `Intl.DateTimeFormat().resolvedOptions().timeZone`. It exists
+for the reminders phase: a fixed-hour UTC job cannot say "practice tonight"
+correctly, and this is the field that fixes it.
+
+`utils/timezones.js` builds the option list from
+`Intl.supportedValuesOf("timeZone")` (~418 zones) rather than a table in this
+repo, for the same reason the TTS accent names come from `Intl.DisplayNames` —
+a hardcoded list goes stale whenever the tz database renames a zone and nobody
+notices until reminders arrive an hour early. Options carry the current UTC
+offset and sort by it, so the list reads west to east; the offset is computed
+for **today**, so a DST zone labels differently in July than in January.
+
+Absent until somebody saves it, and hydrated as `null` rather than `"UTC"` — a
+reminder job must treat "not set" as its own case, because assuming UTC
+delivers at the wrong hour rather than not at all. **Auto-capture on login is
+deliberately not built yet**; it belongs with the reminders that consume it.
+
 ## Settings cards are closed except Profile
 
 Every card on `/settings` starts collapsed apart from Profile, at every width.
@@ -107,6 +143,17 @@ every sibling stayed shut. All of them default to closed now.
 
 - **Publishing is server-gated twice**: `tutors` is `{ read: 'public', write: 'own-doc-id', writeTiers: ['maestro','vip','admin'] }` in the API. The uid lock stops one user claiming another's slot; the tier gate is read from `subscriptionTier`, which users cannot set. `canBeTutor()` in `tutorService.js` is UI-only and is not what keeps anyone out.
 - **The Settings editor is hidden until a document exists — it never synthesizes one.** `TutorProfileSection` renders `null` for an eligible-tier user with no tutor doc; there is deliberately no "fill this in and it gets created on Save" path. `createTutorDraft()` (`tutorService.js`) is the *only* thing that creates one — always hidden (`published: false`), name/picture/email from the account, empty description — called from the small "Become a tutor" button at the bottom of the directory page, which then routes to `/settings#tutorSettings`. An ineligible-tier visitor sees "Apply to become a tutor" instead, which routes to the same anchor without writing anything (the application form is what's there). That button is deliberately small and out of the results grid, not a dashed placeholder card — deciding whether to become a tutor isn't a listing, and giving it a whole grid cell overstated it.
+- **Deleting is separate from hiding, and deliberately the quieter of the two.**
+  `deleteTutorProfile()` removes `tutors/{uid}` through the ordinary
+  `DELETE /api/firestore` — no new endpoint, because that path runs the same
+  `own-doc-id` + `writeTiers` check as every other write to the collection, so
+  a tutor can remove their own document and nobody else's. The confirm spells
+  out the difference rather than just asking "are you sure": for almost anyone
+  who wants to stop being listed, unchecking "publish" is the right answer.
+  **The tier gate cuts both ways**: a user whose subscription has lapsed out of
+  `TUTOR_TIERS` can no longer delete their own profile. The webhook has already
+  unpublished it so nothing is public, but the document stays until they
+  resubscribe or an admin removes it.
 - **Visibility is one checkbox, not a delete.** "Publish my profile" — checked = `published !== false`. Toggling it calls `saveTutorProfile({ published: true, ... })` or `unpublishTutorProfile()` (which only flips the flag), immediately, not gated behind Save. The same flag the Stripe webhook sets when a subscription lapses, so a lapsed-then-renewed tutor's description and links come back rather than needing to be re-entered.
 - **The viewer's own listing is pinned first on the directory page, published or not.** `TutorsPage` fetches `getTutorProfile(user.uid)` alongside the public `listTutors()` and dedupes it out of the public list — a hidden profile never appears in `listTutors()` (published-only), so this second fetch is the only way the owner ever sees their own draft, badged "Hidden" with an "Update my profile" button to `/settings#tutorSettings`.
 - **Languages spoken** (`languages: string[]` on the tutor doc) use the same known-list-plus-Other pattern as the interface/learning-language pickers in Settings (`NeoDropdown` + `seedLanguage`), but add to a list rather than replace a single value. Not required to publish.

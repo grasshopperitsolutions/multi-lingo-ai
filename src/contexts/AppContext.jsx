@@ -592,6 +592,11 @@ export const AppProvider = ({ children }) => {
         // Absent means "not chosen yet", which useDashboardPresentation
         // resolves by viewport rather than by guessing a default here.
         dashboardPresentation: profile?.dashboardPresentation ?? null,
+        // IANA zone, chosen in Settings and pre-filled from the browser. Null
+        // until somebody saves it — the reminder job (when it exists) has to
+        // treat "not set" as its own case rather than assuming UTC, which
+        // would deliver at the wrong hour rather than not at all.
+        timezone: profile?.timezone ?? null,
         // Personal-dashboard widgets the user has turned off. Stored as the
         // hidden ids, so a widget added later is on by default; absent means
         // "nothing hidden", which is every user until they change something.

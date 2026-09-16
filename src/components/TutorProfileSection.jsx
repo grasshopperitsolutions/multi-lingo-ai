@@ -14,6 +14,7 @@ import {
 import { auth } from "../firebase";
 import { useAppContext } from "../contexts/AppContext";
 import { SettingsSection } from "./ui";
+import ConfirmModal from "./ConfirmModal";
 import LanguageFlagIcon from "./LanguageFlagIcon";
 import NeoDropdown from "./NeoDropdown";
 import { dialCodeOptions, joinPhone, splitPhone } from "../config/dialCodes";
@@ -25,6 +26,7 @@ import {
   getTutorProfile,
   saveTutorProfile,
   unpublishTutorProfile,
+  deleteTutorProfile,
 } from "../services/tutorService";
 import {
   isLinkValidated,
@@ -94,6 +96,8 @@ const TutorProfileSection = ({ isDarkMode, user, defaultOpen = false, id = undef
   // "Languages you speak" — a NeoDropdown "add" control with the same
   // known-list-plus-Other shape as the interface/learning-language pickers in
   // Settings, but adding to a list rather than replacing a single value.
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showOtherLanguage, setShowOtherLanguage] = useState(false);
   const [otherLanguageText, setOtherLanguageText] = useState("");
   const [isAddingLanguage, setIsAddingLanguage] = useState(false);
@@ -300,6 +304,25 @@ const TutorProfileSection = ({ isDarkMode, user, defaultOpen = false, id = undef
   // Eligible, but no document exists yet: hidden. "Become a tutor" on the
   // directory page (TutorsPage) is what creates one — see the file header.
   if (!profile) return null;
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    setError(null);
+    try {
+      await deleteTutorProfile();
+      // Back to the state before "Become a tutor": no document, so this
+      // component renders the application path instead of the editor. Done by
+      // clearing local state rather than reloading, so the rest of Settings
+      // keeps any unsaved edits.
+      setProfile(null);
+      setShowDeleteModal(false);
+    } catch (err) {
+      setError(err.message);
+      setShowDeleteModal(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <SettingsSection
@@ -663,6 +686,41 @@ const TutorProfileSection = ({ isDarkMode, user, defaultOpen = false, id = undef
           <span className={hintClasses}>{t("tutors.publish_profile_hint")}</span>
         </span>
       </label>
+
+      {/* Deleting is deliberately separated from the visibility checkbox above
+          it, and deliberately the less prominent of the two: for almost
+          everyone who wants to stop being listed, unchecking "publish" is the
+          right answer and this is not. The confirm says which is which rather
+          than just asking "are you sure". */}
+      <div className={`mt-6 pt-5 border-t-2 ${isDarkMode ? "border-slate-700" : "border-slate-200"}`}>
+        <button
+          type="button"
+          onClick={() => setShowDeleteModal(true)}
+          disabled={isSaving || isDeleting}
+          className={`flex items-center gap-2 px-4 py-3 rounded-xl border-4 border-rose-500 font-black uppercase tracking-widest text-xs text-rose-500 transition-all active:scale-95 hover:bg-rose-500 hover:text-white ${
+            isSaving || isDeleting ? "opacity-40 cursor-not-allowed" : ""
+          }`}
+        >
+          <Trash2 size={16} />
+          {t("tutors.delete_profile")}
+        </button>
+        <p className={`${hintClasses} mt-2`}>{t("tutors.delete_profile_hint")}</p>
+      </div>
+
+      {showDeleteModal && (
+        <ConfirmModal
+          isDarkMode={isDarkMode}
+          title={t("tutors.delete_confirm_title")}
+          message={t("tutors.delete_confirm_message")}
+          warning={t("tutors.delete_confirm_warning")}
+          confirmLabel={t("tutors.delete_confirm_button")}
+          confirmColor="rose"
+          icon={<Trash2 size={24} />}
+          isLoading={isDeleting}
+          onConfirm={handleDelete}
+          onCancel={() => !isDeleting && setShowDeleteModal(false)}
+        />
+      )}
     </SettingsSection>
   );
 };
