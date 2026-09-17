@@ -1,6 +1,7 @@
 import PropTypes from "prop-types";
 import ReportButton from "../ReportButton";
 import FavouriteFeatureButton from "../FavouriteFeatureButton";
+import PracticeLanguage from "./PracticeLanguage";
 
 /**
  * FeatureHeader
@@ -39,6 +40,7 @@ const FeatureHeader = ({
   reportContext,
   favouriteId,
   showFavourite,
+  showPracticeLanguage = false,
 }) => {
   const accent = ACCENT_BAR[accentColor] ?? ACCENT_BAR.rose;
 
@@ -54,6 +56,13 @@ const FeatureHeader = ({
         </h1>
 
         <div className="flex items-center gap-1 shrink-0">
+          {/* Opt-in, not automatic. It belongs on pages whose output is *in*
+              the practice language, and would contradict the Translator and
+              the Professional tools, which carry their own target-language
+              pickers a few pixels below. */}
+          {showPracticeLanguage && (
+            <PracticeLanguage variant="badge" isDarkMode={isDarkMode} />
+          )}
           {/* No featureId: the button works out where it is from the route,
               which covers every game, exercise and section without each page
               declaring an id that could drift from the route table. */}
@@ -69,6 +78,8 @@ const FeatureHeader = ({
 
 FeatureHeader.propTypes = {
   title: PropTypes.string.isRequired,
+  /** Show which language this page works in. Opt-in — see the comment above. */
+  showPracticeLanguage: PropTypes.bool,
   isDarkMode: PropTypes.bool.isRequired,
   /** Same palette as Breadcrumb; drives the rule under the title. */
   accentColor: PropTypes.oneOf(FEATURE_ACCENTS),

@@ -15,6 +15,7 @@ const WritingExercisePage = () => {
   return (
     <FeaturePageShell
       isDarkMode={isDarkMode}
+      showPracticeLanguage
       accentColor="teal"
       title={t("exam.writing")}
       reportContext="WritingExercise"

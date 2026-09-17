@@ -48,7 +48,8 @@
     "weekday_wednesday": "Quarta",
     "weekday_thursday": "Quinta",
     "weekday_friday": "Sexta",
-    "weekday_saturday": "Sábado"
+    "weekday_saturday": "Sábado",
+    "practising": "Estás a praticar"
   },
   "avatar": {
     "alt_fallback": "Imagem de perfil"

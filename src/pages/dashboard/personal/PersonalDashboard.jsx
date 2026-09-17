@@ -20,7 +20,7 @@ import RecallWidget from "../../../components/personal/widgets/RecallWidget";
 import PhotoCaptureWidget from "../../../components/personal/widgets/PhotoCaptureWidget";
 import PhotoReviewModal from "../../../components/personal/PhotoReviewModal";
 import { PROPOSAL_KINDS } from "../../../services/photoCaptureService";
-import { FeaturePageShell, ErrorBanner, Card } from "../../../components/ui";
+import { FeaturePageShell, ErrorBanner, Card, PracticeLanguage } from "../../../components/ui";
 
 /**
  * PersonalDashboard
@@ -274,6 +274,13 @@ const PersonalDashboard = () => {
           {t("personal.intro")}
         </p>
       )}
+
+      {/* Above everything, including the first-run card: what language all of
+          this is in is the frame the rest of the page sits inside, and it is
+          also the one thing a new user most often has set wrong. Not a
+          registry widget — it is context rather than content, so it is not
+          hideable in Settings alongside the nine that are. */}
+      <PracticeLanguage variant="card" isDarkMode={isDarkMode} />
 
       {error && <ErrorBanner error={error} isDarkMode={isDarkMode} />}
 

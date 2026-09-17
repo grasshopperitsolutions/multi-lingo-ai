@@ -15,6 +15,7 @@ const ListeningExercisePage = () => {
   return (
     <FeaturePageShell
       isDarkMode={isDarkMode}
+      showPracticeLanguage
       accentColor="teal"
       title={t("exam.listening")}
       reportContext="ListeningExercise"

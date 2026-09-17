@@ -106,6 +106,7 @@ const HistoryCulturePage = () => {
   return (
     <FeaturePageShell
       isDarkMode={isDarkMode}
+      showPracticeLanguage
       accentColor="rose"
       title={t("dashboard.history_culture")}
       reportContext="HistoryCulturePage"

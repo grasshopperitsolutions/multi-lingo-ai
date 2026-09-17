@@ -49,10 +49,15 @@ const ProToolShell = ({
   if (isLocked) return null;
 
   return (
+    // All three tools take `targetLang = user.learningDialect` and offer no
+    // picker of their own, so the practice language silently decides which
+    // market a CV is judged against and which language an email comes out in.
+    // That is the strongest case in the app for naming it on screen.
     <FeaturePageShell
       isDarkMode={isDarkMode}
       accentColor="indigo"
       title={title}
+      showPracticeLanguage
       reportContext={reportContext}
       showFavourite={false}
       breadcrumbItems={[

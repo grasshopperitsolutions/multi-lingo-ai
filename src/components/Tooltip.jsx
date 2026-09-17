@@ -6,11 +6,14 @@ import PropTypes from "prop-types";
  *   <YourElement />
  * </Tooltip>
  */
-const Tooltip = ({ text, isDarkMode, children }) => {
+const Tooltip = ({ text, isDarkMode, className = "w-full", children }) => {
   if (!text) return children;
 
   return (
-    <div className="relative group w-full">
+    // `w-full` by default because every caller so far wraps a block-level
+    // control and relies on it. An inline target (a badge beside a title)
+    // passes "inline-flex" instead, or the wrapper stretches the row.
+    <div className={`relative group ${className}`}>
       {children}
 
       {/* Tooltip bubble */}
@@ -56,6 +59,8 @@ const Tooltip = ({ text, isDarkMode, children }) => {
 };
 
 Tooltip.propTypes = {
+  /** Wrapper sizing. Defaults to `w-full`; pass `inline-flex` for inline targets. */
+  className: PropTypes.string,
   text: PropTypes.string,
   isDarkMode: PropTypes.bool.isRequired,
   children: PropTypes.node.isRequired,

@@ -685,12 +685,74 @@ It is still deliberately not built from locale strings — a machine-to-machine
 instruction, not user copy, and translating it would change the model's
 behaviour per language. Moving it into Firestore is not translating it.
 
-**`getImageService` is dead code.** Nothing in `src/` imports it; the only
-references are two tests for `findImageBySourceWord`. Its `generateImage` is
-the one remaining `askAI` call with a hardcoded model, and it is unreachable —
-which is why it was deliberately *not* given a prompt document. Seeding a
-prompt for dead code is how dead code starts looking alive. Delete the module
-or wire it up; do not leave it looking maintained.
+**`getImageService` has no callers yet, and that is deliberate.** Nothing in
+`src/` imports it; the only references are two tests for
+`findImageBySourceWord`. It is kept for planned work — generated images for
+exam exercises, and a possible kids section — so **do not delete it** as dead
+code on the strength of a call-site grep.
+
+What it does still lack is a prompt document. Its `generateImage` is now the
+only `askAI` call in the app with a model hardcoded in source
+(`imagen-4.0-fast-generate-001`, already a generation behind
+`gemini-3.1-flash-image`), and it takes its prompt text as an argument rather
+than from Firestore. Both are worth fixing **when it gains its first caller**,
+because that is when there is a real prompt to write: seeding one now would
+mean guessing at the wording for a feature nobody has designed, and a guessed
+prompt sitting in Admin is indistinguishable from a working one.
+
+## "Estás a praticar mwl-PT" — the practice language, where it matters
+
+`components/ui/PracticeLanguage.jsx`, two variants from one component: a
+**card** at the top of `/dashboard/personal`, and a **badge** beside the title
+on every page whose output is *in* the practice language.
+
+**The code is the value; the label is the tooltip.** `pt-PT` and `pt-BR` are
+different practice languages and read almost identically as names, so the code
+is the part that actually distinguishes them at a glance — and it fits beside a
+page title without wrapping. The long form is one hover away via the app's own
+`Tooltip`, and repeated in `aria-label`, since a hover tooltip does not exist
+for a screen reader. **The code is deliberately not `uppercase`** anywhere,
+unlike every other heading in this app: BCP-47 casing is part of what makes it
+precise, and `MWL-PT` is not the code.
+
+Both variants link to `/settings`. The note raises exactly one question — how
+do I change this — and answering it in place is what makes it worth its space.
+
+**It is opt-in per page, via `showPracticeLanguage` on `FeaturePageShell` /
+`FeatureHeader`.** Currently on: the story reader, history & culture, the
+dictionary, all four exam exercises, the three grammar pages, and all three
+professional tools (one line in `ProToolShell`, which they share).
+
+**The professional tools are the strongest case, not an exception.** All three
+take `targetLang = user.learningDialect` (`CvToolPage.jsx:47` and its two
+siblings) and offer no picker of their own, so the practice language silently
+decides which market a CV is judged against and which language an email comes
+out in — with nothing on screen saying so.
+
+**The Translator is the one real exclusion.** It keeps its own `sourceLang` /
+`targetLang` state with a swap, merely *defaulting* target to the practice
+language, and already renders both codes as badges. A third badge claiming a
+language the picker contradicts is worse than none.
+
+Also **not** on the coming-soon pages (AI tutor, voice practice) — nothing
+there generates anything yet — nor on the menus.
+
+On the personal dashboard it sits above the grid rather than being a registry
+widget: it is context rather than content, so it is not hideable in Settings
+alongside the nine that are.
+
+`ChallengeSidebar` already showed the dialect and keeps showing the raw code;
+it gained the same tooltip, so the two surfaces explain themselves the same
+way. Its label comes from the **progress record's** dialect, which is not
+necessarily the one currently selected — a stored run keeps the language it was
+played in.
+
+Copy note: "praticar", never "aprender", per the app's voice — matching
+`settings.language_learning` ("Idioma que Praticas").
+
+`Tooltip` gained an optional `className` (default `w-full`, unchanged for every
+existing caller) so an inline target can pass `inline-flex`; without it the
+wrapper stretches the title row.
 
 ## Professional tools: one tier key, one register, one prompt budget
 

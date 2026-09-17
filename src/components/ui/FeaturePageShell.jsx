@@ -25,6 +25,7 @@ const FeaturePageShell = ({
   reportContext,
   favouriteId,
   showFavourite,
+  showPracticeLanguage,
   children,
 }) => (
   <div className="flex flex-col gap-4">
@@ -38,6 +39,7 @@ const FeaturePageShell = ({
         reportContext={reportContext}
         favouriteId={favouriteId}
         showFavourite={showFavourite}
+        showPracticeLanguage={showPracticeLanguage}
       />
     )}
 
@@ -55,6 +57,8 @@ FeaturePageShell.propTypes = {
     }),
   ).isRequired,
   title: PropTypes.string,
+  /** Show which language this page works in, beside the title. */
+  showPracticeLanguage: PropTypes.bool,
   reportContext: PropTypes.string,
   /** Omit to let the heart resolve the feature from the current route. */
   favouriteId: PropTypes.string,

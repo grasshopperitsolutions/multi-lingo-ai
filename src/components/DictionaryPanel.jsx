@@ -197,6 +197,7 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
         title={t('dashboard.dictionary')}
         isDarkMode={isDarkMode}
         accentColor="violet"
+        showPracticeLanguage
         favouriteId="dictionary"
         reportContext="DictionaryPanel"
       />
