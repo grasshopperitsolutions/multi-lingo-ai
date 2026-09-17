@@ -334,3 +334,68 @@ describe("reminder preferences (frontend mirror of the API's)", () => {
     }
   });
 });
+
+describe("buildProfileKey", () => {
+  /**
+   * Settings decides "is there anything to save?" by comparing two of these.
+   * The bug this guards against is not a wrong value — it is the two sides
+   * holding different fields, which makes them unequal forever and leaves
+   * Save permanently lit with nothing to save.
+   */
+  const saved = {
+    uid: "u1",
+    displayName: "Ana",
+    interfaceLang: "pt-PT",
+    learningDialect: "en-US",
+    interests: ["music", "food"],
+    timezone: "Europe/Lisbon",
+  };
+
+  it("matches when the draft still equals the saved profile", async () => {
+    const { buildProfileKey } = await import("../../src/utils/profileKey");
+
+    expect(buildProfileKey(saved)).toBe(
+      buildProfileKey({
+        uid: saved.uid,
+        displayName: saved.displayName,
+        interfaceLang: saved.interfaceLang,
+        learningDialect: saved.learningDialect,
+        interests: [...saved.interests],
+        timezone: saved.timezone,
+      })
+    );
+  });
+
+  it("differs on any field the form owns", async () => {
+    const { buildProfileKey } = await import("../../src/utils/profileKey");
+    const base = buildProfileKey(saved);
+
+    for (const [field, value] of Object.entries({
+      displayName: "Ana Maria",
+      interfaceLang: "en-US",
+      learningDialect: "fr-FR",
+      interests: ["music"],
+      timezone: "America/New_York",
+    })) {
+      expect(buildProfileKey({ ...saved, [field]: value }), field).not.toBe(base);
+    }
+  });
+
+  it("ignores anything that is not one of those fields", async () => {
+    const { buildProfileKey } = await import("../../src/utils/profileKey");
+
+    // The theme saves on click, so it must not mark the form dirty. Passing
+    // it changes nothing — which is what stops the two callers drifting the
+    // way they did when each built its own array.
+    expect(buildProfileKey({ ...saved, isDarkMode: true })).toBe(buildProfileKey(saved));
+  });
+
+  it("treats a missing field the same as an empty one", async () => {
+    const { buildProfileKey } = await import("../../src/utils/profileKey");
+
+    // A profile loaded before a field existed must not read as an edit.
+    expect(buildProfileKey({ uid: "u1" })).toBe(
+      buildProfileKey({ uid: "u1", displayName: "", interests: [], timezone: "" })
+    );
+  });
+});

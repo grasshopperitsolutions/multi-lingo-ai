@@ -168,9 +168,10 @@ reminder job must treat "not set" as its own case, because assuming UTC
 delivers at the wrong hour rather than not at all. **Auto-capture on login is
 deliberately not built yet**; it belongs with the reminders that consume it.
 
-## Settings cards are closed except Profile
+## Settings cards are closed except Profile, Subscription and Account
 
-Every card on `/settings` starts collapsed apart from Profile, at every width.
+Those three start open at every width; every other card on `/settings` starts
+collapsed.
 It used to open them all on a desktop and close them all on a phone; the
 desktop half was wrong for the same reason the phone half was right — nine
 expanded forms is a long scroll with no overview, and a wide screen just means
@@ -181,6 +182,17 @@ Two cards open themselves when the URL names them: `#tutorSettings` (the
 dashboard's "choose what to show"). `openFromHash` is read once during render,
 which works for a client-side navigation because React Router updates the
 location before the page renders.
+
+**The dirty check compares two keys, and they must hold the same fields.**
+`buildProfileKey` (`utils/profileKey.js`) builds both — one from the saved
+profile, one from the live form — because they were two separate array
+literals and drifted: the saved side ended in `isDarkMode` and the draft side
+in `timezone`, left over from moving the theme out of the Save batch, so the
+sixth slot never matched and Save sat permanently lit with nothing to save.
+The same key also decides when the draft is re-synced from the profile, which
+is the second reason the theme must stay out of it — toggling dark mode was
+discarding whatever the user had typed and not yet saved. Add a field to the
+form and it goes in that one function, or nowhere.
 
 **A section component that defaults `defaultOpen` to `true` is a trap.**
 `NotificationSettings` did, so dropping the prop silently reopened it while

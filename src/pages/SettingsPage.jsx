@@ -42,6 +42,7 @@ import { seedLanguage } from "../services/supportedLanguagesService";
 import { auth } from "../firebase";
 import { normalizeCode } from "../utils/languageCode";
 import { detectTimezone, timezoneOptions } from "../utils/timezones";
+import { buildProfileKey } from "../utils/profileKey";
 
 // ── Avatar Upload Widget ─────────────────────────────────────────────────────────
 const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading, t }) => {
@@ -543,14 +544,22 @@ const SettingsPage = () => {
   const [isSeedingLanguage,  setIsSeedingLanguage]  = useState(false);
 
   const [prevSyncKey, setPrevSyncKey] = useState("");
-  const syncKey = [
-    user?.uid || "",
-    user?.displayName || "",
-    user?.interfaceLang || "",
-    user?.learningDialect || "",
-    (user?.interests || []).join(","),
-    isDarkMode,
-  ].join("|");
+
+  // The last-saved profile. Both this and draftKey go through
+  // buildProfileKey so they cannot hold different fields — see that file for
+  // what happened when they did.
+  //
+  // It also decides when the draft is re-synced from the profile, which is
+  // the second reason the theme is not in it: toggling dark mode used to
+  // overwrite whatever the user had typed and not yet saved.
+  const syncKey = buildProfileKey({
+    uid: user?.uid,
+    displayName: user?.displayName,
+    interfaceLang: user?.interfaceLang,
+    learningDialect: user?.learningDialect,
+    interests: user?.interests,
+    timezone: user?.timezone || detectTimezone(),
+  });
 
   if (syncKey !== prevSyncKey) {
     setPrevSyncKey(syncKey);
@@ -562,17 +571,17 @@ const SettingsPage = () => {
   }
 
   // ── Unsaved-changes detection ──────────────────────────────────────────
-  // Same shape as syncKey, but built from the live draft state instead of
-  // the last-saved user profile. Converges back with prevSyncKey right
-  // after a successful save (handleSave -> refreshUser() -> new syncKey).
-  const draftKey = [
-    user?.uid || "",
+  // The same fields from the live draft state. Converges back with
+  // prevSyncKey right after a successful save (handleSave -> refreshUser()
+  // -> new syncKey).
+  const draftKey = buildProfileKey({
+    uid: user?.uid,
     displayName,
     interfaceLang,
     learningDialect,
-    interests.join(","),
+    interests,
     timezone,
-  ].join("|");
+  });
   const isDirty = draftKey !== prevSyncKey || pendingFile !== null;
 
   if (isLoadingUser) {
@@ -875,6 +884,7 @@ const SettingsPage = () => {
           title={t("subscription.title")}
           icon={<CreditCard size={16} className="inline mr-2" />}
           isDarkMode={isDarkMode}
+          defaultOpen
         >
 
           {/* Current Tier Badge */}
@@ -1096,6 +1106,7 @@ const SettingsPage = () => {
           title={t("settings.account")}
           icon={<LogOut size={16} className="inline mr-2" />}
           isDarkMode={isDarkMode}
+          defaultOpen
         >
           <div className="space-y-3">
             <button
