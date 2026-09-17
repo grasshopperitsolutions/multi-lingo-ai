@@ -432,7 +432,7 @@ async function _buildTtsPrompt(text, lang, pace) {
   });
   // Overriding the model here requires a TTS-capable Gemini model — picking a
   // plain text model would break audio generation entirely.
-  return { prompt, model: promptDoc.model || GEMINI_TTS_MODEL };
+  return { prompt, model: promptDoc.model || GEMINI_TTS_MODEL, explorerModel: promptDoc.explorerModel };
 }
 
 // ---------------------------------------------------------------------------
@@ -451,11 +451,11 @@ async function _speakWithGemini(token, text, lang, pace, seq, onStart, onEnd, on
     return _playAudioBase64(cached.audioData, cached.mimeType, seq, onStart, onEnd, onError);
   }
 
-  const { prompt: ttsPrompt, model } = await _buildTtsPrompt(text, lang, pace);
+  const { prompt: ttsPrompt, model, explorerModel } = await _buildTtsPrompt(text, lang, pace);
   const result = await askAI(
     token,
     ttsPrompt,
-    { provider: 'gemini', model, tts: true, voice, language: lang },
+    { provider: 'gemini', model, explorerModel, tts: true, voice, language: lang },
     // Playback isn't the user asking for new content, and clips are cached per
     // (voice, locale, text) — a prompt here would fire mid-exercise.
     { skipConfirm: true, timeout: TTS_TIMEOUT_MS },

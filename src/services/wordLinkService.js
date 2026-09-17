@@ -119,6 +119,7 @@ async function _generateFromAI({ token, userDialect, learningDialect, topic }) {
   const providerParams = {
     provider:    'gemini',
     model:       promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     temperature: 0.9,
     jsonMode:    true,
     responseSchema: {

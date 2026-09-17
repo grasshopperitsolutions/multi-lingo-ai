@@ -159,6 +159,7 @@ export async function analysePhoto({ token, file, learningLang, interfaceLang })
   const providerParams = {
     provider: "gemini",
     model: promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     temperature: 0.2,
     jsonMode: true,
     responseSchema: RESPONSE_SCHEMA,

@@ -206,6 +206,7 @@ async function requestTranslatedChunk({ token, prompt, promptDoc, chunk, locale,
       {
         provider: "gemini",
         model: promptDoc.model || "gemini-3.5-flash-lite",
+        explorerModel: promptDoc.explorerModel,
         temperature: 0.1,
         jsonMode: true,
         maxOutputTokens,

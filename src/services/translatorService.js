@@ -62,6 +62,7 @@ export async function translateText({ token, text, sourceLang, targetLang }) {
   const providerParams = {
     provider:    'gemini',
     model:       promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     temperature: 0.2,
     jsonMode:    false,
   };

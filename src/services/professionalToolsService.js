@@ -93,6 +93,7 @@ async function _ask(token, prompt, promptDoc, { schema, temperature }) {
   const providerParams = {
     provider: "gemini",
     model: promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     temperature,
     jsonMode: true,
     responseSchema: schema,

@@ -207,6 +207,7 @@ export async function getStoryTranslation({ token, storyId, sourceLang, sourceTi
   const providerParams = {
     provider: 'gemini',
     model: promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     temperature: 0.3,
     jsonMode: true,
     responseSchema: _storySchema(paragraphCount),
@@ -278,6 +279,7 @@ async function _generateStory({ token, level, targetLang, interests, existingTit
   const providerParams = {
     provider: 'gemini',
     model: promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     temperature: 0.8,
     jsonMode: true,
     responseSchema: _storySchema(paragraphCount),

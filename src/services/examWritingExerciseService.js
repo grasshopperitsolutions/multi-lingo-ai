@@ -57,7 +57,7 @@ export async function generateWritingExercise({ token, level, targetLang }) {
   const writingPromptDoc = await getPrompt('exam-writing-prompt');
   const maxTokens = writingPromptDoc.maxTokens ?? (MAX_OUTPUT_TOKENS_GENERATION_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS_GENERATION);
   const model = writingPromptDoc.model || GEMINI_MODEL;
-  const raw = await _callAskAI(token, promptStr, maxTokens, model, WRITING_EXERCISE_SCHEMA);
+  const raw = await _callAskAI(token, promptStr, maxTokens, model, WRITING_EXERCISE_SCHEMA, writingPromptDoc.explorerModel);
 
   if (!raw) {
     console.error('[examWritingExerciseService] Empty response from AI (generation)');
@@ -108,7 +108,7 @@ export async function evaluateWriting({
 
   const evalMaxTokens = promptDoc.maxTokens ?? MAX_OUTPUT_TOKENS_EVALUATION;
   const evalModel = promptDoc.model || GEMINI_MODEL;
-  const raw = await _callAskAI(token, prompt, evalMaxTokens, evalModel, WRITING_EVALUATION_SCHEMA);
+  const raw = await _callAskAI(token, prompt, evalMaxTokens, evalModel, WRITING_EVALUATION_SCHEMA, promptDoc.explorerModel);
 
   if (!raw) {
     console.error('[examWritingExerciseService] Empty response from AI (evaluation)');
@@ -196,10 +196,11 @@ const WRITING_EVALUATION_SCHEMA = {
   required: ['parameters'],
 };
 
-async function _callAskAI(token, prompt, maxOutputTokens, model = GEMINI_MODEL, responseSchema) {
+async function _callAskAI(token, prompt, maxOutputTokens, model = GEMINI_MODEL, responseSchema, explorerModel) {
   const providerParams = {
     provider: 'gemini',
     model,
+    explorerModel,
     temperature: 0.7,
     jsonMode: true,
     maxOutputTokens,

@@ -529,6 +529,7 @@ async function _generateTranslation(sourceWord, { userDialect, learningDialect }
   const providerParams = {
     provider:    'gemini',
     model:       promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     temperature: 0.7,
     jsonMode:    true,
     responseSchema: {
@@ -562,6 +563,7 @@ async function _generateHintForDialect(sourceWord, userDialect, token) {
   const providerParams = {
     provider:    'gemini',
     model:       promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     temperature: 0.7,
     jsonMode:    true,
     responseSchema: {
@@ -598,6 +600,7 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords, t
   const providerParams = {
     provider:    'gemini',
     model:       promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     temperature: 0.9,
     jsonMode:    true,
     responseSchema: {

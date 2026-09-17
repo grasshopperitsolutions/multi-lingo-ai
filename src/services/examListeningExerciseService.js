@@ -67,7 +67,7 @@ export async function generateListeningExercise({ token, level, targetLang, ques
   const promptDoc = await getPrompt('exam-listening-prompt');
   const maxTokens = promptDoc.maxTokens ?? (MAX_OUTPUT_TOKENS_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS);
   const model = promptDoc.model || GEMINI_MODEL;
-  const raw = await _callAskAI(token, prompt, maxTokens, responseSchema, model);
+  const raw = await _callAskAI(token, prompt, maxTokens, responseSchema, model, promptDoc.explorerModel);
 
   if (!raw) {
     console.error('[examListeningExerciseService] Empty response from AI');
@@ -253,10 +253,11 @@ function getResponseSchemaForType(type) {
   }
 }
 
-async function _callAskAI(token, prompt, maxOutputTokens, responseSchema, model = GEMINI_MODEL) {
+async function _callAskAI(token, prompt, maxOutputTokens, responseSchema, model = GEMINI_MODEL, explorerModel) {
   const providerParams = {
     provider: 'gemini',
     model,
+    explorerModel,
     temperature: 0.7,
     jsonMode: true,
     maxOutputTokens,

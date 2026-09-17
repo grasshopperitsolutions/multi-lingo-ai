@@ -207,6 +207,7 @@ export async function lookupWord({ token, word, interfaceLang, learningLang, wor
   const providerParams = {
     provider:       'gemini',
     model:          promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     temperature:    0.2,
     jsonMode:       true,
     responseSchema: buildResponseSchema(types, commonSenses),

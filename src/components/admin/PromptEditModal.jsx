@@ -47,7 +47,7 @@ const STATUS_OPTIONS = [
 
 const KNOWN_FIELDS = new Set([
   "id", "name", "description", "category", "status", "sourceFile", "sourceFunction",
-  "variables", "template", "variants", "maxTokens", "model", "version", "createdAt", "updatedAt", "updatedBy",
+  "variables", "template", "variants", "maxTokens", "model", "explorerModel", "version", "createdAt", "updatedAt", "updatedBy",
 ]);
 
 const inputClasses = (isDarkMode) => `w-full px-4 py-2.5 rounded-xl border-2 font-semibold text-sm outline-none transition-colors ${

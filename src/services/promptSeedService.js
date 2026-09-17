@@ -3,18 +3,19 @@
  *
  * ⚠️ TEMPORARY — DELETE THIS FILE ONCE THE PROMPT EXISTS IN EVERY ENVIRONMENT.
  *
- * The photo capture needs one prompt document in `appConfig/config/prompts`.
- * The Admin panel can edit prompts but has no create affordance, so this
- * exists to create it once, from the Admin page, and then be removed along
- * with the button that calls it.
+ * Creates prompt documents in `appConfig/config/prompts` that the app expects
+ * to find. The Admin panel can edit prompts but has no create affordance, so
+ * this exists to create them once, from the Admin page, and then be removed
+ * along with the button that calls it.
  *
  * It is not a permissions workaround: that collection is already
  * `{read: 'public', write: 'admin'}` and an admin POST already works. The only
  * thing missing is a button.
  *
  * It never overwrites. A document that already exists is skipped, so running
- * it twice is harmless and an admin's edits to the template are never
- * clobbered by a second press.
+ * it twice is harmless and an admin's edits to a template are never clobbered
+ * by a second press — which is also why the photo-capture seed could simply be
+ * removed from this list once it had been run, rather than needing any state.
  *
  * Removal checklist:
  *   1. delete this file
@@ -25,60 +26,42 @@
 import { createDocument } from "./firestoreService";
 import { PROMPTS_COLLECTION, getPrompts, clearPromptsCache } from "./promptService";
 
-export const PHOTO_PROMPT_SEEDS = [
+export const PROMPT_SEEDS = [
   {
-    id: "photo-notes-extract-prompt",
-    name: "Personal — read a photo of my notes",
+    id: "tutor-link-validate-prompt",
+    name: "Tutors — validate a profile link",
     description:
-      "Reads a photo of the student's own notes or homework and proposes what to file into the personal dashboard: a note, questions for the tutor, mistakes, phrases and words. Output is reviewed and edited by the student before anything is saved.",
-    sourceFile: "src/services/photoCaptureService.js",
-    sourceFunction: "analysePhoto",
-    category: "personal",
+      "Decides whether a link a tutor wants to show on their public profile is acceptable. Only runs for hosts config/tutorPlatforms.js does not already recognise, and only when the tutor presses Validate.",
+    sourceFile: "src/services/tutorUrlValidation.js",
+    sourceFunction: "validateUrlWithAi",
+    category: "tutors",
     status: "active",
+    // Blank on purpose: the service falls back to the provider default, and
+    // an admin can pin a model here — or a cheaper one for Explorer via
+    // explorerModel — without touching the code.
     model: "",
+    explorerModel: "",
+    maxTokens: 512,
+    variables: ["url"],
     version: 1,
-    maxTokens: 4096,
-    variables: ["learningLang", "interfaceLang"],
-    template: `You are looking at a photograph taken by someone who is practising {{learningLang}}. The photograph shows their own material: a page of their notebook, an exercise they did, homework a teacher corrected, or notes they took in a lesson.
+    // The wording this shipped with, moved verbatim so seeding changes
+    // nothing. It is deliberately not built from locale strings: this is a
+    // machine-to-machine instruction rather than user-facing copy, and
+    // translating it would change the model's behaviour per language.
+    template: `You are validating a link a language tutor wants to show on their public profile.
 
-Your job is to read what is on the page and sort it into the places this person keeps their material. Everything you return is shown to them for review and editing before anything is saved, so it is better to propose something imperfect and specific than to propose nothing.
+URL: {{url}}
 
-Write your own words — the summary, the note, the questions, the explanations — in {{interfaceLang}}. Keep the material itself in the language it was written in.
+Decide whether this looks like a legitimate destination for a tutor to share:
+a personal or professional website, a social or video profile, a booking or
+scheduling page, a language-learning marketplace, a map location, or a payment
+or newsletter page. Tutors may link to any platform.
 
-Return these, and nothing else:
+Reject only if the URL looks like malware, adult content, a phishing or
+credential-harvesting page, or is plainly unrelated to teaching or contacting
+a person.
 
-summary
-One sentence saying what this page appears to be. This is the first thing the person reads, so it should let them confirm you looked at the right photograph.
-
-note
-The content of the page, rewritten as a clean, readable note they would want to keep. Preserve the structure that is there — headings, groups, numbered items — as plain lines. This is the whole page's content, not a description of it. If the page is only a vocabulary list with nothing worth keeping as prose, leave this empty rather than restating the list you are about to return as words.
-
-questions
-Things this person should ask their teacher, drawn from what is actually on the page: a rule that is written down incompletely, an exception that is noted but not explained, a correction whose reason is not given, two forms used inconsistently. Each one must be answerable by a teacher looking at this page. Do not invent generic study questions. Return an empty list if the page raises none.
-
-mistakes
-Errors **this person made**, which means one of these is visible on the page: something crossed out and rewritten, a teacher's correction, a mark against an answer, or an answer that is plainly wrong in an exercise they filled in.
-- said: what they originally wrote, exactly as written
-- correction: the correct form
-- why: a short explanation of the rule behind it, if the page shows enough for you to be sure
-This is the section most easily invented. If the page is clean notes with no visible errors or corrections, return an empty list. Never list something as a mistake because you would have phrased it differently.
-
-phrases
-Whole expressions worth keeping: idioms, set phrases, useful sentences, collocations. Not single words.
-- phrase: the expression in {{learningLang}}
-- translation: what it means, in {{interfaceLang}}
-- note: when or with whom it is used, if that is not obvious
-
-words
-Individual words worth collecting, as plain strings in {{learningLang}}, in the form a dictionary would list them. Choose the ones that carry the page: the vocabulary being studied, not every word that appears on it.
-
-Rules that apply throughout:
-
-- Read only what is on the page. Do not add vocabulary, examples or corrections that are not there because they would fit the topic.
-- Where the handwriting is genuinely unreadable, leave that item out. A wrong guess costs this person more than a missing one, because they will file it and study it.
-- Prefer fewer, better items in every list. A page yielding six well-chosen words is more useful than one yielding thirty.
-- If the same thing belongs in two places, put it in the more specific one: an expression goes in phrases rather than words, a corrected error goes in mistakes rather than notes.
-- If the photograph is not of language-practice material at all, return the summary saying so and leave every list empty.`,
+Reply with JSON only, no markdown fence: {"ok": true|false, "platform": "<short name or empty>", "reason": "<one short sentence>"}`,
   },
 ];
 
@@ -88,14 +71,14 @@ Rules that apply throughout:
  * @param {string} token - admin ID token
  * @returns {Promise<{created: string[], skipped: string[]}>}
  */
-export async function seedPhotoPrompts(token) {
+export async function seedPrompts(token) {
   const existing = await getPrompts({ forceRefresh: true });
   const existingIds = new Set(existing.map((prompt) => prompt.id));
 
   const created = [];
   const skipped = [];
 
-  for (const seed of PHOTO_PROMPT_SEEDS) {
+  for (const seed of PROMPT_SEEDS) {
     if (existingIds.has(seed.id)) {
       skipped.push(seed.id);
       continue;

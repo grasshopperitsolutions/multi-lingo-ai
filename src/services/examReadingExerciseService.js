@@ -146,7 +146,7 @@ export async function generateReadingExercise({ token, level, targetLang, questi
   const promptDoc = await getPrompt('exam-reading-prompt');
   const maxTokens = promptDoc.maxTokens ?? (MAX_OUTPUT_TOKENS_BY_LEVEL[level] ?? DEFAULT_MAX_OUTPUT_TOKENS);
   const model = promptDoc.model || GEMINI_MODEL;
-  const raw = await _callAskAI(token, prompt, maxTokens, responseSchema, model);
+  const raw = await _callAskAI(token, prompt, maxTokens, responseSchema, model, promptDoc.explorerModel);
 
   if (!raw) {
     console.error('[examReadingExerciseService] Empty response from AI');
@@ -541,10 +541,11 @@ function _parseAIResponse(data, type) {
  * The responseSchema parameter constrains Gemini output to the exact structure,
  * significantly improving parse reliability compared to jsonMode alone.
  */
-async function _callAskAI(token, prompt, maxOutputTokens, responseSchema, model = GEMINI_MODEL) {
+async function _callAskAI(token, prompt, maxOutputTokens, responseSchema, model = GEMINI_MODEL, explorerModel) {
   const providerParams = {
     provider: 'gemini',
     model,
+    explorerModel,
     temperature: 0.7,
     jsonMode: true,
     maxOutputTokens: maxOutputTokens,

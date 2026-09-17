@@ -228,6 +228,7 @@ export async function seedTopicContent({ token, topic, explanationLocale }) {
   const providerParams = {
     provider: 'gemini',
     model: promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     temperature: 0.3,
     jsonMode: true,
     responseSchema: TOPIC_CONTENT_SCHEMA,
@@ -337,6 +338,7 @@ export async function generateTip({ token, targetLang, explanationLocale, catego
   const providerParams = {
     provider: 'gemini',
     model: promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     // Higher than the library seeding: a fresh tip should not be the most
     // predictable one every time the button is pressed.
     temperature: 0.9,
@@ -413,6 +415,7 @@ export async function askGrammar({
   const providerParams = {
     provider: 'gemini',
     model: promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     temperature: 0.3,
     jsonMode: true,
     responseSchema: ASK_SCHEMA,

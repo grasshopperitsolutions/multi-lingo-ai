@@ -1,4 +1,5 @@
 import { askAI } from "./aiService";
+import { getPrompt, renderTemplate } from "./promptService";
 import { parseTutorUrl, matchKnownPlatform } from "../config/tutorPlatforms";
 
 /**
@@ -72,30 +73,34 @@ export function linkValidation(link) {
 }
 
 /**
- * Builds the classification prompt. Kept separate so a test can assert the
- * shape without an AI call, and so the wording lives in one place.
+ * The classification prompt, from the admin-edited template.
  *
- * Deliberately not built from locale strings: this is a machine-to-machine
- * instruction, not user-facing copy, and translating it would change the
- * model's behaviour per language.
+ * It used to be built here in code. What it decides — which links a tutor may
+ * show and which are refused — is a moderation policy, and a policy that can
+ * only change by deploying is one that does not get corrected the day a tutor
+ * is wrongly refused. It now lives in
+ * `appConfig/config/prompts/tutor-link-validate-prompt`, like every other
+ * prompt in the app.
+ *
+ * Still deliberately not built from locale strings: this is a
+ * machine-to-machine instruction, not user-facing copy, and translating it
+ * would change the model's behaviour per language. Moving it into Firestore
+ * is not translating it.
  */
-function buildPrompt(url) {
-  return [
-    "You are validating a link a language tutor wants to show on their public profile.",
-    "",
-    `URL: ${url}`,
-    "",
-    "Decide whether this looks like a legitimate destination for a tutor to share:",
-    "a personal or professional website, a social or video profile, a booking or",
-    "scheduling page, a language-learning marketplace, a map location, or a payment",
-    "or newsletter page. Tutors may link to any platform.",
-    "",
-    "Reject only if the URL looks like malware, adult content, a phishing or",
-    "credential-harvesting page, or is plainly unrelated to teaching or contacting",
-    "a person.",
-    "",
-    'Reply with JSON only, no markdown fence: {"ok": true|false, "platform": "<short name or empty>", "reason": "<one short sentence>"}',
-  ].join("\n");
+async function buildPrompt(url) {
+  const promptDoc = await getPrompt("tutor-link-validate-prompt");
+  const prompt = renderTemplate(promptDoc.template, { url });
+
+  // A template that has lost its {{url}} asks the model to judge a link it was
+  // never shown, and every verdict after that is confident noise about
+  // nothing — the same guard {{requiredWords}} and {{speechPace}} already have.
+  if (!prompt.includes(url)) {
+    console.warn(
+      "[tutorUrlValidation] The stored template has no {{url}} placeholder, so the link never reaches the model.",
+    );
+  }
+
+  return { prompt, promptDoc };
 }
 
 /**
@@ -132,10 +137,18 @@ export async function validateUrlWithAi(token, url) {
   }
 
   try {
+    const { prompt, promptDoc } = await buildPrompt(parsed.url.toString());
     const result = await askAI(
       token,
-      buildPrompt(parsed.url.toString()),
-      { provider: "openai" },
+      prompt,
+      {
+        provider: "openai",
+        // Both blank in the seeded document, so this keeps the provider
+        // default until an admin pins one — and `explorerModel` makes the
+        // check cheaper for the free tier the moment anyone wants that.
+        model: promptDoc.model || undefined,
+        explorerModel: promptDoc.explorerModel,
+      },
       // The tutor already pressed a button that says "Validate" — a second
       // confirmation dialog on top of that is noise.
       { skipConfirm: true, timeout: 20000 },

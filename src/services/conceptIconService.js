@@ -119,6 +119,7 @@ export async function generateConceptIcon({ conceptId, sourceWord, token }) {
   const providerParams = {
     provider: "gemini",
     model: promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
     temperature: 0.4,
     jsonMode: true,
     responseSchema: {

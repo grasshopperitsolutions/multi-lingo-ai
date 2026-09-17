@@ -42,7 +42,7 @@ function matchesSearch(prompt, term) {
   return haystack.includes(term.toLowerCase());
 }
 
-const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPrompt, onSeedPhotoPrompts, isSeeding }) => {
+const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPrompt, onSeedPrompts, isSeeding }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategories, setActiveCategories] = useState([]);
 
@@ -105,10 +105,10 @@ const PromptsSection = ({ prompts, isDarkMode, isLoadingDocs, error, onEditPromp
             </p>
 
             {/* TEMPORARY — remove with src/services/promptSeedService.js once
-                the photo-capture prompt exists in every environment. */}
-            <GhostButton onClick={onSeedPhotoPrompts} disabled={isSeeding} isDarkMode={isDarkMode}>
+                its prompts exist in every environment. */}
+            <GhostButton onClick={onSeedPrompts} disabled={isSeeding} isDarkMode={isDarkMode}>
               <Sprout size={14} />
-              {isSeeding ? "Seeding..." : "Seed photo prompt (TEMPORARY)"}
+              {isSeeding ? "Seeding..." : "Seed missing prompts (TEMPORARY)"}
             </GhostButton>
           </div>
         </>
@@ -182,7 +182,7 @@ PromptsSection.propTypes = {
   error: PropTypes.string,
   onEditPrompt: PropTypes.func.isRequired,
   /** TEMPORARY — see promptSeedService. */
-  onSeedPhotoPrompts: PropTypes.func,
+  onSeedPrompts: PropTypes.func,
   isSeeding: PropTypes.bool,
 };
 

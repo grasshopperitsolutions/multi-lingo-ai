@@ -20,7 +20,7 @@ import {
 } from "../services/tutorService";
 import { forceOverwriteAllTranslations, seedLanguageTranslations } from "../services/translationService";
 // TEMPORARY — remove with src/services/promptSeedService.js.
-import { seedPhotoPrompts } from "../services/promptSeedService";
+import { seedPrompts } from "../services/promptSeedService";
 import { createCategory, updateCategory, deleteCategory } from "../services/categoriesService";
 import PromptsSection from "../components/admin/PromptsSection";
 import PromptEditModal from "../components/admin/PromptEditModal";
@@ -386,14 +386,14 @@ const AdminPage = () => {
     }
   }, [showAlert, refreshLocalesDocs]);
 
-  // TEMPORARY — remove with src/services/promptSeedService.js once the
-  // photo-capture prompt exists in every environment.
+  // TEMPORARY — remove with src/services/promptSeedService.js once its
+  // prompts exist in every environment.
   const [isSeedingPrompts, setIsSeedingPrompts] = useState(false);
-  const handleSeedPhotoPrompts = useCallback(async () => {
+  const handleSeedPrompts = useCallback(async () => {
     setIsSeedingPrompts(true);
     try {
       const token = await auth.currentUser.getIdToken();
-      const { created, skipped } = await seedPhotoPrompts(token);
+      const { created, skipped } = await seedPrompts(token);
       showAlert(
         "success",
         `Prompts created: ${created.length ? created.join(", ") : "none"}. Already present: ${skipped.length ? skipped.join(", ") : "none"}.`
@@ -498,7 +498,7 @@ const AdminPage = () => {
             isLoadingDocs={isLoadingDocs}
             error={error}
             onEditPrompt={setEditingPrompt}
-            onSeedPhotoPrompts={handleSeedPhotoPrompts}
+            onSeedPrompts={handleSeedPrompts}
             isSeeding={isSeedingPrompts}
           />
         ) : isCategoriesSection ? (

@@ -639,6 +639,59 @@ The prompt is `photo-notes-extract-prompt` in `appConfig/config/prompts`,
 admin-editable like every other. `promptSeedService.js` creates it once from
 Admin › Prompts and is **TEMPORARY** — it carries its own removal checklist.
 
+## The model lives on the prompt, and so does the Explorer split
+
+Every prompt document carries `model` (everyone) and `explorerModel` (the free
+tier). Both are free-text fields in Admin › Prompts, and **blank means "the
+same model as everyone else"** — which is the state of every prompt nobody has
+deliberately split, so this is opt-in per feature rather than a global switch.
+
+`api/ask-ai.ts` does the swap, in four lines, right after the tier it already
+resolves for quota. Doing it server-side is not about trust — the model has
+always been whatever the client sent — it is that the alternative threads the
+tier through a dozen services with no other reason to know it.
+
+**It keys on the stored tier, never the quota tier.** `LIMITS_ENFORCED=false`
+pins the quota tier to explorer for *everyone*, which is right for counting
+calls and catastrophic for choosing a model: every paying user would silently
+drop to the cheap model for the whole of a testing period, precisely while
+someone is judging output quality. `api/ask-ai.ts` reads `storedTier` for this,
+and `test/api/ask-ai.limits-paused.test.ts` exists to keep the two apart.
+
+Why here rather than a central per-tier config: the model already lived on the
+prompt document — it is why photo capture runs on a stronger model than
+everything else — so a sibling field needed no new collection, no purpose
+taxonomy, no inference rules and no cache. The cost is that there is no single
+lever: moving all Explorer traffic means editing each prompt that has one set.
+Most should never have one.
+
+The twelve `GEMINI_MODEL` constants stay put. They are the fallback for a
+prompt document that names no model, which is a different job from the tier
+split. Worth knowing they are two generations behind (`gemini-3.8-flash` is
+current): that is what the prompt fields are now for.
+
+## Every live prompt is admin-editable
+
+`tutorUrlValidation` was the last one building its prompt in code — the policy
+deciding which links a tutor may show, changeable only by deploying, which is
+not how a wrongly-refused tutor gets unblocked. It is now
+`tutor-link-validate-prompt` with `{{url}}`, and `buildPrompt` warns if an edit
+drops that placeholder, since the model would otherwise judge a link it was
+never shown and return confident nonsense. Failure stays soft:
+`validateUrlWithAi` never throws, so a broken template degrades to "could not
+validate".
+
+It is still deliberately not built from locale strings — a machine-to-machine
+instruction, not user copy, and translating it would change the model's
+behaviour per language. Moving it into Firestore is not translating it.
+
+**`getImageService` is dead code.** Nothing in `src/` imports it; the only
+references are two tests for `findImageBySourceWord`. Its `generateImage` is
+the one remaining `askAI` call with a hardcoded model, and it is unreachable —
+which is why it was deliberately *not* given a prompt document. Seeding a
+prompt for dead code is how dead code starts looking alive. Delete the module
+or wire it up; do not leave it looking maintained.
+
 ## Professional tools: one tier key, one register, one prompt budget
 
 The three tools at `/dashboard/professional-tools` share the
