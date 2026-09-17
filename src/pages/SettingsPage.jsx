@@ -33,6 +33,7 @@ import { useTierAccess } from "../hooks/useTierAccess";
 import { SettingsSection } from "../components/ui";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
 import NotificationSettings from "../components/NotificationSettings";
+import ReminderSettings from "../components/ReminderSettings";
 import TutorProfileSection from "../components/TutorProfileSection";
 import WordBankSection from "../components/WordBankSection";
 import PersonalWidgetSettings from "../components/personal/PersonalWidgetSettings";
@@ -859,6 +860,14 @@ const SettingsPage = () => {
           isDarkMode={isDarkMode}
           user={user}
           onSaved={refreshUser}
+        />
+
+        {/* ── Practice reminders ── */}
+        {/* After notifications, because that card is the channel switch and
+            this one only matters once push is on. */}
+        <ReminderSettings
+          isDarkMode={isDarkMode}
+          defaultOpen={openFromHash === "#reminderSettings"}
         />
 
         {/* ── Subscription Section ── */}

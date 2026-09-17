@@ -33,7 +33,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-**763 tests across 29 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
+**766 tests across 29 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
 
 - `test/canaries/` — one assertion per library behaviour no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing, every literal `t()` key resolving in the pt-PT bundle.
 - `test/smoke/pages.test.jsx` — 37 pages mount, paint, stay out of the error boundary, and render no raw translation keys. **Feature pages assert the route shell only**: each is a Suspense wrapper, so the assertion passes while the lazy chunk is still loading. The heavy components are covered directly instead.
@@ -67,21 +67,70 @@ Coverage is uneven on purpose: `src/utils` is ~92%, `src/services` ~54%, `src/co
 ## Notifications
 
 - `src/services/notificationService.js` + `src/components/NotificationSettings.jsx` own web push (FCM) and the per-category opt-outs. Push is **off by default** and requires an explicit browser permission grant; `public/firebase-messaging-sw.js` is the service worker and `VITE_FIREBASE_VAPID_KEY` is required or `isPushAvailable()` is silently false.
-- Categories are `transactional` (always delivered, not opt-outable), `announcements` and `reminders`. Nothing currently sends `reminders`.
+- Categories are `transactional` (always delivered, not opt-outable), `announcements` and `reminders`. `reminders` is sent by the API's hourly cron, **push only** — the mail outbox releases a fixed number a day and shares it with transactional mail, so its email channel defaults off and nothing reads it.
+- **`PushOptInPrompt` is the only place the app asks for notification permission**, as a line under the tier badge in the dashboard header. It is a button, not an automatic prompt, and that is not a style choice: `Notification.requestPermission()` needs a user gesture, and a dismissal is permanent — once the browser records `denied` no code can ask again. Firing it on load would spend the single chance on someone who was not looking. Granting turns on both optional push categories; turning reminders off in Settings hides the prompt for good, so a warning never outlives the answer to it.
+- `ReminderSettings` (content: which reminders, what hour, which weekday) is separate from `NotificationSettings` (channel: push at all). `config/reminders.js` mirrors `lib/reminders.ts` in the API — two copies in two repos that cannot import each other, like `EMAIL_COPY_BASE` and the locale file. `test/unit/utils.test.js` pins the ids and defaults against drift, which nothing else would catch: a mismatch is a switch that appears to do nothing.
+- `users/{uid}.timezone` is captured on the first profile load that finds it missing, and **only** when missing — overwriting on every login would undo a deliberate override the moment someone opened their laptop abroad.
 - The toggles are a convenience, not the enforcement point — the backend re-checks the stored preference before every send.
 - The report button writes to Firestore (`appConfig/config/reports`) via `src/services/reportService.js`, and admins read/triage them in the admin page. It no longer sends to WhatsApp.
 - **Broadcast email is queued, not sent.** The composer reports how many were queued and how deep the outbox is; the API releases 75 a day (Resend's free tier is 100/day, and the rest is headroom for transactional mail). Push still goes out immediately. See `lib/mail-queue.ts` in the API repo.
 
-## Email templates
+## Email templates are read-only, and there are exactly two copies
 
-`src/components/admin/EmailTemplatesSection.jsx` edits the transactional email copy. It is **not** a separate template store: it writes the `email.*` keys of the pt-PT locale document, the same keys the API resolves through `lib/email-copy.ts`. That is deliberate — a standalone template collection would sit outside the AI-fill pipeline and every language but one would go stale.
+`src/components/admin/EmailTemplatesSection.jsx` shows the transactional email
+and push-reminder copy as deployed. It **writes nothing**.
 
-Two consequences worth knowing before touching it:
+It used to edit the `email.*` keys of a pt-PT locale document in Firestore.
+That made three copies of the same strings — this bundle, the API's
+`EMAIL_COPY_BASE`, and that document — and the database copy was the only one
+no pull request could ever be gated on, so it was the one free to drift. It was
+also, on inspection, an abandoned partial seed: an exact but stale duplicate of
+the bundle, missing the eight reminder keys and carrying junk at its root
+(`section4_title`, `section5_text`) from a restructure years ago. **It has been
+deleted, and nothing reads a pt-PT locale document any more.**
 
-- Edits land on the base locale only. Reaching the other languages is the existing force resync in the Locales section, which re-translates from pt-PT and **overwrites hand-tuned per-language wording**. The editor says so on screen.
-- `saveEmailTemplates` patches only the keys that actually changed, using dot-notation paths through the same `patchDocument` the translation pipeline uses. Writing the whole `email` object back would clobber any key not listed in `TEMPLATE_GROUPS`.
+- `getTranslations` and `seedLanguageTranslations` both read
+  `SOURCE_TRANSLATIONS` (the bundled file) and only that. `contentServices2.test.js`
+  asserts that a pt-PT document put back in Firestore is still ignored, because
+  "translate from the live copy" is the plausible-sounding change that would
+  reintroduce all of this.
+- `forceOverwriteAllTranslations` filters the base locale out of its targets,
+  `fillMissingTranslations` returns `0` for it, and `seedLanguage` returns early
+  on an existing language — so nothing recreates the document either. Worth
+  knowing: while it existed, the Locales section listed it with a refresh
+  button, and pressing that would have AI-round-tripped the canonical file
+  pt→pt and stored the result.
 
-`TEMPLATE_GROUPS` is an explicit list rather than something derived from the bundle, because `email.common.*` is shared chrome that appears in every message and should not look like it belongs to one email. `TEMPLATE_VARIABLES` mirrors the `{{...}}` placeholders actually present in the base copy — dropping one renders a literal `{{tier}}` in a real email.
+**The two remaining copies are kept in step by CI, not by discipline.** The API's
+`lib/email-copy.base.ts` is generated from this repo's `email.*` subtree by its
+`npm run sync:email-copy`, and `npm run check:email-copy` fails there when the
+two disagree — naming the offending strings. This repo runs the mirror check
+**advisory** (`continue-on-error`, like the npm audit step): two repos cannot
+merge atomically, so blocking both sides would guarantee one master is red
+between the two merges. This repo is the source and may move first; the API is
+what must catch up, which is why the hard gate and a daily `schedule:` run both
+live there.
+
+**Order of operations for a copy change:** edit `translation.json` here, push;
+then in the API run `npm run sync:email-copy`, commit, deploy. Until that
+second step the API sends the old wording and its CI is red — which is the
+pressure working, not a bug.
+
+`TEMPLATE_GROUPS` is an explicit list rather than something derived from the
+bundle, because `email.common.*` is shared chrome that appears in every message
+and should not look like it belongs to one email. The cost is that a template
+added to the base file and forgotten there ships without ever being visible, so
+`test/unit/emailTemplates.test.js` asserts the list covers every `email.*` leaf,
+and that `TEMPLATE_VARIABLES` names exactly the `{{...}}` placeholders each
+shipped string interpolates.
+
+**`email.reminders.*` is push, not email.** It lives under `email.*` because
+that is where locale copy is resolved from the same Firestore documents the UI
+uses, and a parallel mechanism would be a second thing to keep filled. This
+panel is the only place those four messages are visible outside the repo.
+
+Per-language wording is unchanged: other locales are still Firestore documents,
+still translated from this file, and still fixed by a force resync.
 
 ## The theme saves on click; everything else on that page waits for Save
 

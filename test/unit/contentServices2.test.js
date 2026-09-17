@@ -200,6 +200,28 @@ describe("translationService — seeding a new language", () => {
     expect(Object.keys(result).length).toBeGreaterThan(0);
   });
 
+  it("translates from the bundle, never from a pt-PT document in Firestore", async () => {
+    seedTranslationPrompt();
+    askAI.mockImplementation(async (_token, prompt) => aiText(prompt));
+
+    // There is deliberately no pt-PT document — it was an abandoned partial
+    // seed that nothing read, and a copy of these strings in a database is a
+    // copy no pull request can be gated on. If one is ever put back, seeding
+    // must keep ignoring it: the bundled file is what the running code uses,
+    // so anything else would translate from strings nobody is seeing.
+    getDocument.mockImplementation(async (collection, id) =>
+      collection === "appConfig/config/locales" && id === "pt-PT"
+        ? { id, data: { email: { welcome: { subject: "ESCRITO À MÃO" } } } }
+        : null
+    );
+
+    const { seedLanguageTranslations } = await import("../../src/services/translationService");
+    const result = await seedLanguageTranslations("de-DE", "tok");
+    const pt = (await import("../../src/locales/pt/translation.json")).default;
+
+    expect(result.email.welcome.subject).toBe(pt.email.welcome.subject);
+  });
+
   it("refuses to create an empty locale document when every chunk fails", async () => {
     seedTranslationPrompt();
     askAI.mockRejectedValue(new Error("AI backend down"));

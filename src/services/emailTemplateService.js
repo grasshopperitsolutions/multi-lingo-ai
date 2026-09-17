@@ -1,34 +1,39 @@
-import { getDocument, patchDocument } from "./firestoreService";
-import { BASE_LOCALE } from "../i18n";
 import ptTranslation from "../locales/pt/translation.json";
 
 /**
- * Admin editing for the transactional email copy.
+ * The transactional email and push-reminder copy, for the admin panel to
+ * show. Read-only, and from the bundled base file only — this module makes
+ * no request.
  *
- * These are not a separate template store: they are the `email.*` keys of the
- * ordinary locale document, the same ones the API resolves through
- * lib/email-copy.ts. Keeping them there is what makes them translatable —
- * a standalone template collection would sit outside the AI-fill pipeline and
- * every language but one would go stale.
+ * It used to load and save the `email.*` keys of a pt-PT locale document in
+ * Firestore. That document has been deleted and nothing reads it any more.
+ * The short version of why: these strings existed in three places — this
+ * bundle, the API's EMAIL_COPY_BASE, and that document — and the database
+ * copy was the one no pull request could ever be gated on, which is exactly
+ * the copy that drifts. It was also, on inspection, an abandoned partial
+ * seed: an exact but stale duplicate of this file, missing eight keys and
+ * carrying junk at its root from a restructure years ago.
  *
- * Edits are always written to the base locale (pt-PT), because that is the
- * source every other locale is translated from. Reaching the other languages
- * is then the existing force-resync in the Locales section; nothing here
- * writes to them directly. The trade is deliberate and worth knowing: a
- * resync overwrites hand-tuned per-locale wording.
+ * So there are two copies now, in two repos that deploy separately and cannot
+ * import each other, and CI fails when they disagree (the API's
+ * `npm run check:email-copy`, and this repo's advisory counterpart). Changing
+ * a template is a code change in this file followed by a deploy.
+ *
+ * Editing copy per language is unchanged and still lives in the Locales
+ * section: a force resync re-translates every other locale from this file.
  */
 
-const LOCALES_COLLECTION = "appConfig/config/locales";
-
 /**
- * The editable fields, in the order they are shown. Grouped by the email they
- * belong to so the admin edits "the welcome email" rather than a flat list of
- * dotted keys.
+ * The displayed fields, in the order they are shown. Grouped by the email they
+ * belong to so the panel reads as "the welcome email" rather than a flat list
+ * of dotted keys.
  *
  * This list is intentionally explicit rather than derived from the bundle:
  * `email.*` also holds shared chrome (footer, greeting) that appears in every
- * message, and showing those beside a specific email's subject line would
- * make it look like editing one changes only that one.
+ * message, and showing those beside a specific email's subject line would make
+ * it look like they belong to that one. The cost is that a template added to
+ * the base file and forgotten here is copy that ships without ever being
+ * visible, which is what the test in test/unit/emailTemplates.test.js guards.
  */
 export const TEMPLATE_GROUPS = [
   {
@@ -97,6 +102,23 @@ export const TEMPLATE_GROUPS = [
     ],
   },
   {
+    id: "reminders",
+    label: "Practice reminders",
+    hint:
+      "Push notifications, not email — at most one a day per person. " +
+      "Subject is the notification title, body the line under it.",
+    keys: [
+      "email.reminders.streak_rescue_subject",
+      "email.reminders.streak_rescue_body",
+      "email.reminders.lessons_low_subject",
+      "email.reminders.lessons_low_body",
+      "email.reminders.weekly_review_subject",
+      "email.reminders.weekly_review_body",
+      "email.reminders.practice_nudge_subject",
+      "email.reminders.practice_nudge_body",
+    ],
+  },
+  {
     id: "account_deleted",
     label: "Account deleted",
     hint: "Sent before the data is destroyed, so it can still be addressed.",
@@ -109,56 +131,23 @@ export const TEMPLATE_GROUPS = [
   },
 ];
 
-/** Reads a dotted path out of a nested object. */
-function readPath(source, path) {
-  return path.split(".").reduce((node, key) => (node == null ? undefined : node[key]), source);
+/** The shipped value for one key, straight from the bundled base file. */
+export function bundledTemplateValue(key) {
+  return key.split(".").reduce((node, part) => (node == null ? undefined : node[part]), ptTranslation) ?? "";
 }
 
 /**
- * Loads the current value of every editable key.
+ * Every displayed key's value, as one flat map.
  *
- * Falls back to the bundled pt-PT file per key rather than wholesale: a
- * locale document that predates a template will have some keys and not
- * others, and a missing one should show its shipped default rather than an
- * empty box that would overwrite it with "" on save.
+ * `account_deleted.cta` is legitimately "" — that email has no button — so
+ * absence and emptiness are not treated as the same thing anywhere here.
  */
-export async function loadEmailTemplates(token) {
-  let stored = {};
-  try {
-    const doc = await getDocument(LOCALES_COLLECTION, BASE_LOCALE, token);
-    stored = doc?.data ?? doc ?? {};
-  } catch {
-    // No document yet — the bundled file is the whole answer.
-  }
-
+export function loadEmailTemplates() {
   const values = {};
   for (const group of TEMPLATE_GROUPS) {
-    for (const key of group.keys) {
-      values[key] = readPath(stored, key) ?? readPath(ptTranslation, key) ?? "";
-    }
+    for (const key of group.keys) values[key] = bundledTemplateValue(key);
   }
   return values;
-}
-
-/**
- * Persists only the keys whose value actually changed.
- *
- * Dot-notation keys go through the same PATCH the translation pipeline uses,
- * so this merges into the locale document rather than replacing it — writing
- * the whole `email` object back would clobber any key not listed in
- * TEMPLATE_GROUPS.
- */
-export async function saveEmailTemplates(edited, original, token) {
-  const patch = {};
-  for (const [key, value] of Object.entries(edited)) {
-    if (value !== original[key]) patch[key] = value;
-  }
-
-  const changedKeys = Object.keys(patch);
-  if (changedKeys.length === 0) return { changed: 0, keys: [] };
-
-  await patchDocument(LOCALES_COLLECTION, BASE_LOCALE, patch, token);
-  return { changed: changedKeys.length, keys: changedKeys };
 }
 
 /**
@@ -174,4 +163,7 @@ export const TEMPLATE_VARIABLES = {
   "email.subscription_activated.body": ["tier"],
   "email.subscription_cancel_scheduled.subject": ["date"],
   "email.subscription_cancel_scheduled.body": ["tier", "date"],
+  "email.reminders.streak_rescue_body": ["days"],
+  "email.reminders.lessons_low_body": ["n"],
+  "email.reminders.weekly_review_body": ["days", "words"],
 };

@@ -41,7 +41,14 @@
     "add": "Adicionar",
     "previous": "Anterior",
     "page_of": "Página {{page}} de {{total}}",
-    "pagination": "Paginação"
+    "pagination": "Paginação",
+    "weekday_sunday": "Domingo",
+    "weekday_monday": "Segunda",
+    "weekday_tuesday": "Terça",
+    "weekday_wednesday": "Quarta",
+    "weekday_thursday": "Quinta",
+    "weekday_friday": "Sexta",
+    "weekday_saturday": "Sábado"
   },
   "avatar": {
     "alt_fallback": "Imagem de perfil"
@@ -1239,11 +1246,40 @@
       "body": "O último pagamento do teu plano não foi concluído. Atualizar o cartão mantém o teu acesso sem interrupções — voltamos a tentar automaticamente assim que estiver resolvido.",
       "cta": "Atualizar o cartão"
     },
+    "reminders": {
+      "streak_rescue_subject": "Não percas a tua sequência",
+      "streak_rescue_body": "Vais em {{days}} dias seguidos. Cinco minutos chegam para manteres.",
+      "practice_nudge_subject": "Praticar hoje?",
+      "practice_nudge_body": "Cinco minutos e ficas em dia.",
+      "lessons_low_subject": "Estás quase sem aulas",
+      "lessons_low_body": "Faltam-te {{n}} aulas com o teu explicador. Talvez seja altura de marcar mais.",
+      "weekly_review_subject": "A tua semana",
+      "weekly_review_body": "Vais em {{days}} dias seguidos e já guardaste {{words}} palavras. Continua."
+    },
     "account_deleted": {
       "subject": "A tua conta foi eliminada",
       "heading": "A tua conta foi eliminada",
       "body": "A tua conta Multi Lingo AI e todos os dados associados foram eliminados permanentemente, e qualquer subscrição ativa foi cancelada. Nada disto é recuperável. Obrigado por teres praticado connosco.",
       "cta": ""
     }
+  },
+  "notifications": {
+    "opt_in_cta": "Ativar notificações",
+    "opt_in_done": "Notificações ativadas. Podes desligar nas Definições.",
+    "opt_in_blocked": "Notificações bloqueadas neste navegador.",
+    "reminders_title": "Lembretes de prática",
+    "reminders_intro": "Pequenos avisos para não perderes o ritmo. Chegam por notificação do navegador, à hora que escolheres.",
+    "reminders_push_off": "As notificações estão desligadas neste dispositivo, por isso nada será enviado. Ativa-as em Notificações, aqui em cima.",
+    "reminder_streak": "Salvar a sequência",
+    "reminder_streak_desc": "Só quando tens uma sequência de vários dias em risco de se perder hoje.",
+    "reminder_nudge": "Lembrete diário",
+    "reminder_nudge_desc": "Um aviso nos dias em que ainda não praticaste.",
+    "reminder_lessons": "Aulas a acabar",
+    "reminder_lessons_desc": "Quando te resta uma aula ou menos com o teu explicador.",
+    "reminder_weekly": "Resumo da semana",
+    "reminder_weekly_desc": "Uma vez por semana, o que praticaste e o que guardaste.",
+    "reminder_hour": "A que horas",
+    "reminder_weekday": "Dia do resumo",
+    "reminder_hour_hint": "Hora local do teu fuso horário ({{zone}}), que podes mudar no teu perfil."
   }
 }
