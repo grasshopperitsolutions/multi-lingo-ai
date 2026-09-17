@@ -177,6 +177,34 @@ export async function addFavourite({ token, uid, kind, id, currentIds = [] }) {
 }
 
 /**
+ * Add several ids in one write. Idempotent, order-preserving.
+ *
+ * Not a loop over addFavourite: each call PUTs the whole array, computed from
+ * the `currentIds` it was handed, so N calls made from one render all start
+ * from the same list and the last one to land wins. Every id but one is
+ * silently lost — which is invisible in a UI where each add is a separate tap
+ * and fatal the moment something adds a batch (the photo capture proposes a
+ * dozen words at once).
+ *
+ * @param {Object}   params
+ * @param {string}   params.token
+ * @param {string}   params.uid
+ * @param {string}   params.kind       - one of FAVOURITE_KINDS
+ * @param {string[]} params.ids
+ * @param {string[]} params.currentIds - current value, to avoid an extra read
+ * @returns {Promise<string[]>} the new list
+ */
+export async function addFavourites({ token, uid, kind, ids, currentIds = [] }) {
+  const field = fieldFor(kind);
+  const wanted = (Array.isArray(ids) ? ids : []).filter(Boolean);
+  if (wanted.length === 0) return currentIds;
+
+  const updated = [...new Set([...currentIds, ...wanted])];
+  await updateUserProfile(token, uid, { [field]: updated });
+  return updated;
+}
+
+/**
  * Remove `id` from a kind's favourites. Idempotent.
  *
  * This is the half the seen-id helpers deliberately don't have — un-favouriting

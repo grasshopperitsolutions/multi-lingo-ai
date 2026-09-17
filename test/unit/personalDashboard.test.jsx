@@ -233,15 +233,14 @@ describe("choosing which widgets to show", () => {
   });
 
   it("says so, rather than rendering a blank page, when everything is off", async () => {
+    // From the registry, not a list written out here: a hand-kept copy goes
+    // stale the moment a widget is added, and the failure looks like the
+    // all-hidden card breaking rather than the test missing an id.
+    const { PERSONAL_WIDGET_IDS } = await import("../../src/config/personalWidgets");
+
     ctx.current = makeAppContext({
       ...GRANTED,
-      user: {
-        ...GRANTED.user,
-        hiddenPersonalWidgets: [
-          "lessons", "streak", "notes", "plan", "goal",
-          "phrasebook", "mistakes", "words", "recall",
-        ],
-      },
+      user: { ...GRANTED.user, hiddenPersonalWidgets: [...PERSONAL_WIDGET_IDS] },
     });
 
     const { getByText, queryByText } = await mount();

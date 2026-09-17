@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../../contexts/AppContext";
@@ -17,6 +17,9 @@ import PhrasebookWidget from "../../../components/personal/widgets/PhrasebookWid
 import MistakesWidget from "../../../components/personal/widgets/MistakesWidget";
 import WordBankWidget from "../../../components/personal/widgets/WordBankWidget";
 import RecallWidget from "../../../components/personal/widgets/RecallWidget";
+import PhotoCaptureWidget from "../../../components/personal/widgets/PhotoCaptureWidget";
+import PhotoReviewModal from "../../../components/personal/PhotoReviewModal";
+import { PROPOSAL_KINDS } from "../../../services/photoCaptureService";
 import { FeaturePageShell, ErrorBanner, Card } from "../../../components/ui";
 
 /**
@@ -82,6 +85,10 @@ const PersonalDashboard = () => {
   const { isHidden } = useHiddenWidgets();
   const boardRef = useRef(null);
 
+  // What the last photo produced, awaiting a person's approval. Null closes
+  // the review; nothing is ever written before it is.
+  const [review, setReview] = useState(null);
+
   const isLocked = isReady && !canAccess("personal_tools");
 
   // In an effect, not during render: navigating while rendering is a side
@@ -117,6 +124,55 @@ const PersonalDashboard = () => {
   // column spans live in one place that Settings reads from too. Every entry
   // is created whether or not it is shown — these are element descriptions,
   // not mounted components, so a hidden one costs nothing.
+  /**
+   * Writes the rows kept in the photo review into the places they belong.
+   *
+   * Sequential on purpose. `usePersonalCollection.add` is optimistic and
+   * stamps a temporary id from the clock, so firing a batch at once used to
+   * collide within a millisecond; awaiting each keeps the ids apart and the
+   * list in the order the review showed. Words are the exception and must be
+   * the opposite — one write for all of them, because each favourites write
+   * PUTs the whole array and a loop would keep only the last word.
+   */
+  const applyProposals = async (kept) => {
+    const of = (kind) => kept.filter((row) => row.kind === kind);
+
+    const noteText = of(PROPOSAL_KINDS.NOTE)
+      .map((row) => row.fields.text)
+      .filter(Boolean)
+      .join("\n\n");
+    if (noteText) {
+      const next = board.text ? `${board.text}\n\n${noteText}` : noteText;
+      // Appending can cross the board's ceiling; the widget enforces it on
+      // typing, and this path has to respect the same limit.
+      board.setText(next.slice(0, NOTE_BOARD_MAX_CHARS));
+    }
+
+    for (const row of of(PROPOSAL_KINDS.QUESTION)) {
+      await questions.add({ text: row.fields.text });
+    }
+    for (const row of of(PROPOSAL_KINDS.MISTAKE)) {
+      await mistakes.add({
+        said: row.fields.said,
+        correction: row.fields.correction,
+        ...(row.fields.why ? { why: row.fields.why } : {}),
+      });
+    }
+    for (const row of of(PROPOSAL_KINDS.PHRASE)) {
+      await phrases.add({
+        phrase: row.fields.phrase,
+        translation: row.fields.translation,
+        ...(row.fields.note ? { note: row.fields.note } : {}),
+      });
+    }
+
+    const words = of(PROPOSAL_KINDS.WORD).map((row) => row.fields.word);
+    if (words.length > 0) wordBank.addMany(words);
+
+    setReview(null);
+    showAlert("success", t("personal.photo_added", { n: kept.length }));
+  };
+
   const WIDGETS = {
     lessons: (
       <LessonCounterWidget
@@ -127,6 +183,7 @@ const PersonalDashboard = () => {
       />
     ),
     streak: <PracticeStreakWidget isDarkMode={isDarkMode} />,
+    photo: <PhotoCaptureWidget onAnalysed={setReview} isDarkMode={isDarkMode} />,
     notes: (
       <NoteBoardWidget
         ref={boardRef}
@@ -257,6 +314,19 @@ const PersonalDashboard = () => {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Outside the grid: it is a modal over the whole page, and mounting it
+          inside a cell would put a fixed-position panel inside a stacking
+          context it has no reason to share. */}
+      {review && (
+        <PhotoReviewModal
+          summary={review.summary}
+          proposals={review.proposals}
+          onApply={applyProposals}
+          onClose={() => setReview(null)}
+          isDarkMode={isDarkMode}
+        />
       )}
     </FeaturePageShell>
   );

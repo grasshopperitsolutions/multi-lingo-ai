@@ -19,6 +19,8 @@ import {
   removeApplication,
 } from "../services/tutorService";
 import { forceOverwriteAllTranslations, seedLanguageTranslations } from "../services/translationService";
+// TEMPORARY — remove with src/services/promptSeedService.js.
+import { seedPhotoPrompts } from "../services/promptSeedService";
 import { createCategory, updateCategory, deleteCategory } from "../services/categoriesService";
 import PromptsSection from "../components/admin/PromptsSection";
 import PromptEditModal from "../components/admin/PromptEditModal";
@@ -384,6 +386,25 @@ const AdminPage = () => {
     }
   }, [showAlert, refreshLocalesDocs]);
 
+  // TEMPORARY — remove with src/services/promptSeedService.js once the
+  // photo-capture prompt exists in every environment.
+  const [isSeedingPrompts, setIsSeedingPrompts] = useState(false);
+  const handleSeedPhotoPrompts = useCallback(async () => {
+    setIsSeedingPrompts(true);
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const { created, skipped } = await seedPhotoPrompts(token);
+      showAlert(
+        "success",
+        `Prompts created: ${created.length ? created.join(", ") : "none"}. Already present: ${skipped.length ? skipped.join(", ") : "none"}.`
+      );
+    } catch (err) {
+      showAlert("error", `Could not seed prompts: ${err.message}`);
+    } finally {
+      setIsSeedingPrompts(false);
+    }
+  }, [showAlert]);
+
   useEffect(() => {
     if (!isAdmin || docsBySection[activeSectionId]) return;
     loadSection(activeSection);
@@ -477,6 +498,8 @@ const AdminPage = () => {
             isLoadingDocs={isLoadingDocs}
             error={error}
             onEditPrompt={setEditingPrompt}
+            onSeedPhotoPrompts={handleSeedPhotoPrompts}
+            isSeeding={isSeedingPrompts}
           />
         ) : isCategoriesSection ? (
           <CategoriesSection

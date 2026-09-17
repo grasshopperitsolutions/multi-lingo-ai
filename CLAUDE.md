@@ -591,6 +591,54 @@ list carrying on into the page behind it. Row text is `break-words`, never
 cue that there is more; that is deliberate, but it is the thing to revisit if
 anyone reports missing content.
 
+## Photographing your own notes
+
+`PhotoCaptureWidget` on the personal dashboard sends one photo to Gemini and
+proposes what to file where; `PhotoReviewModal` is where a person approves it.
+It is gated by `personal_tools` like everything else on that page — no new
+feature key, because the AI daily limit already rations it and an Explorer
+spending one of their three calls on this is a choice they are entitled to make.
+
+**It reads the student's own material** — a notebook page, an exercise,
+corrected homework. That is what makes the `mistakes` section possible at all: a
+wrong→right pair has to come from something they wrote, and the prompt says so
+explicitly because "list the mistakes" against clean notes is an invitation to
+invent them.
+
+**Nothing is written until the review is approved**, and that is the feature
+rather than a confirmation step. A model reading handwriting gets some of it
+wrong, and the destinations are someone's own notes and their own list of
+mistakes — the places a wrong entry is most annoying to find later. Every row is
+editable in place and dropping one is a tap.
+
+**The photo is never stored.** It goes into the request, is read, and goes out
+of scope with the response. No Storage bucket, no retention rule, no
+privacy-policy change — which is also why there is no history to re-run.
+
+Four things that are load-bearing:
+
+- **`/api/ask-ai` grew an optional `images` field** (not a new endpoint) and
+  `askGemini` appends `inlineData` parts to the **last user turn**, after the
+  text. Images cannot ride in `prompt` — that is capped at 8000 characters and
+  a photo is ~1MB of base64.
+- **`utils/imageDownscale.js` is what makes the request possible**, not an
+  optimisation: Vercel rejects a body over ~4.5MB before the handler runs. It
+  also applies EXIF orientation, without which a phone's portrait photo arrives
+  sideways and the handwriting is much harder to read.
+- **Words are added with one write, never a loop.** `useWordFavourites.addMany`
+  exists because `toggle` reads the current list from the captured `user`, so
+  N calls from one render all start from the same array and the last write wins
+  — a dozen words in, one word out. Each favourites write PUTs the whole array.
+- **The three list kinds are added sequentially**, awaiting each, because
+  `usePersonalCollection.add` stamps an optimistic id from the clock.
+  `pendingSeq` now disambiguates ids created in the same millisecond; before
+  it, a batch could give two rows the same temporary id and a single failure
+  would remove both.
+
+The prompt is `photo-notes-extract-prompt` in `appConfig/config/prompts`,
+admin-editable like every other. `promptSeedService.js` creates it once from
+Admin › Prompts and is **TEMPORARY** — it carries its own removal checklist.
+
 ## Professional tools: one tier key, one register, one prompt budget
 
 The three tools at `/dashboard/professional-tools` share the
@@ -632,6 +680,15 @@ inner whitespace, lower-case) so a word tapped in a title and the same word
 tapped in a paragraph are one entry. Normalising at that boundary rather than
 per call site is what lets a caller ask `isFavourite(rawToken)` and get the
 right answer.
+
+**The personal dashboard's `WordBankWidget` is the only place words are
+managed.** There used to be a second surface in Settings (`WordBankSection`,
+now deleted) from before that dashboard existed — the same list with a smaller
+delete. Two places to remove a word is one more than the feature needs, and
+Settings is not where anyone thinks about their own material. The widget is a
+strict superset: every word, newest first, in a scrolling region, with a
+thumb-sized delete and tap-to-look-up. The story sidebar
+(`WordBankSidebar`) is unaffected — that is collecting, not managing.
 
 **Tap and hold are two actions on one word.** Tap opens the dictionary sheet,
 hold (500ms, `useLongPress`) banks the word. A double tap was the other option

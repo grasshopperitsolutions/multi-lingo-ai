@@ -5,6 +5,7 @@ import {
   FAVOURITE_KINDS,
   getFavouriteIds,
   toggleFavourite,
+  addFavourites,
   favouriteFieldFor,
 } from "../services/favouritesService";
 
@@ -30,6 +31,7 @@ import {
  *   words: string[],
  *   isFavourite: (word: string) => boolean,
  *   toggle: (word: string) => void,
+ *   addMany: (words: string[]) => void,
  *   remove: (word: string) => void,
  * }}
  */
@@ -86,6 +88,48 @@ export function useWordFavourites() {
     [user, write],
   );
 
+  /**
+   * Adds several words in one write.
+   *
+   * `toggle` in a loop cannot do this: it reads the current list from the
+   * captured `user`, so every call in one render starts from the same array
+   * and the last write wins — a dozen words in, one word out. This computes
+   * the whole next list once and writes it once.
+   */
+  const addMany = useCallback(
+    (candidates) => {
+      if (!user?.token || !user?.uid) return;
+
+      const currentIds = getFavouriteIds(user, FAVOURITE_KINDS.WORD);
+      const known = new Set(currentIds);
+      const ids = [];
+      for (const candidate of candidates ?? []) {
+        const id = normaliseWord(candidate);
+        if (id && !known.has(id)) {
+          known.add(id);
+          ids.push(id);
+        }
+      }
+      if (ids.length === 0) return;
+
+      const field = favouriteFieldFor(FAVOURITE_KINDS.WORD);
+      const nextIds = [...currentIds, ...ids];
+      setUser((prev) => (prev ? { ...prev, [field]: nextIds } : prev));
+
+      addFavourites({
+        token: user.token,
+        uid: user.uid,
+        kind: FAVOURITE_KINDS.WORD,
+        ids,
+        currentIds,
+      }).catch((err) => {
+        setUser((prev) => (prev ? { ...prev, [field]: currentIds } : prev));
+        showAlert("error", err.message || t("settings.errors.save_failed"));
+      });
+    },
+    [user, setUser, showAlert, t],
+  );
+
   const remove = useCallback(
     (word) => {
       const id = normaliseWord(word);
@@ -99,5 +143,5 @@ export function useWordFavourites() {
     [user, write],
   );
 
-  return { words, isFavourite, toggle, remove };
+  return { words, isFavourite, toggle, addMany, remove };
 }

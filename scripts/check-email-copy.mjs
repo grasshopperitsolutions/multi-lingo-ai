@@ -51,9 +51,16 @@ async function readGenerated() {
  * Anchored on the export rather than on brace positions, because the file's
  * header comment contains `{{name}}`-style placeholders. The format is a
  * contract with the generator in the API repo, not a guess about TypeScript.
+ *
+ * Line endings are deliberately not part of that contract. git's
+ * `core.autocrlf` hands a Windows checkout the file with CRLF while the
+ * generator always writes LF, and comparing raw bytes made this fail on every
+ * Windows working copy while passing in CI.
  */
 function parseGenerated(text) {
-  const match = text.match(/export const EMAIL_COPY_BASE = ([\s\S]*);\s*$/);
+  const match = text
+    .replace(/\r\n/g, "\n")
+    .match(/export const EMAIL_COPY_BASE = ([\s\S]*);\s*$/);
   if (!match) return null;
   try {
     return JSON.parse(match[1]);

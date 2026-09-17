@@ -25,14 +25,16 @@ import PersonalWidgetCard from "../PersonalWidgetCard";
  * than navigating to the dictionary — you are looking a word up, not leaving
  * the page.
  *
- * The remove control is a `p-2.5` button, not the 16px corner `X` that
- * `WordBankSection` uses. That one is fine in a Settings list you visit to tidy
- * up; here the rule is a thumb-sized target, and a too-small delete next to a
- * tap-to-look-up is how you delete a word you meant to read.
+ * The remove control is a `p-2.5` button, thumb-sized, because a too-small
+ * delete sitting next to a tap-to-look-up is how you delete a word you meant
+ * to read.
  *
- * The Settings section stays exactly where it is. One is housekeeping for a
- * long list, the other is a glance at recent words, and they cannot drift —
- * both read the same hook.
+ * **This is the only place the word bank is managed.** There was a second
+ * surface in Settings — the same list with a 16px corner X — from before this
+ * dashboard existed. Two places to remove a word is one more than the feature
+ * needs, and Settings is not where you think about your own material. Every
+ * word renders here, newest first, inside a scrolling region: nothing is
+ * hidden behind a "see all" that no longer exists.
  */
 const WordBankWidget = ({ words, onRemove, isDarkMode }) => {
   const { t } = useTranslation();
@@ -71,11 +73,9 @@ const WordBankWidget = ({ words, onRemove, isDarkMode }) => {
           {visible.map((word) => (
             <span
               key={word}
-              // The chip is 44px tall and both halves fill it. `WordBankSection`
-              // gets away with a 16px corner X because Settings is where you go
-              // to tidy up deliberately; here a too-small delete sits next to a
-              // tap-to-look-up, and that is how you delete a word you meant to
-              // read.
+              // The chip is 44px tall and both halves fill it: the look-up and
+              // the delete sit side by side, so the delete cannot be the
+              // smaller target.
               className={`inline-flex items-stretch max-w-full min-h-[44px] rounded-full border-2 font-bold overflow-hidden ${
                 isDarkMode
                   ? "bg-slate-900 border-slate-700 text-slate-200"

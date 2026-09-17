@@ -22,6 +22,9 @@ import {
  *
  * @param {string} kind - one of PERSONAL_KINDS
  */
+/** Distinguishes optimistic rows created within the same millisecond. */
+let pendingSeq = 0;
+
 export function usePersonalCollection(kind) {
   const { user, showAlert } = useAppContext();
   const { t } = useTranslation();
@@ -62,7 +65,12 @@ export function usePersonalCollection(kind) {
 
       // A temporary id so the row can render before the server answers; it is
       // replaced by the real one, and removed entirely if the write fails.
-      const tempId = `pending-${Date.now()}`;
+      //
+      // The counter is not decoration: Date.now() alone collides whenever two
+      // adds land in the same millisecond, and then the replace step rewrites
+      // both rows to the same id while a single failure removes both. One tap
+      // at a time never hit it; adding a batch does.
+      const tempId = `pending-${Date.now()}-${(pendingSeq += 1)}`;
       const optimistic = { id: tempId, ...data, createdAt: new Date().toISOString() };
       setItems((prev) => [optimistic, ...prev]);
 

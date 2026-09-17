@@ -1,4 +1,5 @@
 import {
+  Camera,
   Ticket,
   Flame,
   NotebookPen,
@@ -42,6 +43,10 @@ export const PERSONAL_WIDGETS = [
     icon: Ticket, color: "bg-emerald-400" },
   { id: "streak", titleKey: "personal.dash_streak_title", descKey: "personal.dash_streak_desc",
     icon: Flame, color: "bg-orange-400" },
+  // Near the top because it is the fastest way to fill everything below it:
+  // you arrive holding a notebook, not looking for a card.
+  { id: "photo", titleKey: "personal.photo_title", descKey: "personal.photo_desc",
+    icon: Camera, color: "bg-lime-400" },
   { id: "notes", titleKey: "personal.notes_title", descKey: "personal.notes_desc",
     icon: NotebookPen, color: "bg-violet-400", span: true },
   { id: "plan", titleKey: "personal.plan_title", descKey: "personal.plan_desc",

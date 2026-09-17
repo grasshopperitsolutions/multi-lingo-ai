@@ -1104,7 +1104,21 @@
     "widgets_settings_intro": "Escolhe o que aparece no teu espaço. O que desligares continua guardado — só deixa de ocupar lugar.",
     "widgets_settings_none": "Desligaste tudo. O teu espaço vai aparecer vazio.",
     "widgets_all_hidden": "Não estás a mostrar nada aqui. Nada foi apagado — escolhe o que queres ver.",
-    "widgets_choose": "Escolher o que mostrar"
+    "widgets_choose": "Escolher o que mostrar",
+    "photo_title": "Fotografar apontamentos",
+    "photo_desc": "Tira uma foto aos teus apontamentos e a IA arruma o que lá está pelos cartões certos.",
+    "photo_cta": "Escolher uma foto",
+    "photo_reading": "A ler a foto…",
+    "photo_hint": "Funciona com os teus próprios apontamentos: uma página do caderno, um exercício, um trabalho corrigido. Vês tudo o que a IA propõe antes de ser guardado.",
+    "photo_nothing_found": "Não consegui tirar nada de útil desta foto. Tenta outra com o texto mais nítido.",
+    "photo_failed": "Não consegui ler esta foto.",
+    "photo_added": "{{n}} itens guardados.",
+    "photo_review_title": "O que encontrei",
+    "photo_review_empty": "Retiraste tudo. Não há nada para guardar.",
+    "photo_review_apply": "Guardar {{n}}",
+    "photo_field_note": "Nota",
+    "photo_field_question": "Pergunta",
+    "photo_field_word": "Palavra"
   },
   "pdf": {
     "download": "Guardar em PDF",
@@ -1167,10 +1181,7 @@
     "select_locked": "Escolher palavras para a próxima história faz parte dos pedidos personalizados.",
     "remove": "Remover \"{{word}}\" do banco de palavras",
     "added": "\"{{word}}\" guardada no banco de palavras.",
-    "removed": "\"{{word}}\" removida do banco de palavras.",
-    "settings_title": "Banco de palavras",
-    "settings_description": "As palavras que guardaste enquanto praticavas. Usa-as no gerador de histórias ou remove as que já dominas.",
-    "settings_empty": "Ainda não guardaste nenhuma palavra. Mantém premida uma palavra numa história para a guardares."
+    "removed": "\"{{word}}\" removida do banco de palavras."
   },
   "favourites": {
     "add": "Adicionar aos favoritos",

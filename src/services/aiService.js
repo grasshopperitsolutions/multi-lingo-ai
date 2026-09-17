@@ -101,7 +101,7 @@ export class AiGenerationDeclined extends Error {
  * @throws {AiGenerationDeclined} If the user declines the generation prompt.
  */
 export async function askAI(token, prompt, providerParams, options = {}) {
-  const { timeout = DEFAULT_TIMEOUT, signal, retries = 0, skipConfirm = false } = options;
+  const { timeout = DEFAULT_TIMEOUT, signal, retries = 0, skipConfirm = false, images } = options;
 
   if (!skipConfirm && _confirmHandler) {
     const proceed = await _confirmHandler();
@@ -127,7 +127,12 @@ export async function askAI(token, prompt, providerParams, options = {}) {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt, providerParams }),
+        // `images` is omitted rather than sent as undefined: the endpoint
+        // validates the field whenever it is present, and an empty array
+        // would be rejected on a non-gemini provider for no reason.
+        body: JSON.stringify(
+          images?.length ? { prompt, providerParams, images } : { prompt, providerParams }
+        ),
         signal: combinedSignal,
       });
 
