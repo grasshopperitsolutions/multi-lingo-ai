@@ -47,9 +47,9 @@ const GAME_ID = "crosswords";
  * numbers above buys almost nothing, because density plateaus near 50% on the
  * interlock constraints rather than on vocabulary.
  */
-const GRID_COLS = 10;
+const GRID_COLS = 11;
 const GRID_ROWS = 15;
-const WORD_COUNT = 15;
+const WORD_COUNT = 9;
 
 /** Longest answer that can still fit with its clue cell. */
 const MAX_LENGTH = Math.max(GRID_COLS, GRID_ROWS) - 1;
