@@ -285,3 +285,52 @@ describe("daysUntil", () => {
     }
   });
 });
+
+describe("reminder preferences (frontend mirror of the API's)", () => {
+  /**
+   * The ids and defaults exist in two repos that cannot import each other —
+   * config/reminders.js here, lib/reminders.ts in the API. A drift shows up as
+   * a switch in Settings that appears to do nothing, which nothing else
+   * catches.
+   */
+  it("defaults every reminder on, matching DEFAULT_REMINDER_PREFS in the API", async () => {
+    const { DEFAULT_REMINDER_PREFS, REMINDER_TOGGLES } = await import(
+      "../../src/config/reminders"
+    );
+
+    expect(DEFAULT_REMINDER_PREFS).toEqual({
+      hour: 19,
+      weekday: 0,
+      streakRescue: true,
+      practiceNudge: true,
+      lessonsLow: true,
+      weeklyReview: true,
+    });
+
+    // Every toggle shown in Settings must be a key the backend reads.
+    for (const { id } of REMINDER_TOGGLES) {
+      expect(DEFAULT_REMINDER_PREFS).toHaveProperty(id);
+    }
+  });
+
+  it("rejects an hour outside the clock rather than storing it", async () => {
+    const { normalizeReminderPrefs } = await import("../../src/config/reminders");
+    expect(normalizeReminderPrefs({ hour: 24 }).hour).toBe(19);
+    expect(normalizeReminderPrefs({ hour: 0 }).hour).toBe(0);
+    expect(normalizeReminderPrefs({ weekday: 7 }).weekday).toBe(0);
+  });
+
+  it("resolves every title and description it renders", async () => {
+    const { REMINDER_TOGGLES, WEEKDAY_KEYS } = await import("../../src/config/reminders");
+    const pt = (await import("../../src/locales/pt/translation.json")).default;
+    const resolve = (key) => key.split(".").reduce((node, part) => node?.[part], pt);
+
+    for (const { id, titleKey, descKey } of REMINDER_TOGGLES) {
+      expect(typeof resolve(titleKey), `${id} titleKey`).toBe("string");
+      expect(typeof resolve(descKey), `${id} descKey`).toBe("string");
+    }
+    for (const key of WEEKDAY_KEYS) {
+      expect(typeof resolve(key), key).toBe("string");
+    }
+  });
+});

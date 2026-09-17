@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../contexts/AppContext";
 import { useTierAccess } from "../../hooks/useTierAccess";
 import Avatar from "../../components/Avatar";
+import PushOptInPrompt from "../../components/PushOptInPrompt";
 import TooltipButton from "../../components/TooltipButton";
 import MobileMenuDrawer from "../../components/MobileMenuDrawer";
 import LanguageFlagIcon from "../../components/LanguageFlagIcon";
@@ -183,6 +184,11 @@ const DashboardLayout = () => {
                   </span>
                 )}
               </p>
+              {/* Only while this browser cannot receive a push. It renders
+                  nothing once permission is granted, and nothing for someone
+                  who has turned reminders off in Settings — a warning that
+                  outlives the answer to it is just nagging. */}
+              <PushOptInPrompt isDarkMode={isDarkMode} />
             </div>
           </div>
 

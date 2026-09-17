@@ -41,6 +41,17 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
         continue-on-error: true
 
+      # Advisory, unlike the identical gate in the API repo, and the
+      # asymmetry is the point. These email strings live in both repos; this
+      # one is the source and the API's copy is generated from it. Two repos
+      # cannot merge atomically, so blocking both sides would guarantee one
+      # master is red between the two merges. The source is allowed to move
+      # first — the API's CI blocks, and runs this check daily on a schedule
+      # so a change landing here is noticed even if nobody opens a PR there.
+      - name: Email copy reached the API (advisory)
+        run: npm run check:email-copy
+        continue-on-error: true
+
       - name: Lint
         run: npm run lint
 

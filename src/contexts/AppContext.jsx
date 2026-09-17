@@ -515,7 +515,10 @@ export const AppProvider = ({ children }) => {
   const loadUserProfile = async (authUser) => {
     if (!authUser?.token || !authUser?.uid) return;
     try {
-      const profile = await getUserProfile(authUser.token, authUser.uid);
+      // `let`, not `const`: the timezone capture below fills the field in
+      // locally so this session reflects the write it just fired, rather than
+      // waiting for the next load.
+      let profile = await getUserProfile(authUser.token, authUser.uid);
 
       // Theme — Firestore is source of truth; localStorage is fallback for guests
       if (profile?.theme) {
@@ -536,6 +539,34 @@ export const AppProvider = ({ children }) => {
       // Day streak — update in Firestore (no-op if already updated today)
       // Returns { dayStreak, highestDayStreak } — current or newly updated values.
       const { dayStreak, highestDayStreak } = await updateDayStreak(authUser.token, authUser.uid, profile);
+
+      // Timezone — captured once, on the first load that finds it missing.
+      //
+      // Reminders are scheduled against the user's own clock, and the job
+      // skips anyone with no zone rather than guessing UTC. Almost nobody
+      // visits Settings, so without this the feature would reach almost
+      // nobody.
+      //
+      // **Only when missing.** Overwriting it on every login would undo a
+      // deliberate override the moment the user opened their laptop in
+      // another country — the Settings picker exists precisely for the people
+      // whose device clock is not where they live.
+      if (!profile?.timezone) {
+        const detected = (() => {
+          try {
+            return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+          } catch {
+            return null;
+          }
+        })();
+        if (detected) {
+          // Fire and forget: a failed write means no reminders until the next
+          // login, which is not worth blocking a sign-in over.
+          updateUserProfile(authUser.token, authUser.uid, { timezone: detected })
+            .catch((err) => console.warn("[AppContext] Could not store timezone:", err.message));
+          profile = { ...(profile ?? {}), timezone: detected };
+        }
+      }
 
       // Words found — derived from the length of seenConceptIds (no extra read needed)
       const wordsFound = profile?.seenConceptIds?.length ?? 0;
@@ -592,11 +623,14 @@ export const AppProvider = ({ children }) => {
         // Absent means "not chosen yet", which useDashboardPresentation
         // resolves by viewport rather than by guessing a default here.
         dashboardPresentation: profile?.dashboardPresentation ?? null,
-        // IANA zone, chosen in Settings and pre-filled from the browser. Null
-        // until somebody saves it — the reminder job (when it exists) has to
-        // treat "not set" as its own case rather than assuming UTC, which
+        // IANA zone, chosen in Settings and captured from the browser on the
+        // first load that finds it missing. The reminder job treats "not set"
+        // as its own case and skips the user rather than assuming UTC, which
         // would deliver at the wrong hour rather than not at all.
         timezone: profile?.timezone ?? null,
+        // Which practice reminders are on and when. Absent until the user
+        // changes something; both repos default the same way.
+        reminderPrefs: profile?.reminderPrefs ?? null,
         // Personal-dashboard widgets the user has turned off. Stored as the
         // hidden ids, so a widget added later is on by default; absent means
         // "nothing hidden", which is every user until they change something.
