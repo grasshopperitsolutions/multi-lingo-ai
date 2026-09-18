@@ -24,3 +24,27 @@ export const GRAMMAR_SUPPORTED_DIALECTS = ['pt-PT'];
 export function isGrammarSupported(dialect) {
   return GRAMMAR_SUPPORTED_DIALECTS.includes(dialect);
 }
+
+/**
+ * Whether one section of the hub works for a given dialect.
+ *
+ * The list above answers "is there hand-written material for this language",
+ * which is the right question for Structures, Tips and the drills — all three
+ * read seeded content. It is the **wrong** question for a section that writes
+ * something new each time from what the learner typed: Practice Text asserts
+ * no rule, it just produces prose to read, so there is nothing unreviewed for
+ * it to get wrong about a language nobody has checked.
+ *
+ * So the gate is per section (`needsLibrary` on GRAMMAR_SECTIONS) rather than
+ * on the hub as a whole. Anything new defaults to needing the library, which
+ * is the safe direction: a section wrongly marked library-free ships
+ * unreviewed grammar, while one wrongly marked as needing it is merely absent.
+ *
+ * @param {{needsLibrary?: boolean}} section - an entry from GRAMMAR_SECTIONS
+ * @param {string} [dialect]
+ * @returns {boolean}
+ */
+export function isGrammarSectionAvailable(section, dialect) {
+  if (section?.needsLibrary === false) return true;
+  return isGrammarSupported(dialect);
+}

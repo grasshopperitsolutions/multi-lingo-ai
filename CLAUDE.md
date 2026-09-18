@@ -269,6 +269,113 @@ Three upgrades are currently blocked, and all three will keep being proposed:
 - Do not add analytics, tracking, or Sentry features beyond error capture without reading the privacy policy strings in `src/locales/pt/translation.json` first — several of them make explicit promises about what this app does not do.
 - Editing an existing locale string does not propagate: `fillMissingTranslations` only fills keys that are *missing*. Changing wording in pt-PT needs the admin force resync, or every other locale keeps the old text.
 
+## "Tale Creator" and "Country Culture & History" — the rename is a pt-PT fix
+
+Readers could not tell the two apart, and the reason is only visible in the
+base locale: **in Portuguese both were "história".** "Gerador de Histórias"
+next to "História e Cultura" is the same word twice, because *história* is
+both a story and history. English hid the collision; pt-PT is the language the
+app is actually written in, so the collision was the product.
+
+They are now **"Criador de Contos"** (a *conto* is a tale and nothing else) and
+**"Cultura e História do País"** (the country is what it is about, and naming
+it moves "história" out of first position). Every reference in the pt bundle
+moved with them — the pricing rows, the landing page, the word-bank copy that
+says where to collect words.
+
+**Only the copy changed. Not one id, key or route.** `story_generator` and
+`history_culture` are *gate keys*: they name documents in
+`appConfig/config/features`, appear in each tier's `features` array, and are
+stored in users' favourites and `DEFAULT_TODAY_FEATURE_IDS`. Renaming one
+would silently un-grant a feature for every subscriber and orphan every
+favourite pointing at it. `/dashboard/story-generator` stays for the same
+reason — bookmarks and shared links.
+
+Two things this does **not** reach on its own. Other locales keep the old
+wording until an admin force resync, because `fillMissingTranslations` only
+fills *missing* keys. And `config/seoStrings.js` still says "stories" on
+purpose: it is crawler-facing, and "story" is the word someone searches for.
+
+## Tale themes are a bounded list so the pool still works
+
+`config/storyThemes.js` is the world a tale is set in — fantasy, underwater,
+sport — picked before generating and sent as `{{theme}}`.
+
+**Bounded on purpose.** A preset is a Firestore equality filter, so ten readers
+asking for the same theme at the same level share one pool instead of paying
+for ten generations. `any` is the default and filters nothing, which is also
+the only way tales written before themes existed are ever served — an equality
+filter drops documents missing the field rather than treating it as unset.
+
+**`other` is free text and is therefore gated** like `description` and the
+word-bank selection (`canAccess("custom_requests") || cacheExhausted`).
+Arbitrary words can never be served from a shared pool, so it always spends a
+generation — and an ungated third route to the same AI call would make the
+other two gates decorative. It is dropped from the picker when locked rather
+than shown locked, since the description box below already renders that
+upgrade prompt and two identical locks explain the tier worse than one.
+
+**`getStoryPoolStatus` is deliberately *not* theme-filtered**, unlike
+`getStory`. "Exhausted" is what unlocks a paid feature for a free tier, and a
+theme nobody has written for is empty the day it is added — so counting per
+theme would let anyone unlock custom requests by picking the most obscure
+option in the list.
+
+The theme ids are written onto every story document, so they can be added and
+retired but **never renamed** — a rename orphans every tale already stored
+under it. There is no "history" theme, and `storyThemes.test.js` asserts there
+never is: putting *história* back in that list undoes the rename above.
+
+## Practice Text — the grammar hub stops being pt-PT-only
+
+`/dashboard/grammar/text` writes a short passage around whatever the learner
+typed they want to work on: a tense, a construction, some vocabulary, plus any
+words from their bank. `grammarTextService.js`, prompt
+`grammar-text-generate-prompt`.
+
+**It is its own prompt, not a variant of the Tale Creator's, because the two
+instructions contradict each other in writing.** `story-generate-prompt` says
+*"natural writing, not a grammar exercise in disguise — do not stuff it with
+one tense to make a point"*; this one asks for exactly that stuffing. One
+template cannot hold both without one of them being a lie, and the one that
+would get softened is the Tale Creator's. (`grammar-drill-prompt` uses
+`variants` because its six shapes are the same job. This is not that.)
+
+**Nothing is cached and nothing is written.** Every other reading feature is
+cache-first against a shared pool, because their requests come from a bounded
+set — a level, a language, a theme, a topic id. This request is a sentence
+somebody typed, so there is no key to match on and no second reader who wants
+the same text. Every press generates; the AI daily limit is what rations it,
+the same argument photo capture runs on. That is also why its word-bank
+selection is **ungated** where the Tale Creator's is: there, picking words
+forces a generation that would otherwise have been free, so it is gated with
+the custom-request box; here every press generates anyway.
+
+**The language gate is now per section, not per hub.** `isGrammarSectionAvailable`
+reads `needsLibrary` off each entry in `GRAMMAR_SECTIONS`. Structures, Tips and
+the drills all render seeded pt-PT material and stay gated by
+`GRAMMAR_SUPPORTED_DIALECTS`; Practice Text reads nothing seeded — it asserts
+no rule, it produces prose — so it has nothing to be missing in a language
+nobody has reviewed. **The flag defaults to "needs the library"**, which is the
+safe direction: a section wrongly marked library-free ships unreviewed grammar,
+one wrongly marked as needing it is merely absent.
+
+Consequences worth knowing. The dashboard Grammar tile **no longer carries
+`isUnavailable`** — leaving it disabled off-pt-PT would have made the one
+section that works everywhere reachable only by URL. The hub renders whatever
+survives the filter and shows the "library is pt-PT only" banner *above* those
+cards rather than instead of them. And `grammar_text` has no document in
+`appConfig/config/features` yet, so it resolves to `COMING_SOON` and renders
+badged and locked for everyone but admin until it is granted in Admin › Tiers
+& Features — which is the right default for something unreleased.
+
+`focusNote` and `highlights` are presentational: a model that skips them
+degrades to a plain passage rather than throwing, because throwing would spend
+one of the reader's daily calls and show them nothing. `highlights` are
+required to be copied character-for-character out of the paragraphs, and the
+prompt says to leave the list empty rather than invent an example — an "answer
+key" listing forms that are not in the text is worse than no answer key.
+
 ## Story translations are collapsed, the title is not
 
 The bilingual reader shows the target-language paragraph with its translation

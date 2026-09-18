@@ -50,6 +50,7 @@ const GrammarStructuresPage = lazy(() => import("./pages/dashboard/grammar/Gramm
 const GrammarTipsPage = lazy(() => import("./pages/dashboard/grammar/GrammarTipsPage"));
 const GrammarAskPage = lazy(() => import("./pages/dashboard/grammar/GrammarAskPage"));
 const GrammarPracticeComingSoonPage = lazy(() => import("./pages/dashboard/grammar/GrammarPracticeComingSoonPage"));
+const GrammarTextPage = lazy(() => import("./pages/dashboard/grammar/GrammarTextPage"));
 
 const AiTutorPage = lazy(() => import("./pages/dashboard/coming-soon/AiTutorPage"));
 const TutorsPage = lazy(() => import("./pages/dashboard/TutorsPage"));
@@ -217,6 +218,7 @@ const AppLayout = () => {
             <Route path="grammar/tips" element={<GrammarTipsPage />} />
             <Route path="grammar/ask" element={<GrammarAskPage />} />
             <Route path="grammar/practice" element={<GrammarPracticeComingSoonPage />} />
+            <Route path="grammar/text" element={<GrammarTextPage />} />
             <Route path="ai-tutor" element={<AiTutorPage />} />
             <Route path="real-person-tutor" element={<TutorsPage />} />
             <Route path="voice-practice" element={<VoicePracticePage />} />

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import { GRAMMAR_SECTIONS as SECTIONS } from "../config/favouritableFeatures";
-import { isGrammarSupported } from "../config/grammarSupport";
+import { isGrammarSupported, isGrammarSectionAvailable } from "../config/grammarSupport";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from "../utils/featureAccess";
 import StatusBadge from "./StatusBadge";
@@ -56,14 +56,20 @@ const GrammarMenu = ({ isDarkMode }) => {
   const { user } = useAppContext();
   const { featureStatus, isReady } = useTierAccess();
 
-  const supported = isGrammarSupported(user?.learningDialect);
+  const dialect = user?.learningDialect;
+  const supported = isGrammarSupported(dialect);
 
   // Section ids are namespaced as grammar_* feature keys (see
   // appConfig/config/features); access is configured on the Admin page.
   // Sections are never hidden — each carries a badge explaining why it isn't
   // usable yet, and a purchasable one routes to pricing.
+  //
+  // The language filter is separate from that and runs first: a section whose
+  // content is the hand-written pt-PT library has nothing to show in another
+  // language, so it is left out entirely rather than shown locked. One that
+  // writes from scratch is always in.
   const sectionCards = isReady
-    ? SECTIONS.map((section) => {
+    ? SECTIONS.filter((section) => isGrammarSectionAvailable(section, dialect)).map((section) => {
         const status = featureStatus(`grammar_${section.id}`);
         const badge = getStatusBadge(status);
         return {
@@ -101,9 +107,9 @@ const GrammarMenu = ({ isDarkMode }) => {
         reportContext="GrammarMenu"
       />
 
-      {/* The dashboard card is already disabled for unsupported languages, but a
-          user can still reach this route directly — say why rather than showing
-          an empty library. */}
+      {/* Shown above whatever sections did survive the language filter, rather
+          than instead of them: the hub is no longer all-or-nothing, so this
+          explains a short list rather than an empty page. */}
       {!supported && (
         <div className={`rounded-xl border-4 p-4 ${
           isDarkMode
@@ -116,7 +122,7 @@ const GrammarMenu = ({ isDarkMode }) => {
         </div>
       )}
 
-      {supported && (
+      {sectionCards.length > 0 && (
         <div className="grid grid-cols-1 gap-3 mt-2">
           {sectionCards.map((section) => (
             <GrammarCard

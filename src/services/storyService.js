@@ -15,6 +15,9 @@
  *     level: string              // CEFR level
  *     targetLang: string         // the language the story is written in
  *     topicIds: string[]         // interest-category IDs it was themed on (may be empty)
+ *     theme: string              // STORY_THEMES id the reader picked ('any' when they didn't).
+ *                                // Absent on every tale written before themes existed, which
+ *                                // is why a themed read filters and an 'any' read does not.
  *     title: string              // denormalised copy of the canonical (targetLang) title,
  *                                 // so the pool can be listed/deduped without an N+1 fetch
  *     status: 'ready'
@@ -42,6 +45,11 @@ import { askAI } from './aiService';
 import { getPrompt, renderTemplate } from './promptService';
 import { getGrammarDescription } from './examPromptTemplates';
 import { parseAIJSON } from '../utils/parseAIJSON';
+import {
+  DEFAULT_STORY_THEME,
+  CUSTOM_STORY_THEME,
+  describeStoryTheme,
+} from '../config/storyThemes';
 
 export const STORIES_COLLECTION = 'stories';
 
@@ -85,6 +93,13 @@ function _storySchema(paragraphCount) {
  * exhausted, which is what unlocks the custom-description input for tiers that
  * don't otherwise get it.
  *
+ * **Deliberately not filtered by theme**, unlike getStory. "Exhausted" is what
+ * opens a paid feature to a free tier, and a theme nobody has written for yet
+ * is empty from the moment it is added — so counting per theme would let
+ * anyone unlock custom requests by picking the most obscure option in the
+ * list. The question this answers is "have you seen everything there is",
+ * which has nothing to do with what you have currently selected.
+ *
  * @param {{ token: string, level: string, targetLang: string, seenStoryIds?: string[] }} params
  * @returns {Promise<{ total: number, unseen: number, exhausted: boolean }>}
  */
@@ -120,26 +135,48 @@ export async function getStoryPoolStatus({ token, level, targetLang, seenStoryId
  * @param {string} [params.description] - custom topic; skips the cache when set
  * @param {string[]} [params.requiredWords] - words from the reader's word bank the
  *   story must use; also skips the cache, since no cached story can contain them
+ * @param {string} [params.theme] - a STORY_THEMES id; narrows the pool to tales
+ *   written under it. 'any' (the default) filters nothing.
+ * @param {string} [params.customTheme] - the reader's own theme, when `theme` is
+ *   'other'; skips the cache, since no preset pool can match arbitrary words
  * @returns {Promise<{ storyId: string, level: string, targetLang: string, title: string, paragraphs: string[], source: 'db'|'ai' }>}
  */
-export async function getStory({ token, level, targetLang, interests = [], seenStoryIds = [], description = '', requiredWords = [] }) {
+export async function getStory({
+  token, level, targetLang, interests = [], seenStoryIds = [],
+  description = '', requiredWords = [],
+  theme = DEFAULT_STORY_THEME, customTheme = '',
+}) {
   if (!token) throw new Error('[storyService] token is required');
   if (!level) throw new Error('[storyService] level is required');
   if (!targetLang) throw new Error('[storyService] targetLang is required');
 
   const seenSet = new Set(seenStoryIds);
-  const pool = await _fetchReadyStories(token, { level, targetLang });
+  const isCustomTheme = theme === CUSTOM_STORY_THEME;
+
+  // Narrowing the query is what keeps themes cache-first: ten readers asking
+  // for the same theme at the same level share one pool rather than paying for
+  // ten generations. 'any' passes no filter at all, which is also the only way
+  // the tales written before themes existed are ever served — Firestore drops
+  // documents missing an equality-filtered field rather than treating it as
+  // unset. A free-text theme has no pool by definition, so it doesn't query.
+  const pool = await _fetchReadyStories(token, {
+    level,
+    targetLang,
+    theme: theme === DEFAULT_STORY_THEME || isCustomTheme ? undefined : theme,
+  });
 
   // A custom description or a set of required words is a specific request —
   // go straight to generation. No cached story can be guaranteed to contain
   // the reader's own words, so the pool cannot serve this at all. The result
   // still lands in the shared pool, so it isn't wasted on one reader.
-  if (description.trim() || requiredWords.length > 0) {
+  if (description.trim() || requiredWords.length > 0 || isCustomTheme) {
     return _generateStory({
       token, level, targetLang, interests,
       existingTitles: pool.map((s) => s.title),
       description: description.trim(),
       requiredWords,
+      theme,
+      customTheme,
     });
   }
 
@@ -159,8 +196,12 @@ export async function getStory({ token, level, targetLang, interests = [], seenS
     };
   }
 
-  // Pool exhausted for this level/language — generate a new one.
-  return _generateStory({ token, level, targetLang, interests, existingTitles: pool.map((s) => s.title) });
+  // Pool exhausted for this level/language/theme — generate a new one.
+  return _generateStory({
+    token, level, targetLang, interests,
+    existingTitles: pool.map((s) => s.title),
+    theme,
+  });
 }
 
 /**
@@ -239,7 +280,11 @@ export async function getStoryTranslation({ token, storyId, sourceLang, sourceTi
 // Generation
 // ---------------------------------------------------------------------------
 
-async function _generateStory({ token, level, targetLang, interests, existingTitles, description = '', requiredWords = [] }) {
+async function _generateStory({
+  token, level, targetLang, interests, existingTitles,
+  description = '', requiredWords = [],
+  theme = DEFAULT_STORY_THEME, customTheme = '',
+}) {
   const paragraphCount = PARAGRAPH_COUNT_BY_LEVEL[level] ?? DEFAULT_PARAGRAPH_COUNT;
   const grammarDescription = getGrammarDescription(level);
   // An explicit description wins over interests: the reader asked for
@@ -264,6 +309,17 @@ async function _generateStory({ token, level, targetLang, interests, existingTit
     );
   }
 
+  // Same trap as {{requiredWords}}: the reader picks a theme, the template
+  // drops it, and every tale comes back generic — which reads as the picker
+  // being decorative rather than the prompt being out of date. Only worth
+  // saying when a theme was actually chosen; 'any' changes nothing.
+  if (theme !== DEFAULT_STORY_THEME && !String(promptDoc.template).includes('{{theme}}')) {
+    console.warn(
+      '[storyService] The "story-generate-prompt" template has no {{theme}} placeholder, ' +
+      `so the chosen theme ("${theme}") will not reach the model. Add it in Admin > Prompts.`,
+    );
+  }
+
   const prompt = renderTemplate(promptDoc.template, {
     targetLang,
     level,
@@ -271,6 +327,9 @@ async function _generateStory({ token, level, targetLang, interests, existingTit
     grammarDescription,
     avoidTitles,
     paragraphCount,
+    // The instruction, not the id: "underwater — the sea, the coast, boats..."
+    // rather than "underwater". The id is storage; this is what the model reads.
+    theme: describeStoryTheme(theme, customTheme),
     // A plain list, not a sentence: the instruction around it belongs in the
     // editable template, not baked in here.
     requiredWords: requiredWords.join(', ') || '(none)',
@@ -302,6 +361,11 @@ async function _generateStory({ token, level, targetLang, interests, existingTit
     // Only tag with interests when interests actually shaped the story — a
     // description-driven story isn't about those topics.
     topicIds: description ? [] : interests.map((t) => t.id),
+    // Written even for 'any', so every tale from here on is filterable. A
+    // free-text tale is stored under 'other' and is never read back from the
+    // pool (that path always generates) — but it still surfaces under 'any',
+    // so it isn't spent on one reader either.
+    theme,
     title,
     status: 'ready',
     aiGenerated: true,
@@ -329,10 +393,14 @@ async function _generateStory({ token, level, targetLang, interests, existingTit
 // Internal helpers
 // ---------------------------------------------------------------------------
 
-async function _fetchReadyStories(token, { level, targetLang }) {
+async function _fetchReadyStories(token, { level, targetLang, theme }) {
   const result = await queryCollection(
     STORIES_COLLECTION,
-    { level, targetLang, status: 'ready' },
+    // Equality filters only, so no composite index is needed however many are
+    // passed. `theme` is left out entirely when undefined rather than sent as
+    // a null — a filter on a field most documents don't carry would return an
+    // empty pool and quietly turn every read into a generation.
+    { level, targetLang, status: 'ready', ...(theme ? { theme } : {}) },
     {},
     token
   );

@@ -38,6 +38,7 @@ import {
   Lightbulb,
   MessageCircleQuestion,
   Dumbbell,
+  FileText,
 } from "lucide-react";
 
 import { DASHBOARD_FEATURES } from "./dashboardFeatures";
@@ -181,6 +182,19 @@ export const GRAMMAR_SECTIONS = [
     color: "bg-emerald-400",
     titleKey: "grammar.practice",
     descKey: "grammar.practice_desc",
+  },
+  {
+    id: "text",
+    route: "/dashboard/grammar/text",
+    icon: FileText,
+    color: "bg-teal-400",
+    titleKey: "grammar.text",
+    descKey: "grammar.text_desc",
+    // The only section that reads nothing seeded — it writes a passage from
+    // what the learner typed, so it works in any language. See
+    // isGrammarSectionAvailable; everything else here needs the hand-written
+    // pt-PT library and is absent without it.
+    needsLibrary: false,
   },
 ];
 

@@ -36,7 +36,6 @@ import {
 } from "lucide-react";
 
 import { DASHBOARD_GROUP_IDS, FALLBACK_GROUP_ID, isGroupId } from "./dashboardGroups";
-import { isGrammarSupported } from "./grammarSupport";
 
 /**
  * Every dashboard tile, in the order they appear within their section.
@@ -126,10 +125,11 @@ export const DASHBOARD_FEATURES = [
     color: "text-amber-500",
     titleKey: "dashboard.grammar",
     descKey: "dashboard.grammar_desc",
-    // Grammar ships with hand-written pt-PT material only — see
-    // src/config/grammarSupport.js for why it is not offered per-language yet.
-    isUnavailable: ({ user }) => !isGrammarSupported(user?.learningDialect),
-    unavailableReasonKey: "grammar.not_available_for_language",
+    // No longer disabled off-pt-PT. The hub used to be all-or-nothing because
+    // every section read the hand-written pt-PT library; Practice Text writes
+    // from what the learner typed and so works anywhere, and disabling the
+    // tile would make it unreachable except by URL. The hub itself filters
+    // per section and says what is missing — see GrammarMenu.
   },
 
   // ── Read, Watch & Listen ──────────────────────────────────────────────────

@@ -28,6 +28,7 @@ const WordBankSidebar = ({
   onRemove,
   maxSelected,
   canSelect,
+  hintKey = "word_bank.select_hint",
   isDarkMode,
 }) => {
   const { t } = useTranslation();
@@ -110,7 +111,7 @@ const WordBankSidebar = ({
           <p className={`text-[11px] font-bold leading-relaxed ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
             {/* Removing a word always works; feeding words to the generator is
                 the part that needs the tier, because it forces a fresh story. */}
-            {canSelect ? t("word_bank.select_hint", { count: maxSelected }) : t("word_bank.select_locked")}
+            {canSelect ? t(hintKey, { count: maxSelected }) : t("word_bank.select_locked")}
           </p>
         </>
       )}
@@ -136,6 +137,10 @@ WordBankSidebar.propTypes = {
   /** False when this reader's tier can't trigger a generation — chips become
    *  read-only, but the X still removes. */
   canSelect: PropTypes.bool.isRequired,
+  /** Which "what happens to the words you pick" line to show — the sidebar is
+   *  shared by the Tale Creator and Practice Text, and each produces a
+   *  different thing. Locked copy is the same for both. */
+  hintKey: PropTypes.string,
   isDarkMode: PropTypes.bool.isRequired,
 };
 

@@ -314,6 +314,7 @@ const FEATURE_PAGES = [
   ["GrammarStructuresPage", () => import("../../src/pages/dashboard/grammar/GrammarStructuresPage")],
   ["GrammarTipsPage", () => import("../../src/pages/dashboard/grammar/GrammarTipsPage")],
   ["GrammarAskPage", () => import("../../src/pages/dashboard/grammar/GrammarAskPage")],
+  ["GrammarTextPage", () => import("../../src/pages/dashboard/grammar/GrammarTextPage")],
   [
     "GrammarPracticeComingSoonPage",
     () => import("../../src/pages/dashboard/grammar/GrammarPracticeComingSoonPage"),

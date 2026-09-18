@@ -74,6 +74,7 @@ const PromptEditModal = ({ prompt, categoriesInUse, isDarkMode, isSaving, onSave
   );
   const [maxTokens, setMaxTokens] = useState(prompt.maxTokens != null ? String(prompt.maxTokens) : "");
   const [model, setModel] = useState(prompt.model ?? "");
+  const [explorerModel, setExplorerModel] = useState(prompt.explorerModel ?? "");
   const [showConfirm, setShowConfirm] = useState(false);
   const [rawError, setRawError] = useState(null);
 
@@ -144,6 +145,16 @@ const PromptEditModal = ({ prompt, categoriesInUse, isDarkMode, isSaving, onSave
       patch.model = trimmedModel;
     } else if (prompt.model != null) {
       patch.model = null; // explicit clear — revert to the service default
+    }
+
+    // Same clear-on-blank rule as `model`, and it matters more here: blank is
+    // what makes Explorer share everyone else's model, so an empty string left
+    // in the document would be a model id the API tries to honour.
+    const trimmedExplorerModel = explorerModel.trim();
+    if (trimmedExplorerModel) {
+      patch.explorerModel = trimmedExplorerModel;
+    } else if (prompt.explorerModel != null) {
+      patch.explorerModel = null;
     }
 
     if (extraJson.trim()) {
@@ -220,6 +231,24 @@ const PromptEditModal = ({ prompt, categoriesInUse, isDarkMode, isSaving, onSave
                 placeholder="Leave blank to use the service default"
               />
             </div>
+          </div>
+
+          {/* Full width rather than paired with Model, because the pairing is
+              what needs explaining: blank does not mean "no model", it means
+              "whatever Model says". Put side by side as two identical boxes,
+              that reads as a second required field. */}
+          <div>
+            <label className={labelClasses(isDarkMode)}>AI Model — Explorer tier</label>
+            <input
+              className={inputClasses(isDarkMode)}
+              value={explorerModel}
+              onChange={(e) => setExplorerModel(e.target.value)}
+              placeholder="Leave blank to use the same model as everyone else"
+            />
+            <p className={`text-xs font-semibold mt-1.5 ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              Only the free tier. The swap is made server-side from the stored
+              subscription tier, so it holds even while AI limits are paused.
+            </p>
           </div>
 
           {usedVariables.length > 0 && (
