@@ -181,9 +181,11 @@ const TutorProfileSection = ({ isDarkMode, user, defaultOpen = false, id = undef
   };
 
   // ── Languages you speak ────────────────────────────────────────────────
-  const languageOptions = (supportedLanguages ?? []).filter(
-    (l) => !languages.some((code) => normalizeCode(code) === normalizeCode(l.code)),
-  );
+  // Every known language, including the ones already picked. They used to be
+  // filtered out, which was right for a control that added one at a time and
+  // is wrong for a multi-select: the ticks against what you already speak are
+  // most of what the open panel is telling you.
+  const languageOptions = supportedLanguages ?? [];
 
   const addLanguage = (code) => {
     setLanguages((current) =>
@@ -406,24 +408,25 @@ const TutorProfileSection = ({ isDarkMode, user, defaultOpen = false, id = undef
 
           <div className="flex flex-wrap items-start gap-3 mt-2">
             {/*
-              NeoDropdown always resolves `value` to a concrete option's label
-              for its resting button text — pass no matching value and, with
-              showOtherOption set, it reads as "Other" before anything is
-              picked. A real placeholder option (value: "") as the first
-              entry gives the button its own resting label instead; selecting
-              it is a no-op.
+              Multi-select, so naming four languages is four taps rather than
+              four open-pick-reopen cycles. `placeholder` gives the closed
+              button its own resting text — without it, a picker with nothing
+              chosen and `showOtherOption` set would read "Other".
+
+              The chips above stay: they are how a language gets removed, and
+              they are the only place a seeded "Other" shows, since that code
+              is in `languages` without being in `supportedLanguages` yet.
             */}
             <NeoDropdown
-              options={[
-                { value: "", label: t("tutors.languages_add_placeholder") },
-                ...languageOptions.map((l) => ({
-                  value: l.code,
-                  flagCode: l.code,
-                  label: l.label || l.code,
-                })),
-              ]}
-              value=""
-              onChange={(val) => { if (val) addLanguage(val); }}
+              options={languageOptions.map((l) => ({
+                value: l.code,
+                flagCode: l.code,
+                label: l.label || l.code,
+              }))}
+              value={languages}
+              multiple
+              placeholder={t("tutors.languages_add_placeholder")}
+              onChange={(next) => { setLanguages(next); setSaved(false); }}
               showOtherOption
               otherLabel={t("onboarding.other_option")}
               onOtherSelect={() => setShowOtherLanguage(true)}

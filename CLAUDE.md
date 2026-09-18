@@ -227,6 +227,68 @@ every sibling stayed shut. All of them default to closed now.
 - Applications (`appConfig/config/tutorApplications`) mirror the reports pattern exactly. There is **no approved flag** — approval is granting the applicant the `vip` tier in Admin → Users, which is what the server actually checks.
 - `queryCollection` resolves to `{ documents, ... }` and `getDocument` to `{ id, data, collection }`. Neither is a bare array or a bare document; forgetting that is how the first version of the directory threw `docs.map is not a function`.
 
+## NeoDropdown searches itself past eight options
+
+`components/NeoDropdown.jsx` is the app's one value picker, and it had grown
+lists it was never designed for: **418 timezones, 102 dial codes, 25
+languages**, all of them a scroll through a six-row window.
+
+**The filter box is automatic, not opt-in** (`SEARCH_AFTER_OPTIONS = 8`,
+overridable either way with `searchable`). Opt-in was the other option and it
+fails the same way this problem arose: the lists that most needed search were
+the ones nobody thought to ask for it on. Eight keeps the short pickers — CEFR
+level, tone, status — exactly as they were, where a search box is furniture.
+Matching is accent- and case-insensitive over **both label and value**, because
+one reader types "brasil" and another types "pt-BR".
+
+**"Other" is exempt from the filter and always last.** It is an action, not an
+option, and the moment it matters most is when a search has just returned
+nothing — which is precisely when somebody needs to add the language they were
+looking for. Enter picks the first match; with nothing matched it commits
+nothing, because "Other" is a different decision and has to be chosen on
+purpose.
+
+**`multiple` keeps the panel open.** Picking four languages was four
+open-pick-reopen cycles before. `value` becomes an array and `onChange` gets
+the array back.
+
+**The `placeholder` prop means "the button has its own label", not "the empty
+state".** Given one, a `multiple` picker always reads it instead of
+summarising the selection — because passing one says the selection is displayed
+elsewhere. `TutorProfileSection` is the caller: its languages show as removable
+chips directly above, so a button reading "Portuguese +2" would repeat them and
+cost the control the only text saying what it does. Without a placeholder the
+button is the only view of the selection, so it summarises as "First +N".
+
+That picker also stopped filtering already-chosen languages out of its options:
+right for a one-at-a-time add control, wrong for a multi-select, where the ticks
+against what you already speak are most of what the open panel is telling you.
+
+## Languages are sorted by label, which is also what groups them
+
+`getLanguages` sorts through `sortLanguages` before returning. Unsorted,
+Firestore hands them back in document-id order — the BCP-47 code — so the list
+reads as arranged by something invisible: "Swiss German" lands between "Irish"
+and "Interlingua" because `gsw` sorts there, nowhere near "German".
+
+Sorting on the **label** is what buys the grouping for free. The labels are
+already "Language (Country)", so Portuguese (Brazil) and Portuguese (Portugal)
+become neighbours and all four French variants form a block — no headings, no
+taxonomy to maintain, no admin step for a newly seeded language. Grouping by
+*country* was the other option and the live data rules it out: 25 languages
+across 20 countries, 16 of them holding a single entry.
+
+Sorted in code, not with a Firestore `orderBy`, which silently drops every
+document missing the field — and `label` is optional.
+
+Worth knowing about the free-text "Other" box: a duplicate is already
+impossible. `seedLanguage` canonicalises what was typed with the AI and then
+re-checks against the existing languages, reusing the match rather than
+creating a second document. The cheap pre-check in `SettingsPage.seedIfNeeded`
+only compares normalised *codes*, so typing a name misses it and spends one AI
+call before the real guard catches it. Deliberately left that way — with search
+in the picker, far fewer people reach that box at all.
+
 ## SearchBar — one filter API, chips or a dropdown depending on size
 
 `src/components/ui/SearchBar.jsx` takes `filterGroups`, an array of independent filter dimensions (`{ id, label, options, activeValues, onToggle }`), not a single flat `filters` list. A group with `FILTER_DROPDOWN_THRESHOLD` (5) options or fewer renders as the original one-tap chip row; past that it renders as a multi-select dropdown instead, because a long chip row wraps into several lines and turns "which are active?" into a hunt — the tutor directory's language filter (one option per known language) is the caller this exists for. A group's own `label` is shown only once there's more than one group; every existing single-dimension caller (Users' tier filter, Prompts' category filter, Tutors' language filter) reads exactly as before, just capable of collapsing.

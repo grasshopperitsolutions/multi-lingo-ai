@@ -62,7 +62,39 @@ const LANGUAGE_SEED_SCHEMA = {
 export async function getLanguages(token) {
   const authToken = token ?? (await getTokenOrAnonymous());
   const result = await queryCollection(LANGUAGES_COLLECTION, {}, {}, authToken);
-  return result?.documents ?? [];
+  return sortLanguages(result?.documents ?? []);
+}
+
+/**
+ * Alphabetical by the label a reader actually sees.
+ *
+ * Unsorted, Firestore hands these back in document-id order — which is the
+ * BCP-47 code, so the list reads as arranged by something invisible: "Swiss
+ * German" lands between "Irish" and "Interlingua" because `gsw` sorts there,
+ * nowhere near "German".
+ *
+ * Sorting by the label is also what makes dialects sit together, with no
+ * grouping headings and no taxonomy to maintain: the labels are already
+ * "Language (Country)", so Portuguese (Brazil) and Portuguese (Portugal) are
+ * neighbours, and all four French variants form a block. Grouping by *country*
+ * was the other option and the live data rules it out — 25 languages across 20
+ * countries, 16 of them holding a single entry.
+ *
+ * `Intl.Collator` rather than `localeCompare` per item: one collator for the
+ * whole sort, and it orders accented labels the way a dictionary does instead
+ * of the way UTF-16 does.
+ *
+ * Sorted here rather than in the query, because a Firestore `orderBy` silently
+ * drops every document missing the field — and `label` is optional.
+ *
+ * @param {Array<{code?: string, label?: string}>} languages
+ * @returns {Array<object>} A new array; the input is left alone.
+ */
+export function sortLanguages(languages) {
+  const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
+  return [...languages].sort((a, b) =>
+    collator.compare(a.label || a.code || "", b.label || b.code || "")
+  );
 }
 
 /**
