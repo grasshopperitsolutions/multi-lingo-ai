@@ -104,7 +104,10 @@ const ChallengeThemePicker = ({
         <p className={`text-xs font-bold leading-snug ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
           {t("challenges.theme.no_interests_prefix")}{" "}
           <Link
-            to="/settings"
+            // Interests live inside the practice-language card, so the hash
+            // opens and scrolls to the picker rather than dropping you at the
+            // top of a nine-card page to go looking for it.
+            to="/settings#practiceLanguage"
             className={`underline font-black ${
               isDarkMode ? "text-yellow-400 hover:text-yellow-300" : "text-blue-600 hover:text-blue-800"
             }`}

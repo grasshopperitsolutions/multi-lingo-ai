@@ -177,11 +177,38 @@ desktop half was wrong for the same reason the phone half was right — nine
 expanded forms is a long scroll with no overview, and a wide screen just means
 scrolling past more of it. Closed cards are a table of contents.
 
-Two cards open themselves when the URL names them: `#tutorSettings` (the
-"Update my profile" link on the tutor directory) and `#personalWidgets` (the
-dashboard's "choose what to show"). `openFromHash` is read once during render,
-which works for a client-side navigation because React Router updates the
-location before the page renders.
+Five cards open themselves when the URL names them, and scroll there:
+`#practiceLanguage` (the practice-language card and badge, and the challenge
+theme picker's "choose your interests" — interests live inside that card, not
+in one of their own), `#profile` (the reminder card's "change it in your
+profile", since the timezone that decides when a reminder lands sits three
+cards above the one that depends on it), `#tutorSettings` (the tutor
+directory's "Update my profile"), `#personalWidgets` (the dashboard's "choose
+what to show") and `#reminderSettings`.
+
+Two of those cards — `#profile` among them — already start open, so their
+anchor buys the scroll rather than the expand. Still worth it on a nine-card
+page; just do not expect the hash to be what opens them.
+
+A link inside a sentence is three keys (prefix / link / suffix), not `<Trans>`,
+because that is what `ChallengeThemePicker` already did and nothing in this app
+uses `<Trans>`. Splitting an existing string means other locales keep the old
+unlinked wording until a force resync. `openFromHash` is
+read once during render, which works for a client-side navigation because React
+Router updates the location before the page renders.
+
+The scroll is `hooks/useScrollToHash`, and the browser cannot do it for us: its
+own hash handling runs on navigation, before React has rendered the card, finds
+nothing and gives up. Two details are load-bearing. **It retries**, because the
+most-linked card renders last — `TutorProfileSection` paints nothing until its
+fetch settles, so a single look on mount misses exactly the case that matters
+most. And **the retry is `setTimeout`, never `requestAnimationFrame`**: a
+hidden or backgrounded tab produces no frames, so an rAF loop never runs there
+at all — which is how this was caught, in a browser pane that happened to be
+hidden. It also does the offset arithmetic itself rather than calling
+`scrollIntoView`, which takes no offset and leaves the card flush against the
+viewport edge. This replaced a private copy inside `TutorProfileSection`; do
+not grow a second one per card.
 
 **The dirty check compares two keys, and they must hold the same fields.**
 `buildProfileKey` (`utils/profileKey.js`) builds both — one from the saved
@@ -875,17 +902,60 @@ prompt sitting in Admin is indistinguishable from a working one.
 **card** at the top of `/dashboard/personal`, and a **badge** beside the title
 on every page whose output is *in* the practice language.
 
-**The code is the value; the label is the tooltip.** `pt-PT` and `pt-BR` are
-different practice languages and read almost identically as names, so the code
-is the part that actually distinguishes them at a glance — and it fits beside a
-page title without wrapping. The long form is one hover away via the app's own
-`Tooltip`, and repeated in `aria-label`, since a hover tooltip does not exist
-for a screen reader. **The code is deliberately not `uppercase`** anywhere,
-unlike every other heading in this app: BCP-47 casing is part of what makes it
-precise, and `MWL-PT` is not the code.
+**The code is the value.** `pt-PT` and `pt-BR` are different practice languages
+and read almost identically as names, so the code is the part that actually
+distinguishes them at a glance — and it fits beside a page title without
+wrapping. **The code is deliberately not `uppercase`** anywhere, unlike every
+other heading in this app: BCP-47 casing is part of what makes it precise, and
+`MWL-PT` is not the code.
 
-Both variants link to `/settings`. The note raises exactly one question — how
-do I change this — and answering it in place is what makes it worth its space.
+Where the long name goes differs by variant, and that is the whole reason there
+are two. The **badge** has no room, so the name is one hover away via the app's
+`Tooltip` and repeated in `aria-label`, since a hover tooltip does not exist for
+a screen reader. The **card** has room, so it simply prints the name and carries
+no tooltip at all — except when `useLanguageLabel` fell back to the code, which
+is what happens for a language seeded after this browser loaded the list;
+printing it twice reads as a rendering fault.
+
+**The card is a flag field, and only "Trocar" is a control.** The flag stops
+being an icon and becomes the card: `fi fi-xx` stretched over it with
+`absolute inset-0 w-full h-full bg-cover`, under a left-to-right scrim. Three
+things hold that up:
+
+- **`bg-cover` beats `fi`'s own `background-size: contain` on source order
+  alone**, because `main.jsx` imports `flag-icons` *before* `index.css`. No
+  `!important` — but swap those two imports and the flag silently shrinks back
+  to an icon in the corner.
+- **The scrim is sized for the worst flag, not for Portugal.** White text needs
+  to clear a white flag (Japan) as well as a dark one, so the left end stays at
+  `slate-950/90` even though it costs Portugal most of its green. It is also
+  fixed rather than theme-dependent: white on dark in both themes is what lets
+  one contrast decision cover both.
+- **A code with no region gets a gradient, not a hole.** `mwl-PT` flies
+  Portugal's flag; `ia` flies none, and an empty field would read as a broken
+  image.
+
+**The whole card used to be one button and is not any more.** That made a
+~145px flag field a click target for a navigation nobody asked for, and put a
+heading, a code and a name inside a control, where a screen reader reads them
+as one run-on label. It is a `<section>` with an `aria-label` now, and the
+pill is the only actionable thing in it — the card informs, the button acts.
+The badge stays a button end to end, because there it *is* the whole control.
+
+**Both variants go to `/settings#practiceLanguage`**, not to `/settings`. The
+note raises exactly one question — how do I change this — and landing on a page
+of closed cards only half answers it. Named for the app's voice — "practice",
+never "learning" — rather than for the section's own
+`settings.language_learning` key.
+
+**`utils/flagRegion.js` decides which flag a code flies**, shared by
+`LanguageFlagIcon` and the card so the two can never disagree. It is the
+**region** subtag and never the language: `en-GB` flies the British flag,
+`mwl-PT` Portugal's, and `pt` alone flies nothing, because a language is not a
+country. It also only accepts a two-letter uppercase subtag, which fixed a
+quiet bug — the old `code.split("-")[1]` handed `sr-Cyrl` a *script* subtag and
+asked flag-icons for `fi-cyrl`, a class that exists nowhere and renders as an
+empty gap rather than as the globe fallback.
 
 **It is opt-in per page, via `showPracticeLanguage` on `FeaturePageShell` /
 `FeatureHeader`.** Currently on: the story reader, history & culture, the

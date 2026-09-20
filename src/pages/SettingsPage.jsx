@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
+import { useScrollToHash } from "../hooks/useScrollToHash";
 import NeoDropdown from "../components/NeoDropdown";
 import Avatar from "../components/Avatar";
 import Loader from "../components/Loader";
@@ -188,6 +189,7 @@ const SettingsForm = ({
   showOtherLearning, setShowOtherLearning,
   isSeedingInterface, isSeedingLanguage,
   isDirty,
+  openLanguageSection,
 }) => {
   const { t } = useTranslation();
 
@@ -205,7 +207,11 @@ const SettingsForm = ({
   return (
     <form onSubmit={handleSave}>
       {/* ── Profile ── */}
+      {/* `id` so the reminder card's "change it in your profile" can actually
+          go there — the timezone that decides when a reminder lands lives in
+          this card, three sections above the one that depends on it. */}
       <SettingsSection
+        id="profile"
         title={t("settings.profile")}
         icon={<User size={16} className="inline mr-2" />}
         isDarkMode={isDarkMode}
@@ -334,10 +340,16 @@ const SettingsForm = ({
       </SettingsSection>
 
       {/* ── Language Learning ── */}
+      {/* The practice-language card on the personal dashboard, and the badge
+          on every page whose output is in that language, both link here. Named
+          for the app's voice ("practice", never "learning") rather than for
+          this section's own translation key. */}
       <SettingsSection
+        id="practiceLanguage"
         title={t("settings.language_learning")}
         icon={<BookOpen size={16} className="inline mr-2" />}
         isDarkMode={isDarkMode}
+        defaultOpen={openLanguageSection}
       >
         <div className="space-y-6">
           <div>
@@ -487,6 +499,8 @@ SettingsForm.propTypes = {
   isSeedingInterface:     PropTypes.bool.isRequired,
   isSeedingLanguage:      PropTypes.bool.isRequired,
   isDirty:                PropTypes.bool.isRequired,
+  /** True when the URL is /settings#practiceLanguage. */
+  openLanguageSection:    PropTypes.bool,
 };
 
 // ── Settings Page ───────────────────────────────────────────────────────────────
@@ -503,13 +517,19 @@ const SettingsPage = () => {
    * you scroll past more of it. Closed cards are a table of contents.
    *
    * Profile stays open because it is first and it is what people come here
-   * for. Two cards open themselves when the URL names them —
-   * `#tutorSettings` and `#personalWidgets` — so a link from elsewhere lands
-   * on the thing it promised rather than on a card you still have to find.
+   * for. Four cards open themselves when the URL names them —
+   * `#practiceLanguage`, `#tutorSettings`, `#personalWidgets` and
+   * `#reminderSettings` — so a link from elsewhere lands on the thing it
+   * promised rather than on a card you still have to find.
    */
   const openFromHash = typeof window !== "undefined" ? window.location.hash : "";
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  // ...and then scrolls to it, which the browser's own hash handling cannot do
+  // here: it runs before React has rendered the card. See the hook for why it
+  // retries rather than looking once.
+  useScrollToHash(openFromHash);
 
   // Guests (including anonymous Firebase sessions used for public reads like
   // translations) must not reach account settings.
@@ -834,6 +854,7 @@ const SettingsPage = () => {
         isSeedingInterface={isSeedingInterface}
         isSeedingLanguage={isSeedingLanguage}
         isDirty={isDirty}
+        openLanguageSection={openFromHash === "#practiceLanguage"}
       />
 
         {/* ── Word bank ── */}

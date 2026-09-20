@@ -39,6 +39,7 @@
     "next": "Seguinte",
     "try_again": "Tentar outra vez",
     "add": "Adicionar",
+    "change": "Trocar",
     "search": "Procurar...",
     "no_results": "Nada encontrado.",
     "n_selected": "{{count}} escolhidos",
@@ -1323,6 +1324,8 @@
     "reminder_weekly_desc": "Uma vez por semana, o que praticaste e o que guardaste.",
     "reminder_hour": "A que horas",
     "reminder_weekday": "Dia do resumo",
-    "reminder_hour_hint": "Hora local do teu fuso horário ({{zone}}), que podes mudar no teu perfil."
+    "reminder_hour_hint_prefix": "Hora local do teu fuso horário ({{zone}}), que podes mudar",
+    "reminder_hour_hint_link": "no teu perfil",
+    "reminder_hour_hint_suffix": "."
   }
 }

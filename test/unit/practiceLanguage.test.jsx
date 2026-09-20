@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { makeAppContext } from "../helpers/appContext";
+import { flagRegion } from "../../src/utils/flagRegion";
 
 /**
  * PracticeLanguage — "you are practising pt-PT", wherever that choice changes
@@ -104,13 +105,15 @@ describe("when there is nothing to show", () => {
 });
 
 describe("what it does", () => {
-  it("takes you to Settings", async () => {
+  it("takes you to Settings, and opens the right card", async () => {
     await mount();
     fireEvent.click(screen.getByRole("button"));
 
     // The note raises exactly one question — how do I change this — and this
-    // is the answer being in reach rather than only informing.
-    expect(navigate).toHaveBeenCalledWith("/settings");
+    // is the answer being in reach rather than only informing. The hash is
+    // half the answer: SettingsPage reads it to expand that one section, so
+    // you land on the picker instead of on a page of closed cards.
+    expect(navigate).toHaveBeenCalledWith("/settings#practiceLanguage");
   });
 
   it("does the same from the card variant", async () => {
@@ -118,6 +121,91 @@ describe("what it does", () => {
 
     expect(screen.getByText("pt-PT")).toBeTruthy();
     fireEvent.click(screen.getByRole("button"));
-    expect(navigate).toHaveBeenCalledWith("/settings");
+    expect(navigate).toHaveBeenCalledWith("/settings#practiceLanguage");
+  });
+});
+
+describe("the card variant", () => {
+  it("makes only the button actionable, not the whole card", async () => {
+    const { container } = await mount({ variant: "card" });
+
+    // The card used to be one big button, which made a 90px flag field a
+    // click target for a navigation nobody asked for — and put a heading, a
+    // code and a name inside a control, read as one run-on label.
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(container.querySelector("section")).toBeTruthy();
+  });
+
+  it("flies the region's flag, not the language's", async () => {
+    const { container } = await mount(
+      { variant: "card" },
+      { user: { uid: "u1", learningDialect: "mwl-PT" } }
+    );
+
+    // Mirandese is mwl, spoken in PT. Keying the field on the language subtag
+    // would ask flag-icons for a country called "mwl".
+    expect(container.querySelector(".fi-pt")).toBeTruthy();
+    expect(container.querySelector(".fi-mwl")).toBeNull();
+  });
+
+  it("falls back to a colour field when the code carries no region", async () => {
+    const { container } = await mount(
+      { variant: "card" },
+      { user: { uid: "u1", learningDialect: "ia" } }
+    );
+
+    // Interlingua belongs to no country. A hole where the field should be
+    // would read as a broken image.
+    expect(container.querySelector('[class*="fi-"]')).toBeNull();
+    expect(container.querySelector('[class*="gradient"]')).toBeTruthy();
+  });
+
+  it("shows the name under the code, but never the code twice", async () => {
+    const withName = await mount({ variant: "card" });
+    expect(withName.container.textContent).toContain("Português (Portugal)");
+    withName.unmount();
+
+    // A language seeded after this browser loaded the list has no label, so
+    // useLanguageLabel hands the code back. Printing it twice reads as a fault.
+    const withoutName = await mount(
+      { variant: "card" },
+      { user: { uid: "u1", learningDialect: "xx-XX" } }
+    );
+    expect(withoutName.container.textContent.match(/xx-XX/g)).toHaveLength(1);
+  });
+
+  it("still names the language for a screen reader", async () => {
+    const { container } = await mount({ variant: "card" });
+
+    // The card has no tooltip — it prints the name — but the region still
+    // needs an accessible name, since its heading is not a landmark label.
+    expect(container.querySelector("section").getAttribute("aria-label")).toContain(
+      "Português (Portugal)"
+    );
+  });
+});
+
+describe("flagRegion", () => {
+  it("takes the region, never the language", () => {
+    expect(flagRegion("pt-PT")).toBe("pt");
+    expect(flagRegion("pt-BR")).toBe("br");
+    expect(flagRegion("en-GB")).toBe("gb");
+    // The one that makes this worth a shared helper: the flag belongs to the
+    // region subtag, so Mirandese flies Portugal's.
+    expect(flagRegion("mwl-PT")).toBe("pt");
+  });
+
+  it("returns nothing for a script subtag", () => {
+    // The old rule took whatever followed the first dash, so this asked
+    // flag-icons for `fi-cyrl` — a class that exists nowhere, rendering an
+    // empty gap instead of the globe fallback.
+    expect(flagRegion("sr-Cyrl")).toBeNull();
+  });
+
+  it("returns nothing for a code with no region at all", () => {
+    expect(flagRegion("ia")).toBeNull();
+    expect(flagRegion("es-419")).toBeNull();
+    expect(flagRegion(undefined)).toBeNull();
+    expect(flagRegion("")).toBeNull();
   });
 });

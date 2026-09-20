@@ -134,16 +134,10 @@ const TutorProfileSection = ({ isDarkMode, user, defaultOpen = false, id = undef
     })();
   }, [eligible, user?.uid, user?.displayName]);
 
-  // Scrolls this card into view when arrived at via /settings#tutorSettings
-  // (the "Update my profile" button on a tutor's own directory card). Waits
-  // for the profile fetch to settle first — before that, the element with
-  // this id may not exist yet (nothing renders while isLoading, and nothing
-  // renders at all if there turns out to be no profile).
-  useEffect(() => {
-    if (isLoading || !id) return;
-    if (typeof window === "undefined" || window.location.hash !== `#${id}`) return;
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [isLoading, id]);
+  // Scrolling here on arrival used to be this component's job. SettingsPage
+  // now does it for every #hash card, retrying until the element exists —
+  // which covers this one's late render (nothing paints while the profile is
+  // fetching) without a second implementation racing the first.
 
   const updateLink = (index, patch) => {
     setLinks((current) =>

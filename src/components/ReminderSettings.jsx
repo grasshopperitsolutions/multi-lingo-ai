@@ -1,5 +1,6 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AlarmClock, Check } from "lucide-react";
 import { auth } from "../firebase";
@@ -166,9 +167,26 @@ const ReminderSettings = ({ isDarkMode, defaultOpen = false }) => {
       </div>
 
       {/* The hour is meaningless without a zone to read it in, and the zone
-          lives in the Profile card two sections up. */}
+          lives in the Profile card three sections up. The sentence already
+          said so; now it takes you there, which matters most in the case it
+          renders "—" — a reminder with no zone is the one that arrives at the
+          wrong hour.
+
+          Split into three keys rather than wrapped in <Trans> because that is
+          how this app already puts a link inside a sentence (see
+          ChallengeThemePicker). Other locales keep the old unlinked wording
+          until a force resync, and fall back to these pt-PT strings meanwhile. */}
       <p className={`mt-3 text-xs font-bold ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
-        {t("notifications.reminder_hour_hint", { zone: user?.timezone || "—" })}
+        {t("notifications.reminder_hour_hint_prefix", { zone: user?.timezone || "—" })}{" "}
+        <Link
+          to="/settings#profile"
+          className={`underline font-black ${
+            isDarkMode ? "text-yellow-400 hover:text-yellow-300" : "text-blue-600 hover:text-blue-800"
+          }`}
+        >
+          {t("notifications.reminder_hour_hint_link")}
+        </Link>
+        {t("notifications.reminder_hour_hint_suffix")}
       </p>
     </SettingsSection>
   );

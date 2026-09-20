@@ -306,25 +306,6 @@ describe("directory visibility", () => {
   });
 });
 
-describe("arriving via #tutorSettings", () => {
-  it("scrolls the card into view once its content has loaded", async () => {
-    window.location.hash = "#tutorSettings";
-    const scrollIntoView = vi.fn();
-    Element.prototype.scrollIntoView = scrollIntoView;
-
-    await mount({ id: "tutorSettings" });
-
-    await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
-  });
-
-  it("does nothing when the hash points elsewhere", async () => {
-    window.location.hash = "#somewhere-else";
-    const scrollIntoView = vi.fn();
-    Element.prototype.scrollIntoView = scrollIntoView;
-
-    const { container } = await mount({ id: "tutorSettings" });
-    await waitFor(() => expect(container.querySelector("textarea")).not.toBeNull());
-
-    expect(scrollIntoView).not.toHaveBeenCalled();
-  });
-});
+// Arriving via #tutorSettings is no longer this component's business: the
+// scroll moved to SettingsPage, which does it for all four hash-addressable
+// cards. See test/unit/scrollToHash.test.jsx.
