@@ -135,8 +135,18 @@ const MobileMenuDrawer = ({ onThemeToggle, onClose }) => {
                 <LanguageFlagIcon code={lang.code} className="text-base leading-none" />
                 {lang.label}
               </span>
-              <span className="inline-flex sm:hidden">
+              {/* On a phone the label does not fit beside a flag in a
+                  two-column grid, but the flag alone is not an answer: ja-Hira
+                  and ja-Latn fly the same one, so this was a picker that could
+                  not tell you what you were picking. The code fits and is
+                  exact — the same call PracticeLanguage makes.
+
+                  `normal-case` fights the button's own `uppercase`: BCP-47
+                  casing is part of what makes the code precise, and JA-HIRA is
+                  not the code. */}
+              <span className="inline-flex items-center gap-1.5 sm:hidden">
                 <LanguageFlagIcon code={lang.code} className="text-base leading-none" />
+                <span className="normal-case text-xs tracking-tight">{lang.code}</span>
               </span>
             </button>
           ))}

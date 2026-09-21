@@ -133,6 +133,7 @@ const MAX_LENGTH_ATTEMPTS = 3;
 import { parseAIJSON } from '../utils/parseAIJSON';
 import { askAI } from './aiService';
 import { getPrompt, renderTemplate } from './promptService';
+import { getSkippedConceptIds } from '../utils/skippedConcepts';
 
 const PROXY_URL    = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
@@ -169,7 +170,16 @@ export async function getWord({
   customTheme = null,
   themeLabel = null,
 }) {
-  const seenSet = new Set(seenConceptIds ?? []);
+  // Skips ride alongside seen ids rather than being a second filter, because
+  // for pool purposes they mean the same thing — do not offer me this one. The
+  // difference is where they live and how long they last: a seen id is on the
+  // profile and permanent, a skip is in this browser and disposable. Honoured
+  // here rather than per game so a word skipped in Hangman is not handed
+  // straight back in Scrambled Word. See utils/skippedConcepts.
+  const seenSet = new Set([
+    ...(seenConceptIds ?? []),
+    ...getSkippedConceptIds(learningDialect),
+  ]);
 
   const allConcepts = await _fetchReadyConcepts(token);
 

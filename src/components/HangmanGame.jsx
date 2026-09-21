@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { Trophy, Skull } from "lucide-react";
+import { Trophy, Skull, Eye, SkipForward } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import {
   getUserGameProgress,
@@ -12,11 +12,14 @@ import {
 } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import { useInterestTopics } from "../hooks/useInterestTopics";
+import { useTts } from "../hooks/useTts";
 import { useChallengeTheme } from "../hooks/useChallengeTheme";
 import ChallengeSidebar from "./ChallengeSidebar";
 import ChallengeThemePicker from "./ChallengeThemePicker";
 import Loader from "./Loader";
+import { TtsControls } from "./ui";
 import { sanitizeAIError } from "../utils/errorUtils";
+import { addSkippedConceptId, clearSkippedConceptIds } from "../utils/skippedConcepts";
 
 // ---------------------------------------------------------------------------
 // Keyboard layout config
@@ -69,6 +72,7 @@ const HangmanGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const { user, showAlert, writingSystems } = useAppContext();
   const { topics, preferTopics } = useInterestTopics();
+  const { ttsState, playTts, pauseTts, stopTts } = useTts();
   const challengeTheme = useChallengeTheme();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
@@ -84,12 +88,19 @@ const HangmanGame = ({ isDarkMode }) => {
 
   // ── Word state ──
   const [word, setWord]           = useState("");
+  // Uppercased above for letter matching. The original casing is kept for
+  // speech: some engines read an all-caps string as an acronym, spelling it
+  // out letter by letter instead of saying it.
+  const [spokenWord, setSpokenWord] = useState("");
   const [hint, setHint]           = useState("");
   const [conceptId, setConceptId] = useState(null);
 
   // ── Game state ──
   const [guessed, setGuessed]       = useState(new Set());
   const [wrongCount, setWrongCount] = useState(0);
+  // Gave up and asked to be shown. A third ending beside won and lost: the
+  // round is over and the word counts as seen, but nothing was survived.
+  const [isRevealed, setIsRevealed] = useState(false);
 
   // ── Loading / error ──
   const [loading, setLoading] = useState(true);
@@ -163,8 +174,10 @@ const HangmanGame = ({ isDarkMode }) => {
     setGuessed(new Set());
     setWrongCount(0);
     setWord("");
+    setSpokenWord("");
     setHint("");
     setConceptId(null);
+    setIsRevealed(false);
     hasMarkedRef.current = false;
   }, []);
 
@@ -233,13 +246,20 @@ const HangmanGame = ({ isDarkMode }) => {
       themeLabel: challengeTheme.theme.label,
     });
 
-    return { word: result.word.toUpperCase(), hint: result.hint, conceptId: result.conceptId, progress: prog };
+    return {
+      word: result.word.toUpperCase(),
+      spokenWord: result.word,
+      hint: result.hint,
+      conceptId: result.conceptId,
+      progress: prog,
+    };
   }, [user, learningDialect, interfaceLang, t, topics, preferTopics, challengeTheme.theme]);
 
   const fetchWord = useCallback(async () => {
     try {
       const data = await fetchWordData();
       setWord(data.word);
+      setSpokenWord(data.spokenWord);
       setHint(data.hint);
       setConceptId(data.conceptId);
       setProgress(data.progress);
@@ -276,6 +296,7 @@ const HangmanGame = ({ isDarkMode }) => {
       .then((data) => {
         if (!cancelled) {
           setWord(data.word);
+          setSpokenWord(data.spokenWord);
           setHint(data.hint);
           setConceptId(data.conceptId);
           setProgress(data.progress);
@@ -298,13 +319,16 @@ const HangmanGame = ({ isDarkMode }) => {
 
   // ── Record play + mark seen globally when game ends ──────────────────────
   useEffect(() => {
-    if ((!isWinner && !isLoser) || hasMarkedRef.current || !conceptId || !user?.token || !user?.uid) return;
+    if ((!isWinner && !isLoser && !isRevealed) || hasMarkedRef.current || !conceptId || !user?.token || !user?.uid) return;
     hasMarkedRef.current = true;
 
     recordPlay(user.token, user.uid, "hangman", learningDialect, progress)
       .catch((err) => console.warn("[HangmanGame] recordPlay failed:", err));
 
-    if (isWinner) {
+    // Revealed counts as seen just as winning does: you have now met the word
+    // and had it explained, so offering it again would be the pool wasting a
+    // turn. Losing deliberately does not — there the word is still unmet.
+    if (isWinner || isRevealed) {
       getGlobalSeenIds(user.token, user.uid)
         .then((currentSeenIds) =>
           markConceptSeenGlobal(user.token, user.uid, conceptId, currentSeenIds)
@@ -314,18 +338,30 @@ const HangmanGame = ({ isDarkMode }) => {
     } else {
       Promise.resolve().then(() => fetchStats());
     }
-  }, [isWinner, isLoser]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isWinner, isLoser, isRevealed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Reset seen words handler — global reset ──────────────────────────────
   const handleResetSeenWords = useCallback(async () => {
     if (!user?.token || !user?.uid) return;
     await resetAllSeenWords(user.token, user.uid);
+    // "Give me everything again" plainly means the skipped ones too, and they
+    // are the words most worth a second look.
+    clearSkippedConceptIds(learningDialect);
     await fetchStats();
-  }, [user, fetchStats]);
+  }, [user, fetchStats, learningDialect]);
+
+  // ── Put it down without answering ────────────────────────────────────────
+  // Remembered in this browser only, never on the profile: the word stays in
+  // the pool for when the learner can read it. See utils/skippedConcepts.
+  const handleSkipWord = useCallback(() => {
+    addSkippedConceptId(conceptId, learningDialect);
+    resetGame();
+    fetchWord();
+  }, [conceptId, learningDialect, resetGame, fetchWord]);
 
   // ── Guess handler ────────────────────────────────────────────────────────
   const handleGuess = (char) => {
-    if (isLoser || isWinner || guessed.has(char) || letters.length === 0) return;
+    if (isLoser || isWinner || isRevealed || guessed.has(char) || letters.length === 0) return;
     const next = new Set(guessed).add(char);
     setGuessed(next);
     if (!wordKeySet.has(char)) setWrongCount((p) => p + 1);
@@ -405,6 +441,39 @@ const HangmanGame = ({ isDarkMode }) => {
           </p>
         )}
 
+        {/* Hear the word, from the first guess rather than after the last.
+            That knowingly changes the game: hangman stops being "guess letters
+            blind" and becomes "hear it and spell it". For language practice
+            that trade is worth making — dictation teaches more than guessing —
+            and in a script you cannot read yet it is the difference between an
+            exercise and a wall. Anyone who wants the harder game simply does
+            not press it.
+
+            Sits under the clue and above the scaffold because that is the
+            order the round is read in: what it means, what it sounds like,
+            how much rope is left.
+
+            An ordinary AI call, like every other TTS here, so it counts against
+            the daily limit and raises no spend-confirm. Only ever on a press,
+            and one clip per word — replays inside a session come from the
+            in-memory cache. */}
+        {spokenWord && (
+          <div className="mb-6">
+            <TtsControls
+              ttsKey={`hangman-${conceptId ?? spokenWord}`}
+              text={spokenWord}
+              lang={learningDialect}
+              token={user?.token}
+              accent="amber"
+              ttsState={ttsState}
+              playTts={playTts}
+              pauseTts={pauseTts}
+              stopTts={stopTts}
+              isDarkMode={isDarkMode}
+            />
+          </div>
+        )}
+
         {/* Scaffold */}
         <div className={`w-48 h-48 mb-8 rounded-2xl border-4 flex items-center justify-center relative ${
           isDarkMode ? "bg-slate-800 border-slate-700" : "bg-yellow-100 border-slate-900"
@@ -417,7 +486,7 @@ const HangmanGame = ({ isDarkMode }) => {
           {letters.map((letter, i) => {
             const isSpace  = letter === " ";
             const key      = hardMode ? letter.toUpperCase() : normalizeChar(letter);
-            const revealed = isSpace || guessed.has(key) || isLoser;
+            const revealed = isSpace || guessed.has(key) || isLoser || isRevealed;
             if (isSpace) {
               return <div key={`space-${i}`} className="w-5 sm:w-6" aria-hidden="true" />;
             }
@@ -445,6 +514,40 @@ const HangmanGame = ({ isDarkMode }) => {
             <Skull /> {t("challenges.hung_up")}
           </div>
         )}
+        {/* Neither a win nor a loss, and coloured as neither: asking to be
+            shown is a reasonable thing to do with a word you cannot read, and
+            a rose banner would read as a punishment for it. */}
+        {isRevealed && (
+          <div className="mb-6 px-6 py-3 bg-sky-400 border-4 border-slate-900 rounded-full font-black text-slate-900 text-xl flex items-center gap-2 neo-shadow-light">
+            <Eye /> {t("challenges.now_you_know")}
+          </div>
+        )}
+
+        {/* Two ways out of a word you cannot attempt, offered only while it is
+            still in play. After it ends, Play Again already does the job. */}
+        {!isWinner && !isLoser && !isRevealed && (
+          <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={handleSkipWord}
+              title={t("challenges.skip_word_hint")}
+              className={`px-4 py-2 rounded-xl border-4 text-sm font-black uppercase tracking-wider flex items-center gap-2 transition-all hover-neo-light active-neo ${
+                isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
+              }`}
+            >
+              <SkipForward size={16} />
+              {t("challenges.skip_word")}
+            </button>
+            <button
+              onClick={() => setIsRevealed(true)}
+              className={`px-4 py-2 rounded-xl border-4 text-sm font-black uppercase tracking-wider flex items-center gap-2 transition-all hover-neo-light active-neo ${
+                isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
+              }`}
+            >
+              <Eye size={16} />
+              {t("challenges.show_answer")}
+            </button>
+          </div>
+        )}
 
         {/* Keyboard */}
         <div className="flex flex-col items-center gap-2">
@@ -460,9 +563,9 @@ const HangmanGame = ({ isDarkMode }) => {
                 <button
                   key={char}
                   onClick={() => handleGuess(char)}
-                  disabled={state !== "idle" || isLoser || isWinner}
+                  disabled={state !== "idle" || isLoser || isWinner || isRevealed}
                   className={`w-10 h-12 rounded-lg border-4 font-black text-lg transition-all ${
-                    state === "idle" && !isLoser && !isWinner
+                    state === "idle" && !isLoser && !isWinner && !isRevealed
                       ? isDarkMode ? "hover-neo-dark active-neo" : "hover-neo-light active-neo"
                       : ""
                   } ${btnClass}`}
@@ -486,9 +589,9 @@ const HangmanGame = ({ isDarkMode }) => {
                   <button
                     key={char}
                     onClick={() => handleGuess(char)}
-                    disabled={state !== "idle" || isLoser || isWinner}
+                    disabled={state !== "idle" || isLoser || isWinner || isRevealed}
                     className={`w-10 h-12 rounded-lg border-4 font-black text-lg transition-all ${
-                      state === "idle" && !isLoser && !isWinner
+                      state === "idle" && !isLoser && !isWinner && !isRevealed
                         ? isDarkMode ? "hover-neo-dark active-neo" : "hover-neo-light active-neo"
                         : ""
                     } ${btnClass}`}
@@ -502,7 +605,7 @@ const HangmanGame = ({ isDarkMode }) => {
         </div>
 
         {/* Play Again */}
-        {(isWinner || isLoser) && (
+        {(isWinner || isLoser || isRevealed) && (
           <button
             onClick={() => { resetGame(); fetchWord(); }}
             className={`mt-6 px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${

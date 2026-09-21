@@ -1096,6 +1096,26 @@ A language belonging to no single country maximizes to the UN's `001`
 it and the globe is the honest answer. Numeric M49 regions like `es-419` go the
 same way.
 
+**A flag alone stopped being an answer** the moment two seeded languages shared
+one. `ja-Hira` and `ja-Latn` both fly Japan's, so any surface showing a flag
+with no text beside it became a control that could not say what it was
+pointing at. There was exactly one: the drawer's language grid below `sm`,
+which is also **the only language picker a phone has** — the header's sits
+inside `hidden md:flex` and never renders there at all. It shows the code
+beside the flag now, with `normal-case` to survive the button's own
+`uppercase`.
+
+Everywhere else already pairs a flag with text and needs nothing: both trigger
+buttons, the dropdown lists, `NeoDropdown`, this badge, `TutorCard` and
+`TutorProfileSection`. Worth checking that when adding a flag anywhere new.
+
+Known and deliberately left: both trigger buttons print the subtag as
+`split("-")[1] || split("-")[0]`, uppercased, which renders `ja-Hira` as
+**HIRA** and `sr-Cyrl` as **CYRL** — a script subtag where a country code is
+implied. It does distinguish them, it only shows to someone whose *interface*
+language is Japanese, and `utils/flagRegion` is where it would go if it is ever
+worth unifying.
+
 **It is opt-in per page, via `showPracticeLanguage` on `FeaturePageShell` /
 `FeatureHeader`.** Currently on: the story reader, history & culture, the
 dictionary, all four exam exercises, the three grammar pages, and all three
@@ -1158,6 +1178,63 @@ document.
 use. It renders in the `input` variant before anything is generated and above
 every result. Do **not** put it on the personal pages — a notice on a page with
 no AI teaches people to ignore it where it matters.
+
+## Skipped is not seen, and Hangman has three endings
+
+A learner meeting a script they cannot read — Japanese hangman on day one — was
+stuck: no way past a word they could not spell, and no way to find out what it
+was. Two controls fix it while the word is still in play, and they end
+differently on purpose.
+
+**Skip** (`utils/skippedConcepts`) says "not this one, not yet". The id goes
+into `localStorage`, keyed per learning dialect, and **never onto the profile**.
+That is the whole distinction: a *seen* id is finished with, permanent and gone
+from the pool on every device, while a *skipped* word stays in the pool for
+when the learner can read it and is merely declined by this browser. Marking a
+skip as seen would quietly delete the words somebody most wants back later — so
+if these two ever look like they should be merged, they should not be.
+
+Honoured inside `getWordService.getWord`, not per game, so a word put down in
+Hangman is not handed straight back in Scrambled Word. Capped at 200, oldest
+first, because an unbounded list in a place nothing prunes only grows — and a
+word skipped two hundred words ago deserves another go. The Reset control
+clears it alongside the seen ids, since "give me everything again" plainly
+means both.
+
+**Show the answer** is a third ending beside won and lost. It reveals the word,
+ends the round and **does** mark it seen — you have now met it and had it
+explained, so the pool offering it again would waste a turn. Losing still does
+not mark it seen; there the word is genuinely unmet. Its banner is sky rather
+than rose: asking to be shown a word you cannot read is a reasonable thing to
+do, and punishing it in colour would be wrong.
+
+Anything gating on "the round is over" has to name all three —
+`isWinner || isLoser || isRevealed` — which is the keyboard, Play Again, the
+guess handler, the mark-seen effect and the speaker.
+
+**The speaker is available from the first guess, and that is a game-design
+decision rather than an oversight.** The word spoken aloud is, strictly, the
+answer — so hangman here is not "guess letters blind" but "hear it and spell
+it". For language practice that trade is worth making: dictation teaches more
+than guessing, and in a script the learner cannot read yet it is the difference
+between an exercise and a wall. Anyone wanting the harder game just does not
+press it. It sits under the clue and above the scaffold, which is the order a
+round is read in — what it means, what it sounds like, how much rope is left.
+
+It speaks `spokenWord`, the original casing from the service, not the
+uppercased `word` the letter matching needs: some engines read an all-caps
+string as an acronym and spell it out.
+
+**It is an ordinary AI call, and that was a decision rather than an oversight.**
+`/api/ask-ai` counts every call against `aiCallsToday` for Explorer and Voyager
+with no TTS exemption, and `getTtsService` passes `skipConfirm: true`, so a
+speaker tap spends one of three daily calls silently. The clip cache is
+in-memory and dies on reload. One press is one call, and replays within a session
+come from the in-memory cache, so a round costs at most one — but a free tier
+on three calls a day can spend them on three words. That is the reason the
+other four challenges do not have a speaker yet. If it ever spreads, revisit the
+counter first — speaking one word costs the same quota as generating a whole
+story, which is the actual mismatch.
 
 ## The word bank is the WORD favourite kind, not a new mechanism
 

@@ -254,6 +254,34 @@ describe("getWordService", () => {
     }
   });
 
+  it("does not serve a concept skipped in this browser", async () => {
+    // Skipping is honoured inside getWord rather than per game, so a word put
+    // down in Hangman because it was unreadable is not handed straight back in
+    // Scrambled Word. The id stays out of the profile — see
+    // utils/skippedConcepts for why that difference matters.
+    const { addSkippedConceptId, clearSkippedConceptIds } = await import(
+      "../../src/utils/skippedConcepts"
+    );
+    clearSkippedConceptIds("pt-PT");
+    addSkippedConceptId("c1", "pt-PT");
+
+    setCollection("wordPool", [
+      { id: "c1", word: "CASA", hint: "h", status: "ready", learningDialect: "pt-PT" },
+    ]);
+    askAI.mockResolvedValue(aiText(JSON.stringify({ word: "MAR", hint: "Água salgada" })));
+
+    const { getWord } = await import("../../src/services/getWordService");
+    const result = await getWord({
+      token: "tok",
+      userDialect: "en-US",
+      learningDialect: "pt-PT",
+      seenConceptIds: [],
+    }).catch(() => null);
+
+    clearSkippedConceptIds("pt-PT");
+    if (result) expect(result.conceptId).not.toBe("c1");
+  });
+
   it("does not re-serve a concept the user has already seen", async () => {
     setCollection("wordPool", [
       { id: "c1", word: "CASA", hint: "h", status: "ready", learningDialect: "pt-PT" },
