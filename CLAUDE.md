@@ -949,8 +949,16 @@ Four things that are load-bearing:
   would remove both.
 
 The prompt is `photo-notes-extract-prompt` in `appConfig/config/prompts`,
-admin-editable like every other. `promptSeedService.js` creates it once from
-Admin › Prompts and is **TEMPORARY** — it carries its own removal checklist.
+admin-editable like every other.
+
+**How a new prompt gets into Firestore, every time:** Admin can edit prompts
+but has no create affordance, and pasting a forty-line template by hand invites
+typos. So a `src/services/promptSeedService.js` is written, carries a TEMPORARY
+banner and its own three-step removal checklist, is pressed once from Admin ›
+Prompts, and is then deleted along with its button and its handler. It has
+existed and been removed several times — do not be surprised to find it absent,
+and do not leave it behind. It creates only: a prompt that already exists is
+skipped, so pressing it twice can never clobber an admin's edits.
 
 ## The model lives on the prompt, and so does the Explorer split
 

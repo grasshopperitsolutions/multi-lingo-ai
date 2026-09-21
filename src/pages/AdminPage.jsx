@@ -7,8 +7,6 @@ import { auth } from "../firebase";
 import { CONFIG_SECTIONS, getConfigSectionDocs } from "../services/adminConfigService";
 import { updateDocument } from "../services/firestoreService";
 import { getPrompts, updatePrompt } from "../services/promptService";
-// TEMPORARY — remove with src/services/promptSeedService.js.
-import { seedPrompts } from "../services/promptSeedService";
 import { getAuthProviders, setAuthProviderEnabled } from "../services/authProvidersService";
 import { getTiersConfig, saveTierConfig } from "../services/tiersConfigService";
 import { getFeatures, saveFeature } from "../services/featuresService";
@@ -386,23 +384,6 @@ const AdminPage = () => {
     }
   }, [showAlert, refreshLocalesDocs]);
 
-  // TEMPORARY — remove with src/services/promptSeedService.js once it has been
-  // run in every environment.
-  const [isSeedingPrompts, setIsSeedingPrompts] = useState(false);
-  const handleSeedPrompts = useCallback(async () => {
-    setIsSeedingPrompts(true);
-    try {
-      const token = await auth.currentUser.getIdToken();
-      const { created, skipped } = await seedPrompts(token);
-      const list = (ids) => (ids.length ? ids.join(", ") : "none");
-      showAlert("success", `Created: ${list(created)}. Already present: ${list(skipped)}.`);
-    } catch (err) {
-      showAlert("error", `Could not seed prompts: ${err.message}`);
-    } finally {
-      setIsSeedingPrompts(false);
-    }
-  }, [showAlert]);
-
   useEffect(() => {
     if (!isAdmin || docsBySection[activeSectionId]) return;
     loadSection(activeSection);
@@ -496,8 +477,6 @@ const AdminPage = () => {
             isLoadingDocs={isLoadingDocs}
             error={error}
             onEditPrompt={setEditingPrompt}
-            onSeedPrompts={handleSeedPrompts}
-            isSeeding={isSeedingPrompts}
           />
         ) : isCategoriesSection ? (
           <CategoriesSection
