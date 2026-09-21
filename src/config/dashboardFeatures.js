@@ -78,6 +78,9 @@ export const DASHBOARD_FEATURES = [
     color: "text-blue-500",
     titleKey: "dashboard.ai_tutor",
     descKey: "dashboard.ai_tutor_desc",
+    // Two things a first-timer will not guess: that interrupting is allowed
+    // and expected, and what happens to what they say.
+    instructionsKey: "dashboard.ai_tutor_how",
   },
   {
     id: "voice_practice",

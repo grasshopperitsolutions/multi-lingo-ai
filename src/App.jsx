@@ -52,7 +52,7 @@ const GrammarAskPage = lazy(() => import("./pages/dashboard/grammar/GrammarAskPa
 const GrammarPracticeComingSoonPage = lazy(() => import("./pages/dashboard/grammar/GrammarPracticeComingSoonPage"));
 const GrammarTextPage = lazy(() => import("./pages/dashboard/grammar/GrammarTextPage"));
 
-const AiTutorPage = lazy(() => import("./pages/dashboard/coming-soon/AiTutorPage"));
+const AiTutorPage = lazy(() => import("./pages/dashboard/AiTutorPage"));
 const TutorsPage = lazy(() => import("./pages/dashboard/TutorsPage"));
 const VoicePracticePage = lazy(() => import("./pages/dashboard/VoicePracticePage"));
 const StoryGeneratorPage = lazy(() => import("./pages/dashboard/StoryGeneratorPage"));

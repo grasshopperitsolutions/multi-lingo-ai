@@ -462,8 +462,9 @@
     "dictionary_desc": "Procura palavras, significados, exemplos e conjugações em qualquer língua.",
     "grammar": "Gramática",
     "grammar_desc": "Explora estruturas gramaticais, dicas de pronúncia e pergunta à IA o que quiseres sobre a língua.",
-    "ai_tutor": "Tutor de IA",
-    "ai_tutor_desc": "Conversa com um tutor de línguas com IA para praticares e receberes correções e comentários.",
+    "ai_tutor": "Fala com a IA",
+    "ai_tutor_desc": "Conversa a sério, em voz alta, e recebe correções e explicações enquanto falas.",
+    "ai_tutor_how": "Fala como falarias com uma pessoa — podes interrompê-la a meio. Nada do que dizes fica gravado.",
     "real_person_tutor": "Tutor Humano - Cara a Cara",
     "real_person_tutor_desc": "Marca uma sessão ao vivo com um tutor nativo certificado.",
     "voice_practice": "Prática de Voz",
@@ -1227,6 +1228,26 @@
   "favourites": {
     "add": "Adicionar aos favoritos",
     "remove": "Remover dos favoritos"
+  },
+  "live_tutor": {
+    "start": "Começar a conversa",
+    "stop": "Terminar",
+    "connecting": "A ligar...",
+    "listening": "A ouvir-te",
+    "speaking": "A falar",
+    "time_left": "Termina em {{time}}",
+    "empty_state": "Carrega para começares. Fala do que quiseres — o tutor corrige-te pelo caminho.",
+    "transcript": "Transcrição",
+    "you": "Tu",
+    "tutor": "Tutor",
+    "ended": "Conversa terminada.",
+    "ended_idle": "Como ficou tudo em silêncio, a conversa terminou.",
+    "ended_limit": "A conversa chegou ao tempo máximo e terminou.",
+    "ended_hint": "Podes começar outra quando quiseres.",
+    "privacy_note": "A conversa não fica gravada — nem o áudio nem a transcrição.",
+    "mic_denied": "Não conseguimos usar o microfone. Dá permissão ao teu navegador e tenta outra vez.",
+    "locked": "A conversa em voz alta faz parte dos planos pagos.",
+    "level_label": "Ao teu nível"
   },
   "pronunciation": {
     "get_passage": "Pedir um texto",

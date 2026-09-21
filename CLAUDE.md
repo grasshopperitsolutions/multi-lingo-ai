@@ -822,6 +822,138 @@ list carrying on into the page behind it. Row text is `break-words`, never
 cue that there is more; that is deliberate, but it is the thing to revisit if
 anyone reports missing content.
 
+## Fala com a IA — the one feature that bypasses the proxy
+
+`/dashboard/ai-tutor` is a spoken conversation with a tutor that corrects as
+you go. It fills in the `ai_tutor` stub; the tile was renamed from "Tutor de IA"
+in copy only, ids and route untouched.
+
+**It is the single AI feature that does not go through `/api/ask-ai`, and the
+reason is structural.** The Live API is a stateful WebSocket and a Vercel
+function is an HTTP handler with a maximum duration — it can neither accept an
+inbound socket nor hold one open for a lesson. So the session runs
+browser-to-Google and the proxy's only part is `POST /api/live-token`, which
+checks the Admin grant and mints a token with `uses: 1`, a short life, and
+`liveConnectConstraints` locking it to the live model. The API key never
+reaches the browser. Consequence to keep in view: **the server cannot meter the
+conversation** — not minutes, not content — so "may a session begin" is the
+only quantity anyone controls, and `aiCallsToday` is deliberately untouched.
+
+**Nothing from the pronunciation feature transfers, and `pcmAudio.js` exists
+because of it.** Live wants raw little-endian PCM16 — 16 kHz up, 24 kHz down —
+while `MediaRecorder` produces a *container* (webm/opus, mp4). A container is
+right for "record a take and send the file" and useless for "stream what I am
+saying now": chunked for storage rather than latency, and the Live API will not
+read one. So capture is an AudioWorklet reading raw samples, loaded from a Blob
+URL rather than a file so no build asset has to survive Vite, the Pages base
+path and anyone moving it. The context's real sample rate is **read back rather
+than assumed** — Safari and some Chromium builds ignore the requested 16 kHz —
+and that is what decides whether a resample runs.
+
+Playback schedules each chunk where the last one ended. Playing them on arrival
+leaves a seam between every one and the model's speech arrives in many small
+pieces. A start time is never booked in the past: after a pause the clock has
+moved on, and booking behind it plays the whole queue at once.
+
+**`interrupted` must clear the queue.** Being talked over is the normal way a
+conversation goes, and everything already sent is a sentence the learner has
+moved past — playing it out is the tutor ignoring them.
+
+**The page is a dark field with the transcript floating on it**, and two
+controls: the level, and one round button that starts and ends the
+conversation. A voice interface with a row of buttons is asking to be operated
+instead of talked to, and the talking is the thing being practised. The level
+stops being a picker the moment a session opens and becomes a chip that says
+what was chosen — it is baked in at connect time, so a dropdown that still
+looked live would silently do nothing.
+
+The stage is dark in **both** themes, the same decision the practice-language
+flag field made: white on a dark ground is one contrast judgement covering
+light and dark at once, where a ground that changes needs two. Controls sitting
+on it are passed `isDarkMode` as a constant for that reason.
+
+**`LiveTutorBlob` never re-renders, and that is the design.** Loudness changes
+about fifteen times a second while the page holds a growing transcript, so the
+level is *pulled* from `getAudioLevels()` inside the canvas's own frame loop
+rather than pushed through React state — nothing above the canvas learns that
+the shape moved. `isActive` is mirrored into a ref so toggling it cannot tear
+the loop down and restart it, which would reset the clock and make the blob
+jump at the exact moment somebody pressed start.
+
+**Where each level comes from is not interchangeable.** The microphone's is the
+RMS of the frame the worklet already sent — the samples are in hand, so an
+analyser would be a second copy of the same signal. The tutor's needs an
+`AnalyserNode` in the player, because playback chunks are *scheduled ahead of
+time*, sometimes seconds ahead: measuring them at `enqueue` would move the blob
+before the sound came out. `scope` is initialised to 128 (silence in a
+time-domain byte array) so a browser where `getByteTimeDomainData` does nothing
+reads as quiet rather than pinned at full scale.
+
+**Two timeouts end a conversation nobody is having**, and they are the only
+brake that exists: the server mints one token and then cannot count minutes,
+inspect the call or close it. Ninety seconds of silence on **both** sides ends
+the session — long enough to think about a sentence in a language you barely
+speak, short enough that walking away ends it. The ceiling comes from the
+`expiresAt` the endpoint returns, not from a constant here; the constant that
+does exist is a fallback for a deployment old enough not to send one, because
+running until Google hangs up unexplained is worse than a ceiling of our own.
+The tutor's half of "is anyone there" is taken from audio arriving on the
+socket, never from the player's analyser — a backgrounded tab paints no frames,
+and an idle check that depended on drawing would end the call mid-sentence.
+
+The countdown appears only under two minutes. A clock running for the whole
+conversation turns practice into an exam, and the number is not actionable
+until there is something to wrap up.
+
+**A session owns four things and all four must be released**: the socket, the
+microphone track, the capture context and the playback context. `stop` is
+idempotent, runs on unmount, and takes the **microphone first** — if anything
+later throws, the one thing that must not survive is an open mic.
+
+**`@google/genai` is dynamically imported**, the treatment jspdf gets. It is
+356 kB in its own chunk, absent from the main bundle, downloaded only by
+someone who opens the tutor. Hand-rolling the wire protocol was the
+alternative; an evolving protocol is worse to own than a dependency.
+
+**The prompt is spoken, which changes how it is written.** No markdown, no
+lists, no headings — it is read aloud, so anything that only works on a page
+comes out as noise. Its substance is three rules: correct in passing rather
+than in a report, always say the corrected sentence out loud, and **give both
+the literal and the colloquial reading whenever a word carries both**, saying
+which is which. That last one is the reason the feature exists.
+
+Two things still open before this ships: **§2.6 of the privacy policy** still
+says recordings are used "exclusivamente para gerar comentários de pronúncia e
+transcrever o que disse", which a live conversation is not — that paragraph
+does the BIPA/CUBI work and needs widening rather than stretching. And
+`GEMINI_API_KEY` must be set in the API's environment or `/api/live-token`
+returns 503.
+
+## Held for later: a place, not a language
+
+Recorded here because it shapes decisions before it is built, and because a
+note in a conversation is a note that is lost.
+
+The live tutor ("Fala com a IA") is meant to become **local to a place**: the
+learner types a city or region, the model is asked a plain true/false — does
+this place exist in the country where the practice language is spoken — and if
+so the tutor teaches that area's speech as accurately as it can. Vocabulary,
+expressions, the double meanings a word carries *there*, and both the literal
+and the colloquial reading of a phrase.
+
+Two constraints that matter now, while nothing is built:
+
+- **It is free text, not a seeded language.** No document in
+  `appConfig/config/languages`, no new dialect code, nothing in the pickers.
+  The place is validated by AI and kept as a string on the profile. Treat any
+  design that would need it to be a language as the wrong shape.
+- **The validation is deliberately trivial** — does this place exist in that
+  country, yes or no. It is not geocoding, not a gazetteer, not a lookup
+  service. One cheap call, one boolean.
+
+Not built. Do not build it as part of anything else; it is listed so that the
+live tutor's session config and the profile shape leave room for it.
+
 ## Reading aloud, and why the privacy policy wrote the design
 
 `/dashboard/voice-practice` fills in what was a coming-soon stub. Get a passage
