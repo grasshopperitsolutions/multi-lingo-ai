@@ -26,6 +26,8 @@ const FeaturePageShell = ({
   favouriteId,
   showFavourite,
   showPracticeLanguage,
+  description,
+  instructions,
   children,
 }) => (
   <div className="flex flex-col gap-4">
@@ -40,6 +42,8 @@ const FeaturePageShell = ({
         favouriteId={favouriteId}
         showFavourite={showFavourite}
         showPracticeLanguage={showPracticeLanguage}
+        description={description}
+        instructions={instructions}
       />
     )}
 
@@ -63,6 +67,9 @@ FeaturePageShell.propTypes = {
   /** Omit to let the heart resolve the feature from the current route. */
   favouriteId: PropTypes.string,
   showFavourite: PropTypes.bool,
+  /** Both default to the route's own registry copy; pass "" to suppress. */
+  description: PropTypes.string,
+  instructions: PropTypes.string,
   children: PropTypes.node,
 };
 

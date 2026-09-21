@@ -9,9 +9,9 @@ import { flagRegion } from "../utils/flagRegion";
  *
  * The region comes from `utils/flagRegion`, shared with the practice-language
  * card's flag field so the two can never disagree about which flag a code
- * flies. It also tightened this: the old rule took whatever followed the first
- * dash, so `sr-Cyrl` asked flag-icons for `fi-cyrl` — a class that exists
- * nowhere and renders as an empty gap rather than as the globe.
+ * flies. It reads an explicit region subtag first and otherwise asks CLDR what
+ * the language implies, which is what gets a flag onto the codes carrying a
+ * *script* where a region would go — `ja-Hira`, `ja-Latn`, `sr-Cyrl`.
  */
 const LanguageFlagIcon = ({ code, className = "" }) => {
   const region = flagRegion(code);

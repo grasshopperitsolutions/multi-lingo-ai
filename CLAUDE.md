@@ -316,6 +316,41 @@ only compares normalised *codes*, so typing a name misses it and spends one AI
 call before the real guard catches it. Deliberately left that way — with search
 in the picker, far fewer people reach that box at all.
 
+## A feature page says what it is, and occasionally how it works
+
+`FeatureHeader` renders two optional lines under the title, and **neither is
+passed in by the page**. Both are resolved from the route through
+`favouritableById(favouriteIdForRoute(pathname))` — the same lookup the heart
+already does — so a page gets them by existing in the registry rather than by
+declaring anything, and a route the registry does not know (a hub, a
+professional sub-tool) simply says nothing.
+
+**The subtitle is the string its dashboard tile already shows.** Reusing
+`descKey` rather than writing a second one means there is one description per
+feature, already translated, that cannot drift from the tile. Plain weight
+against an all-caps black heading: the title shouts, this one talks.
+
+**The instruction line is deliberately rare**, italic, and ruled in the page's
+own accent so it reads as a different *kind* of sentence rather than a second
+description. It comes from `instructionsKey`, which only a handful of registry
+entries carry — today Word Search, Scrambled Word and Word Link. The rule for
+adding one: the interaction is non-obvious **and** the page does not already
+explain it in place. Hangman needs none; Word Ladder's rule already *is* its
+description; the exam exercises ship their own AI-written instructions and a
+static second set would contradict them; the story reader teaches tap-and-hold
+at the moment a word exists to tap, which beats teaching it beforehand.
+
+Two mechanical traps. `ACCENT_BORDER` duplicates `ACCENT_BAR` because a border
+colour and a background colour are different Tailwind classes and **Tailwind
+cannot see a class name built by concatenation** — both maps must spell every
+class out. And an `instructionsKey` is resolved from a variable, so the i18n
+canary (which scans for literal `t("...")` calls) cannot see it; a missing
+string would render the raw key as an instruction, which `featureHeader.test.jsx`
+checks against the pt bundle instead.
+
+Passing `description` or `instructions` overrides the registry; passing `""`
+suppresses either.
+
 ## SearchBar — one filter API, chips or a dropdown depending on size
 
 `src/components/ui/SearchBar.jsx` takes `filterGroups`, an array of independent filter dimensions (`{ id, label, options, activeValues, onToggle }`), not a single flat `filters` list. A group with `FILTER_DROPDOWN_THRESHOLD` (5) options or fewer renders as the original one-tap chip row; past that it renders as a multi-select dropdown instead, because a long chip row wraps into several lines and turns "which are active?" into a hunt — the tutor directory's language filter (one option per known language) is the caller this exists for. A group's own `label` is shown only once there's more than one group; every existing single-dimension caller (Users' tier filter, Prompts' category filter, Tutors' language filter) reads exactly as before, just capable of collapsing.
@@ -949,13 +984,27 @@ never "learning" — rather than for the section's own
 `settings.language_learning` key.
 
 **`utils/flagRegion.js` decides which flag a code flies**, shared by
-`LanguageFlagIcon` and the card so the two can never disagree. It is the
-**region** subtag and never the language: `en-GB` flies the British flag,
-`mwl-PT` Portugal's, and `pt` alone flies nothing, because a language is not a
-country. It also only accepts a two-letter uppercase subtag, which fixed a
-quiet bug — the old `code.split("-")[1]` handed `sr-Cyrl` a *script* subtag and
-asked flag-icons for `fi-cyrl`, a class that exists nowhere and renders as an
-empty gap rather than as the globe fallback.
+`LanguageFlagIcon` and the card so the two can never disagree. Two steps, in
+order: an explicit **region** subtag wins (`en-GB` → GB, `mwl-PT` → PT), and
+failing that `Intl.Locale#maximize` is asked what region the language implies.
+
+That second step is what gets a flag onto a code carrying a **script** where a
+region would go — `ja-Hira` and `ja-Latn` (Japanese in hiragana and romaji)
+both maximize to JP, and `sr-Cyrl` to RS. It is CLDR data shipped in the
+browser, so it needs no table here and cannot go stale, the same argument as
+`Intl.DisplayNames` for TTS accents and `Intl.supportedValuesOf` for timezones.
+
+**Reading the language subtag as a country is the trap this exists to avoid.**
+It looks like the obvious shortcut and fails at the case that prompts it —
+`ja` is not `JP`, so Japanese would still get nothing — while being
+confidently wrong elsewhere: `ca` (Catalan) is Canada's code, `ne` (Nepali)
+Niger's, `si` (Sinhala) Slovenia's, `sv` (Swedish) El Salvador's. A missing
+flag is a small disappointment; the wrong country on a language is not.
+
+A language belonging to no single country maximizes to the UN's `001`
+("World") — Interlingua does — and is rejected, because there is no flag for
+it and the globe is the honest answer. Numeric M49 regions like `es-419` go the
+same way.
 
 **It is opt-in per page, via `showPracticeLanguage` on `FeaturePageShell` /
 `FeatureHeader`.** Currently on: the story reader, history & culture, the

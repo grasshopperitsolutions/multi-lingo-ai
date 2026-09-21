@@ -60,6 +60,7 @@ export const CHALLENGE_GAMES = [
     color: "bg-yellow-400",
     titleKey: "challenges.scrambled_word",
     descKey: "challenges.scrambled_word_desc",
+    instructionsKey: "challenges.scrambled_word_how",
   },
   {
     id: "word_search",
@@ -68,6 +69,7 @@ export const CHALLENGE_GAMES = [
     color: "bg-purple-400",
     titleKey: "challenges.word_search",
     descKey: "challenges.word_search_desc",
+    instructionsKey: "challenges.word_search_how",
   },
   {
     id: "word_link",
@@ -76,6 +78,7 @@ export const CHALLENGE_GAMES = [
     color: "bg-indigo-400",
     titleKey: "challenges.word_link",
     descKey: "challenges.word_link_desc",
+    instructionsKey: "challenges.word_link_how",
   },
   {
     id: "word_ladder",
@@ -213,6 +216,7 @@ DASHBOARD_FEATURES.forEach((feature) => {
     id: feature.id,
     titleKey: feature.titleKey,
     descKey: feature.descKey,
+    instructionsKey: feature.instructionsKey,
     route: feature.route,
     icon: feature.icon,
     iconClass: feature.color,
@@ -226,6 +230,10 @@ const addAll = (entries, keyFor) =>
       id,
       titleKey: entry.titleKey,
       descKey: entry.descKey,
+      // Only the few whose rules a one-line description cannot carry. See
+      // FeatureHeader: absent means the page says nothing extra, which is the
+      // right answer for a feature that explains itself.
+      instructionsKey: entry.instructionsKey,
       route: entry.route,
       icon: entry.icon,
       // bg-rose-400 → text-rose-400: the shared square draws the icon in the

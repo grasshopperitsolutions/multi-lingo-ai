@@ -195,17 +195,40 @@ describe("flagRegion", () => {
     expect(flagRegion("mwl-PT")).toBe("pt");
   });
 
-  it("returns nothing for a script subtag", () => {
-    // The old rule took whatever followed the first dash, so this asked
-    // flag-icons for `fi-cyrl` — a class that exists nowhere, rendering an
-    // empty gap instead of the globe fallback.
-    expect(flagRegion("sr-Cyrl")).toBeNull();
+  it("falls back to CLDR when a script subtag sits where a region would", () => {
+    // ja-Hira and ja-Latn are Japanese written in hiragana and romaji. They
+    // carry a *script*, so there is no region to read — but the language
+    // plainly implies one, and Intl.Locale#maximize knows it.
+    expect(flagRegion("ja-Hira")).toBe("jp");
+    expect(flagRegion("ja-Latn")).toBe("jp");
+    expect(flagRegion("sr-Cyrl")).toBe("rs");
   });
 
-  it("returns nothing for a code with no region at all", () => {
+  it("never reads the language subtag as if it were a country", () => {
+    // The tempting shortcut, and the reason it is not taken: each of these
+    // language codes is also some *other* country's code. Catalan is not
+    // Canadian, Nepali is not Nigerien, Swedish is not Salvadoran.
+    expect(flagRegion("ca")).toBe("es");
+    expect(flagRegion("ne")).toBe("np");
+    expect(flagRegion("si")).toBe("lk");
+    expect(flagRegion("sv")).toBe("se");
+    expect(flagRegion("uk")).toBe("ua");
+  });
+
+  it("returns nothing when no single country applies", () => {
+    // Interlingua maximizes to `001` — the World. There is no flag for that,
+    // and inventing one would be worse than the globe.
     expect(flagRegion("ia")).toBeNull();
     expect(flagRegion("es-419")).toBeNull();
     expect(flagRegion(undefined)).toBeNull();
     expect(flagRegion("")).toBeNull();
+    expect(flagRegion("   ")).toBeNull();
+  });
+
+  it("survives a tag that is not well formed at all", () => {
+    // What a user-typed "Other" entry looks like before seedLanguage has
+    // canonicalised it. Intl.Locale throws on these.
+    expect(flagRegion("not a language")).toBeNull();
+    expect(flagRegion("!!")).toBeNull();
   });
 });
