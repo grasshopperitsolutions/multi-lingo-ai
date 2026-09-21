@@ -330,6 +330,24 @@ export const markStorySeen = async (token, uid, storyId, currentSeenIds = []) =>
 };
 
 /**
+ * Append a passage id to users/{uid}.seenPassageIds.
+ *
+ * Append-only progress tracking, like every other `seen*` field: it stops the
+ * shared pronunciation pool handing out a passage somebody has already read
+ * aloud. There is deliberately no "remove one" — un-seeing a single passage is
+ * meaningless. This tracks the *text*, never a recording of it.
+ *
+ * @param {string}   token
+ * @param {string}   uid
+ * @param {string}   passageId
+ * @param {string[]} [currentSeenIds] - current value, passed in to avoid an extra read
+ */
+export const markPassageSeen = async (token, uid, passageId, currentSeenIds = []) => {
+  const updated = [...new Set([...currentSeenIds, passageId])];
+  await updateUserProfile(token, uid, { seenPassageIds: updated });
+};
+
+/**
  * Clear all seen story IDs.
  * Resets users/{uid}.seenStoryIds to [].
  * Only affects the Story Generator — does not touch any other seen-tracking field.

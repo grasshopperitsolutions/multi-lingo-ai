@@ -87,6 +87,9 @@ export const DASHBOARD_FEATURES = [
     color: "text-purple-500",
     titleKey: "dashboard.voice_practice",
     descKey: "dashboard.voice_practice_desc",
+    // Earns an instruction line: recording yourself is a three-step flow, and
+    // one of the steps is a promise about what happens to the recording.
+    instructionsKey: "dashboard.voice_practice_how",
   },
   {
     id: "real_person_tutor",

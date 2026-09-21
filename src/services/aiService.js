@@ -97,11 +97,15 @@ export class AiGenerationDeclined extends Error {
  * @param {number}  [options.retries=0]     - Number of retry attempts on failure
  * @param {boolean} [options.skipConfirm]    - Bypass the generation prompt for
  *   background/system calls the user didn't explicitly ask for.
+ * @param {Array<{data: string, mimeType: string}>} [options.images] - Pictures
+ *   for the model to look at. Gemini only; base64 without a `data:` prefix.
+ * @param {Array<{data: string, mimeType: string}>} [options.audio] - One
+ *   recording for the model to listen to. Same terms as `images`.
  * @returns {Promise<object>} The `data` field from the API response envelope
  * @throws {AiGenerationDeclined} If the user declines the generation prompt.
  */
 export async function askAI(token, prompt, providerParams, options = {}) {
-  const { timeout = DEFAULT_TIMEOUT, signal, retries = 0, skipConfirm = false, images } = options;
+  const { timeout = DEFAULT_TIMEOUT, signal, retries = 0, skipConfirm = false, images, audio } = options;
 
   if (!skipConfirm && _confirmHandler) {
     const proceed = await _confirmHandler();
@@ -127,12 +131,15 @@ export async function askAI(token, prompt, providerParams, options = {}) {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        // `images` is omitted rather than sent as undefined: the endpoint
-        // validates the field whenever it is present, and an empty array
-        // would be rejected on a non-gemini provider for no reason.
-        body: JSON.stringify(
-          images?.length ? { prompt, providerParams, images } : { prompt, providerParams }
-        ),
+        // Each attachment key is omitted rather than sent as undefined: the
+        // endpoint validates a field whenever it is present, and an empty
+        // array would be rejected on a non-gemini provider for no reason.
+        body: JSON.stringify({
+          prompt,
+          providerParams,
+          ...(images?.length ? { images } : {}),
+          ...(audio?.length ? { audio } : {}),
+        }),
         signal: combinedSignal,
       });
 

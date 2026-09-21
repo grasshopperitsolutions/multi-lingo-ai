@@ -320,7 +320,7 @@ const FEATURE_PAGES = [
     () => import("../../src/pages/dashboard/grammar/GrammarPracticeComingSoonPage"),
   ],
   ["AiTutorPage", () => import("../../src/pages/dashboard/coming-soon/AiTutorPage")],
-  ["VoicePracticePage", () => import("../../src/pages/dashboard/coming-soon/VoicePracticePage")],
+  ["VoicePracticePage", () => import("../../src/pages/dashboard/VoicePracticePage")],
   ["FoodPage", () => import("../../src/pages/dashboard/coming-soon/FoodPage")],
   ["RadioTvPage", () => import("../../src/pages/dashboard/coming-soon/RadioTvPage")],
   ["PlanTripPage", () => import("../../src/pages/dashboard/coming-soon/PlanTripPage")],

@@ -579,6 +579,7 @@ export const AppProvider = ({ children }) => {
       // know what's already been shown.
       const seenStoryIds = profile?.seenStoryIds ?? [];
       const seenHistoryFactsIds = profile?.seenHistoryFactsIds ?? [];
+      const seenPassageIds = profile?.seenPassageIds ?? [];
 
       // Favourites — every `fav*` field the service knows about, copied across
       // as a group. Without this the hearts reset on every page load: the
@@ -618,6 +619,7 @@ export const AppProvider = ({ children }) => {
         seenExerciseIds,
         seenStoryIds,
         seenHistoryFactsIds,
+        seenPassageIds,
         ...favouriteFields,
         // ── Preferences ──────────────────────────────────────────────────────
         // Absent means "not chosen yet", which useDashboardPresentation

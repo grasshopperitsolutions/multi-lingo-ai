@@ -822,6 +822,62 @@ list carrying on into the page behind it. Row text is `break-words`, never
 cue that there is more; that is deliberate, but it is the thing to revisit if
 anyone reports missing content.
 
+## Reading aloud, and why the privacy policy wrote the design
+
+`/dashboard/voice-practice` fills in what was a coming-soon stub. Get a passage
+for your level, read it aloud, hear yourself, hear how it should sound, then
+ask for feedback. `useVoiceRecorder` + `pronunciationService` +
+`VoicePracticePage`; no new feature key, no new tile, no new route — the
+`voice_practice` feature document already existed, `hidden: true`.
+
+**The two halves have opposite economics, which is why they are two prompts.**
+The passage is pooled in `pronunciationPassages`, cache-first exactly like
+`stories`: everyone practising pt-PT at B1 wants the same difficult sounds, so
+only the first reader pays. The feedback is about one person's reading, so
+every submission generates. `seenPassageIds` on the profile stops the pool
+handing out a passage twice — a `seen*` field like every other, which means it
+also had to go in `AppContext`'s hydration allow-list or it would have been
+written and then silently dropped on the next load.
+
+**§2.6 of the privacy policy is a specification, not background reading.** It
+promises recordings are used only to produce pronunciation feedback and a
+transcript, that no voiceprint is made, that the voice is not analysed to
+identify or distinguish anyone, and that no emotion is inferred — and it names
+Illinois BIPA and Texas CUBI as what those promises hold off. §6 adds that
+audio is kept only as long as it takes to produce the feedback. Three
+consequences, all load-bearing:
+
+- **Nothing is stored.** The recording is a Blob in the hook, playback is a
+  local object URL, and the only place it goes is inline in one `ask-ai`
+  request. `reset` and unmount both revoke the URL; `voiceRecorder.test.jsx`
+  pins that, because it is the line that keeps the promise.
+- **`pronunciation-feedback-prompt` carries the boundaries in its template**,
+  and its `description` field says so to whoever opens it in Admin. A prompt
+  edited to ask "how confident do they sound" or "where is this accent from"
+  walks straight through §2.6. Reword the rest freely; leave those alone.
+- **The note is on screen**, not only in the policy. A promise nobody can see
+  is one nobody can rely on.
+
+**The microphone track is released after every take.** A held-open
+`MediaStream` keeps the browser's recording indicator lit, which correctly
+alarms people; re-acquiring per take costs nothing once permission is granted.
+
+**Nothing is transcoded.** Gemini accepts `audio/webm` and `audio/ogg`, which
+is what `MediaRecorder` produces on Chrome and Firefox (Safari gives mp4, also
+accepted). `/api/ask-ai` grew an `audio` field beside `images` — same
+`inlineData` path, one clip only — and **strips the codec parameter before
+checking the MIME type**, because a browser labels a recording
+`audio/webm;codecs=opus` and matching the full string would reject every
+recording Chrome makes.
+
+**The model is `gemini-3.5-transcribe` by way of the prompt document's blank
+`model` field.** Worth knowing the risk that bought: a transcription model may
+return a transcript and ignore the rest of the instruction. The service is
+built to degrade into something renderable if that happens — a missing score
+renders as no score rather than zero, missing issues as an empty list — and
+the fix is one field in Admin (`gemini-3.8-flash` is what Google's audio docs
+use for listening tasks), with no deploy.
+
 ## Photographing your own notes
 
 `PhotoCaptureWidget` on the personal dashboard sends one photo to Gemini and
