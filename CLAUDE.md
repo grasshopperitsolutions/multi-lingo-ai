@@ -847,16 +847,42 @@ Illinois BIPA and Texas CUBI as what those promises hold off. §6 adds that
 audio is kept only as long as it takes to produce the feedback. Three
 consequences, all load-bearing:
 
-- **Nothing is stored.** The recording is a Blob in the hook, playback is a
-  local object URL, and the only place it goes is inline in one `ask-ai`
-  request. `reset` and unmount both revoke the URL; `voiceRecorder.test.jsx`
-  pins that, because it is the line that keeps the promise.
+- **Nothing reaches a server.** The only copy that leaves the device is the one
+  attached inline to one `ask-ai` request, which is written nowhere. `reset`
+  and unmount both revoke the object URL; `voiceRecorder.test.jsx` pins that.
+- **The most recent take is kept in the browser**, in IndexedDB via
+  `utils/recordingStore` — a blob does not fit localStorage, and base64-ing it
+  in would inflate it by a third against a ~5MB quota. It exists so a reload,
+  or a request that failed, does not cost somebody the reading they just did.
+  **One record, never a history**: a pile of recordings of somebody's voice on
+  their laptop is the opposite of what this feature promises. It is dropped on
+  Clear, on asking for a new passage, and after 24 hours — enforced on read,
+  since there is no background job. The passage is stored beside it, because a
+  recording with nothing to compare it against is no use and there would be
+  nothing left to read either. Every call is wrapped: IndexedDB throws outright
+  in a private window on some browsers, and losing the ability to restore a
+  take must not take the page down.
 - **`pronunciation-feedback-prompt` carries the boundaries in its template**,
   and its `description` field says so to whoever opens it in Admin. A prompt
   edited to ask "how confident do they sound" or "where is this accent from"
   walks straight through §2.6. Reword the rest freely; leave those alone.
 - **The note is on screen**, not only in the policy. A promise nobody can see
   is one nobody can rely on.
+
+**The policy was updated for the device-local copy** (§2.6, §2.7, §6, and its
+date), because §2.7 *enumerates* what the browser holds and that list would
+otherwise have been untrue. §6 now distinguishes what **we** retain — nothing —
+from a copy on the reader's own device under their control.
+
+**While there: the app sets no cookies at all**, and §2.7 now says so. It
+previously said only that there were no advertising or analytics cookies, which
+reads as "we use some, just not those". Verified rather than assumed: no
+`document.cookie` anywhere, no third-party script in `index.html`, no Stripe.js
+on this origin (Checkout is a redirect to Stripe's own domain), Firebase Auth
+persisting to localStorage/IndexedDB rather than cookies, and Google Fonts as
+the only runtime third-party origin, which is cookieless. Sign-in via a
+provider happens in that provider's own window, where their cookies apply —
+§2.7 says that too.
 
 **The microphone track is released after every take.** A held-open
 `MediaStream` keeps the browser's recording indicator lit, which correctly

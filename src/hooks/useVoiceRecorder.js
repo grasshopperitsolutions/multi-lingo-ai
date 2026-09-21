@@ -6,12 +6,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * Records one take from the microphone, hands back something playable and
  * something sendable, and throws the take away when asked.
  *
- * **The recording is never stored anywhere.** It lives as a Blob in this hook
- * and as an object URL for the audio element; `reset` revokes the URL and
- * drops the blob, and unmounting does the same. That is not tidiness — §2.6
- * and §6 of the privacy policy promise a pronunciation recording is kept only
- * as long as it takes to produce feedback, and the simplest way to keep that
- * promise is to have nowhere for it to go.
+ * **The recording never reaches a server.** It lives as a Blob here and as an
+ * object URL for the audio element; `reset` revokes the URL and drops the
+ * blob, and unmounting does the same. The only copy that leaves the device is
+ * the one attached inline to the feedback request, which is written nowhere.
+ *
+ * A copy may outlive the page, but not this hook's doing: the caller can hand
+ * the most recent take to `utils/recordingStore` so a reload or a failed
+ * request does not cost somebody their reading, and hand it back through
+ * `adopt`. That copy stays in the reader's own browser under their control —
+ * the distinction §6 of the privacy policy draws between what *we* retain and
+ * what their device holds.
  *
  * **The microphone track is stopped after every take.** A live `MediaStream`
  * keeps the browser's recording indicator lit, which correctly alarms people;
@@ -195,6 +200,20 @@ export function useVoiceRecorder() {
     }, MAX_RECORDING_MS);
   }, [isSupported, reset, releaseStream, clearTimers]);
 
+  /**
+   * Take on a recording that already exists — one restored from the browser
+   * after a reload. The hook owns the object URL either way, so a restored
+   * take is revoked on reset and on unmount exactly like a fresh one.
+   */
+  const adopt = useCallback((blob, mimeType) => {
+    if (!blob) return;
+    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    const url = URL.createObjectURL(blob);
+    urlRef.current = url;
+    setError(null);
+    setRecording({ blob, url, mimeType: mimeType || blob.type || "audio/webm", durationMs: 0 });
+  }, []);
+
   /** The take as `{ data, mimeType }`, ready for askAI's `audio` option. */
   const toInlineAudio = useCallback(async () => {
     if (!recording?.blob) return null;
@@ -225,6 +244,7 @@ export function useVoiceRecorder() {
     start,
     stop,
     reset,
+    adopt,
     toInlineAudio,
   };
 }

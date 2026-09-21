@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Mic, Square, Sparkles, ShieldCheck } from "lucide-react";
@@ -10,6 +10,7 @@ import { isAiDeclined } from "../../services/aiService";
 import { getPassage, gradePronunciation } from "../../services/pronunciationService";
 import { markPassageSeen } from "../../services/userService";
 import { getCefrLevelOptions } from "../../config/examLevels";
+import { saveTake, loadTake, clearTake } from "../../utils/recordingStore";
 import Loader from "../../components/Loader";
 import NeoDropdown from "../../components/NeoDropdown";
 import {
@@ -48,6 +49,10 @@ const VoicePracticePage = () => {
   const navigate = useNavigate();
 
   const recorder = useVoiceRecorder();
+  // The blob restored on mount. Without this the restore would immediately
+  // write back what it just read — harmless, but a pointless round trip on
+  // every page load.
+  const restoredBlobRef = useRef(null);
 
   const [level, setLevel] = useState("A1");
   const [passage, setPassage] = useState(null);
@@ -59,11 +64,33 @@ const VoicePracticePage = () => {
   const targetLang = user?.learningDialect;
   const cefrLevelOptions = getCefrLevelOptions(t);
 
+  // Bring back the last take, so a reload — or a request that failed and a
+  // page left in frustration — does not cost somebody the reading they did.
+  // The passage comes back with it: a recording with nothing to compare it
+  // against is no use, and there would be nothing left to read either.
+  useEffect(() => {
+    let cancelled = false;
+    loadTake().then((take) => {
+      if (cancelled || !take?.passage) return;
+      setPassage(take.passage);
+      setLevel(take.passage.level ?? "A1");
+      restoredBlobRef.current = take.blob;
+      recorder.adopt(take.blob, take.mimeType);
+    });
+    return () => { cancelled = true; };
+    // Mount only: this restores a starting state, and re-running it would
+    // overwrite whatever the reader has done since.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleGetPassage = async () => {
     setIsLoadingPassage(true);
     setError(null);
     setFeedback(null);
     recorder.reset();
+    // The old take belongs to the old passage; keeping it would offer a
+    // recording of something no longer on screen.
+    clearTake();
     try {
       const seenPassageIds = user?.seenPassageIds ?? [];
       const result = await getPassage({ token: user.token, level, targetLang, seenPassageIds });
@@ -89,6 +116,21 @@ const VoicePracticePage = () => {
     } finally {
       setIsLoadingPassage(false);
     }
+  };
+
+  // Kept on the device as soon as a take exists, so the reading survives a
+  // reload or a failed request. Only ever the most recent one — see
+  // utils/recordingStore for why a history would be the wrong thing to hold.
+  useEffect(() => {
+    const take = recorder.recording;
+    if (!take?.blob || !passage) return;
+    if (take.blob === restoredBlobRef.current) return; // just restored it
+    saveTake({ blob: take.blob, mimeType: take.mimeType, passage });
+  }, [recorder.recording, passage]);
+
+  const handleClear = () => {
+    recorder.reset();
+    clearTake();
   };
 
   const handleSubmit = async () => {
@@ -297,7 +339,7 @@ const VoicePracticePage = () => {
                     <Sparkles size={16} />
                     {t("pronunciation.submit")}
                   </PrimaryButton>
-                  <GhostButton onClick={recorder.reset} disabled={isGrading} isDarkMode={isDarkMode}>
+                  <GhostButton onClick={handleClear} disabled={isGrading} isDarkMode={isDarkMode}>
                     {t("common.clear")}
                   </GhostButton>
                 </div>
