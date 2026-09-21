@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
+import { render, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nextProvider } from "react-i18next";
 
@@ -65,17 +65,89 @@ describe("with no interests saved", () => {
 });
 
 describe("with interests saved", () => {
-  it("offers them instead of the Settings link", async () => {
-    const { container, getByText } = await mount({
-      hasInterests: true,
-      interests: [
-        { id: "food", label: "Comida" },
-        { id: "travel", label: "Viagens" },
-      ],
-    });
+  const SAVED = {
+    hasInterests: true,
+    interests: [
+      { id: "food", label: "Comida" },
+      { id: "travel", label: "Viagens" },
+    ],
+  };
 
-    expect(getByText("Comida")).toBeTruthy();
+  const openPicker = (container) => {
+    const trigger = container.querySelector('button[aria-haspopup="listbox"]');
+    expect(trigger).toBeTruthy();
+    fireEvent.click(trigger);
+    return trigger;
+  };
+
+  /** By role, because the selected label also appears on the closed trigger. */
+  const option = (container, label) => {
+    const found = [...container.querySelectorAll('[role="option"]')].find(
+      (el) => el.textContent.trim() === label,
+    );
+    expect(found).toBeTruthy();
+    return found;
+  };
+
+  it("offers them instead of the Settings link", async () => {
+    const { container } = await mount(SAVED);
+
+    openPicker(container);
+
+    expect(option(container, "Comida")).toBeTruthy();
+    expect(option(container, "Viagens")).toBeTruthy();
     // Nothing to fix, so nothing to send them to Settings for.
     expect(container.querySelector('a[href*="/settings"]')).toBeNull();
+  });
+
+  it("collapses to one control however many interests there are", async () => {
+    // The reason this is a dropdown: the chips it replaced wrapped onto a new
+    // line every few interests, and this panel is a sidebar beside the board —
+    // so its height was set by how many interests somebody had saved.
+    const many = Array.from({ length: 12 }, (_, i) => ({ id: `i${i}`, label: `Interesse ${i}` }));
+    const { container } = await mount({ hasInterests: true, interests: many });
+
+    expect(container.querySelectorAll('button[aria-haspopup="listbox"]')).toHaveLength(1);
+    // Closed, so none of the twelve is taking up room.
+    expect(container.textContent).not.toContain("Interesse 7");
+  });
+
+  it("lets a chosen interest be taken back off", async () => {
+    // A chip row said "none" by having nothing pressed. A dropdown always reads
+    // as something, so the way back out has to be an option you can pick.
+    const picked = [];
+    const { container } = await mount({
+      ...SAVED,
+      selectedInterestId: "food",
+      onSelectInterest: (id) => picked.push(id),
+    });
+
+    openPicker(container);
+    fireEvent.click(option(container, "Sem tema"));
+
+    expect(picked).toEqual([null]);
+  });
+
+  it("treats re-picking the current interest as no change", async () => {
+    // `selectInterest` in the hook is a toggle, written for chips, where
+    // pressing the pressed one is how you clear it. Through a dropdown that
+    // would silently clear the theme somebody just confirmed.
+    const picked = [];
+    const { container } = await mount({
+      ...SAVED,
+      selectedInterestId: "food",
+      onSelectInterest: (id) => picked.push(id),
+    });
+
+    openPicker(container);
+    fireEvent.click(option(container, "Comida"));
+
+    expect(picked).toEqual([]);
+  });
+
+  it("locks the picker while a round is loading", async () => {
+    const { container } = await mount({ ...SAVED, disabled: true });
+
+    expect(container.querySelector('button[aria-haspopup="listbox"]').disabled).toBe(true);
   });
 });

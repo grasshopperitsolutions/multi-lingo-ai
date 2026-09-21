@@ -688,8 +688,8 @@ deletion already recurses into them, so this needed no policy entry and needs
 no cleanup path.
 
 One subcollection per kind, not one collection with a `kind` field: the
-queries need no filter and so no composite index, and the server's 200-document
-page cap applies per kind instead of across all three lists.
+queries need no filter and so no composite index, and the server's page cap
+applies per kind instead of across all three lists.
 
 The note board is deliberately **not** a list. A board is somewhere you keep
 adding to, and a list of notes would make you name and file every stray
@@ -1367,6 +1367,59 @@ on three calls a day can spend them on three words. That is the reason the
 other four challenges do not have a speaker yet. If it ever spreads, revisit the
 counter first — speaking one word costs the same quota as generating a whole
 story, which is the actual mismatch.
+
+## The word pool is read whole, and uniqueness is enforced in code
+
+`wordPool` is a shared cache, and two things kept breaking it.
+
+**A prompt is not a uniqueness constraint.**
+`get-word-generate-new-concept-prompt` does carry `{{avoidList}}` — every
+`normalizedKey` in the pool — and the model is told in as many words not to
+repeat. It repeats anyway. One crossword build produced **seven `passport`
+concepts in thirteen seconds**, each with its own reworded hint, every one
+generated while "passport" sat in the avoid list it had just been handed. A
+hard instruction ("must be about travel") against a soft one (a long negative
+list, last line, `temperature: 0.9`) is not a fair fight.
+
+So `_adoptOrCreateConcept` looks `normalizedKey` up before writing — one
+indexed equality, on the generate path only — and reuses the existing concept
+rather than regenerating, because a second AI call to dodge a collision spends
+a daily allowance on a word that was already free. The lookup **never throws**:
+a failed check degrades to the old behaviour, and a duplicate is a much smaller
+problem than costing somebody the word they were waiting for.
+
+**The pool is fetched whole, not paged.** `POOL_LIMIT` was 200 and so was the
+API's `MAX_QUERY_LIMIT`, and together they were silently wrong: past 200
+concepts every user walked the same arbitrary slice — there is no `orderBy`, so
+it is document-id order — exhausted it, and generated past it for ever. The
+avoid list only ever named that slice, so the duplicates compounded, and
+`getWordPoolCount` read the same capped page, so the sidebar's total plateaued.
+Both are now large. That cap was never an abuse control and could not be one:
+`startAfter` already lets any caller page past it.
+
+**Consumers must dedupe on the word, not the concept id.** Crossword and Word
+Search each draw N words in a loop, excluding the ids already drawn — which is
+correct and insufficient, because several concepts can carry one word. Compared
+through `normalizeChar`, so `río` cannot come back beside `rio`.
+
+**Collecting words has a time budget** (`utils/wordBudget`), because nothing
+was watching the total: Word Search asks for twelve words one at a time, and
+when the pool cannot serve them each is an AI generation of about two seconds.
+Two rules in order — a floor of `MIN_WORDS` that the clock cannot undercut,
+since a two-word crossword is not a puzzle, then `WORD_BUDGET_MS` once the
+floor is met, after which the remaining words are a bonus rather than a wait.
+The budget is deliberately longer than the floor costs to fill, or it would
+never be the thing that stopped the loop. It is checked **before** each
+request, never during one: a generation in flight has already been paid for,
+so the elapsed time can overshoot by one request rather than waste it.
+
+Two things known and deliberately left. **The dedupe key is English** — a model
+returning `valley` and `dale` writes two concepts that are one word in Spanish;
+the consumer-side check catches them in a puzzle, the pool still holds both.
+And **every `getWord` re-fetches the whole pool**, so one puzzle reads it a
+dozen times. Harmless at a few hundred documents and the obvious next lever if
+the wait is still too long — it wants the pool passed in rather than fetched
+per call, which is a signature change across every caller.
 
 ## The word bank is the WORD favourite kind, not a new mechanism
 

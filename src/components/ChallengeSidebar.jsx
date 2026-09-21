@@ -232,15 +232,18 @@ const ChallengeSidebar = ({
           {divider}
         </div>
 
-        {/* Reset button */}
+        {/* Reset button.
+
+            Rose, and outlined the way Settings marks "delete account": this
+            throws away every word the player has ever been shown, on every
+            device, and cannot be undone. It used to look like any other
+            control in the panel, which understated it. Not theme-branched,
+            because one rose reads on both grounds — the same reason the
+            Settings button carries no branch either. */}
         <button
           onClick={() => setShowConfirm(true)}
           disabled={seenCount === 0}
-          className={`flex items-center justify-center gap-2 py-3 rounded-xl border-4 font-black uppercase text-xs tracking-widest transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
-            isDarkMode
-              ? "bg-slate-800 border-slate-600 text-slate-300 hover:border-yellow-400 hover:text-yellow-400"
-              : "bg-white border-slate-900 text-slate-700 hover:bg-yellow-50 shadow-[3px_3px_0px_0px_#0f172a]"
-          }`}
+          className="flex items-center justify-center gap-2 py-3 rounded-xl border-4 border-rose-500 font-black uppercase text-xs tracking-widest text-rose-500 transition-all active:scale-95 hover:bg-rose-500 hover:text-white shadow-[3px_3px_0px_0px_#f43f5e] disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <RotateCcw size={14} />
           {t("challenges.sidebar.reset_seen_words_btn")}
@@ -305,15 +308,12 @@ const ChallengeSidebar = ({
               </span>
             </div>
 
-            {/* Reset — centered */}
+            {/* Reset — centered. Same rose as the panel above; the strip is
+                compact, so it keeps its thinner border and drops the shadow. */}
             <button
               onClick={() => setShowConfirm(true)}
               disabled={seenCount === 0}
-              className={`self-center flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-black uppercase text-xs tracking-widest transition-all active:scale-95 disabled:opacity-40 ${
-                isDarkMode
-                  ? "border-slate-600 text-slate-400 hover:border-yellow-400 hover:text-yellow-400"
-                  : "border-slate-300 text-slate-500 hover:border-slate-900 hover:text-slate-900"
-              }`}
+              className="self-center flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-rose-500 font-black uppercase text-xs tracking-widest text-rose-500 transition-all active:scale-95 hover:bg-rose-500 hover:text-white disabled:opacity-40"
             >
               <RotateCcw size={12} /> {t("challenges.sidebar.reset_seen_words_btn")}
             </button>

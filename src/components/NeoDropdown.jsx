@@ -55,6 +55,7 @@ const NeoDropdown = ({
   searchable,
   searchPlaceholder = "",
   multiple = false,
+  disabled = false,
 }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
@@ -197,9 +198,10 @@ const NeoDropdown = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
+        disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border-4 font-bold transition-all active:scale-95 ${baseClasses}`}
+        className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border-4 font-bold transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 ${baseClasses}`}
       >
         <div className="flex items-center gap-2 min-w-0">
           {Icon && (
@@ -366,6 +368,8 @@ NeoDropdown.propTypes = {
   searchPlaceholder: PropTypes.string,
   /** Tick several; the panel stays open and `onChange` receives an array. */
   multiple: PropTypes.bool,
+  /** Locks the trigger. The panel cannot be opened and nothing can be picked. */
+  disabled: PropTypes.bool,
 };
 
 export default NeoDropdown;

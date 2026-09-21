@@ -11,6 +11,8 @@ import {
   resetAllSeenWords,
 } from "../services/userService";
 import { getWord, getWordPoolCount } from "../services/getWordService";
+import { normalizeChar } from "../utils/letterKeys";
+import { startWordBudget, shouldKeepFetching } from "../utils/wordBudget";
 import { useInterestTopics } from "../hooks/useInterestTopics";
 import { useChallengeTheme } from "../hooks/useChallengeTheme";
 import { buildGrid, checkSelection } from "../utils/wordSearchUtils";
@@ -224,8 +226,13 @@ const WordSearchGame = ({ isDarkMode }) => {
     const seenIdsSet = new Set(globalSeenIds);
     const fetchedThisSession = [];
     const results = [];
+    const deadline = startWordBudget();
 
     for (let i = 0; i < WORD_COUNT; i++) {
+      // Twelve generations is the longest wait in the app. Past the floor the
+      // clock decides, and the rest of the grid is a bonus.
+      if (!shouldKeepFetching(deadline, results.length)) break;
+
       const combinedSeen = [...seenIdsSet, ...fetchedThisSession.map((r) => r.conceptId)];
       const result = await getWord({
         token,
@@ -241,6 +248,13 @@ const WordSearchGame = ({ isDarkMode }) => {
         customTheme: challengeTheme.theme.isCustom ? challengeTheme.theme.label : null,
         themeLabel: challengeTheme.theme.label,
       });
+
+      // Same reason as the crossword: the pool holds several concepts for some
+      // words, so excluding the ids already drawn does not stop the same word
+      // appearing twice in one grid. Accent-blind, so "río" and "rio" count as
+      // one.
+      if (results.some((r) => normalizeChar(r.word) === normalizeChar(result.word))) continue;
+
       results.push(result);
       fetchedThisSession.push(result);
     }

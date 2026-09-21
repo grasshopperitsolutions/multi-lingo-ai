@@ -137,7 +137,21 @@ import { getSkippedConceptIds } from '../utils/skippedConcepts';
 
 const PROXY_URL    = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
-const POOL_LIMIT   = 200;
+/**
+ * The pool is read whole and filtered in code, not paged.
+ *
+ * It was 200, which was also the server's hard cap, and the two together were
+ * silently wrong: past 200 concepts every user walked the same arbitrary slice,
+ * exhausted it, and generated past it for ever — and the avoid-list handed to
+ * the model only ever named that slice, so the generation duplicated words the
+ * pool already held. `getWordPoolCount` read the same capped page, so the
+ * sidebar's total plateaued at 200 as well.
+ *
+ * One large request beats paging here: the whole pool is a few hundred small
+ * documents, and every filter it needs (length, topic, seen) is applied in
+ * code afterwards.
+ */
+const POOL_LIMIT   = 100_000;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -325,14 +339,101 @@ async function _generateThemedConcept({
   // Only a real interest id tags the new concept; a free-text theme has none
   // to tag it with, so it enters the pool untagged.
   const tagTopic = topic?.id ? topic : null;
-  const conceptId = await _writeNewConcept(generated, learningDialect, token, tagTopic);
 
+  return _adoptOrCreateConcept({
+    generated, userDialect, learningDialect, token, topic: tagTopic,
+  });
+}
+
+/**
+ * Write the generated concept — unless the pool already has it.
+ *
+ * **This is what keeps the pool unique, and it has to be code.** The prompt
+ * does carry an avoid list and the model is genuinely told not to repeat; it
+ * repeats anyway. One build of nine words produced seven `passport` documents
+ * in thirteen seconds, each with its own reworded hint, every one of them
+ * generated while "passport" was sitting in the avoid list it had just been
+ * handed. A hard instruction ("must be about travel") and a soft one (a long
+ * negative list) is not a fair fight, and uniqueness is not something to ask
+ * a language model for politely.
+ *
+ * So the last word before the write belongs to a lookup. One indexed equality
+ * on `normalizedKey`, on the generate path only — the pool path never reaches
+ * here.
+ *
+ * Reuse is preferred over regenerating: another AI call to dodge a collision
+ * costs the user a call from their daily allowance to produce a word they
+ * could have been given for free.
+ */
+async function _adoptOrCreateConcept({ generated, userDialect, learningDialect, token, topic }) {
+  const existing = await _findConceptByKey(generated.sourceWord, token);
+
+  if (existing) {
+    const translation = await _fetchTranslation(existing.id, learningDialect, token);
+
+    if (translation) {
+      // The pooled wording wins over the freshly generated one: it is what
+      // other players have already seen for this concept.
+      return {
+        word:      translation.word,
+        hint:      _resolveHint(translation.hints, userDialect) || generated.hints[userDialect] || '',
+        conceptId: existing.id,
+        source:    'db',
+      };
+    }
+
+    // The concept exists in English but not yet in this language, which is
+    // exactly what was just generated. It lands on the existing concept
+    // instead of a second copy of it.
+    await _writeTranslation(existing.id, learningDialect, generated, token);
+    return {
+      word:      generated.word,
+      hint:      generated.hints[userDialect] || '',
+      conceptId: existing.id,
+      source:    'ai',
+    };
+  }
+
+  const conceptId = await _writeNewConcept(generated, learningDialect, token, topic);
   return {
     word:      generated.word,
     hint:      generated.hints[userDialect] || '',
     conceptId,
     source:    'ai',
   };
+}
+
+/**
+ * The concept already holding this English word, or null.
+ *
+ * Matched on `normalizedKey` with the same transform `_writeNewConcept` uses
+ * to build it, so the two cannot disagree about what counts as the same word.
+ *
+ * **Never throws.** A failed lookup degrades to the old behaviour — a possible
+ * duplicate — which is a far better outcome than costing somebody the word
+ * they were waiting for.
+ */
+async function _findConceptByKey(sourceWord, token) {
+  const key = String(sourceWord ?? '').toLowerCase().trim();
+  if (!key) return null;
+
+  try {
+    const params = new URLSearchParams({
+      collection: 'wordPool',
+      filters: JSON.stringify([{ field: 'normalizedKey', op: '==', value: key }]),
+      limit: '1',
+    });
+    const response = await fetch(`${PROXY_URL}/api/firestore?${params}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) return null;
+    const json = await response.json();
+    return json?.data?.documents?.[0] ?? null;
+  } catch (err) {
+    console.warn('[getWordService] duplicate check failed, writing anyway:', err);
+    return null;
+  }
 }
 
 /**

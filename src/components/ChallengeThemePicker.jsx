@@ -2,6 +2,17 @@ import PropTypes from "prop-types";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Ban, Check, Lock, Sparkles } from "lucide-react";
+import NeoDropdown from "./NeoDropdown";
+
+/**
+ * The "no interest" row, and never a real interest id.
+ *
+ * A chip row could express "none chosen" by having nothing pressed. A dropdown
+ * always reads as something, so the absence has to become an option you can
+ * pick — which is also the only way back out of a choice now that there is no
+ * chip to press again.
+ */
+const NO_INTEREST = "";
 
 /**
  * ChallengeThemePicker
@@ -67,37 +78,47 @@ const ChallengeThemePicker = ({
 
   const freeTextDisabled = disabled || freeTextBlockedByInterest || !canUseFreeText;
 
+  const interestOptions = [
+    { value: NO_INTEREST, label: t("challenges.theme.none") },
+    ...interests.map((interest) => ({ value: interest.id, label: interest.label })),
+  ];
+
+  /**
+   * `selectInterest` in the hook is a *toggle* — it was written for chips,
+   * where pressing the pressed one is how you clear it. Re-picking the option
+   * a dropdown already shows would clear it too, which is not what a dropdown
+   * means, so an unchanged value stops here instead.
+   */
+  const handlePickInterest = (value) => {
+    const next = value === NO_INTEREST ? null : value;
+    if (next === selectedInterestId) return;
+    onSelectInterest(next);
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <p className={labelClasses}>{t("challenges.theme.title")}</p>
 
       {/* ── Interests ──────────────────────────────────────────────────────── */}
       {hasInterests ? (
-        <div className="flex flex-wrap gap-2" role="group" aria-label={t("challenges.theme.title")}>
-          {interests.map((interest) => {
-            const isSelected = interest.id === selectedInterestId;
-            return (
-              <button
-                key={interest.id}
-                type="button"
-                onClick={() => onSelectInterest(interest.id)}
-                disabled={disabled}
-                aria-pressed={isSelected}
-                className={`px-3 py-1.5 rounded-full border-2 font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
-                  isSelected
-                    ? isDarkMode
-                      ? "bg-yellow-400 border-yellow-400 text-slate-900"
-                      : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
-                    : isDarkMode
-                      ? "bg-transparent border-slate-600 text-slate-400 hover:border-slate-400 hover:text-slate-200"
-                      : "bg-transparent border-slate-300 text-slate-500 hover:border-slate-900 hover:text-slate-900"
-                }`}
-              >
-                {interest.label}
-              </button>
-            );
-          })}
-        </div>
+        /* A dropdown rather than a row of chips. The chips wrapped onto a new
+           line every three or four interests, and this panel sits in a sidebar
+           beside the board — so the picker's height was set by how many
+           interests somebody had saved, and pushed the rest of the sidebar
+           down. One control, one line, however many there are.
+
+           `!w-full` because NeoDropdown goes `sm:w-auto` at its own breakpoint,
+           which would leave it narrower than the free-text box directly below
+           it. */
+        <NeoDropdown
+          options={interestOptions}
+          value={selectedInterestId ?? NO_INTEREST}
+          onChange={handlePickInterest}
+          isDarkMode={isDarkMode}
+          disabled={disabled}
+          searchable={false}
+          className="!w-full"
+        />
       ) : (
         /* No interests saved. Point at Settings rather than offering a picker
            with nothing in it — the set of interests is a profile decision. */

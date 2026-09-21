@@ -78,9 +78,9 @@ AttemptsDisplay.propTypes = {
 // ---------------------------------------------------------------------------
 // LetterTile
 // ---------------------------------------------------------------------------
-const LetterTile = ({ letter, onClick, disabled, variant, isDarkMode }) => {
+const LetterTile = ({ letter, onClick, onKeyDown, disabled, variant, isFocused, slotIndex, isDarkMode }) => {
   const baseClasses =
-    "w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-4 flex items-center justify-center font-black text-lg sm:text-xl uppercase tracking-tighter transition-all select-none";
+    "w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-4 flex items-center justify-center font-black text-lg sm:text-xl uppercase tracking-tighter transition-all select-none focus:outline-none";
 
   const variantClasses = {
     pool: disabled
@@ -93,8 +93,8 @@ const LetterTile = ({ letter, onClick, disabled, variant, isDarkMode }) => {
         ? "bg-yellow-400 border-slate-700 text-slate-900 cursor-pointer active:scale-95"
         : "bg-yellow-400 border-slate-900 text-slate-900 cursor-pointer active:scale-95"
       : isDarkMode
-      ? "bg-slate-800 border-slate-600 text-transparent"
-      : "bg-slate-100 border-slate-300 text-transparent",
+      ? "bg-slate-800 border-slate-600 text-transparent cursor-pointer"
+      : "bg-slate-100 border-slate-300 text-transparent cursor-pointer",
     correct: "bg-emerald-400 border-slate-900 text-slate-900 cursor-default",
     wrong: "bg-rose-400 border-slate-900 text-slate-900 cursor-default scrambled-shake",
     separator: "opacity-0 pointer-events-none border-transparent bg-transparent w-4 sm:w-5",
@@ -104,8 +104,12 @@ const LetterTile = ({ letter, onClick, disabled, variant, isDarkMode }) => {
     <button
       type="button"
       onClick={onClick}
+      onKeyDown={onKeyDown}
+      data-slot={slotIndex}
       disabled={disabled || variant === "correct" || variant === "wrong" || variant === "separator"}
-      className={`${baseClasses} ${variantClasses[variant] ?? variantClasses.pool}`}
+      className={`${baseClasses} ${variantClasses[variant] ?? variantClasses.pool} ${
+        isFocused ? "ring-4 ring-inset ring-sky-500" : ""
+      }`}
       aria-label={letter ? `Letter ${letter}` : "Empty slot"}
     >
       {letter ?? ""}
@@ -116,8 +120,12 @@ const LetterTile = ({ letter, onClick, disabled, variant, isDarkMode }) => {
 LetterTile.propTypes = {
   letter: PropTypes.string,
   onClick: PropTypes.func,
+  onKeyDown: PropTypes.func,
   disabled: PropTypes.bool,
   variant: PropTypes.oneOf(["pool", "answer", "correct", "wrong", "separator"]),
+  /** Answer slots only: takes the keyboard focus ring and the next keystroke. */
+  isFocused: PropTypes.bool,
+  slotIndex: PropTypes.number,
   isDarkMode: PropTypes.bool.isRequired,
 };
 
@@ -144,6 +152,9 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   // ── Game state ───────────────────────────────────────────────────────────
   const [pool, setPool]                   = useState([]);
   const [answer, setAnswer]               = useState([]);
+  /** Which blank the next tap or keystroke fills. Null = the next empty one. */
+  const [focusedSlot, setFocusedSlot]     = useState(null);
+  const answerRowRef                      = useRef(null);
   const [attemptsLeft, setAttemptsLeft]   = useState(MAX_ATTEMPTS);
   const [gameStatus, setGameStatus]       = useState("playing");
   const [showResult, setShowResult]       = useState(false);
@@ -260,6 +271,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       setProgress(data.progress);
       setPool(newPool);
       setAnswer(answerTemplate);
+      setFocusedSlot(null);
       setAttemptsLeft(MAX_ATTEMPTS);
       setGameStatus("playing");
       setShowResult(false);
@@ -345,6 +357,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     const { newPool, answerTemplate } = buildPoolAndAnswer(word.split(""));
     setPool(newPool);
     setAnswer(answerTemplate);
+    setFocusedSlot(null);
   }, [word, buildPoolAndAnswer, gameStatus]);
 
   // ── Play Again — resets state then re-shuffles the SAME word ─────────────
@@ -352,28 +365,82 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     const { newPool, answerTemplate } = buildPoolAndAnswer(word.split(""));
     setPool(newPool);
     setAnswer(answerTemplate);
+    setFocusedSlot(null);
     setAttemptsLeft(MAX_ATTEMPTS);
     setGameStatus("playing");
     setShowResult(false);
     hasMarkedRef.current = false;
   }, [word, buildPoolAndAnswer]);
 
-  // ── Place letter from pool into next empty answer slot ───────────────────
-  const handlePlaceLetter = useCallback(
-    (tileId) => {
+  // ── Place letter from the pool into a chosen slot ─────────────────────────
+
+  /**
+   * The next empty slot at or after `from`, else the first one anywhere.
+   * `justFilled` is the slot the caller is about to write, which still reads as
+   * empty in the array this closure captured.
+   */
+  const nextEmptySlot = useCallback(
+    (from = 0, justFilled = -1) => {
+      for (let i = from; i < answer.length; i += 1) {
+        if (answer[i] === null && i !== justFilled) return i;
+      }
+      for (let i = 0; i < answer.length; i += 1) {
+        if (answer[i] === null && i !== justFilled) return i;
+      }
+      return null;
+    },
+    [answer]
+  );
+
+  /**
+   * Put a pool tile into one specific slot.
+   *
+   * Pool and answer move together in one pass rather than through a remove
+   * followed by a place: a slot that already holds a letter has to give it back
+   * at the same moment the new one arrives, and two sequential updates would
+   * each read the array as it was before the other.
+   */
+  const writeTile = useCallback(
+    (slotIndex, tileId) => {
       if (gameStatus !== "playing") return;
+      if (slotIndex === null || slotIndex === undefined) return;
+
       const tile = pool.find((t) => t.id === tileId && !t.placed);
       if (!tile) return;
-      const nextSlot = answer.findIndex((slot) => slot === null);
-      if (nextSlot === -1) return;
-      setPool((prev) => prev.map((t) => (t.id === tileId ? { ...t, placed: true } : t)));
+
+      const occupant = answer[slotIndex];
+      if (occupant?.isSpace) return;
+
       setAnswer((prev) => {
         const next = [...prev];
-        next[nextSlot] = { id: tileId, letter: tile.letter };
+        next[slotIndex] = { id: tileId, letter: tile.letter };
         return next;
       });
+      setPool((prev) =>
+        prev.map((t) => {
+          if (t.id === tileId) return { ...t, placed: true };
+          if (occupant && t.id === occupant.id) return { ...t, placed: false };
+          return t;
+        })
+      );
+      setFocusedSlot(nextEmptySlot(slotIndex + 1, slotIndex));
     },
-    [pool, answer, gameStatus]
+    [pool, answer, gameStatus, nextEmptySlot]
+  );
+
+  /**
+   * Tapping a tile in the pool fills the slot the player picked, and only falls
+   * back to the next empty one when they have not picked anything — which is
+   * the whole of the old behaviour, kept for anyone who never taps a slot.
+   */
+  const handlePlaceLetter = useCallback(
+    (tileId) => {
+      const target =
+        focusedSlot !== null && answer[focusedSlot] === null ? focusedSlot : nextEmptySlot();
+      if (target === null) return;
+      writeTile(target, tileId);
+    },
+    [focusedSlot, answer, nextEmptySlot, writeTile]
   );
 
   // ── Remove letter from answer back to pool ───────────────────────────────
@@ -391,6 +458,86 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     },
     [answer, gameStatus]
   );
+
+  // ── Choosing where to write, and writing there ────────────────────────────
+
+  const handleSlotTap = useCallback(
+    (slotIndex) => {
+      if (gameStatus !== "playing") return;
+      const slot = answer[slotIndex];
+      if (slot?.isSpace) return;
+
+      // Tapping a slot says "here". It still empties a filled one on the way,
+      // which is what it has always done — and leaves it ready to be refilled.
+      setFocusedSlot(slotIndex);
+      if (slot) handleRemoveLetter(slotIndex);
+    },
+    [answer, gameStatus, handleRemoveLetter]
+  );
+
+  /** The neighbouring slot a caret would move to, skipping word breaks. */
+  const stepSlot = useCallback(
+    (from, delta) => {
+      for (let i = from + delta; i >= 0 && i < answer.length; i += delta) {
+        if (!answer[i]?.isSpace) return i;
+      }
+      return null;
+    },
+    [answer]
+  );
+
+  const handleSlotKeyDown = useCallback(
+    (slotIndex) => (event) => {
+      if (gameStatus !== "playing") return;
+
+      if (event.key === "Escape") {
+        setFocusedSlot(null);
+        event.currentTarget.blur();
+        return;
+      }
+
+      if (event.key === "Backspace" || event.key === "Delete") {
+        event.preventDefault();
+        if (answer[slotIndex]) {
+          handleRemoveLetter(slotIndex);
+          return;
+        }
+        const back = stepSlot(slotIndex, -1);
+        if (back === null) return;
+        setFocusedSlot(back);
+        handleRemoveLetter(back);
+        return;
+      }
+
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+        const to = stepSlot(slotIndex, event.key === "ArrowLeft" ? -1 : 1);
+        if (to === null) return;
+        event.preventDefault();
+        setFocusedSlot(to);
+        return;
+      }
+
+      if (event.key.length !== 1 || event.metaKey || event.ctrlKey || event.altKey) return;
+
+      // The letters are a finite pool, so typing does not invent one: it picks
+      // up the matching tile that is still down there. Accents are ignored in
+      // the match, so a plain keyboard can type an accented word.
+      const wanted = normalizeChar(event.key);
+      const tile = pool.find((t) => !t.placed && normalizeChar(t.letter) === wanted);
+      if (!tile) return;
+
+      event.preventDefault();
+      writeTile(slotIndex, tile.id);
+    },
+    [gameStatus, answer, pool, stepSlot, handleRemoveLetter, writeTile]
+  );
+
+  /** Keep the real focus with the ring; see the crossword for the same note. */
+  useEffect(() => {
+    if (focusedSlot === null) return;
+    const el = answerRowRef.current?.querySelector(`[data-slot="${focusedSlot}"]`);
+    if (el && !el.disabled) el.focus({ preventScroll: true });
+  }, [focusedSlot]);
 
   // ── Auto-check when all non-space slots filled ────────────────────────────
   const checkAnswer = useCallback(() => {
@@ -563,14 +710,17 @@ const ScrambledWordGame = ({ isDarkMode }) => {
         {!isOver && <AttemptsDisplay attemptsLeft={attemptsLeft} />}
 
         {/* ── Answer row ── */}
-        <div className="flex flex-wrap justify-center gap-2 mb-6 px-4 w-full">
+        <div ref={answerRowRef} className="flex flex-wrap justify-center gap-2 mb-6 px-4 w-full">
           {answer.map((slot, i) => (
             <LetterTile
               key={i}
               letter={slot?.letter ?? null}
-              onClick={() => !isOver && handleRemoveLetter(i)}
+              onClick={() => !isOver && handleSlotTap(i)}
+              onKeyDown={handleSlotKeyDown(i)}
               disabled={isOver || slot?.isSpace}
               variant={answerVariant(slot)}
+              isFocused={focusedSlot === i && !isOver}
+              slotIndex={i}
               isDarkMode={isDarkMode}
             />
           ))}

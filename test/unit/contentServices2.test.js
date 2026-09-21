@@ -61,6 +61,10 @@ const seedPrompts = () =>
     { id: "concept-icon-prompt", template: "Icon for {{word}}" },
     { id: "image-generate-prompt", template: "Image of {{prompt}}" },
     { id: "translate-batch-prompt", template: "Translate {{json}}" },
+    {
+      id: "get-word-generate-new-concept-prompt",
+      template: "One word about {{interestOrTopic}} in {{learningDialect}}, hint in {{userDialect}}. Avoid: {{avoidList}}",
+    },
   ]);
 
 beforeEach(() => {
@@ -437,5 +441,123 @@ describe("dictionaryService", () => {
 
     // Either way it must not hand the UI a half-parsed object.
     expect(result === "rejected" || typeof result === "object").toBe(true);
+  });
+});
+
+/**
+ * The pool must not grow a second copy of a word it already has.
+ *
+ * The prompt does carry an avoid list, and the model is told in as many words
+ * not to repeat. It repeats anyway: one crossword build produced seven
+ * `passport` concepts in thirteen seconds, each with its own reworded hint,
+ * every one generated while "passport" sat in the list it had just been given.
+ * These pin the lookup that now stands between the model and the write, because
+ * a soft instruction is not a uniqueness constraint.
+ */
+describe("getWordService — the duplicate guard", () => {
+  const POOLED = { id: "c1", normalizedKey: "passport", sourceWord: "passport", status: "ready", topicIds: [] };
+
+  let posted;
+
+  /** Routes by URL, because this service talks to /api/firestore directly. */
+  const routeFetch = ({ match = [], translation = null }) => {
+    posted = [];
+    globalThis.fetch = vi.fn(async (url, init) => {
+      const ok = (data) => ({ ok: true, status: 200, json: async () => ({ success: true, data }) });
+
+      if (init?.method === "POST") {
+        posted.push(JSON.parse(init.body));
+        return ok({ id: "brand-new" });
+      }
+      if (String(url).includes("translations")) {
+        return translation
+          ? ok({ data: translation })
+          : { ok: false, status: 404, json: async () => ({}) };
+      }
+      if (String(url).includes("normalizedKey")) return ok({ documents: match, hasMore: false });
+      return ok({ documents: [POOLED], hasMore: false });
+    });
+  };
+
+  const generate = async () => {
+    askAI.mockResolvedValue(
+      aiText(JSON.stringify({ sourceWord: "Passport", word: "pasaporte", hint: "Documento de viagem" })),
+    );
+    const { getWord } = await import("../../src/services/getWordService");
+    // The one pooled concept is already seen, so the pool is exhausted and the
+    // service falls through to generation — the only path that writes.
+    return getWord({
+      token: "tok",
+      userDialect: "en-US",
+      learningDialect: "pt-PT",
+      seenConceptIds: ["c1"],
+    });
+  };
+
+  it("hands back the concept the pool already holds instead of writing a second", async () => {
+    routeFetch({
+      match: [POOLED],
+      translation: { word: "pasaporte", hints: { "en-US": "A travel document" } },
+    });
+
+    const result = await generate();
+
+    expect(result.conceptId).toBe("c1");
+    expect(posted.filter((p) => p.collection === "wordPool")).toHaveLength(0);
+  });
+
+  it("prefers the pooled wording over the freshly generated one", async () => {
+    // Other players have already been shown this. A second wording for the same
+    // concept is how the duplicates read as different words in the first place.
+    routeFetch({
+      match: [POOLED],
+      translation: { word: "passaporte", hints: { "en-US": "A travel document" } },
+    });
+
+    const result = await generate();
+
+    expect(result.word).toBe("passaporte");
+    expect(result.source).toBe("db");
+  });
+
+  it("puts a missing language onto the existing concept, not onto a copy of it", async () => {
+    // The concept is known in English but nobody has practised it in this
+    // language yet — which is exactly what was generated.
+    routeFetch({ match: [POOLED], translation: null });
+
+    const result = await generate();
+
+    expect(result.conceptId).toBe("c1");
+    expect(posted.filter((p) => p.collection === "wordPool")).toHaveLength(0);
+    expect(posted.map((p) => p.collection)).toContain("wordPool/c1/translations");
+  });
+
+  it("still creates a concept when the word is genuinely new", async () => {
+    routeFetch({ match: [] });
+
+    const result = await generate();
+
+    expect(result.conceptId).toBe("brand-new");
+    expect(posted.filter((p) => p.collection === "wordPool")).toHaveLength(1);
+  });
+
+  it("writes rather than losing the word when the lookup fails", async () => {
+    // A duplicate is a much smaller problem than costing somebody the word
+    // they were waiting for, so the guard degrades to the old behaviour.
+    posted = [];
+    globalThis.fetch = vi.fn(async (url, init) => {
+      const ok = (data) => ({ ok: true, status: 200, json: async () => ({ success: true, data }) });
+      if (init?.method === "POST") {
+        posted.push(JSON.parse(init.body));
+        return ok({ id: "brand-new" });
+      }
+      if (String(url).includes("normalizedKey")) throw new Error("network");
+      if (String(url).includes("translations")) return { ok: false, status: 404, json: async () => ({}) };
+      return ok({ documents: [POOLED], hasMore: false });
+    });
+
+    const result = await generate();
+
+    expect(result.conceptId).toBe("brand-new");
   });
 });

@@ -15,7 +15,8 @@ import { loadConceptIcons } from "../services/conceptIconService";
 import { useInterestTopics } from "../hooks/useInterestTopics";
 import { useChallengeTheme } from "../hooks/useChallengeTheme";
 import { buildCrossword, checkEntry, CELL } from "../utils/crosswordUtils";
-import { resolveLetterKeys, letterKey } from "../utils/letterKeys";
+import { resolveLetterKeys, letterKey, normalizeChar } from "../utils/letterKeys";
+import { startWordBudget, shouldKeepFetching } from "../utils/wordBudget";
 import { sanitizeSvg } from "../utils/sanitizeSvg";
 import ChallengeSidebar from "./ChallengeSidebar";
 import ChallengeThemePicker from "./ChallengeThemePicker";
@@ -56,6 +57,27 @@ const MAX_LENGTH = Math.max(GRID_COLS, GRID_ROWS) - 1;
 
 /** How long a wrong answer stays red before it clears. */
 const WRONG_FLASH_MS = 700;
+
+/**
+ * The dragged letter, in pixels — `w-9 h-10` on the ghost itself.
+ *
+ * It is centred on the pointer, except under a finger. A cursor is a point and
+ * sits *beside* what it is pointing at, so a ghost centred on it is exactly
+ * where the letter is going; a fingertip is roughly the size of the ghost and
+ * covers it completely, which is the one case where lifting it clear is worth
+ * the offset. `pointerType` is what tells the two apart.
+ */
+const GHOST_WIDTH = 36;
+const GHOST_HEIGHT = 40;
+const GHOST_TOUCH_LIFT = 26;
+
+/** Grid movement for the arrow keys, as [rowDelta, colDelta]. */
+const ARROW_STEPS = {
+  ArrowUp: [-1, 0],
+  ArrowDown: [1, 0],
+  ArrowLeft: [0, -1],
+  ArrowRight: [0, 1],
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -171,7 +193,15 @@ ClueCell.propTypes = {
 // LetterCell
 // ---------------------------------------------------------------------------
 
-const LetterCell = ({ row, col, letter, isSolved, isWrong, isActive, onTap, isDarkMode }) => {
+/**
+ * One square of the board.
+ *
+ * It is a real `<button>`, which is what makes typing possible at all: tapping
+ * it focuses it, so the keystroke has somewhere to land without this component
+ * reaching for a window-level listener that would also fire while somebody was
+ * typing in the sidebar.
+ */
+const LetterCell = ({ row, col, letter, isSolved, isWrong, isActive, isFocused, onTap, onKeyDown, isDarkMode }) => {
   let tone;
   if (isWrong) {
     tone = "bg-rose-400 border-slate-900 text-slate-900";
@@ -192,9 +222,13 @@ const LetterCell = ({ row, col, letter, isSolved, isWrong, isActive, onTap, isDa
       type="button"
       data-cell={cellKey(row, col)}
       onClick={onTap}
+      onKeyDown={onKeyDown}
       disabled={isSolved}
       className={`w-full h-full rounded-md border-2 flex items-center justify-center font-black uppercase
-        text-sm sm:text-lg select-none transition-all active:scale-90 disabled:cursor-default ${tone}`}
+        text-sm sm:text-lg select-none transition-all active:scale-90 disabled:cursor-default
+        focus:outline-none ${tone} ${
+          isFocused && !isSolved ? "ring-4 ring-inset ring-sky-500" : ""
+        }`}
       aria-label={letter ? `${row + 1},${col + 1}: ${letter}` : `${row + 1},${col + 1}`}
     >
       {letter ?? ""}
@@ -209,7 +243,9 @@ LetterCell.propTypes = {
   isSolved: PropTypes.bool.isRequired,
   isWrong: PropTypes.bool.isRequired,
   isActive: PropTypes.bool.isRequired,
+  isFocused: PropTypes.bool,
   onTap: PropTypes.func.isRequired,
+  onKeyDown: PropTypes.func,
   isDarkMode: PropTypes.bool.isRequired,
 };
 
@@ -386,6 +422,9 @@ const CrosswordGame = ({ isDarkMode }) => {
   const [activeEntryId, setActiveEntryId] = useState(null);
   const [ghost, setGhost] = useState(null);
   const dragLetterRef = useRef(null);
+  /** The cell the next keystroke lands in, as a `row-col` key. */
+  const [focusedCell, setFocusedCell] = useState(null);
+  const gridRef = useRef(null);
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
   const [gameWon, setGameWon] = useState(false);
@@ -472,8 +511,13 @@ const CrosswordGame = ({ isDarkMode }) => {
 
     const seenIdsSet = new Set(globalSeenIds);
     const fetched = [];
+    const deadline = startWordBudget();
 
     for (let i = 0; i < WORD_COUNT; i++) {
+      // Build with what we have rather than making somebody watch the rest
+      // arrive. Never below the floor, however slow it has been.
+      if (!shouldKeepFetching(deadline, fetched.length)) break;
+
       const combinedSeen = [...seenIdsSet, ...fetched.map((r) => r.conceptId)];
       const result = await getWord({
         token,
@@ -487,6 +531,18 @@ const CrosswordGame = ({ isDarkMode }) => {
         customTheme: challengeTheme.theme.isCustom ? challengeTheme.theme.label : null,
         themeLabel: challengeTheme.theme.label,
       });
+
+      // Excluding the concept ids already drawn is not enough, because the
+      // pool has more than one concept for some words — eight for "passport"
+      // when this was found. Those are eight honest draws and three of them
+      // landed in one grid, each with its own reworded clue. Compared on the
+      // word rather than the id, and accent-blind, so "río" cannot come back
+      // beside "rio".
+      const alreadyHave = fetched.some(
+        (r) => normalizeChar(r.word) === normalizeChar(result.word),
+      );
+      if (alreadyHave) continue;
+
       fetched.push(result);
     }
 
@@ -507,6 +563,7 @@ const CrosswordGame = ({ isDarkMode }) => {
     setIcons(new Map());
     setSelectedLetter(null);
     setActiveEntryId(null);
+    setFocusedCell(null);
     setGameWon(false);
     setProgress(prog);
     markedRef.current = new Set();
@@ -523,6 +580,7 @@ const CrosswordGame = ({ isDarkMode }) => {
     setIcons(new Map());
     setSelectedLetter(null);
     setActiveEntryId(null);
+    setFocusedCell(null);
     setGameWon(false);
     markedRef.current = new Set();
     gameRecordedRef.current = false;
@@ -685,33 +743,167 @@ const CrosswordGame = ({ isDarkMode }) => {
     [gameWon, puzzle, letters, solvedIds, solvedCells, keyOf, user]
   );
 
+  // ── Typing ───────────────────────────────────────────────────────────────
+
+  /**
+   * The next cell along the answer this one belongs to, skipping anything
+   * already solved. `delta` is +1 to move forward and -1 to go back.
+   *
+   * A cell can sit in two answers at once, so the active entry wins where it
+   * contains this cell — that is what decides whether typing runs across or
+   * down, and it is why tapping a cell also picks an entry.
+   */
+  const stepAlongEntry = useCallback(
+    (row, col, delta) => {
+      const cell = puzzle.cells[row]?.[col];
+      if (!cell?.entryIds?.length) return null;
+
+      const entryId = cell.entryIds.includes(activeEntryId) ? activeEntryId : cell.entryIds[0];
+      const entry = puzzle.entries.find((e) => e.id === entryId);
+      if (!entry) return null;
+
+      const at = entry.cells.findIndex((c) => c.row === row && c.col === col);
+      if (at === -1) return null;
+
+      for (let i = at + delta; i >= 0 && i < entry.cells.length; i += delta) {
+        const candidate = entry.cells[i];
+        if (!solvedCells.has(cellKey(candidate.row, candidate.col))) return candidate;
+      }
+      return null;
+    },
+    [puzzle, activeEntryId, solvedCells]
+  );
+
+  /** The nearest typeable cell in a straight line, for the arrow keys. */
+  const stepInDirection = useCallback(
+    (row, col, [dr, dc]) => {
+      let r = row + dr;
+      let c = col + dc;
+      while (r >= 0 && r < puzzle.rows && c >= 0 && c < puzzle.cols) {
+        const cell = puzzle.cells[r]?.[c];
+        if (cell?.kind === CELL.LETTER && !solvedCells.has(cellKey(r, c))) return { row: r, col: c };
+        r += dr;
+        c += dc;
+      }
+      return null;
+    },
+    [puzzle, solvedCells]
+  );
+
+  const clearCell = useCallback(
+    (row, col) => {
+      const key = cellKey(row, col);
+      if (solvedCells.has(key)) return;
+      setLetters((prev) => {
+        if (!prev.has(key)) return prev;
+        const next = new Map(prev);
+        next.delete(key);
+        return next;
+      });
+    },
+    [solvedCells]
+  );
+
   const handleCellTap = useCallback(
     (row, col) => {
       if (gameWon) return;
       const key = cellKey(row, col);
       if (solvedCells.has(key)) return;
 
+      // Tapping a square is also how you say "I want to write here", so it
+      // takes the keyboard focus and picks the answer typing will run along.
+      setFocusedCell(key);
+      const cell = puzzle.cells[row]?.[col];
+      if (cell?.entryIds?.length && !cell.entryIds.includes(activeEntryId)) {
+        setActiveEntryId(cell.entryIds[0]);
+      }
+
       // A selected rack letter drops in; otherwise tapping a filled cell
       // clears it, which is the only way to undo without a dedicated button.
       if (selectedLetter) {
         placeLetter(row, col, selectedLetter);
+        const next = stepAlongEntry(row, col, 1);
+        if (next) setFocusedCell(cellKey(next.row, next.col));
         return;
       }
-      if (letters.has(key)) {
-        setLetters((prev) => {
-          const next = new Map(prev);
-          next.delete(key);
-          return next;
-        });
-      }
+      if (letters.has(key)) clearCell(row, col);
     },
-    [gameWon, solvedCells, selectedLetter, letters, placeLetter]
+    [gameWon, solvedCells, selectedLetter, letters, placeLetter, puzzle, activeEntryId, stepAlongEntry, clearCell]
   );
+
+  /**
+   * Type into the focused square.
+   *
+   * Bound to the cell rather than to the window on purpose: the sidebar and
+   * the clue panel are on the same page, and a global key listener would eat
+   * letters meant for them.
+   */
+  const handleCellKeyDown = useCallback(
+    (row, col) => (event) => {
+      if (gameWon) return;
+
+      if (event.key === "Escape") {
+        setFocusedCell(null);
+        event.currentTarget.blur();
+        return;
+      }
+
+      if (event.key === "Backspace" || event.key === "Delete") {
+        event.preventDefault();
+        if (letters.has(cellKey(row, col))) {
+          clearCell(row, col);
+          return;
+        }
+        // Already empty, so go back and clear that one instead — what a text
+        // field does, and what the hand expects.
+        const back = stepAlongEntry(row, col, -1);
+        if (!back) return;
+        setFocusedCell(cellKey(back.row, back.col));
+        clearCell(back.row, back.col);
+        return;
+      }
+
+      const arrow = ARROW_STEPS[event.key];
+      if (arrow) {
+        const next = stepInDirection(row, col, arrow);
+        if (!next) return;
+        event.preventDefault();
+        setFocusedCell(cellKey(next.row, next.col));
+        return;
+      }
+
+      if (event.key.length !== 1 || event.metaKey || event.ctrlKey || event.altKey) return;
+
+      // Matched through keyOf so easy mode accepts the unaccented letter, the
+      // same rule the rack and the answer check already run on.
+      const typed = event.key.toUpperCase();
+      const match = rackKeys.find((k) => keyOf(k) === keyOf(typed));
+      if (!match) return;
+
+      event.preventDefault();
+      placeLetter(row, col, match);
+      const next = stepAlongEntry(row, col, 1);
+      if (next) setFocusedCell(cellKey(next.row, next.col));
+    },
+    [gameWon, letters, clearCell, stepAlongEntry, stepInDirection, rackKeys, keyOf, placeLetter]
+  );
+
+  /**
+   * Move the real keyboard focus with the ring, so the two can never disagree.
+   * `preventScroll` matters: without it, advancing along an answer near the
+   * bottom of the board scrolls the page on every letter.
+   */
+  useEffect(() => {
+    if (!focusedCell) return;
+    const el = gridRef.current?.querySelector(`[data-cell="${focusedCell}"]`);
+    if (el && !el.disabled) el.focus({ preventScroll: true });
+  }, [focusedCell]);
 
   // ── Drag ─────────────────────────────────────────────────────────────────
   const handlePointerDown = useCallback((letter) => (e) => {
     dragLetterRef.current = letter;
-    setGhost({ letter, x: e.clientX, y: e.clientY });
+    // Only a finger needs the letter lifted clear of it; see GHOST_TOUCH_LIFT.
+    setGhost({ letter, x: e.clientX, y: e.clientY, lift: e.pointerType === "touch" ? GHOST_TOUCH_LIFT : 0 });
     e.currentTarget.setPointerCapture?.(e.pointerId);
   }, []);
 
@@ -905,6 +1097,7 @@ const CrosswordGame = ({ isDarkMode }) => {
 
         {/* Grid */}
         <div
+          ref={gridRef}
           className="grid gap-1 w-full max-w-[440px]"
           style={{ gridTemplateColumns: `repeat(${puzzle.cols}, minmax(0, 1fr))` }}
         >
@@ -938,7 +1131,9 @@ const CrosswordGame = ({ isDarkMode }) => {
                     isSolved={solvedCells.has(key)}
                     isWrong={wrongCells.has(key)}
                     isActive={activeCells.has(key)}
+                    isFocused={focusedCell === key}
                     onTap={() => handleCellTap(row, col)}
+                    onKeyDown={handleCellKeyDown(row, col)}
                     isDarkMode={isDarkMode}
                   />
                 </div>
@@ -989,7 +1184,10 @@ const CrosswordGame = ({ isDarkMode }) => {
           aria-hidden="true"
           className="fixed z-50 pointer-events-none w-9 h-10 rounded-lg border-4 bg-yellow-400 border-slate-900
             text-slate-900 font-black text-base uppercase flex items-center justify-center shadow-[3px_3px_0px_0px_#0f172a]"
-          style={{ left: ghost.x - 18, top: ghost.y - 46 }}
+          style={{
+            left: ghost.x - GHOST_WIDTH / 2,
+            top: ghost.y - GHOST_HEIGHT / 2 - ghost.lift,
+          }}
         >
           {ghost.letter}
         </div>

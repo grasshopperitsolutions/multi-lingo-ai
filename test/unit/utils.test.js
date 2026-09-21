@@ -399,3 +399,43 @@ describe("buildProfileKey", () => {
     );
   });
 });
+
+describe("wordBudget", () => {
+  /**
+   * The floor and the clock, in that order. Getting the order wrong either
+   * builds a two-word crossword or leaves somebody watching twelve AI calls.
+   */
+  it("keeps going below the floor however long it has taken", async () => {
+    const { shouldKeepFetching, MIN_WORDS } = await import("../../src/utils/wordBudget");
+    const expired = 1000;
+
+    for (let have = 0; have < MIN_WORDS; have += 1) {
+      expect(shouldKeepFetching(expired, have, 999_999)).toBe(true);
+    }
+  });
+
+  it("stops at the floor once the budget is spent", async () => {
+    const { shouldKeepFetching, MIN_WORDS } = await import("../../src/utils/wordBudget");
+
+    expect(shouldKeepFetching(1000, MIN_WORDS, 999_999)).toBe(false);
+  });
+
+  it("carries on past the floor while there is time left", async () => {
+    const { shouldKeepFetching, MIN_WORDS } = await import("../../src/utils/wordBudget");
+
+    // The extra words are a bonus, not a wait — they are still collected when
+    // the pool is serving them quickly.
+    expect(shouldKeepFetching(999_999, MIN_WORDS + 3, 1000)).toBe(true);
+  });
+
+  it("gives a budget longer than the floor costs to fill", async () => {
+    const { WORD_BUDGET_MS, MIN_WORDS, startWordBudget } = await import(
+      "../../src/utils/wordBudget"
+    );
+
+    // ~2s per generation. A budget under the floor's own cost would never be
+    // the thing that stopped the loop, which would make the constant a lie.
+    expect(WORD_BUDGET_MS).toBeGreaterThan(MIN_WORDS * 2000);
+    expect(startWordBudget(5000)).toBe(5000 + WORD_BUDGET_MS);
+  });
+});

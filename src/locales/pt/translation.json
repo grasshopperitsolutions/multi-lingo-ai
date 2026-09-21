@@ -655,6 +655,7 @@
   "challenges": {
     "theme": {
       "title": "Tema",
+      "none": "Sem tema",
       "apply": "Aplicar tema",
       "unapplied_hint": "Carrega em Aplicar para usares este tema no próximo desafio.",
       "unavailable": "Os temas não estão disponíveis neste desafio.",
@@ -674,7 +675,7 @@
     "crosswords_desc": "Põe o teu vocabulário à prova com palavras cruzadas diárias.",
     "crossword_progress": "{{solved}} / {{total}} resolvidas",
     "crossword_won": "Grelha completa!",
-    "crossword_drag_hint": "Arrasta uma letra para a grelha — ou toca numa letra e depois na casa. Toca numa casa preenchida para a limpares.",
+    "crossword_drag_hint": "Arrasta uma letra para a grelha, ou toca numa letra e depois na casa. Com teclado, toca numa casa e escreve. Toca numa casa preenchida para a limpares.",
     "crossword_clues": "Pistas",
     "crossword_deselect": "Largar letra",
     "hangman": "Jogo da Forca",
@@ -708,7 +709,7 @@
     "loading_word": "A escolher uma palavra...",
     "scrambled_word": "Palavra Baralhada",
     "scrambled_word_desc": "Desbaralha as letras para descobrires a palavra escondida.",
-    "scrambled_word_how": "Toca numa letra para a colocares; toca numa letra já colocada para a devolveres.",
+    "scrambled_word_how": "Toca num espaço para escolheres onde escrever e depois numa letra — ou escreve no teclado. Toca numa letra já colocada para a devolveres.",
     "scrambled_word_reshuffle": "Voltar a baralhar as letras",
     "scrambled_word_won": "DESCOBRISTE!",
     "scrambled_word_lost": "BARALHADO!",
