@@ -467,3 +467,117 @@ describe("CrosswordGame — the collecting loop has a budget", () => {
     }
   });
 });
+
+/**
+ * Scrambled Word's two ways out, and why they end differently.
+ *
+ * The same pair Hangman grew, for the same reason: a learner meeting a script
+ * they cannot read was stuck with a word they could neither attempt nor get
+ * past. Skipping says "not this one, not yet" and must leave the word in the
+ * pool; being shown the answer is a third ending beside won and lost, and does
+ * finish with the word.
+ */
+describe("ScrambledWordGame — skip and show", () => {
+  beforeEach(setup);
+
+  const byLabel = async (container, key) => {
+    const { default: i18n } = await import("../../src/i18n");
+    const label = i18n.t(key);
+    const button = [...container.querySelectorAll("button")].find(
+      (b) => b.getAttribute("aria-label") === label,
+    );
+    expect(button, `no button labelled "${label}"`).toBeTruthy();
+    return button;
+  };
+
+  const tiles = (container) =>
+    [...container.querySelectorAll("[data-slot]")].map((t) => t.textContent.trim()).join("");
+
+  it("remembers a skipped word in this browser and not on the profile", async () => {
+    const { getSkippedConceptIds, clearSkippedConceptIds } = await import(
+      "../../src/utils/skippedConcepts"
+    );
+    clearSkippedConceptIds("pt-PT");
+
+    const { container } = await mount(() => import("../../src/components/ScrambledWordGame"));
+    await settled(container);
+
+    fireEvent.click(await byLabel(container, "challenges.skip_word"));
+
+    // Local, keyed per dialect. A *seen* id is permanent and gone from the
+    // pool on every device; a skipped one is merely declined here.
+    await waitFor(() => expect(getSkippedConceptIds("pt-PT")).toContain("c-casa"));
+    clearSkippedConceptIds("pt-PT");
+  });
+
+  it("spells the word out when the answer is asked for", async () => {
+    const { container } = await mount(() => import("../../src/components/ScrambledWordGame"));
+    await settled(container);
+
+    expect(tiles(container)).toBe("");
+
+    fireEvent.click(await byLabel(container, "challenges.show_answer"));
+
+    await waitFor(() => expect(tiles(container)).toBe("CASA"));
+  });
+
+  it("ends the round without claiming a win", async () => {
+    const { default: i18n } = await import("../../src/i18n");
+    const { container } = await mount(() => import("../../src/components/ScrambledWordGame"));
+    await settled(container);
+
+    fireEvent.click(await byLabel(container, "challenges.show_answer"));
+
+    await waitFor(() => {
+      expect(container.textContent).toContain(i18n.t("challenges.now_you_know"));
+    });
+    // Neither of the other two endings, and the escape hatches are gone with
+    // the round.
+    expect(container.textContent).not.toContain(i18n.t("challenges.scrambled_word_won"));
+    expect(container.textContent).not.toContain(i18n.t("challenges.scrambled_word_lost"));
+    expect(
+      [...container.querySelectorAll("button")].some(
+        (b) => b.getAttribute("aria-label") === i18n.t("challenges.skip_word"),
+      ),
+    ).toBe(false);
+  });
+});
+
+/**
+ * The pair looks and reads the same in both games.
+ *
+ * They were added to Hangman first as labelled buttons and to Scrambled Word
+ * second as icon-only ones beside Reshuffle, which left two treatments of one
+ * idea. This pins the shape rather than the styling: same two controls, found
+ * the same way, icon-only in both.
+ */
+describe("skip and show are the same control in both games", () => {
+  beforeEach(setup);
+
+  const GAMES_WITH_ESCAPES = [
+    ["HangmanGame", () => import("../../src/components/HangmanGame")],
+    ["ScrambledWordGame", () => import("../../src/components/ScrambledWordGame")],
+  ];
+
+  it.each(GAMES_WITH_ESCAPES)("%s offers both, icon-only", async (_name, loader) => {
+    const { default: i18n } = await import("../../src/i18n");
+    const { container } = await mount(loader);
+    await settled(container);
+
+    for (const key of ["challenges.skip_word", "challenges.show_answer"]) {
+      const label = i18n.t(key);
+      const button = await waitFor(() => {
+        const found = [...container.querySelectorAll("button")].find(
+          (b) => b.getAttribute("aria-label") === label,
+        );
+        expect(found, `${_name} has no button labelled "${label}"`).toBeTruthy();
+        return found;
+      });
+
+      // Icon-only: the name lives in aria-label and the tooltip, not in the
+      // button's own text, so nothing here should be readable.
+      expect(button.textContent.trim()).toBe("");
+      expect(button.querySelector("svg")).toBeTruthy();
+    }
+  });
+});

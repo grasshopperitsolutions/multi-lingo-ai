@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { isAiDeclined } from "../../services/aiService";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Landmark, Sparkles } from "lucide-react";
+import { Landmark, Sparkles, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { useTierAccess } from "../../hooks/useTierAccess";
 import { useTts } from "../../hooks/useTts";
 import { useInterestTopics } from "../../hooks/useInterestTopics";
-import { getFact, getFactPoolStatus } from "../../services/historyCultureService";
+import { getFact, getFactContent, getFactPoolStatus } from "../../services/historyCultureService";
 import { markHistoryFactSeen } from "../../services/userService";
 import CustomRequestInput from "../../components/CustomRequestInput";
 import DownloadPdfButton from "../../components/DownloadPdfButton";
@@ -37,6 +37,14 @@ const HistoryCulturePage = () => {
   const [fact, setFact] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // The same piece in the language being practised, fetched only when asked
+  // for. The reading stays in the reader's own language — this sits beside it.
+  const [practiceVersion, setPracticeVersion] = useState(null);
+  const [isLoadingPractice, setIsLoadingPractice] = useState(false);
+  const [practiceError, setPracticeError] = useState(null);
+  const [showPractice, setShowPractice] = useState(false);
+  const practiceRequestRef = useRef(null);
 
   const targetLang = user?.learningDialect;
 
@@ -77,6 +85,10 @@ const HistoryCulturePage = () => {
         description,
       });
       setFact(result);
+      setPracticeVersion(null);
+      setPracticeError(null);
+      setShowPractice(false);
+      practiceRequestRef.current = null;
 
       markHistoryFactSeen(user.token, user.uid, result.factId, seenFactIds)
         .then(() => {
@@ -96,6 +108,59 @@ const HistoryCulturePage = () => {
       setIsLoading(false);
     }
   };
+
+  /**
+   * The piece in the language being practised, fetched the first time it is
+   * asked for and never before.
+   *
+   * Usually free: a fact about Portugal was written in pt-PT, so the practice
+   * language *is* its `sourceLocale` and this is a plain Firestore read of a
+   * document that already exists. It only spends a call when the piece
+   * happened to be written in some other language, and then the result is
+   * cached under that locale for everybody after.
+   */
+  const ensurePracticeVersion = useCallback(() => {
+    if (practiceVersion) return Promise.resolve(practiceVersion);
+    if (practiceRequestRef.current) return practiceRequestRef.current;
+    if (!fact || !targetLang || fact.locale === targetLang) return Promise.resolve(null);
+
+    setIsLoadingPractice(true);
+    setPracticeError(null);
+
+    const request = getFactContent({
+      token: user.token,
+      factId: fact.factId,
+      sourceLocale: fact.sourceLocale ?? fact.locale,
+      locale: targetLang,
+    })
+      .then((result) => {
+        setPracticeVersion(result);
+        return result;
+      })
+      .catch((err) => {
+        setPracticeError(err.message);
+        return null;
+      })
+      .finally(() => {
+        setIsLoadingPractice(false);
+        practiceRequestRef.current = null;
+      });
+
+    practiceRequestRef.current = request;
+    return request;
+  }, [practiceVersion, fact, targetLang, user]);
+
+  const togglePractice = async () => {
+    if (showPractice) {
+      setShowPractice(false);
+      return;
+    }
+    const ready = await ensurePracticeVersion();
+    if (ready) setShowPractice(true);
+  };
+
+  /** Nothing to offer when the piece is already in the practice language. */
+  const canShowPractice = !!fact && !!targetLang && fact.locale !== targetLang;
 
   // One string for the whole piece, so listening plays straight through
   // instead of needing a control per paragraph.
@@ -138,14 +203,6 @@ const HistoryCulturePage = () => {
 
       {!isLoading && error && <ErrorBanner error={error} isDarkMode={isDarkMode} />}
 
-      {!isLoading && !error && !fact && (
-        <Card isDarkMode={isDarkMode}>
-          <p className={`font-bold ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-            {t("history_culture.empty_state")}
-          </p>
-        </Card>
-      )}
-
       {!isLoading && fact && (
         <Card isDarkMode={isDarkMode}>
           <div className="flex items-start gap-3 mb-3">
@@ -183,11 +240,63 @@ const HistoryCulturePage = () => {
             />
           </div>
 
-          {fact.paragraphs.map((paragraph, i) => (
-            <p key={i} className={`mb-3 last:mb-0 leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
-              {paragraph}
-            </p>
-          ))}
+          {canShowPractice && (
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={togglePractice}
+                disabled={isLoadingPractice}
+                aria-expanded={showPractice}
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border-2 font-black uppercase tracking-widest text-[11px] transition-all active:scale-95 disabled:opacity-40 ${
+                  isDarkMode
+                    ? "border-slate-600 text-slate-300 hover:border-rose-400 hover:text-rose-400"
+                    : "border-slate-300 text-slate-600 hover:border-rose-600 hover:text-rose-600"
+                }`}
+              >
+                {isLoadingPractice
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : showPractice ? <EyeOff size={13} /> : <Eye size={13} />}
+                {showPractice
+                  ? t("history_culture.hide_practice", { locale: targetLang })
+                  : t("history_culture.show_practice", { locale: targetLang })}
+              </button>
+
+              {practiceError && (
+                <p className={`mt-2 text-xs font-bold ${isDarkMode ? "text-amber-400" : "text-amber-600"}`}>
+                  {t("history_culture.practice_unavailable")}
+                </p>
+              )}
+            </div>
+          )}
+
+          {fact.paragraphs.map((paragraph, i) => {
+            const practiceParagraph = showPractice ? practiceVersion?.paragraphs?.[i] : null;
+            return (
+              <div
+                key={i}
+                className={`mb-3 last:mb-0 ${
+                  practiceParagraph ? "grid gap-3 grid-cols-1 sm:grid-cols-2" : ""
+                }`}
+              >
+                <p className={`leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
+                  {paragraph}
+                </p>
+
+                {practiceParagraph && (
+                  <p
+                    lang={targetLang}
+                    className={`leading-relaxed rounded-xl border-2 px-3 py-2 ${
+                      isDarkMode
+                        ? "border-slate-700 bg-slate-900/40 text-slate-200"
+                        : "border-slate-200 bg-slate-50 text-slate-800"
+                    }`}
+                  >
+                    {practiceParagraph}
+                  </p>
+                )}
+              </div>
+            );
+          })}
 
           {/* Translation into the reader's language can fail (quota, network);
               the service falls back to the source language rather than showing

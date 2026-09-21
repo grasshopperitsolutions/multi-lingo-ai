@@ -500,7 +500,7 @@ required to be copied character-for-character out of the paragraphs, and the
 prompt says to leave the list empty rather than invent an example — an "answer
 key" listing forms that are not in the text is worse than no answer key.
 
-## Story translations are collapsed, the title is not
+## Translations are collapsed, and now fetched only when opened
 
 The bilingual reader shows the target-language paragraph with its translation
 **closed**, one toggle per card plus a show-all for the whole story. Open by
@@ -509,6 +509,53 @@ on screen the eye goes to the language it already knows and the target text is
 never really read. The title is the deliberate exception — always translated,
 because it is the one line that tells a reader whether the story is worth
 starting.
+
+**Closed did not mean unfetched.** `getStoryTranslation` fired the moment a
+story loaded, so the call happened whether or not anyone opened a paragraph,
+and most readers never do. It is now behind the first reveal, with the in-flight
+request held in a ref so opening three paragraphs at once asks once.
+
+Two things that had to move with it. The reveal buttons were gated on the
+translation *existing*, which with a lazy fetch means they never render — they
+are gated on `showBilingual` now. And a reveal **awaits** the fetch rather than
+opening optimistically, so an open paragraph always has something under it.
+
+**History & Culture works the other way round and keeps doing so.** It is read
+in the reader's own language — that is the feature — and the practice-language
+version is the thing revealed, on a button, under each paragraph. Usually free:
+a piece about Portugal was written in pt-PT, so the practice language *is* its
+`sourceLocale` and this is a plain read of a document that already exists.
+`getFact` now returns `sourceLocale` so the page can ask without a second
+lookup to find out which language to ask for.
+
+**`getDocument` resolves to the envelope, and both reading services got this
+wrong.** It returns `{ id, data, collection }`, not the fields — and
+`_getDocumentOrNull` in `storyService` and `historyCultureService` handed that
+envelope straight back. Every caller then read `.title` and `.paragraphs` off
+it and got `undefined`.
+
+It was invisible for a long time because it only affected the **cached**
+routes. Freshly generated content is returned by the generator directly and
+never passes through that helper, so the first read of anything worked
+perfectly and the second came back correctly shaped and completely empty: a
+pooled story with no paragraphs, a cached translation with nothing in it, and
+on the translate path a loud `source.paragraphs.length` throwing instead.
+
+**The unit tests did not catch it because the fixture was wrong, not the
+assertion.** `contentServices.test.js` mocked `getDocument` as returning a bare
+document, so "serves an unseen cached story without spending an AI call"
+passed against a shape production never produces. The mock now builds the
+envelope through `asDocument()`. When mocking a service seam, mock what the
+real function returns — this is the same trap the tutor directory hit with
+`queryCollection` resolving to `{ documents }`.
+
+**Audio is not cached anywhere but memory.** `getTtsService` keeps clips in an
+in-memory LRU `Map` that dies on reload, is per-tab, and is shared with nobody
+— unlike translations, which are Firestore documents per locale under
+`stories/{id}/content/{locale}` and `historyFacts/{id}/content/{locale}`. So a
+free tier can spend all three daily calls re-hearing one clip across three page
+loads. Fixing it needs a Storage path and a collection keyed by text, locale,
+voice and pace; it has not been done.
 
 ## i18n workflow
 
@@ -1290,9 +1337,28 @@ The three tools at `/dashboard/professional-tools` share the
 `professional_tools` key — no per-tool keys, so Admin has one row rather than
 four. `ProToolShell` carries the route gate, so no page can forget it.
 
-**The register is a bare value.** `{{tone}}` is `"formal"` or `"informal"` and
-nothing more; what that *means* in a given language lives in the
-admin-editable template, not in a map in the code. `_assertPlaceholders` warns
+**The register is a bare value, and there are three of them.** `{{tone}}` is
+`"highly formal"`, `"professional"` or `"informal"` and nothing more; what that
+*means* in a given language lives in the admin-editable template, not in a map
+in the code.
+
+It was two, and `formal` was doing the work of both — one setting covering a
+cover letter to a hiring committee and a note to a colleague two desks away,
+pitched at the first. The values are **phrases rather than tokens** because
+every template interpolates them into "in a {{tone}} register" and **none of
+them enumerate the options**, so a register that describes itself needed no
+prompt edit to be understood. Check that before adding a fourth: an enumerating
+template would silently match none of its branches.
+
+The old stored `"formal"` needs no migration. `useToneChoice` keeps only a
+value it still recognises and otherwise falls back to `DEFAULT_TONE`, which is
+now `professional` — the register those users wanted when they chose formal.
+
+`ToneChoice` is real `<input type="radio">` in a `<fieldset>`, not buttons with
+`aria-checked`: arrow keys, one tab stop and "2 of 3" all come free. `disabled`
+is set on each input **as well as** the fieldset, because a disabled fieldset
+makes its controls non-interactive while leaving each input's own `disabled`
+false, so anything reading the DOM sees an enabled radio. `_assertPlaceholders` warns
 when a stored template has no slot for a variable being passed — otherwise the
 toggle appears to work and silently changes nothing, the same trap
 `{{requiredWords}}` and `{{speechPace}}` already have guards for.
@@ -1311,7 +1377,7 @@ use. It renders in the `input` variant before anything is generated and above
 every result. Do **not** put it on the personal pages — a notice on a page with
 no AI teaches people to ignore it where it matters.
 
-## Skipped is not seen, and Hangman has three endings
+## Skipped is not seen, and two games have three endings
 
 A learner meeting a script they cannot read — Japanese hangman on day one — was
 stuck: no way past a word they could not spell, and no way to find out what it
@@ -1344,6 +1410,24 @@ Anything gating on "the round is over" has to name all three —
 `isWinner || isLoser || isRevealed` — which is the keyboard, Play Again, the
 guess handler, the mark-seen effect and the speaker.
 
+**Scrambled Word has the same pair**, on the same terms: skip writes to
+`skippedConcepts` and never to the profile, show-the-answer spells the tiles
+out, ends the round and marks it seen. Its tiles go **sky, not emerald** —
+green would claim a win the player did not have — and its status is a third
+`gameStatus` value, so `isOver` is `isWon || isLost || isRevealed` there too.
+
+Both are **icon-only with tooltips**, sitting beside Reshuffle. Three labelled
+buttons under the tiles would compete with the tiles for attention, and these
+are escape hatches rather than the thing to do.
+
+**Easy/hard is one component now** (`ui/DifficultyToggle`). There were three
+copies: Hangman and Scrambled Word drew the capsule, and the crossword had
+grown a pair of separate `rounded-lg` buttons with a yellow fill, which read as
+two independent controls rather than one two-way choice. What "hard" *means*
+still belongs to each game — an accented letter typed as itself in Hangman and
+the crossword, and in Scrambled Word a full re-deal, because the tiles carry
+the accents and every one of them is wrong the moment it flips.
+
 **The speaker is available from the first guess, and that is a game-design
 decision rather than an oversight.** The word spoken aloud is, strictly, the
 answer — so hangman here is not "guess letters blind" but "hear it and spell
@@ -1353,6 +1437,14 @@ between an exercise and a wall. Anyone wanting the harder game just does not
 press it. It sits under the clue and above the scaffold, which is the order a
 round is read in — what it means, what it sounds like, how much rope is left.
 
+**It is one speaker, not the row of three.** `TtsControls` takes
+`variant="single"`, which collapses to a play/stop toggle like the story
+reader's. The part worth losing is the turtle: it plays under
+`${ttsKey}-slow`, which is a *separate* clip and therefore a second AI call —
+on a challenge that quietly spends a second of a free tier's three for the day,
+next to a button that looks like a playback speed. Stop rather than pause,
+because one word is not long enough to want to resume in the middle of.
+
 It speaks `spokenWord`, the original casing from the service, not the
 uppercased `word` the letter matching needs: some engines read an all-caps
 string as an acronym and spell it out.
@@ -1361,12 +1453,26 @@ string as an acronym and spell it out.
 `/api/ask-ai` counts every call against `aiCallsToday` for Explorer and Voyager
 with no TTS exemption, and `getTtsService` passes `skipConfirm: true`, so a
 speaker tap spends one of three daily calls silently. The clip cache is
-in-memory and dies on reload. One press is one call, and replays within a session
+One press is one call, and replays within a session
 come from the in-memory cache, so a round costs at most one — but a free tier
-on three calls a day can spend them on three words. That is the reason the
-other four challenges do not have a speaker yet. If it ever spreads, revisit the
-counter first — speaking one word costs the same quota as generating a whole
-story, which is the actual mismatch.
+on three calls a day can spend them on three words.
+
+**It has now spread, and the counter was not revisited.** Scrambled Word has
+the same single speaker; Word Search has a small one on every word in its list,
+and the crossword one on every *solved* clue. A twelve-word Word Search
+therefore puts twelve billable buttons on screen at once, any three of which
+exhaust an Explorer's day — and speaking one word costs the same quota as
+generating a whole story, which is the actual mismatch. Worse, `getTtsService`
+caches clips **in memory only**, so the same word is billed again after a
+reload. Metering TTS separately from generation is the outstanding piece of
+work; until it exists, every new speaker is another way to spend a free tier's
+whole day on a single word.
+
+**The crossword's is deliberately limited to solved entries.** Hearing the one
+word you are stuck on is the trade Hangman and Scrambled Word make on purpose;
+a clue list is nine of them at once, and a speaker per row before they are
+solved would simply read the answers out. After an entry is solved it gives
+nothing away and is ordinary pronunciation practice.
 
 ## The word pool is read whole, and uniqueness is enforced in code
 

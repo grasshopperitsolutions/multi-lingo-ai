@@ -1042,7 +1042,6 @@
     "get_story": "Pedir um conto",
     "new_story": "Novo conto",
     "loading": "A escrever o teu conto...",
-    "empty_state": "Escolhe um nível e um tema, e recebe um conto curto para ler e ouvir.",
     "translating": "A traduzir...",
     "translation_unavailable": "A tradução não está disponível de momento — a mostrar apenas o original.",
     "description_placeholder": "Ou descreve sobre o que deve ser o conto...",
@@ -1177,8 +1176,12 @@
     "intro": "Ferramentas para o trabalho, na língua que praticas. Escolhe o tom antes de começares.",
     "not_configured": "Esta ferramenta ainda não está configurada. Fala com o suporte.",
     "tone_label": "Tom",
-    "tone_formal": "Formal",
+    "tone_highly_formal": "Muito formal",
+    "tone_highly_formal_hint": "Para candidaturas, instituições e quem não conheces. Distante e cuidado.",
+    "tone_professional": "Profissional",
+    "tone_professional_hint": "O tom do dia a dia no trabalho: correto, direto, sem soar rígido.",
     "tone_informal": "Informal",
+    "tone_informal_hint": "Para colegas com quem tens confiança, ou fora do trabalho.",
     "cv_title": "Rever CV",
     "cv_desc": "Recebe uma revisão do teu CV para o mercado onde te candidatas — ou traduz-o.",
     "cv_role_label": "Função a que te candidatas",
@@ -1276,10 +1279,12 @@
     "score_caveat": "Uma leitura curta — leva a pontuação como indicação, não como veredicto."
   },
   "history_culture": {
+    "show_practice": "Ver em {{locale}}",
+    "hide_practice": "Esconder {{locale}}",
+    "practice_unavailable": "Não foi possível mostrar esta versão. Tenta outra vez daqui a pouco.",
     "discover": "Descobrir algo",
     "discover_another": "Descobrir outra coisa",
     "loading": "À procura de algo interessante...",
-    "empty_state": "Descobre o país por trás da língua que praticas — a sua cultura e a sua história.",
     "description_placeholder": "Ou pergunta sobre algo específico (ex.: o fado, o terramoto de 1755)..."
   },
   "custom_request": {

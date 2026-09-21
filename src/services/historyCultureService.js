@@ -148,7 +148,17 @@ export async function getFact({
     });
     if (!content) continue; // no readable content and translation failed — try the next one
 
-    return { factId: fact.id, title: content.title, paragraphs: content.paragraphs, locale: content.locale, source: 'db' };
+    // sourceLocale travels with the piece so the reader can ask for it in
+    // the language it is about without a second lookup to find out which
+    // language that is.
+    return {
+      factId: fact.id,
+      title: content.title,
+      paragraphs: content.paragraphs,
+      locale: content.locale,
+      sourceLocale: fact.sourceLocale,
+      source: 'db',
+    };
   }
 
   return _generateFact({ token, targetLang, locale, interests, existingTitles });
@@ -247,7 +257,7 @@ async function _generateFact({ token, targetLang, locale, interests, existingTit
     updatedAt: now,
   }, locale, token);
 
-  return { factId, title, paragraphs, locale, source: 'ai' };
+  return { factId, title, paragraphs, locale, sourceLocale: locale, source: 'ai' };
 }
 
 async function _translateFact({ token, factId, source, sourceLocale, locale }) {
@@ -311,10 +321,24 @@ async function _fetchReadyFacts(token, targetLang) {
  * getDocument throws on a missing document; cache-first reads need "not there
  * yet" to be a normal answer rather than an error.
  */
+/**
+ * The document's *fields*, or null.
+ *
+ * `getDocument` resolves to the API envelope — `{ id, data, collection }` —
+ * not to a bare document, and this returned that envelope. Every caller then
+ * read `.title` and `.paragraphs` straight off it and got `undefined`, which
+ * is silent: a cached piece came back shaped correctly and completely empty,
+ * and the only loud version was `source.paragraphs.length` throwing on the
+ * translate path.
+ *
+ * It only ever showed up on the *cached* routes. Freshly generated content is
+ * returned from the generator directly and never passes through here, so the
+ * first read of anything worked and the second was blank.
+ */
 async function _getDocumentOrNull(collection, id, token) {
   try {
     const doc = await getDocument(collection, id, token);
-    return doc ?? null;
+    return doc?.data ?? null;
   } catch {
     return null;
   }

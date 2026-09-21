@@ -17,7 +17,8 @@ import { useChallengeTheme } from "../hooks/useChallengeTheme";
 import ChallengeSidebar from "./ChallengeSidebar";
 import ChallengeThemePicker from "./ChallengeThemePicker";
 import Loader from "./Loader";
-import { TtsControls } from "./ui";
+import { TtsControls, DifficultyToggle } from "./ui";
+import TooltipButton from "./TooltipButton";
 import { sanitizeAIError } from "../utils/errorUtils";
 import { addSkippedConceptId, clearSkippedConceptIds } from "../utils/skippedConcepts";
 
@@ -402,34 +403,15 @@ const HangmanGame = ({ isDarkMode }) => {
       {/* ── Main game column ── */}
       <div className="flex flex-col items-center flex-1 min-w-0">
 
-        {/* Easy / Hard toggle — only show when there are accented/special keys */}
+        {/* Only when there are accented keys to make hard mode mean
+            something. The control itself is shared — see ui/DifficultyToggle. */}
         {accentedKeys.length > 0 && (
-        <div className={`flex mb-6 rounded-full border-4 overflow-hidden ${
-          isDarkMode ? "border-slate-700" : "border-slate-900"
-        }`}>
-          <button
-            type="button"
-            onClick={() => setHardMode(false)}
-            className={`px-5 py-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
-              !hardMode
-                ? isDarkMode ? "bg-yellow-400 text-slate-900" : "bg-slate-900 text-white"
-                : isDarkMode ? "bg-transparent text-slate-400 hover:text-white" : "bg-transparent text-slate-500 hover:text-slate-900"
-            }`}
-          >
-            {t("challenges.easy")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setHardMode(true)}
-            className={`px-5 py-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
-              hardMode
-                ? isDarkMode ? "bg-yellow-400 text-slate-900" : "bg-slate-900 text-white"
-                : isDarkMode ? "bg-transparent text-slate-400 hover:text-white" : "bg-transparent text-slate-500 hover:text-slate-900"
-            }`}
-          >
-            {t("challenges.hard")}
-          </button>
-        </div>
+          <DifficultyToggle
+            value={hardMode}
+            onChange={setHardMode}
+            isDarkMode={isDarkMode}
+            className="mb-6"
+          />
         )}
 
         {/* Hint */}
@@ -465,6 +447,7 @@ const HangmanGame = ({ isDarkMode }) => {
               lang={learningDialect}
               token={user?.token}
               accent="amber"
+              variant="single"
               ttsState={ttsState}
               playTts={playTts}
               pauseTts={pauseTts}
@@ -524,28 +507,43 @@ const HangmanGame = ({ isDarkMode }) => {
         )}
 
         {/* Two ways out of a word you cannot attempt, offered only while it is
-            still in play. After it ends, Play Again already does the job. */}
+            still in play. After it ends, Play Again already does the job.
+
+            Icon-only with tooltips, the same pair and the same treatment
+            Scrambled Word uses beside its Reshuffle — these are escape hatches
+            rather than the thing to do, and labelled buttons in the middle of
+            the board read as the next move. */}
         {!isWinner && !isLoser && !isRevealed && (
           <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
-            <button
-              onClick={handleSkipWord}
-              title={t("challenges.skip_word_hint")}
-              className={`px-4 py-2 rounded-xl border-4 text-sm font-black uppercase tracking-wider flex items-center gap-2 transition-all hover-neo-light active-neo ${
-                isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
-              }`}
-            >
-              <SkipForward size={16} />
-              {t("challenges.skip_word")}
-            </button>
-            <button
-              onClick={() => setIsRevealed(true)}
-              className={`px-4 py-2 rounded-xl border-4 text-sm font-black uppercase tracking-wider flex items-center gap-2 transition-all hover-neo-light active-neo ${
-                isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
-              }`}
-            >
-              <Eye size={16} />
-              {t("challenges.show_answer")}
-            </button>
+            <TooltipButton tooltip={t("challenges.skip_word_hint")} isDarkMode={isDarkMode}>
+              <button
+                type="button"
+                onClick={handleSkipWord}
+                aria-label={t("challenges.skip_word")}
+                className={`p-3 rounded-xl border-4 font-black transition-all hover-neo-light active-neo ${
+                  isDarkMode
+                    ? "bg-slate-800 border-slate-700 text-white"
+                    : "bg-white border-slate-900 text-slate-900"
+                }`}
+              >
+                <SkipForward size={20} />
+              </button>
+            </TooltipButton>
+
+            <TooltipButton tooltip={t("challenges.show_answer")} isDarkMode={isDarkMode}>
+              <button
+                type="button"
+                onClick={() => setIsRevealed(true)}
+                aria-label={t("challenges.show_answer")}
+                className={`p-3 rounded-xl border-4 font-black transition-all hover-neo-light active-neo ${
+                  isDarkMode
+                    ? "bg-slate-800 border-slate-700 text-white"
+                    : "bg-white border-slate-900 text-slate-900"
+                }`}
+              >
+                <Eye size={20} />
+              </button>
+            </TooltipButton>
           </div>
         )}
 

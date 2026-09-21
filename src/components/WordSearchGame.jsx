@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { Trophy, RotateCcw } from "lucide-react";
+import { Trophy, RotateCcw, ChevronDown } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import {
   getUserGameProgress,
@@ -15,10 +15,12 @@ import { normalizeChar } from "../utils/letterKeys";
 import { startWordBudget, shouldKeepFetching } from "../utils/wordBudget";
 import { useInterestTopics } from "../hooks/useInterestTopics";
 import { useChallengeTheme } from "../hooks/useChallengeTheme";
+import { useTts } from "../hooks/useTts";
 import { buildGrid, checkSelection } from "../utils/wordSearchUtils";
 import ChallengeSidebar from "./ChallengeSidebar";
 import ChallengeThemePicker from "./ChallengeThemePicker";
 import Loader from "./Loader";
+import { TtsControls } from "./ui";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -97,45 +99,106 @@ GridCell.propTypes = {
  */
 const LIST_MAX_HEIGHT = "min(45vh, 26rem)";
 
-const WordListPanel = ({ words, foundWords, isDarkMode, t }) => (
-  <div className={`rounded-2xl border-4 p-4 flex flex-col gap-3 ${
-    isDarkMode
-      ? "bg-slate-800 border-slate-700"
-      : "bg-white border-slate-900 shadow-[3px_3px_0px_0px_#0f172a]"
-  }`}>
-    <p className={`font-black uppercase text-xs tracking-widest ${
+/**
+ * The words to find, with a speaker on each.
+ *
+ * `collapsible` is for the phone copy of this panel. It renders above the grid
+ * there, and a dozen words with their clues pushed the board most of a screen
+ * down before the game had started — so on a phone the header is a toggle, the
+ * way the crossword's clue list already works. It opens by default, because a
+ * word search with the words hidden is not a word search.
+ */
+const WordListPanel = ({ words, foundWords, isDarkMode, t, collapsible = false, tts = null }) => {
+  const [isOpen, setIsOpen] = useState(true);
+  const showList = !collapsible || isOpen;
+
+  const heading = (
+    <span className={`font-black uppercase text-xs tracking-widest ${
       isDarkMode ? "text-slate-400" : "text-slate-500"
     }`}>
       {t("challenges.word_search_panel")}
-    </p>
-    <div
-      className={`flex flex-col gap-3 overflow-y-auto pr-1 neo-scrollbar ${
-        isDarkMode ? "neo-scrollbar-dark" : ""
-      }`}
-      style={{ maxHeight: LIST_MAX_HEIGHT }}
-    >
-    {words.map(({ word, hint, conceptId }) => {
-      const found = foundWords.has(conceptId);
-      return (
-        <div key={conceptId} className="flex flex-col gap-0.5">
-          <span className={`font-black text-sm sm:text-base uppercase tracking-tight transition-all ${
-            found
-              ? "line-through text-emerald-500"
-              : isDarkMode ? "text-white" : "text-slate-900"
-          }`}>
-            {found ? "\u2713 " : ""}{word.toUpperCase()}
-          </span>
-          <span className={`text-xs italic ${
-            isDarkMode ? "text-slate-400" : "text-slate-500"
-          }`}>
-            {hint}
-          </span>
+    </span>
+  );
+
+  return (
+    <div className={`rounded-2xl border-4 p-4 flex flex-col gap-3 ${
+      isDarkMode
+        ? "bg-slate-800 border-slate-700"
+        : "bg-white border-slate-900 shadow-[3px_3px_0px_0px_#0f172a]"
+    }`}>
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={() => setIsOpen((open) => !open)}
+          aria-expanded={isOpen}
+          className="flex items-center justify-between gap-3 w-full text-left"
+        >
+          {heading}
+          <ChevronDown
+            size={16}
+            className={`shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""} ${
+              isDarkMode ? "text-slate-500" : "text-slate-400"
+            }`}
+          />
+        </button>
+      ) : (
+        heading
+      )}
+
+      {showList && (
+        <div
+          className={`flex flex-col gap-3 overflow-y-auto overflow-x-hidden pr-1 neo-scrollbar ${
+            isDarkMode ? "neo-scrollbar-dark" : ""
+          }`}
+          style={{ maxHeight: LIST_MAX_HEIGHT }}
+        >
+          {words.map(({ word, hint, conceptId }) => {
+            const found = foundWords.has(conceptId);
+            return (
+              <div key={conceptId} className="flex flex-col gap-0.5 min-w-0">
+                <span className="flex items-start gap-2 min-w-0">
+                  {/* Left of the word, and `shrink-0` so it keeps its size
+                      while the word beside it wraps. */}
+                  {tts && (
+                    <span className="shrink-0 mt-0.5">
+                      <TtsControls
+                        {...tts}
+                        ttsKey={`word-search-${conceptId}`}
+                        text={word}
+                        accent="emerald"
+                        variant="single"
+                        iconSize={14}
+                        isDarkMode={isDarkMode}
+                      />
+                    </span>
+                  )}
+
+                  {/* `min-w-0` and `break-words` together are what keep a long
+                      compound word inside the panel: without the first, a flex
+                      child refuses to shrink below its content and pushes a
+                      horizontal scrollbar onto the list. */}
+                  <span className={`font-black text-sm sm:text-base uppercase tracking-tight transition-all min-w-0 break-words ${
+                    found
+                      ? "line-through text-emerald-500"
+                      : isDarkMode ? "text-white" : "text-slate-900"
+                  }`}>
+                    {found ? "✓ " : ""}{word.toUpperCase()}
+                  </span>
+
+                </span>
+                <span className={`text-xs italic break-words min-w-0 ${
+                  isDarkMode ? "text-slate-400" : "text-slate-500"
+                }`}>
+                  {hint}
+                </span>
+              </div>
+            );
+          })}
         </div>
-      );
-    })}
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 WordListPanel.propTypes = {
   words:      PropTypes.arrayOf(PropTypes.shape({
@@ -144,6 +207,10 @@ WordListPanel.propTypes = {
     conceptId: PropTypes.string.isRequired,
   })).isRequired,
   foundWords: PropTypes.instanceOf(Set).isRequired,
+  /** Phone copy only: the header becomes a toggle. */
+  collapsible: PropTypes.bool,
+  /** useTts wiring plus token and lang; omit to render no speakers. */
+  tts: PropTypes.object,
   isDarkMode: PropTypes.bool.isRequired,
   t:          PropTypes.func.isRequired,
 };
@@ -157,9 +224,19 @@ const WordSearchGame = ({ isDarkMode }) => {
   const { user, showAlert } = useAppContext();
   const { topics, preferTopics } = useInterestTopics();
   const challengeTheme = useChallengeTheme();
+  const { ttsState, playTts, pauseTts, stopTts } = useTts();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
+
+  // One object because the list passes it straight through to a control per
+  // row; useTts keeps a single active source app-wide, so a dozen speakers
+  // still means one clip playing at a time.
+  const ttsProps = {
+    ttsState, playTts, pauseTts, stopTts,
+    token: user?.token,
+    lang: learningDialect,
+  };
 
   // ── Game data ────────────────────────────────────────────────────────────
   const [words,      setWords]      = useState([]);
@@ -557,7 +634,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
       {/* ── LEFT: word list (desktop only) ── */}
       <div className="hidden lg:block w-64 shrink-0">
-        <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} t={t} />
+        <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} t={t} tts={ttsProps} />
       </div>
 
       {/* ── CENTER: timer + mobile word list + grid + controls ── */}
@@ -565,7 +642,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
         {/* Word list — above grid on mobile, hidden on desktop */}
         <div className="w-full mb-4 lg:hidden">
-          <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} t={t} />
+          <WordListPanel words={words} foundWords={foundWords} isDarkMode={isDarkMode} t={t} tts={ttsProps} collapsible />
         </div>
 
         {/* Progress indicator */}

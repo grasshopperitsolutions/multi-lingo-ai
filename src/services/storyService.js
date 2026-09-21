@@ -411,10 +411,24 @@ async function _fetchReadyStories(token, { level, targetLang, theme }) {
  * getDocument throws on a missing document; cache-first reads need "not there
  * yet" to be a normal answer rather than an error.
  */
+/**
+ * The document's *fields*, or null.
+ *
+ * `getDocument` resolves to the API envelope — `{ id, data, collection }` —
+ * not to a bare document, and this returned that envelope. Every caller then
+ * read `.title` and `.paragraphs` straight off it and got `undefined`, which
+ * is silent: a cached piece came back shaped correctly and completely empty,
+ * and the only loud version was `source.paragraphs.length` throwing on the
+ * translate path.
+ *
+ * It only ever showed up on the *cached* routes. Freshly generated content is
+ * returned from the generator directly and never passes through here, so the
+ * first read of anything worked and the second was blank.
+ */
 async function _getDocumentOrNull(collection, id, token) {
   try {
     const doc = await getDocument(collection, id, token);
-    return doc ?? null;
+    return doc?.data ?? null;
   } catch {
     return null;
   }

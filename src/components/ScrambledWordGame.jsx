@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { RotateCcw, Check, EggFried } from "lucide-react";
+import { RotateCcw, Check, EggFried, Eye, SkipForward } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import {
   getUserGameProgress,
@@ -13,11 +13,14 @@ import {
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import { useInterestTopics } from "../hooks/useInterestTopics";
 import { useChallengeTheme } from "../hooks/useChallengeTheme";
+import { useTts } from "../hooks/useTts";
 import ChallengeSidebar from "./ChallengeSidebar";
 import ChallengeThemePicker from "./ChallengeThemePicker";
 import TooltipButton from "./TooltipButton";
+import { TtsControls, DifficultyToggle } from "./ui";
 import Loader from "./Loader";
 import { sanitizeAIError } from "../utils/errorUtils";
+import { addSkippedConceptId } from "../utils/skippedConcepts";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -96,6 +99,9 @@ const LetterTile = ({ letter, onClick, onKeyDown, disabled, variant, isFocused, 
       ? "bg-slate-800 border-slate-600 text-transparent cursor-pointer"
       : "bg-slate-100 border-slate-300 text-transparent cursor-pointer",
     correct: "bg-emerald-400 border-slate-900 text-slate-900 cursor-default",
+    // Sky, not emerald: asking to be shown is not the same as getting it
+    // right, and green would claim a win the player did not have.
+    revealed: "bg-sky-400 border-slate-900 text-slate-900 cursor-default",
     wrong: "bg-rose-400 border-slate-900 text-slate-900 cursor-default scrambled-shake",
     separator: "opacity-0 pointer-events-none border-transparent bg-transparent w-4 sm:w-5",
   };
@@ -106,7 +112,13 @@ const LetterTile = ({ letter, onClick, onKeyDown, disabled, variant, isFocused, 
       onClick={onClick}
       onKeyDown={onKeyDown}
       data-slot={slotIndex}
-      disabled={disabled || variant === "correct" || variant === "wrong" || variant === "separator"}
+      disabled={
+        disabled ||
+        variant === "correct" ||
+        variant === "wrong" ||
+        variant === "separator" ||
+        variant === "revealed"
+      }
       className={`${baseClasses} ${variantClasses[variant] ?? variantClasses.pool} ${
         isFocused ? "ring-4 ring-inset ring-sky-500" : ""
       }`}
@@ -122,7 +134,7 @@ LetterTile.propTypes = {
   onClick: PropTypes.func,
   onKeyDown: PropTypes.func,
   disabled: PropTypes.bool,
-  variant: PropTypes.oneOf(["pool", "answer", "correct", "wrong", "separator"]),
+  variant: PropTypes.oneOf(["pool", "answer", "correct", "wrong", "separator", "revealed"]),
   /** Answer slots only: takes the keyboard focus ring and the next keystroke. */
   isFocused: PropTypes.bool,
   slotIndex: PropTypes.number,
@@ -137,6 +149,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   const { user, showAlert } = useAppContext();
   const { topics, preferTopics } = useInterestTopics();
   const challengeTheme = useChallengeTheme();
+  const { ttsState, playTts, pauseTts, stopTts } = useTts();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
@@ -351,6 +364,36 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     await fetchStats();
   }, [user, fetchStats]);
 
+  /**
+   * Switching difficulty re-deals rather than relabelling.
+   *
+   * Hard mode keeps the accents, so every tile in the pool and every filled
+   * slot carries the wrong glyph the moment it flips — the board has to be
+   * rebuilt from the word, which also means the round restarts.
+   */
+  const handleDifficultyChange = useCallback(
+    (isHard) => {
+      if (hardMode === isHard) return;
+      const displayFn = (l) => (isHard ? l.toUpperCase() : normalizeChar(l));
+      const rawLetters = word.split("");
+      const answerTemplate = rawLetters.map((l) =>
+        l === " " ? { id: -1, letter: " ", isSpace: true } : null,
+      );
+      const nonSpace = rawLetters.filter((l) => l !== " ").map(displayFn);
+      const shuffled = shuffleLetters(nonSpace);
+
+      setPool(shuffled.map((letter, i) => ({ id: i, letter, placed: false })));
+      setAnswer(answerTemplate);
+      setFocusedSlot(null);
+      setHardMode(isHard);
+      setAttemptsLeft(MAX_ATTEMPTS);
+      setGameStatus("playing");
+      setShowResult(false);
+      hasMarkedRef.current = false;
+    },
+    [hardMode, word],
+  );
+
   // ── Re-shuffle same word (reshuffle button during play) ─────────────────
   const handleReshuffle = useCallback(() => {
     if (gameStatus !== "playing") return;
@@ -371,6 +414,50 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     setShowResult(false);
     hasMarkedRef.current = false;
   }, [word, buildPoolAndAnswer]);
+
+  /**
+   * Put the word down without answering it.
+   *
+   * Remembered in this browser only and never on the profile, so it stays in
+   * the pool for when the learner can read it — `utils/skippedConcepts` has
+   * the whole of why that difference matters. Hangman does the same thing.
+   */
+  const handleSkipWord = useCallback(() => {
+    addSkippedConceptId(conceptId, learningDialect);
+    resetGame();
+    fetchWord();
+  }, [conceptId, learningDialect, resetGame, fetchWord]);
+
+  /**
+   * A third ending, beside won and lost.
+   *
+   * It **does** mark the concept seen: you have now met the word and had it
+   * spelled out, so offering it again would waste a turn. Losing still does
+   * not — there the word is genuinely unmet.
+   */
+  const handleShowAnswer = useCallback(() => {
+    if (gameStatus !== "playing" || !word) return;
+
+    setAnswer(
+      word.split("").map((letter, i) =>
+        letter === " "
+          ? { id: -1, letter: " ", isSpace: true }
+          : { id: `revealed-${i}`, letter: getDisplayLetter(letter) },
+      ),
+    );
+    setFocusedSlot(null);
+    hasMarkedRef.current = true;
+    setGameStatus("revealed");
+
+    recordPlay(user.token, user.uid, GAME_ID, learningDialect, progress)
+      .catch((err) => console.warn("[ScrambledWordGame] recordPlay failed:", err));
+    getGlobalSeenIds(user.token, user.uid)
+      .then((currentSeenIds) =>
+        markConceptSeenGlobal(user.token, user.uid, conceptId, currentSeenIds),
+      )
+      .then(() => fetchStats())
+      .catch((err) => console.warn("[ScrambledWordGame] markConceptSeenGlobal failed:", err));
+  }, [gameStatus, word, getDisplayLetter, conceptId, learningDialect, progress, user, fetchStats]);
 
   // ── Place letter from the pool into a chosen slot ─────────────────────────
 
@@ -621,12 +708,15 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   // ── Game render ───────────────────────────────────────────────────────────
   const isWon = gameStatus === "won";
   const isLost = gameStatus === "lost";
-  const isOver = isWon || isLost;
+  const isRevealed = gameStatus === "revealed";
+  // Anything gating on "the round is over" has to name all three.
+  const isOver = isWon || isLost || isRevealed;
 
   const answerVariant = (slot) => {
     if (!slot) return "answer";
     if (slot.isSpace) return "separator";
     if (isWon) return "correct";
+    if (isRevealed) return "revealed";
     if (isLost) return "wrong";
     if (showResult) return "wrong";
     return "answer";
@@ -638,53 +728,16 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       {/* ── Main game column ── */}
       <div className="flex flex-col items-center flex-1 min-w-0 w-full">
 
-        {/* Easy / Hard toggle */}
-        <div className={`flex mb-6 rounded-full border-4 overflow-hidden ${
-          isDarkMode ? "border-slate-700" : "border-slate-900"
-        }`}>
-          {[false, true].map((isHard) => (
-            <button
-              key={String(isHard)}
-              type="button"
-              onClick={() => {
-                if (hardMode === isHard) return;
-                const displayFn = (l) =>
-                  isHard ? l.toUpperCase() : normalizeChar(l);
-                const rawLetters = word.split("");
-                const answerTemplate = rawLetters.map((l) =>
-                  l === " " ? { id: -1, letter: " ", isSpace: true } : null
-                );
-                const nonSpace = rawLetters
-                  .filter((l) => l !== " ")
-                  .map(displayFn);
-                const shuffled = shuffleLetters(nonSpace);
-                const newPool = shuffled.map((letter, i) => ({
-                  id: i,
-                  letter,
-                  placed: false,
-                }));
-                setPool(newPool);
-                setAnswer(answerTemplate);
-                setHardMode(isHard);
-                setAttemptsLeft(MAX_ATTEMPTS);
-                setGameStatus("playing");
-                setShowResult(false);
-                hasMarkedRef.current = false;
-              }}
-              className={`px-5 py-1.5 text-xs font-black uppercase tracking-widest transition-colors ${
-                hardMode === isHard
-                  ? isDarkMode
-                    ? "bg-yellow-400 text-slate-900"
-                    : "bg-slate-900 text-white"
-                  : isDarkMode
-                  ? "bg-transparent text-slate-400 hover:text-white"
-                  : "bg-transparent text-slate-500 hover:text-slate-900"
-              }`}
-            >
-              {isHard ? t("challenges.hard") : t("challenges.easy")}
-            </button>
-          ))}
-        </div>
+        {/* The register of difficulty is the same idea as Hangman's, but here
+            it also re-deals: the tiles carry accents in hard mode, so the pool
+            has to be rebuilt rather than relabelled. The control is shared —
+            see ui/DifficultyToggle. */}
+        <DifficultyToggle
+          value={hardMode}
+          onChange={handleDifficultyChange}
+          isDarkMode={isDarkMode}
+          className="mb-6"
+        />
 
         {/* Hint */}
         {hint && (
@@ -693,6 +746,29 @@ const ScrambledWordGame = ({ isDarkMode }) => {
           }`}>
             {hint}
           </p>
+        )}
+
+        {/* Under the clue, the way Hangman orders it: what it means, then what
+            it sounds like. Speaking the word is, strictly, the answer — the
+            same trade Hangman makes, and worth it for a script you cannot yet
+            read. `word` rather than an uppercased copy: some engines read an
+            all-caps string as an acronym and spell it out. */}
+        {word && (
+          <div className="mb-6">
+            <TtsControls
+              ttsKey={`scrambled-${conceptId ?? word}`}
+              text={word}
+              lang={learningDialect}
+              token={user?.token}
+              accent="amber"
+              variant="single"
+              ttsState={ttsState}
+              playTts={playTts}
+              pauseTts={pauseTts}
+              stopTts={stopTts}
+              isDarkMode={isDarkMode}
+            />
+          </div>
         )}
 
         {/* Scrambled Egg illustration */}
@@ -761,21 +837,61 @@ const ScrambledWordGame = ({ isDarkMode }) => {
                 <RotateCcw size={20} />
               </button>
             </TooltipButton>
+
+            {/* The two ways out of a word you cannot attempt, offered only
+                while it is still in play — after it ends, Play Again and Next
+                Word already do the job. Icon-only like Reshuffle: three
+                labelled buttons under the tiles would compete with the tiles
+                for attention, and these are escape hatches rather than the
+                thing to do. */}
+            <TooltipButton tooltip={t("challenges.skip_word_hint")} isDarkMode={isDarkMode}>
+              <button
+                type="button"
+                onClick={handleSkipWord}
+                aria-label={t("challenges.skip_word")}
+                className={`p-3 rounded-xl border-4 font-black transition-all hover-neo-light active-neo ${
+                  isDarkMode
+                    ? "bg-slate-800 border-slate-700 text-white"
+                    : "bg-white border-slate-900 text-slate-900"
+                }`}
+              >
+                <SkipForward size={20} />
+              </button>
+            </TooltipButton>
+
+            <TooltipButton tooltip={t("challenges.show_answer")} isDarkMode={isDarkMode}>
+              <button
+                type="button"
+                onClick={handleShowAnswer}
+                aria-label={t("challenges.show_answer")}
+                className={`p-3 rounded-xl border-4 font-black transition-all hover-neo-light active-neo ${
+                  isDarkMode
+                    ? "bg-slate-800 border-slate-700 text-white"
+                    : "bg-white border-slate-900 text-slate-900"
+                }`}
+              >
+                <Eye size={20} />
+              </button>
+            </TooltipButton>
           </div>
         ) : (
           <div className={`flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 ${
-            isWon ? "text-emerald-500" : "text-rose-500"
+            isWon ? "text-emerald-500" : isRevealed ? "text-sky-500" : "text-rose-500"
           }`}>
             <div className="flex items-center gap-3">
               {isWon ? (
                 <Check size={36} strokeWidth={3} />
+              ) : isRevealed ? (
+                <Eye size={36} strokeWidth={3} />
               ) : (
                 <span className="text-3xl">🍳</span>
               )}
               <span className="text-2xl sm:text-3xl font-black uppercase tracking-tighter">
                 {isWon
                   ? t("challenges.scrambled_word_won")
-                  : t("challenges.scrambled_word_lost")}
+                  : isRevealed
+                    ? t("challenges.now_you_know")
+                    : t("challenges.scrambled_word_lost")}
               </span>
             </div>
 

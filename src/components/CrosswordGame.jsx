@@ -14,6 +14,7 @@ import { getWord, getWordPoolCount } from "../services/getWordService";
 import { loadConceptIcons } from "../services/conceptIconService";
 import { useInterestTopics } from "../hooks/useInterestTopics";
 import { useChallengeTheme } from "../hooks/useChallengeTheme";
+import { useTts } from "../hooks/useTts";
 import { buildCrossword, checkEntry, CELL } from "../utils/crosswordUtils";
 import { resolveLetterKeys, letterKey, normalizeChar } from "../utils/letterKeys";
 import { startWordBudget, shouldKeepFetching } from "../utils/wordBudget";
@@ -21,6 +22,7 @@ import { sanitizeSvg } from "../utils/sanitizeSvg";
 import ChallengeSidebar from "./ChallengeSidebar";
 import ChallengeThemePicker from "./ChallengeThemePicker";
 import Loader from "./Loader";
+import { TtsControls, DifficultyToggle } from "./ui";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -261,7 +263,7 @@ LetterCell.propTypes = {
 /** How tall the clue list gets when open; collapse animates this down to zero. */
 const CLUE_LIST_OPEN = "max-h-[min(45vh,26rem)]";
 
-const CluePanel = ({ entries, icons, solvedIds, activeEntryId, onSelect, isDarkMode, t, isOpen, isLocked, onToggle }) => (
+const CluePanel = ({ entries, icons, solvedIds, activeEntryId, onSelect, isDarkMode, t, isOpen, isLocked, onToggle, tts }) => (
   <div className={`rounded-2xl border-4 flex flex-col overflow-hidden ${
     isDarkMode
       ? "bg-slate-800 border-slate-700"
@@ -310,36 +312,63 @@ const CluePanel = ({ entries, icons, solvedIds, activeEntryId, onSelect, isDarkM
         {entries.map((entry) => {
           const solved = solvedIds.has(entry.id);
           const active = entry.id === activeEntryId;
+          // A row, not one big button: the speaker lives inside it and a
+          // button cannot contain another button. Both halves of the clue
+          // still select the entry.
           return (
-            <button
+            <div
               key={entry.id}
-              type="button"
-              onClick={() => onSelect(entry.id)}
-              className={`w-full text-left rounded-xl px-2 py-1.5 transition-colors ${
+              className={`w-full rounded-xl px-2 py-1.5 transition-colors ${
                 active ? (isDarkMode ? "bg-slate-700" : "bg-amber-100") : ""
               }`}
             >
               <span className="flex items-center gap-1.5">
-                <span className={`font-black text-[10px] tracking-widest shrink-0 ${
-                  isDarkMode ? "text-yellow-400" : "text-blue-600"
-                }`}>
-                  {entry.direction === "H" ? "\u25b6" : "\u25bc"} {entry.answer.length}
-                </span>
-                <ClueIcon icon={icons.get(entry.conceptId)} />
-                {solved && (
-                  <span className="font-black text-xs uppercase text-emerald-500">
-                    {entry.answer}
+                <button
+                  type="button"
+                  onClick={() => onSelect(entry.id)}
+                  className="flex items-center gap-1.5 flex-1 min-w-0 text-left"
+                >
+                  <span className={`font-black text-[10px] tracking-widest shrink-0 ${
+                    isDarkMode ? "text-yellow-400" : "text-blue-600"
+                  }`}>
+                    {entry.direction === "H" ? "\u25b6" : "\u25bc"} {entry.answer.length}
                   </span>
+                  <ClueIcon icon={icons.get(entry.conceptId)} />
+                  {solved && (
+                    <span className="font-black text-xs uppercase text-emerald-500">
+                      {entry.answer}
+                    </span>
+                  )}
+                </button>
+
+                {/* Only once the answer is out. Before that this would read
+                    every answer aloud, and the list is the puzzle — unlike
+                    Hangman and Scrambled Word, where hearing the single word
+                    you are stuck on is the trade being made. */}
+                {tts && solved && (
+                  <TtsControls
+                    {...tts}
+                    ttsKey={`crossword-${entry.id}`}
+                    text={entry.spokenAnswer ?? entry.answer}
+                    accent="emerald"
+                    variant="single"
+                    iconSize={14}
+                    isDarkMode={isDarkMode}
+                  />
                 )}
               </span>
-              <span className={`block text-xs leading-snug ${
-                solved
-                  ? "line-through opacity-60 " + (isDarkMode ? "text-slate-500" : "text-slate-400")
-                  : isDarkMode ? "text-slate-300" : "text-slate-700"
-              }`}>
+              <button
+                type="button"
+                onClick={() => onSelect(entry.id)}
+                className={`block w-full text-left text-xs leading-snug ${
+                  solved
+                    ? "line-through opacity-60 " + (isDarkMode ? "text-slate-500" : "text-slate-400")
+                    : isDarkMode ? "text-slate-300" : "text-slate-700"
+                }`}
+              >
                 {entry.hint}
-              </span>
-            </button>
+              </button>
+            </div>
           );
         })}
       </div>
@@ -357,6 +386,8 @@ CluePanel.propTypes = {
   t: PropTypes.func.isRequired,
   isOpen: PropTypes.bool.isRequired,
   isLocked: PropTypes.bool.isRequired,
+  /** useTts wiring plus token and lang; omit to render no speakers. */
+  tts: PropTypes.object,
   onToggle: PropTypes.func.isRequired,
 };
 
@@ -403,6 +434,7 @@ const CrosswordGame = ({ isDarkMode }) => {
   const { user, showAlert, writingSystems } = useAppContext();
   const { topics, preferTopics } = useInterestTopics();
   const challengeTheme = useChallengeTheme();
+  const { ttsState, playTts, pauseTts, stopTts } = useTts();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang = user?.interfaceLang ?? "en-US";
@@ -1046,6 +1078,11 @@ const CrosswordGame = ({ isDarkMode }) => {
       isOpen={!hardMode && cluePanelOpen}
       isLocked={hardMode}
       onToggle={() => setCluePanelOpen((open) => !open)}
+      tts={{
+        ttsState, playTts, pauseTts, stopTts,
+        token: user?.token,
+        lang: learningDialect,
+      }}
     />
   );
 
@@ -1058,35 +1095,9 @@ const CrosswordGame = ({ isDarkMode }) => {
         {/* Clues — above the board on mobile */}
         <div className="w-full lg:hidden">{cluePanel}</div>
 
-        {/* Difficulty — same meaning as Hangman's */}
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setHardMode(false)}
-            className={`px-4 py-1.5 rounded-lg border-4 font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 ${
-              !hardMode
-                ? "bg-yellow-400 border-slate-900 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
-                : isDarkMode
-                  ? "bg-transparent border-slate-600 text-slate-400"
-                  : "bg-transparent border-slate-300 text-slate-500"
-            }`}
-          >
-            {t("challenges.easy")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setHardMode(true)}
-            className={`px-4 py-1.5 rounded-lg border-4 font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 ${
-              hardMode
-                ? "bg-yellow-400 border-slate-900 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
-                : isDarkMode
-                  ? "bg-transparent border-slate-600 text-slate-400"
-                  : "bg-transparent border-slate-300 text-slate-500"
-            }`}
-          >
-            {t("challenges.hard")}
-          </button>
-        </div>
+        {/* Difficulty. The shared control — see ui/DifficultyToggle for why
+            this stopped being three hand-rolled copies. */}
+        <DifficultyToggle value={hardMode} onChange={setHardMode} isDarkMode={isDarkMode} />
 
         <p className={`font-black uppercase text-xs tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
           {t("challenges.crossword_progress", {

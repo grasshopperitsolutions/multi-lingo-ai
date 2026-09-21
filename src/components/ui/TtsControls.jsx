@@ -43,7 +43,7 @@ const ACCENTS = {
 const TtsControls = ({
   ttsKey, text, lang, token,
   ttsState, playTts, pauseTts, stopTts,
-  isDarkMode, accent = 'sky',
+  isDarkMode, accent = 'sky', variant = 'full', iconSize = 20,
 }) => {
   const { t } = useTranslation();
 
@@ -81,6 +81,52 @@ const TtsControls = ({
         : t('translator.listen', 'Listen');
 
   const buttonBase = 'p-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed';
+
+  /**
+   * One speaker, play/stop, the way the story reader does it.
+   *
+   * Used where the text is a single word or line and the row of three reads as
+   * a control panel bolted to a game. The slow variant is the part actually
+   * worth losing: it plays under `${ttsKey}-slow`, which is a *separate* clip
+   * and therefore a second AI call — on a challenge that quietly spends a
+   * second of a free tier's three for the day, next to a button that looks
+   * like a playback speed.
+   *
+   * Stop rather than pause, because there is nothing here long enough to want
+   * to resume in the middle of.
+   */
+  if (variant === 'single') {
+    const label = isGenerating
+      ? t('translator.generating', 'Preparing audio…')
+      : isActive
+        ? t('translator.stop', 'Stop')
+        : t('translator.listen', 'Listen');
+
+    return (
+      <TooltipButton tooltip={label} isDarkMode={isDarkMode}>
+        <button
+          onClick={() => (isActive ? stopTts() : playTts({ key: ttsKey, text, lang, token }))}
+          disabled={!hasText}
+          aria-label={label}
+          aria-busy={isGenerating}
+          // Outlined rather than a bare glyph, and in the accent colour whether
+          // or not it is playing: on a game board a loose icon reads as
+          // decoration next to the clue, where a bordered box reads as a
+          // control. `border-current` takes the colour from the text so the
+          // accent only has to be set once.
+          className={`${iconSize >= 18 ? 'p-2 rounded-xl' : 'p-1 rounded-lg'} border-2 border-current
+            transition-colors active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed
+            ${activeColor}`}
+        >
+          {isGenerating
+            ? <Loader2 size={iconSize} className="animate-spin" />
+            : isActive
+              ? <Square size={iconSize} fill="currentColor" />
+              : <Volume2 size={iconSize} />}
+        </button>
+      </TooltipButton>
+    );
+  }
 
   return (
     <div className="flex items-center gap-1">
@@ -142,10 +188,16 @@ TtsControls.propTypes = {
   stopTts:    PropTypes.func.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
   accent:     PropTypes.oneOf(['sky', 'violet', 'rose', 'amber', 'emerald']),
+  /** 'single' collapses to one play/stop speaker; see the note above. */
+  variant:    PropTypes.oneOf(['full', 'single']),
+  /** 'single' only: shrinks the box with the glyph, for a list row. */
+  iconSize:   PropTypes.number,
 };
 
 TtsControls.defaultProps = {
   accent: 'sky',
+  variant: 'full',
+  iconSize: 20,
 };
 
 export default TtsControls;

@@ -163,6 +163,10 @@ function _commit(grid, entryId, item, row, col, direction, clueCell, cols, rows)
     id: entryId,
     conceptId: item.conceptId,
     answer: item.answer,
+    // The answer as the service wrote it. `answer` is uppercased for letter
+    // matching, and some speech engines read an all-caps string as an acronym
+    // and spell it out — so anything reading a word aloud wants this one.
+    spokenAnswer: item.word ?? item.answer,
     hint: item.hint ?? "",
     direction,
     cells,

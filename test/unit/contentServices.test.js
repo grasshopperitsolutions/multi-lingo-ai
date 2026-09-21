@@ -51,6 +51,17 @@ const seedPrompts = () =>
     { id: "dictionary-lookup-prompt", template: "Define {{word}}" },
   ]);
 const getDocument = vi.fn(async () => null);
+
+/**
+ * What `firestoreService.getDocument` actually resolves to.
+ *
+ * It returns the API envelope — `{ id, data, collection }` — not the fields.
+ * This mock used to hand back a bare document, so the cache-first tests below
+ * passed against a shape production never produces, while the real services
+ * read `.title` and `.paragraphs` off the envelope and got `undefined`. The
+ * assertions were right and the fixture was lying.
+ */
+const asDocument = (fields, id = "doc-1", collection = "c") => ({ id, data: fields, collection });
 const createDocument = vi.fn(async () => ({ id: "new" }));
 const updateDocument = vi.fn(async () => ({}));
 const deleteDocument = vi.fn(async () => ({}));
@@ -238,7 +249,7 @@ describe("storyService", () => {
     setCollection("stories", [
       { id: "s1", level: "B1", targetLang: "pt-PT", status: "ready", title: "A Casa" },
     ]);
-    getDocument.mockResolvedValue({ title: "A Casa", paragraphs: ["Era uma vez."] });
+    getDocument.mockResolvedValue(asDocument({ title: "A Casa", paragraphs: ["Era uma vez."] }));
 
     const { getStory } = await import("../../src/services/storyService");
     const story = await getStory({
@@ -275,7 +286,7 @@ describe("storyService", () => {
     setCollection("stories", [
       { id: "s1", level: "B1", targetLang: "pt-PT", status: "ready", title: "A Casa" },
     ]);
-    getDocument.mockResolvedValue({ title: "A Casa", paragraphs: ["Era uma vez."] });
+    getDocument.mockResolvedValue(asDocument({ title: "A Casa", paragraphs: ["Era uma vez."] }));
     askAI.mockResolvedValue(
       aiText(JSON.stringify({ title: "Nova", paragraphs: ["Com as palavras."], level: "B1" })),
     );
@@ -320,7 +331,7 @@ describe("storyService", () => {
     setCollection("stories", [
       { id: "s1", level: "B1", targetLang: "pt-PT", status: "ready", title: "A Casa" },
     ]);
-    getDocument.mockResolvedValue({ title: "A Casa", paragraphs: ["Era uma vez."] });
+    getDocument.mockResolvedValue(asDocument({ title: "A Casa", paragraphs: ["Era uma vez."] }));
 
     const { getStory } = await import("../../src/services/storyService");
     const story = await getStory({
@@ -335,7 +346,7 @@ describe("storyService", () => {
     setCollection("stories", [
       { id: "s1", level: "B1", targetLang: "pt-PT", status: "ready", title: "A Casa" },
     ]);
-    getDocument.mockResolvedValue({ title: "A Casa", paragraphs: ["x"] });
+    getDocument.mockResolvedValue(asDocument({ title: "A Casa", paragraphs: ["x"] }));
     askAI.mockResolvedValue(
       aiText(JSON.stringify({ title: "Nova", paragraphs: ["Outra coisa."], level: "B1" })),
     );
