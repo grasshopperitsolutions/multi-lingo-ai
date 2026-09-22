@@ -104,6 +104,30 @@ describe("starting a session", () => {
     expect(connectLiveTutor.mock.calls[0][0].model).toBe("gemini-live");
   });
 
+  it("asks for a token for the model the prompt document names", async () => {
+    // The model is configured on `live-tutor-prompt` and travels to the API
+    // the same way providerParams.model travels to ask-ai. Drop this argument
+    // and nothing visibly breaks — the endpoint just falls back and quietly
+    // ignores whatever Admin chose, which is the regression worth a test.
+    const { result } = await mount();
+
+    await act(async () => { await result.current.start(); });
+
+    expect(requestLiveToken).toHaveBeenCalledWith("tok", "from-prompt");
+  });
+
+  it("reads the prompt document before minting, and both before the microphone", async () => {
+    // Minting is for a specific model, so the model has to be known first.
+    // The ordering that matters is unchanged: nothing touches the mic until
+    // the step that can refuse the session has run.
+    const { result } = await mount();
+
+    await act(async () => { await result.current.start(); });
+
+    expect(buildTutorInstructions).toHaveBeenCalledBefore(requestLiveToken);
+    expect(requestLiveToken).toHaveBeenCalledBefore(startPcmCapture);
+  });
+
   it("pipes microphone chunks into the session", async () => {
     const { result } = await mount();
     await act(async () => { await result.current.start(); });

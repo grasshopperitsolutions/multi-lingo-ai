@@ -145,15 +145,9 @@ export function useLiveTutor({ user, targetLang, explanationLang, level }) {
     setStatus(LIVE_STATUS.CONNECTING);
 
     try {
-      // Order matters. The token is minted first because it is the step that
-      // can be refused — asking for the microphone before knowing the plan
-      // allows it would prompt somebody for permission and then tell them no.
-      const {
-        token: liveToken,
-        model: serverModel,
-        expiresAt,
-      } = await requestLiveToken(user.token);
-
+      // The prompt document comes first, because the token is minted *for* a
+      // model and that is where the model is configured. It is a cached read
+      // in practice — promptService holds the list for the life of the tab.
       const { instructions, model } = await buildTutorInstructions({
         targetLang,
         explanationLang,
@@ -161,13 +155,25 @@ export function useLiveTutor({ user, targetLang, explanationLang, level }) {
         displayName: user.displayName,
       });
 
+      // Still ahead of the microphone, which is the ordering that actually
+      // matters: minting is the step that can be refused, and asking somebody
+      // for permission to record and then telling them their plan says no is
+      // the wrong way round. Nothing above touches the mic.
+      const {
+        token: liveToken,
+        model: serverModel,
+        expiresAt,
+      } = await requestLiveToken(user.token, model);
+
       const player = createPcmPlayer();
       playerRef.current = player;
 
       const session = await connectLiveTutor({
         liveToken,
-        // The server's choice wins: it locked the token to that model, so
-        // connecting with anything else is refused rather than substituted.
+        // What came back, not what went out. The token is locked to the model
+        // it was minted for, so the echo is authoritative — and it differs
+        // from `model` only when the API fell back, which is exactly the case
+        // where following it rather than our own value is what connects.
         model: serverModel || model,
         instructions,
         onAudio: (base64) => {

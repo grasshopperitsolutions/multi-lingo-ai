@@ -20,28 +20,38 @@ import { apiFetch } from './apiClient';
 import { getPrompt, renderTemplate } from './promptService';
 
 /**
- * Only used when `live-tutor-prompt` names no model, and the server has the
- * final say regardless — it locks the minted token to its own choice, so a
- * mismatch here fails to connect rather than quietly running something else.
+ * Used when `live-tutor-prompt` names no model — the state of a fresh install.
+ *
+ * The model is chosen here, on the prompt document, like every other model in
+ * this app, and sent to `/api/live-token` the same way `providerParams.model`
+ * is sent to `/api/ask-ai`. The endpoint locks the minted token to whatever it
+ * is given and echoes it back; that echo is what the session is opened with,
+ * since a token only works with the model it was minted for.
  */
 const FALLBACK_MODEL = 'gemini-3.8-live-extended-thinking';
 
 /**
- * Fetch a one-session token.
+ * Fetch a one-session token for `model`.
  *
  * A 403 means the plan does not include this, which the caller turns into an
  * upgrade prompt rather than an error.
  *
+ * The model is passed in rather than read here so that the one prompt fetch
+ * `buildTutorInstructions` already makes serves both: the instruction text and
+ * the model come off the same document, and reading it twice to get two
+ * fields would be the sort of thing that later drifts apart.
+ *
  * @param {string} token - Firebase ID token
+ * @param {string} [model] - from the prompt document; blank lets the API decide
  * @returns {Promise<{token: string, model: string, expiresAt: string}>}
  */
-export async function requestLiveToken(token) {
+export async function requestLiveToken(token, model) {
   const response = await apiFetch(
     '/api/live-token',
     {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
-      body: {},
+      body: model ? { model } : {},
     },
     'Could not start a conversation'
   );
