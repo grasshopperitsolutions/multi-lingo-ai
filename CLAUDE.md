@@ -881,7 +881,10 @@ function is an HTTP handler with a maximum duration — it can neither accept an
 inbound socket nor hold one open for a lesson. So the session runs
 browser-to-Google and the proxy's only part is `POST /api/live-token`, which
 checks the Admin grant and mints a token with `uses: 1`, a short life, and
-`liveConnectConstraints` locking it to the live model. The API key never
+`bidiGenerateContentSetup` locking it to the live model (**not**
+`liveConnectConstraints`, which is what Google's docs call it and what the
+`AuthToken` message has never had — see the sibling repo's CLAUDE.md, where
+the way to interrogate that endpoint is written down). The API key never
 reaches the browser. Consequence to keep in view: **the server cannot meter the
 conversation** — not minutes, not content — so "may a session begin" is the
 only quantity anyone controls, and `aiCallsToday` is deliberately untouched.
