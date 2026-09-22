@@ -297,7 +297,10 @@ const ExamListeningSection = ({ isDarkMode, activeIndex, onSelectExercise }) => 
       {exerciseData.transcript && (
         <Card isDarkMode={isDarkMode}>
           <SectionHeading isDarkMode={isDarkMode}>{t("exam.audio", "Audio")}</SectionHeading>
-          <TTSPlayer text={exerciseData.transcript} lang={targetLang} isDarkMode={isDarkMode} />
+          {/* Out of the shared clip cache — see the note in
+              ListeningExercise.jsx: a listening transcript is the content
+              most likely to run past the cache's size cap. */}
+          <TTSPlayer text={exerciseData.transcript} lang={targetLang} isDarkMode={isDarkMode} cacheable={false} />
         </Card>
       )}
 

@@ -20,6 +20,9 @@
  *
  * Only one audio source can play at a time (enforced by getTtsService).
  * Pressing play on a different key automatically stops the current one.
+ *
+ * Pass `cacheable: false` when the text is the user's own — see speak() in
+ * getTtsService for why the shared clip cache must not hold it.
  */
 
 import { useState, useCallback, useRef } from 'react';
@@ -39,7 +42,7 @@ export function useTts() {
     setIsGenerating(false);
   }, []);
 
-  const playTts = useCallback(({ key, text, lang, token, pace = SPEECH_PACE.NATURAL }) => {
+  const playTts = useCallback(({ key, text, lang, token, pace = SPEECH_PACE.NATURAL, cacheable = true }) => {
     if (activeKeyRef.current === key && isPaused) {
       resumeSpeaking();
       setIsPaused(false);
@@ -56,6 +59,7 @@ export function useTts() {
     speak(text, lang, {
       token,
       pace,
+      cacheable,
       onStart: () => {
         if (activeKeyRef.current === key) setIsGenerating(false);
       },

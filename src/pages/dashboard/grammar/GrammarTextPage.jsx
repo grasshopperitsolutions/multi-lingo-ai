@@ -234,7 +234,13 @@ const GrammarTextPage = () => {
                   isDarkMode={isDarkMode}
                 />
 
+                {/* Out of the shared clip cache, for two reasons that each
+                    stand alone. The passage is written around this user's own
+                    word bank and the focus they typed; and grammarTextService
+                    persists nothing, so every generation is unique and a
+                    cached clip could never be hit a second time. */}
                 <TtsControls
+                  cacheable={false}
                   ttsKey="grammar-practice-text"
                   text={spokenText}
                   lang={text.targetLang}

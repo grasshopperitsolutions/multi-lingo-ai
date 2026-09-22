@@ -226,7 +226,10 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
         <div className={`flex items-center gap-2 px-3 py-2 border-t-2 ${
           isDarkMode ? 'border-slate-700' : 'border-slate-100'
         }`}>
-          <TtsControls {...ttsProps} accent="violet" ttsKey="dictionary-input" text={inputText} lang={learningLang} />
+          {/* The one control here reading back what the user typed, so the
+              one that stays out of the shared clip cache. The generated
+              definitions below are app content and are cached normally. */}
+          <TtsControls {...ttsProps} accent="violet" ttsKey="dictionary-input" text={inputText} lang={learningLang} cacheable={false} />
           <IconButton onClick={handleClear} label={t('translator.clear')} disabled={!inputText} isDarkMode={isDarkMode}><Trash2 size={16} /></IconButton>
         </div>
       </div>

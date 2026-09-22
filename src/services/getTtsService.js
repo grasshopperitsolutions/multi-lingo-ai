@@ -87,11 +87,15 @@ const ALL_VOICES = [...GEMINI_VOICES.female, ...GEMINI_VOICES.male];
 
 /**
  * Maximum number of generated clips held in memory at once.
- * Gemini returns raw 24 kHz mono PCM — roughly 48 KB per second of speech —
- * so a 60-second exam transcript is ~3 MB. Twelve clips is a comfortable
- * ceiling for a single exam session without pushing the tab into swap.
+ *
+ * This was twelve, sized against raw 24 kHz PCM at roughly 48 KB per second —
+ * a 60-second exam transcript was ~3 MB and a dozen of them was already as
+ * much of the tab's memory as an exam deserved. The API compresses to MP3
+ * now, so the same transcript is ~240 KB and a challenge word is single-digit
+ * KB. Forty clips is a whole session's worth of a Word Search's speakers at a
+ * fraction of the old footprint.
  */
-const AUDIO_CACHE_LIMIT = 12;
+const AUDIO_CACHE_LIMIT = 40;
 
 /**
  * Synthesis is much slower than a text completion — a story paragraph read
@@ -195,6 +199,12 @@ let _playSeq        = 0;
  * and another call charged against the user's daily tier limit. Each pace is
  * its own recording and so its own entry — a text the user hears both ways
  * occupies two slots.
+ *
+ * This is now the *first* of two caches and the smaller one. It holds bytes
+ * for this tab and dies with it; behind it, the API keeps a compressed copy
+ * in Firestore shared by every user of the app, which is what survives a
+ * reload and what actually stops the same sentence being paid for twice. See
+ * `cacheable` in speak() for what is allowed into that one.
  */
 const _audioCache = new Map();
 
@@ -285,6 +295,18 @@ function _teardownAudio() {
  * @param {boolean}  [options.preferFallback] - Try Gemini first, fall back on error (default: true)
  * @param {string}   [options.pace]           - One of SPEECH_PACE. A non-natural
  *   pace is generated as its own recording rather than time-stretched.
+ * @param {boolean}  [options.cacheable]      - Whether the generated clip may
+ *   join the shared Firestore cache, so the next person to hear this sentence
+ *   pays nothing for it. **Pass false for anything the user typed.** Those
+ *   clips are shared with every user of the app, which is right for a story,
+ *   a culture piece or a challenge word and wrong for whatever somebody
+ *   pasted into the translator. Default true, because app-generated content
+ *   is the overwhelming majority of what gets read aloud; the three surfaces
+ *   that read a person's own words opt out, and
+ *   test/unit/ttsCaching.test.jsx is what keeps them opted out.
+ *
+ *   (The API treats an absent flag as false rather than true — a request that
+ *   never went through this function has not earned a place in the pool.)
  * @param {Function} [options.onStart]        - Called when audio actually begins playing
  * @param {Function} [options.onEnd]          - Called when playback ends naturally or is stopped
  * @param {Function} [options.onError]        - Called when playback fails
@@ -293,7 +315,7 @@ function _teardownAudio() {
 export async function speak(
   text,
   lang,
-  { token, useFallback = false, preferFallback = true, pace = DEFAULT_PACE, onStart, onEnd, onError } = {}
+  { token, useFallback = false, preferFallback = true, pace = DEFAULT_PACE, cacheable = true, onStart, onEnd, onError } = {}
 ) {
   if (!text?.trim()) return false;
 
@@ -329,7 +351,7 @@ export async function speak(
   // Option A: Use Gemini TTS (primary, async)
   if (!useFallback && token) {
     try {
-      const success = await _speakWithGemini(token, text, lang, pace, seq, onStart, _handleEnd, _handleError);
+      const success = await _speakWithGemini(token, text, lang, pace, cacheable, seq, onStart, _handleEnd, _handleError);
       if (success) return true;
       if (seq !== _playSeq) return false;   // superseded while generating
       if (!preferFallback) return false;
@@ -439,7 +461,7 @@ async function _buildTtsPrompt(text, lang, pace) {
 // Gemini TTS (primary)
 // ---------------------------------------------------------------------------
 
-async function _speakWithGemini(token, text, lang, pace, seq, onStart, onEnd, onError) {
+async function _speakWithGemini(token, text, lang, pace, cacheable, seq, onStart, onEnd, onError) {
   const voice = _pickVoice(text, lang);
   const key   = _cacheKey(text, lang, voice, pace);
 
@@ -455,7 +477,7 @@ async function _speakWithGemini(token, text, lang, pace, seq, onStart, onEnd, on
   const result = await askAI(
     token,
     ttsPrompt,
-    { provider: 'gemini', model, explorerModel, tts: true, voice, language: lang },
+    { provider: 'gemini', model, explorerModel, tts: true, voice, language: lang, cacheable },
     // Playback isn't the user asking for new content, and clips are cached per
     // (voice, locale, text) — a prompt here would fire mid-exercise.
     { skipConfirm: true, timeout: TTS_TIMEOUT_MS },

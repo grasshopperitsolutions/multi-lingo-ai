@@ -245,10 +245,18 @@ const ListeningExercise = ({ isDarkMode }) => {
       <SectionHeading isDarkMode={isDarkMode}>
         {t("exam.audio", "Audio")}
       </SectionHeading>
+      {/* Out of the shared clip cache: a full listening transcript is
+          designed to be a timed passage (the exercise data even carries its
+          own `duration` field), which is exactly the length most likely to
+          exceed the cache's ~900KB write cap. A clip over that cap still
+          plays, it just never gets stored — so caching this would silently
+          buy nothing for the content most worth caching, while still
+          risking a stale hit if the exercise generator ever changes length. */}
       <TTSPlayer
         text={exercise.transcript}
         lang={targetLang}
         isDarkMode={isDarkMode}
+        cacheable={false}
       />
     </Card>
   );

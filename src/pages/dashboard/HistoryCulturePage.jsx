@@ -226,7 +226,16 @@ const HistoryCulturePage = () => {
               isDarkMode={isDarkMode}
             />
 
+            {/* Out of the shared clip cache: title + all three paragraphs go
+                out as a single request, which can run past the cache's
+                900KB write cap (roughly two minutes of speech) once a piece
+                runs long. A clip that misses the cap still plays fine, it
+                just never gets stored — quietly paying full price on every
+                play for exactly the content most expensive to regenerate.
+                Per-paragraph caching, the way StoryReader does it, would fix
+                this properly; until that's built, this stays uncached. */}
             <TtsControls
+              cacheable={false}
               ttsKey="history-fact"
               text={spokenText}
               lang={fact.locale}

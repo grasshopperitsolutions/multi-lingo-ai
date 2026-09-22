@@ -101,7 +101,12 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
     }
   };
 
-  const ttsProps = { ttsState, playTts, pauseTts, stopTts, isDarkMode, token: user?.token };
+  // `cacheable: false` on both panes. The shared clip cache in Firestore is
+  // read by every user of the app, and everything spoken here is either what
+  // this person typed or a translation of it — one user's sentence must not
+  // become another user's cache hit. It costs a generation per playback,
+  // which is the right price for privacy.
+  const ttsProps = { ttsState, playTts, pauseTts, stopTts, isDarkMode, token: user?.token, cacheable: false };
 
   const panelBase = `rounded-2xl border-4 p-1 flex flex-col ${
     isDarkMode

@@ -45,7 +45,7 @@ const PLAYER_KEY = 'tts-player';
 // TTSPlayer
 // ---------------------------------------------------------------------------
 
-const TTSPlayer = ({ text, lang, isDarkMode }) => {
+const TTSPlayer = ({ text, lang, isDarkMode, cacheable = true }) => {
   const { t } = useTranslation();
   const { user } = useAppContext();
   const { ttsState, playTts, stopTts } = useTts();
@@ -73,7 +73,7 @@ const TTSPlayer = ({ text, lang, isDarkMode }) => {
     }
     if (!hasText) return;
     setPlayCount((prev) => prev + 1);
-    playTts({ key: PLAYER_KEY, text, lang, token: user?.token, pace });
+    playTts({ key: PLAYER_KEY, text, lang, token: user?.token, pace, cacheable });
   };
 
   const handlePaceChange = (newPace) => {
@@ -184,6 +184,11 @@ TTSPlayer.propTypes = {
   text:       PropTypes.string.isRequired,
   lang:       PropTypes.string.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
+  /**
+   * Whether the generated clip may join the shared Firestore cache. False
+   * where the text is the user's own — see speak() in getTtsService.
+   */
+  cacheable:  PropTypes.bool,
 };
 
 export default TTSPlayer;

@@ -22,6 +22,11 @@ import { SPEECH_PACE } from '../../services/getTtsService';
  * The slow variant plays under its own key (`${ttsKey}-slow`) so it is a
  * separate recording rather than the same clip stretched; see getTtsService.
  *
+ * `cacheable` decides whether the generated clip joins the shared Firestore
+ * cache. It defaults to true because most text read aloud in this app is
+ * app-generated content everyone is entitled to hear; pass false wherever the
+ * text came from the person at the keyboard.
+ *
  * Usage:
  *   const { ttsState, playTts, pauseTts, stopTts } = useTts();
  *   <TtsControls
@@ -43,7 +48,7 @@ const ACCENTS = {
 const TtsControls = ({
   ttsKey, text, lang, token,
   ttsState, playTts, pauseTts, stopTts,
-  isDarkMode, accent = 'sky', variant = 'full', iconSize = 20,
+  isDarkMode, accent = 'sky', variant = 'full', iconSize = 20, cacheable = true,
 }) => {
   const { t } = useTranslation();
 
@@ -62,7 +67,7 @@ const TtsControls = ({
     if (isPlaying) {
       pauseTts();
     } else {
-      playTts({ key: ttsKey, text, lang, token });
+      playTts({ key: ttsKey, text, lang, token, cacheable });
     }
   };
 
@@ -105,7 +110,7 @@ const TtsControls = ({
     return (
       <TooltipButton tooltip={label} isDarkMode={isDarkMode}>
         <button
-          onClick={() => (isActive ? stopTts() : playTts({ key: ttsKey, text, lang, token }))}
+          onClick={() => (isActive ? stopTts() : playTts({ key: ttsKey, text, lang, token, cacheable }))}
           disabled={!hasText}
           aria-label={label}
           aria-busy={isGenerating}
@@ -150,7 +155,7 @@ const TtsControls = ({
       {/* Slow play (Turtle) */}
       <TooltipButton tooltip={t('translator.listen_slow', 'Listen slowly')} isDarkMode={isDarkMode}>
         <button
-          onClick={() => playTts({ key: `${ttsKey}-slow`, text, lang, token, pace: SPEECH_PACE.SLOW })}
+          onClick={() => playTts({ key: `${ttsKey}-slow`, text, lang, token, pace: SPEECH_PACE.SLOW, cacheable })}
           disabled={!hasText}
           aria-label={t('translator.listen_slow', 'Listen slowly')}
           aria-busy={isSlowGenerating}
@@ -192,6 +197,8 @@ TtsControls.propTypes = {
   variant:    PropTypes.oneOf(['full', 'single']),
   /** 'single' only: shrinks the box with the glyph, for a list row. */
   iconSize:   PropTypes.number,
+  /** False where the text is the user's own; see the note above. */
+  cacheable:  PropTypes.bool,
 };
 
 TtsControls.defaultProps = {
