@@ -69,7 +69,10 @@ describe("getPassage", () => {
 
   it("serves from the pool without spending an AI call", async () => {
     queryCollection.mockResolvedValue({
-      documents: [{ id: "p1", text: "Uma manhã fria.", focus: ["ã", "lh"] }],
+      // Both sounds are really in the text. They were not before: this
+      // fixture paired "lh" with "Uma manhã fria.", the very mismatch a
+      // reader later reported seeing on screen, and nothing checked either.
+      documents: [{ id: "p1", text: "Uma manhã de orvalho.", focus: ["ã", "lh"] }],
     });
 
     const result = await call();
@@ -238,5 +241,89 @@ describe("gradePronunciation", () => {
     });
 
     expect((await call()).issues.length).toBeLessThanOrEqual(6);
+  });
+});
+
+/**
+ * Sounds offered to practise must be in the passage.
+ *
+ * The reported case: "O gato branco correu para o jardim e comeu um pedazo de
+ * pão fresco." offered alongside `lh`, `ch` and `ões` — three sounds, not one
+ * of them anywhere in the sentence. The model had answered the two halves of
+ * the schema independently, which no wording in an admin-edited template can
+ * be relied on to prevent, so the list is checked against the text in code.
+ */
+describe("getPassage — the sounds have to be in the passage", () => {
+  const TEXT = "O gato branco correu para o jardim e comeu um pedaço de pão fresco.";
+
+  const generated = async (focus, text = TEXT) => {
+    askAI.mockResolvedValue({ text: JSON.stringify({ text, focus }) });
+    const { getPassage } = await service();
+    return getPassage({ token: "t", level: "A2", targetLang: "pt-PT" });
+  };
+
+  it("drops sounds the passage does not contain", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const passage = await generated(["lh", "ch", "ões"]);
+
+    // Nothing rather than three lies — the card hides the whole block on an
+    // empty list. A learner told to practise a sound that is not on screen
+    // has nothing to practise, and learns the labels are decorative.
+    expect(passage.focus).toEqual([]);
+    expect(warn).toHaveBeenCalled();
+
+    warn.mockRestore();
+  });
+
+  it("keeps the ones that are really there", async () => {
+    const passage = await generated(["ão", "rr", "ç"]);
+
+    expect(passage.focus).toEqual(["ão", "rr", "ç"]);
+  });
+
+  it("does not strip accents to force a match", async () => {
+    // The distinction the whole feature exists to drill. Comparing "ão"
+    // against "ao" through the usual NFD-and-strip would pass on precisely
+    // the pairs a reader most needs told apart.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const passage = await generated(["ao", "oes"], "Não falo espanhol.");
+
+    expect(passage.focus).toEqual([]);
+
+    warn.mockRestore();
+  });
+
+  it("folds case, because a sound can open a sentence", async () => {
+    const passage = await generated(["Ch"], "Chega de chuva.");
+
+    expect(passage.focus).toEqual(["Ch"]);
+  });
+
+  it("stores the filtered list, not the model's claim", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await generated(["ão", "lh"]);
+
+    const written = createDocument.mock.calls.at(-1)?.[1];
+    expect(written.focus).toEqual(["ão"]);
+
+    warn.mockRestore();
+  });
+
+  it("cleans a pooled passage on the way out, since nothing can edit one", async () => {
+    // There is no admin screen for pronunciationPassages, so a list stored
+    // before anything checked it can only be corrected at read time.
+    queryCollection.mockResolvedValue({
+      documents: [{ id: "p1", text: TEXT, focus: ["lh", "ç"], level: "A2", targetLang: "pt-PT" }],
+    });
+
+    const { getPassage } = await service();
+    const passage = await getPassage({ token: "t", level: "A2", targetLang: "pt-PT" });
+
+    expect(passage.source).toBe("db");
+    expect(passage.focus).toEqual(["ç"]);
+    expect(askAI).not.toHaveBeenCalled();
   });
 });

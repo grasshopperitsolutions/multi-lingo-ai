@@ -97,6 +97,48 @@ const FEEDBACK_SCHEMA = {
 // ---------------------------------------------------------------------------
 
 /**
+ * Keep only the sounds that are actually in the passage.
+ *
+ * **A prompt is not a containment constraint**, the same lesson `wordPool`
+ * learned about uniqueness. Asked for a passage and the sounds to practise in
+ * it, the model returned "O gato branco correu para o jardim..." alongside
+ * `lh`, `ch`, `ões` — three sounds, none of them anywhere in the sentence. It
+ * had answered the two halves independently. Telling it not to do that is
+ * worth doing (see the schema descriptions) and is not worth relying on.
+ *
+ * So the list is checked against the text before anyone sees it. A learner
+ * being told to practise a sound that is not on their screen has nothing to
+ * practise, and quietly learns the labels are decorative.
+ *
+ * **Accents are compared, never stripped.** `ão` against `ao` and `ç` against
+ * `c` are exactly the distinctions this feature exists to drill, so the usual
+ * NFD-and-strip normalisation would make the check pass on the very pairs it
+ * most needs to catch. Case is folded, because a sound can open a sentence.
+ *
+ * @param {string} text
+ * @param {unknown} focus
+ * @returns {string[]} A new array; the input is not mutated.
+ */
+function _soundsPresentIn(text, focus) {
+  const haystack = String(text ?? '').toLowerCase();
+  const kept = [];
+  const seen = new Set();
+
+  for (const raw of Array.isArray(focus) ? focus : []) {
+    const sound = String(raw ?? '').trim();
+    if (!sound) continue;
+
+    const key = sound.toLowerCase();
+    if (seen.has(key) || !haystack.includes(key)) continue;
+
+    seen.add(key);
+    kept.push(sound);
+  }
+
+  return kept;
+}
+
+/**
  * Fetch a passage to read, generating one if the pool has none.
  *
  * @param {object} params
@@ -119,7 +161,12 @@ export async function getPassage({ token, level, targetLang, seenPassageIds = []
     return {
       passageId: unseen.id,
       text: unseen.text,
-      focus: Array.isArray(unseen.focus) ? unseen.focus : [],
+      // Filtered on the way out as well as on the way in, because the pool
+      // already holds lists written before anything checked them — and there
+      // is no admin screen for `pronunciationPassages`, so a stored passage
+      // cannot be corrected from inside the app. Doing it here fixes what is
+      // already there for every reader, without a migration.
+      focus: _soundsPresentIn(unseen.text, unseen.focus),
       level,
       targetLang,
       source: 'db',
@@ -145,13 +192,39 @@ async function _generatePassage({ token, level, targetLang, existing }) {
     provider: 'gemini',
     model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
-    temperature: 0.8,
+    // Lowered from 0.8. The variety in this pool comes from `{{avoidTexts}}`
+    // — the last twelve passages, named and ruled out — not from sampling, so
+    // the temperature was buying very little and costing fidelity: a pt-PT
+    // passage came back with the Spanish "pedazo" in place of "pedaço".
+    // Neighbouring languages are exactly what loose sampling reaches for, and
+    // a misspelt word in a read-aloud exercise teaches the misspelling.
+    // A mitigation rather than a fix; the model is the stronger lever.
+    temperature: 0.6,
     jsonMode: true,
     responseSchema: {
       type: 'object',
       properties: {
-        text: { type: 'string' },
-        focus: { type: 'array', items: { type: 'string' } },
+        // `text` before `focus` on purpose: Gemini fills a schema in the
+        // order its properties are declared, so the passage is written
+        // first and the sounds are picked out of something that exists.
+        // Reversed, the model commits to sounds and then has to write a
+        // passage around them, which is the harder job and the one it
+        // visibly failed — `lh`, `ch` and `ões` offered against a sentence
+        // containing none of them.
+        text: {
+          type: 'string',
+          description:
+            'The passage to read aloud, in the requested language and variety only. '
+            + 'Every word must be a real word of that language.',
+        },
+        focus: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Two to four letter sequences copied verbatim out of `text`, each one a '
+            + 'sound a learner of this language finds hard. Do not list a sequence that '
+            + 'does not appear in `text`. Prefer an empty list to an invented one.',
+        },
       },
       required: ['text', 'focus'],
     },
@@ -166,7 +239,21 @@ async function _generatePassage({ token, level, targetLang, existing }) {
 
   const now = new Date().toISOString();
   const text = String(parsed.text).trim();
-  const focus = Array.isArray(parsed.focus) ? parsed.focus.map(String) : [];
+  const focus = _soundsPresentIn(text, parsed.focus);
+
+  // Stored filtered, so the pool holds something true rather than something
+  // the read path has to keep correcting. Losing every sound is worth saying
+  // out loud: the passage still reads fine and is still worth keeping, but a
+  // model that cannot find its own letters in its own sentence is a signal
+  // about the model — and this is the only place that signal is visible,
+  // since the reader just sees a card without chips.
+  if (Array.isArray(parsed.focus) && parsed.focus.length > 0 && focus.length === 0) {
+    console.warn(
+      '[pronunciationService] every focus sound was absent from the passage — '
+        + 'check the model on pronunciation-passage-prompt',
+      { focus: parsed.focus, text },
+    );
+  }
 
   const written = await createDocument(
     PASSAGES_COLLECTION,
