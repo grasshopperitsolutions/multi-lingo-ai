@@ -34,7 +34,15 @@
  *     hints: Record<string,string> // hint keyed by viewer's native locale (open-ended map)
  *     normalizedWord: string      // for comparisons
  *     graphemes: string[]         // pre-split for legacy; no longer consumed by the frontend
- *     source: string              // "human" | "ai" | "seed"
+ *     baseForm: string | null     // dictionary form of `word` in its own language
+ *                                 // ("ir" for "foram"). Metadata only — nothing reads it
+ *                                 // yet; it exists so the forms of one verb can be
+ *                                 // related later. Null on everything AI-generated.
+ *     source: string              // "human" | "ai" | "seed" | "user"
+ *                                 // "user" = promoted from somebody's dictionary lookup,
+ *                                 // which is the one source no model wrote. Unverified
+ *                                 // like the rest, and the field to filter on if the
+ *                                 // pool's quality ever slips.
  *     verified: boolean
  *     qualityScore: number | null
  *     createdAt: Timestamp
@@ -287,6 +295,98 @@ export async function getWord({
   return _generateThemedConcept({
     allConcepts, userDialect, learningDialect, maxLength, topic: chosenTopic, token,
   });
+}
+
+/**
+ * File a word somebody looked up into the shared pool, unless it is there already.
+ *
+ * ── Why the dictionary feeds the pool ──────────────────────────────────────
+ *
+ * Until now the pool only ever grew one way: a game exhausted it and asked a
+ * model to invent a word. That is the most expensive way to learn a word
+ * exists — and meanwhile every reader tapping a word mid-story was handing the
+ * app a real word, chosen by a real learner, and the app threw it away.
+ *
+ * **This costs no AI call at all.** The only thing the pool needs that a
+ * lookup does not already have is the English anchor, and that rides along on
+ * the lookup's own response schema. Nothing here can touch anyone's daily
+ * allowance, which is why it can run on every tap rather than being gated.
+ *
+ * ── Inflected forms are kept, not folded into the lemma ────────────────────
+ *
+ * `englishKey` describes the form that was looked up, so "foram" arrives as
+ * "went" and "ir" as "to go" — two concepts, both playable. Folding them onto
+ * one lemma would mean the pool keeps whichever was looked up first and a
+ * learner could never meet the conjugated form in a game. `baseForm` records
+ * the relationship without enforcing it.
+ *
+ * ── What it does not do ────────────────────────────────────────────────────
+ *
+ * No definition and no synonyms are stored: this grows the pool, it is not a
+ * dictionary cache, and the dictionary still calls the AI on every lookup.
+ * Nor does it write a hint — the translation lands with `hints: {}` and the
+ * existing on-demand path fills one in the first time a player of that
+ * language meets the word, exactly as it already does for any concept missing
+ * a hint in the viewer's dialect.
+ *
+ * **Never throws.** Silence is the right failure here; see `_growWordPool` in
+ * dictionaryService for the caller's half of that argument.
+ *
+ * @param {Object} params
+ * @param {string} params.token      - Firebase ID token
+ * @param {string} params.word       - The word as looked up, in `locale`
+ * @param {string} params.englishKey - English equivalent of that exact form
+ * @param {string} [params.baseForm] - Dictionary form in `locale`, if known
+ * @param {string} [params.pos]      - Grammatical category, from the lookup's `wordType`
+ * @param {string} params.locale     - BCP-47 locale the word is in
+ * @returns {Promise<{conceptId: string, created: boolean} | null>} null when
+ *          nothing was written — skipped, already present, or failed.
+ */
+export async function ensureConceptForWord({ token, word, englishKey, baseForm, pos, locale }) {
+  const localWord = String(word ?? '').trim();
+  const key       = String(englishKey ?? '').trim();
+
+  // A phrase is not playable in any of the games the pool feeds.
+  if (!localWord || /\s/.test(localWord)) return null;
+  // No anchor, no concept. A lookup that could not name an English equivalent
+  // did not identify the word — a typo, a fragment, a proper noun — and a word
+  // nobody can place is worse than one the pool does not have.
+  if (!key || !locale || !token) return null;
+
+  const entry = {
+    sourceWord: key.toLowerCase(),
+    // The lookup's `wordType` is already constrained to a fixed enum by its
+    // own response schema, so this needs no normalising here.
+    pos:        String(pos ?? '').trim() || null,
+    word:       localWord.toLowerCase(),
+    hints:      {},
+    baseForm:   String(baseForm ?? '').trim().toLowerCase() || null,
+    source:     'user',
+  };
+
+  try {
+    // The same guard the generate path uses, for the same reason — and here it
+    // is doing more than deduping: a concept that already exists gains this
+    // language for free, which is the quiet win. The word somebody looked up
+    // *is* the translation, so a concept sitting in the pool with only an
+    // English label becomes playable in another language at no cost.
+    const existing = await _findConceptByKey(entry.sourceWord, token);
+
+    if (existing) {
+      // Already translated here. The pooled wording wins, as it does
+      // everywhere else — it is what other players have seen.
+      if (await _fetchTranslation(existing.id, locale, token)) return null;
+
+      await _writeTranslation(existing.id, locale, entry, token);
+      return { conceptId: existing.id, created: false };
+    }
+
+    const conceptId = await _writeNewConcept(entry, locale, token, null);
+    return { conceptId, created: true };
+  } catch (err) {
+    console.warn('[getWordService] pool promotion failed:', err);
+    return null;
+  }
 }
 
 /**
@@ -553,7 +653,10 @@ async function _writeTranslation(conceptId, locale, data, token) {
         word:          data.word,
         hints:         data.hints,
         normalizedWord: data.word.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(),
-        source:        'ai',
+        baseForm:      data.baseForm ?? null,
+        // Defaults to 'ai' because that is what every caller but
+        // `ensureConceptForWord` is: a model wrote this word.
+        source:        data.source ?? 'ai',
         verified:      false,
         qualityScore:  null,
         createdAt:     now,
@@ -596,7 +699,10 @@ async function _writeNewConcept(generated, learningDialect, token, topic = null)
         sourceLang:    'en',
         sourceWord:    generated.sourceWord,
         senseKey:      null,
-        pos:           null,
+        // Null on the generate path, which has never asked a model for it. A
+        // dictionary lookup does know, because its own schema returns a
+        // `wordType` for every entry.
+        pos:           generated.pos ?? null,
         normalizedKey: generated.sourceWord.toLowerCase().trim(),
         // Interest categories this word belongs to, so _sortByPreferredTopics
         // can surface it to users who share them. An array because a word can

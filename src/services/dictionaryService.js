@@ -7,6 +7,13 @@
  * - The definition is returned in the user's interface language (interfaceLang).
  * - The synonyms are returned in the learning language (learningLang).
  *
+ * **It also has a side effect: single words grow the shared word pool.** The
+ * definition and the synonyms are not stored anywhere — every lookup is still
+ * a fresh AI call — but a one-word lookup is handed to
+ * `getWordService.ensureConceptForWord`, which files it in `wordPool` for the
+ * word games. That costs no AI call: the anchor it needs (`englishKey`) rides
+ * along on the response schema of the call already being made.
+ *
  * Usage:
  *   import { lookupWord } from '../services/dictionaryService';
  *
@@ -44,6 +51,11 @@
  *                                    stored prompt predates this field.
  * @property {string}   definition  - Short, plain-language definition in interfaceLang
  * @property {string[]} synonyms    - Synonyms in learningLang
+ * @property {string}   englishKey  - English equivalent of this exact form, the
+ *                                    anchor a word pool concept is filed under.
+ *                                    Empty when the stored prompt predates it.
+ * @property {string}   baseForm    - Dictionary form in learningLang ('ir' for
+ *                                    'foram'). Metadata only; nothing depends on it.
  */
 
 /**
@@ -60,6 +72,7 @@
 import { parseAIJSON } from '../utils/parseAIJSON';
 import { askAI } from './aiService';
 import { getPrompt, renderTemplate } from './promptService';
+import { ensureConceptForWord } from './getWordService';
 
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
@@ -150,8 +163,33 @@ function buildResponseSchema(types, commonSenses) {
             translation: { type: 'string' },
             definition: { type: 'string' },
             synonyms: { type: 'array', items: { type: 'string' } },
+            // The two fields the word pool needs, and the only reason they are
+            // asked for: the pool is keyed on English concepts, so a word
+            // looked up in the practice language has to be filed under one.
+            //
+            // `englishKey` describes **this form**, not the dictionary form,
+            // and that distinction is the whole design. Keyed on the lemma,
+            // "foram" and "ir" would collide on one concept and the pool would
+            // keep whichever arrived first — so a learner could never meet the
+            // conjugated form in a game. Keyed on the form, they are two
+            // concepts ("went" and "to go") and both are playable.
+            englishKey: {
+              type: 'string',
+              description:
+                'The English equivalent of this exact form of the word, not of its '
+                + 'dictionary form: an inflected form keeps its inflection, so Portuguese '
+                + '"foram" is "went" rather than "go". One or two words, no article, no '
+                + 'explanation. Empty if the word cannot be identified.',
+            },
+            baseForm: {
+              type: 'string',
+              description:
+                'The dictionary form of the word in its own language — the infinitive '
+                + 'for a verb, the masculine singular for an adjective. The word itself '
+                + 'when it is already in its dictionary form.',
+            },
           },
-          required: ['wordType', 'translation', 'definition', 'synonyms'],
+          required: ['wordType', 'translation', 'definition', 'synonyms', 'englishKey', 'baseForm'],
         },
       },
     },
@@ -242,6 +280,12 @@ export async function lookupWord({ token, word, interfaceLang, learningLang, wor
       synonyms: Array.isArray(e?.synonyms)
         ? e.synonyms.map((s) => String(s).trim()).filter(Boolean)
         : [],
+      // Optional on the way in for the same reason `translation` is: the
+      // template is admin-edited and the schema is what actually enforces
+      // these, so a response that predates them still renders. An entry
+      // without an englishKey simply never reaches the pool.
+      englishKey: String(e?.englishKey ?? '').trim(),
+      baseForm: String(e?.baseForm ?? '').trim(),
     }))
     .filter((e) => e.definition)
     // The most-common-sense entry can land on a category that was also listed
@@ -252,5 +296,42 @@ export async function lookupWord({ token, word, interfaceLang, learningLang, wor
 
   if (entries.length === 0) throw new Error('[dictionaryService] No definition returned');
 
+  _growWordPool({ token, word, learningLang, entry: entries[0] });
+
   return { entries };
+}
+
+// ---------------------------------------------------------------------------
+// Word pool
+// ---------------------------------------------------------------------------
+
+/**
+ * Hand a looked-up word to the shared pool, in the background.
+ *
+ * **Deliberately not awaited and deliberately unable to fail the lookup.** A
+ * reader tapped a word to find out what it means; they did not ask to
+ * contribute to a word game, and a Firestore write going wrong must not cost
+ * them the answer they were waiting for.
+ *
+ * Only the first entry is offered. Further entries are other senses of the
+ * same word — the pool holds one word per concept, so the most common sense is
+ * the one worth filing, and the rest would only ever collide with it.
+ *
+ * Only single words are offered. The pool exists for the word games, and a
+ * phrase is not playable in a crossword, hangman or a word search.
+ *
+ * @param {{token: string, word: string, learningLang: string, entry: LookupEntry}} params
+ */
+function _growWordPool({ token, word, learningLang, entry }) {
+  const bare = word.trim();
+  if (!bare || /\s/.test(bare)) return;
+
+  ensureConceptForWord({
+    token,
+    word: bare,
+    locale: learningLang,
+    englishKey: entry.englishKey,
+    baseForm: entry.baseForm,
+    pos: entry.wordType,
+  }).catch(() => { /* never the reader's problem */ });
 }

@@ -561,3 +561,223 @@ describe("getWordService — the duplicate guard", () => {
     expect(result.conceptId).toBe("brand-new");
   });
 });
+
+/**
+ * The pool grows from dictionary lookups, not only from generations.
+ *
+ * Until this existed the pool had one way to grow: a game ran out of words and
+ * paid a model to invent one — the most expensive way to learn that a word
+ * exists. Meanwhile every reader tapping a word mid-story was handing the app a
+ * real word, chosen by a real learner, and the app threw it away.
+ *
+ * These pin the two properties that make that safe: it spends no AI call, and
+ * it cannot cost anybody the answer they were actually waiting for.
+ */
+describe("getWordService — growing the pool from a lookup", () => {
+  const CONCEPT = { id: "c1", normalizedKey: "went", sourceWord: "went", status: "ready" };
+
+  const FORAM = {
+    token: "tok",
+    word: "foram",
+    englishKey: "went",
+    baseForm: "ir",
+    pos: "verb",
+    locale: "pt-PT",
+  };
+
+  /**
+   * Routes by URL, because this service talks to /api/firestore directly.
+   * `concepts` is keyed by the normalizedKey a lookup would match on;
+   * `translated` names the concepts that already speak the asked-for locale.
+   */
+  const routePool = ({ concepts = {}, translated = [] } = {}) => {
+    const posted = [];
+    globalThis.fetch = vi.fn(async (url, init) => {
+      const ok = (data) => ({ ok: true, status: 200, json: async () => ({ success: true, data }) });
+
+      if (init?.method === "POST") {
+        posted.push(JSON.parse(init.body));
+        return ok({ id: `new-${posted.length}` });
+      }
+
+      const params     = new URL(String(url)).searchParams;
+      const collection = params.get("collection");
+
+      if (collection?.endsWith("/translations")) {
+        const conceptId = collection.split("/")[1];
+        return translated.includes(conceptId)
+          ? ok({ data: { word: "already-here" } })
+          : { ok: false, status: 404, json: async () => ({}) };
+      }
+
+      const filters = JSON.parse(params.get("filters") ?? "[]");
+      const key     = filters.find((f) => f.field === "normalizedKey")?.value;
+      const hit     = concepts[key];
+      return ok({ documents: hit ? [hit] : [], hasMore: false });
+    });
+    return posted;
+  };
+
+  const ensure = async (args) => {
+    const { ensureConceptForWord } = await import("../../src/services/getWordService");
+    return ensureConceptForWord(args);
+  };
+
+  it("files a word the pool has never seen, and spends no AI call doing it", async () => {
+    const posted = routePool();
+
+    const result = await ensure(FORAM);
+
+    expect(result).toEqual({ conceptId: "new-1", created: true });
+
+    const concept = posted.find((p) => p.collection === "wordPool");
+    expect(concept.data.sourceWord).toBe("went");
+    expect(concept.data.status).toBe("ready");
+    // The generate path has never asked a model for a part of speech and
+    // writes null; a lookup already knows one, so it carries through.
+    expect(concept.data.pos).toBe("verb");
+
+    const translation = posted.find((p) => p.collection.endsWith("/translations"));
+    expect(translation.data.word).toBe("foram");
+    expect(translation.data.baseForm).toBe("ir");
+    // Findable later if the quality of this source ever slips.
+    expect(translation.data.source).toBe("user");
+    // This grows the pool; it is not a dictionary cache.
+    expect(translation.data.definition).toBeUndefined();
+    expect(translation.data.synonyms).toBeUndefined();
+
+    // The whole argument for running this on every tap: it rides on a call
+    // that already happened, so it can never touch anyone's daily allowance.
+    expect(askAI).not.toHaveBeenCalled();
+  });
+
+  it("gives an existing concept a language it did not have, rather than a copy of it", async () => {
+    // The quiet win: the word somebody looked up *is* the translation, so a
+    // concept sitting in the pool with only an English label becomes playable
+    // in another language for nothing.
+    const posted = routePool({ concepts: { went: CONCEPT } });
+
+    const result = await ensure(FORAM);
+
+    expect(result).toEqual({ conceptId: "c1", created: false });
+    expect(posted.filter((p) => p.collection === "wordPool")).toHaveLength(0);
+    expect(posted.map((p) => p.collection)).toContain("wordPool/c1/translations");
+  });
+
+  it("leaves a concept that already speaks this language alone", async () => {
+    const posted = routePool({ concepts: { went: CONCEPT }, translated: ["c1"] });
+
+    expect(await ensure(FORAM)).toBeNull();
+    expect(posted).toHaveLength(0);
+  });
+
+  it("keeps an inflected form and its infinitive as two separate concepts", async () => {
+    // The design decision this exists to pin. Anchored on the lemma, "foram"
+    // and "ir" would collide on one concept and the pool would keep whichever
+    // was looked up first — so a learner could never meet the conjugated form
+    // in a game. Anchored on the form, both are playable.
+    const posted = routePool();
+
+    await ensure(FORAM);
+    await ensure({ ...FORAM, word: "ir", englishKey: "to go" });
+
+    const concepts = posted.filter((p) => p.collection === "wordPool");
+    expect(concepts.map((p) => p.data.sourceWord)).toEqual(["went", "to go"]);
+  });
+
+  it("refuses a phrase, because none of the games it feeds can play one", async () => {
+    const posted = routePool();
+
+    expect(await ensure({ ...FORAM, word: "boa tarde" })).toBeNull();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(posted).toHaveLength(0);
+  });
+
+  it("refuses a word the lookup could not anchor in English", async () => {
+    // No englishKey means the model did not identify the word — a typo, a
+    // fragment, a proper noun. Better absent than filed under nothing.
+    const posted = routePool();
+
+    expect(await ensure({ ...FORAM, englishKey: "" })).toBeNull();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(posted).toHaveLength(0);
+  });
+
+  it("returns null rather than throwing when Firestore is unreachable", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    globalThis.fetch = vi.fn(async () => { throw new Error("network"); });
+
+    await expect(ensure(FORAM)).resolves.toBeNull();
+  });
+});
+
+describe("dictionaryService — feeding the word pool", () => {
+  const LOOKUP = JSON.stringify({
+    entries: [{
+      wordType: "verb",
+      translation: "went",
+      definition: "past tense of the verb to go",
+      synonyms: ["partiram"],
+      englishKey: "went",
+      baseForm: "ir",
+    }],
+  });
+
+  /** The promotion is deliberately not awaited, so give it a tick to land. */
+  const settle = () => new Promise((resolve) => { setTimeout(resolve, 0); });
+
+  let posted;
+
+  beforeEach(() => {
+    posted = [];
+    askAI.mockResolvedValue(aiText(LOOKUP));
+    globalThis.fetch = vi.fn(async (url, init) => {
+      const ok = (data) => ({ ok: true, status: 200, json: async () => ({ success: true, data }) });
+      if (init?.method === "POST") {
+        posted.push(JSON.parse(init.body));
+        return ok({ id: "new" });
+      }
+      if (new URL(String(url)).searchParams.get("collection")?.endsWith("/translations")) {
+        return { ok: false, status: 404, json: async () => ({}) };
+      }
+      return ok({ documents: [], hasMore: false });
+    });
+  });
+
+  const look = async (word) => {
+    const { lookupWord } = await import("../../src/services/dictionaryService");
+    return lookupWord({ token: "tok", word, interfaceLang: "en-US", learningLang: "pt-PT" });
+  };
+
+  it("files a single looked-up word, without a second AI call", async () => {
+    const result = await look("foram");
+    await settle();
+
+    expect(result.entries[0].englishKey).toBe("went");
+    expect(posted.find((p) => p.collection === "wordPool")?.data.sourceWord).toBe("went");
+    // One call, and it is the lookup. Promotion is Firestore only.
+    expect(askAI).toHaveBeenCalledTimes(1);
+  });
+
+  it("files nothing for a phrase", async () => {
+    await look("boa tarde");
+    await settle();
+
+    expect(posted).toHaveLength(0);
+  });
+
+  it("still answers the reader when the pool write fails", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { lookupWord } = await import("../../src/services/dictionaryService");
+    globalThis.fetch = vi.fn(async () => { throw new Error("network"); });
+    const result = await lookupWord({
+      token: "tok", word: "foram", interfaceLang: "en-US", learningLang: "pt-PT",
+    });
+    await settle();
+
+    // They asked what a word means. A background write going wrong is not
+    // their problem, and must not become their error screen.
+    expect(result.entries[0].definition).toBe("past tense of the verb to go");
+  });
+});
