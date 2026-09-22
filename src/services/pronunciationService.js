@@ -42,18 +42,23 @@ import { parseAIJSON } from '../utils/parseAIJSON';
 
 export const PASSAGES_COLLECTION = 'pronunciationPassages';
 
-/** Only used when the prompt document names no model of its own. */
-const GEMINI_MODEL = 'gemini-3.5-flash-lite';
-
 /**
- * The transcribe model, used when `pronunciation-feedback-prompt` names none.
+ * Only used when the prompt document names no model of its own.
  *
- * Worth knowing: a transcription model may return only a transcript and ignore
- * the rest of the instruction. If the feedback comes back empty, the fix is the
- * `model` field on that prompt document in Admin — `gemini-3.8-flash` is what
- * Google's own audio docs use for listening tasks — and it needs no deploy.
+ * **Both calls here use it, including the one that listens.** The feedback
+ * call used to fall back to `gemini-3.5-transcribe`, on the reasoning that a
+ * listening task wants a listening model. That was wrong in the way this file
+ * had already written down as a risk: a transcription model returns a
+ * transcript and ignores the rest of the instruction, so readers got their
+ * words back with no score, no summary and no issues — the feature's entire
+ * point, missing, while the call still cost them one of their daily requests.
+ *
+ * `gemini-3.5-flash-lite` reads the audio and writes the feedback, and is what
+ * almost every other service here runs on. Gemini's 3.x text models take audio
+ * the same way they take images, so there is no separate listening model to
+ * configure — the same thing already noted about photo capture and vision.
  */
-const GEMINI_TRANSCRIBE_MODEL = 'gemini-3.5-transcribe';
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 /** Enough to hear several sounds, short enough that nobody stumbles from length. */
 const SENTENCES_BY_LEVEL = { A1: 2, A2: 2, B1: 3, B2: 3, C1: 4, C2: 4 };
@@ -233,7 +238,7 @@ export async function gradePronunciation({
 
   const providerParams = {
     provider: 'gemini',
-    model: promptDoc.model || GEMINI_TRANSCRIBE_MODEL,
+    model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
     temperature: 0.2,
     jsonMode: true,
@@ -250,8 +255,9 @@ export async function gradePronunciation({
   return {
     transcript: parsed.transcript ? String(parsed.transcript).trim() : '',
     // Clamped rather than trusted. A score outside 0-100 renders as a broken
-    // meter, and one missing entirely is likelier than it looks when the model
-    // is a transcription model being asked to do more than transcribe.
+    // meter, and one missing entirely is not hypothetical — it is exactly what
+    // the transcribe model this used to default to returned, every time.
+    // The model is admin-editable, so the next wrong one is a field away.
     score: _clampScore(parsed.score),
     summary: parsed.summary ? String(parsed.summary).trim() : '',
     issues: Array.isArray(parsed.issues)

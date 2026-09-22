@@ -1075,13 +1075,32 @@ checking the MIME type**, because a browser labels a recording
 `audio/webm;codecs=opus` and matching the full string would reject every
 recording Chrome makes.
 
-**The model is `gemini-3.5-transcribe` by way of the prompt document's blank
-`model` field.** Worth knowing the risk that bought: a transcription model may
-return a transcript and ignore the rest of the instruction. The service is
-built to degrade into something renderable if that happens — a missing score
-renders as no score rather than zero, missing issues as an empty list — and
-the fix is one field in Admin (`gemini-3.8-flash` is what Google's audio docs
-use for listening tasks), with no deploy.
+**The model is `gemini-3.5-flash-lite`, the same one almost everything else
+here runs on — and it got there the hard way.** It used to default to
+`gemini-3.5-transcribe`, on the reasoning that a listening task wants a
+listening model. This file recorded that as a risk at the time: *a
+transcription model may return a transcript and ignore the rest of the
+instruction.* It does. Readers got their own words back with no score, no
+summary and no issues — the whole point of the feature, missing — while the
+call still spent one of their daily requests.
+
+Two things to take from it. **A model named for the input is not necessarily
+right for the output**: the task here is not transcription, it is judgement
+about a reading, and it happens to arrive as audio. Gemini's 3.x text models
+accept audio exactly as they accept images, so there is no listening model to
+pick — the same point already made about photo capture and vision.
+
+And **the degrade-gracefully design was the wrong safety net for this.** The
+service renders a missing score as no score and missing issues as an empty
+list, which is right for a bad response and wrong as a way to notice a
+permanently bad *model*: it made a feature returning nothing look like a
+feature having an off day, for as long as nobody complained. The clamp and
+the empty-list handling stay, because a model can still wander; what is no
+longer acceptable is treating that as the only signal.
+
+Confirmed working by changing the field in Admin before it was changed in
+code, which is what that field is for — the fallback constant now matches so
+that clearing it cannot quietly restore the broken behaviour.
 
 ## Photographing your own notes
 

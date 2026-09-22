@@ -146,14 +146,19 @@ describe("gradePronunciation", () => {
     expect(askAI.mock.calls[0][1]).toContain("O pão estava quente.");
   });
 
-  it("defaults to the transcribe model when the prompt names none", async () => {
+  it("falls back to the ordinary text model, not a transcription one", async () => {
+    // It defaulted to gemini-3.5-transcribe once, and that model did exactly
+    // what this file's own comment warned it might: returned the transcript
+    // and ignored the instruction, so every reading came back with no score,
+    // no summary and no issues while still costing a daily call. The task is
+    // judgement about a reading; audio is merely how it arrives.
     await call();
 
-    expect(askAI.mock.calls[0][2].model).toBe("gemini-3.5-transcribe");
+    expect(askAI.mock.calls[0][2].model).toBe("gemini-3.5-flash-lite");
   });
 
   it("lets the prompt document override the model without a deploy", async () => {
-    // The escape hatch if gemini-3.5-transcribe turns out to only transcribe.
+    // How the fix above was confirmed in production before it was code.
     getPrompt.mockResolvedValue({ template: FEEDBACK_TEMPLATE, model: "gemini-3.8-flash" });
 
     await call();
