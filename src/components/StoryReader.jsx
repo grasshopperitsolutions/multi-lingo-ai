@@ -170,10 +170,10 @@ const StoryReader = ({ isDarkMode }) => {
   // the other half — React bails out of the re-render instead of taking a new
   // array that happens to hold the same words, which is what turned this into
   // an infinite loop the first time round.
-  const bankedKey = bankedWords.join(" ");
+  const bankedKey = bankedWords.join("\u0000");
   useEffect(() => {
     setSelectedWords((prev) => {
-      const next = prev.filter((word) => bankedKey.split(" ").includes(word));
+      const next = prev.filter((word) => bankedKey.split("\u0000").includes(word));
       return next.length === prev.length ? prev : next;
     });
   }, [bankedKey]);
