@@ -639,6 +639,9 @@ export const AppProvider = ({ children }) => {
         // tutor. Absent until chosen; config/aiVoices resolves that (and any
         // name no longer offered) to the default.
         preferredVoice: profile?.preferredVoice ?? null,
+        // The compass cursor. Only an explicit false turns it off; absent is
+        // on, which is every user until they change it.
+        customCursor: profile?.customCursor ?? null,
         // IANA zone, chosen in Settings and captured from the browser on the
         // first load that finds it missing. The reminder job treats "not set"
         // as its own case and skips the user rather than assuming UTC, which

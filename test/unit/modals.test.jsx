@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nextProvider } from "react-i18next";
 import { makeAppContext } from "../helpers/appContext";
@@ -243,13 +243,31 @@ describe("remaining leaf components", () => {
     expect(container.querySelectorAll("input, textarea")).toHaveLength(0);
   });
 
-  it("GlobalCompassCursor renders at a position", async () => {
-    const { container } = await mount(
-      () => import("../../src/components/GlobalCompassCursor"),
-      { x: 10, y: 20 },
-    );
+  it("GlobalCompassCursor follows the mouse itself", async () => {
+    // The position used to be state in AppLayout, which renders every page,
+    // so each mouse move re-rendered whatever was open. It is tracked inside
+    // the component now; this pins that it moves on its own.
+    const { container } = await mount(() => import("../../src/components/GlobalCompassCursor"));
+    const compass = container.querySelector("div.fixed");
 
-    await waitFor(() => expect(container).toBeTruthy());
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent("mousemove", { clientX: 120, clientY: 45 }));
+    });
+
+    expect(compass.style.left).toBe("120px");
+    expect(compass.style.top).toBe("45px");
+  });
+
+  it("GlobalCompassCursor hides the native pointer only while it is mounted", async () => {
+    // Turning the compass off in Settings unmounts it, and the system cursor
+    // must come back with it rather than leave the page with no pointer.
+    const view = await mount(() => import("../../src/components/GlobalCompassCursor"));
+    const hidesPointer = () =>
+      [...document.querySelectorAll("style")].some((tag) => tag.textContent.includes("cursor: none"));
+
+    expect(hidesPointer()).toBe(true);
+    view.unmount();
+    expect(hidesPointer()).toBe(false);
   });
 
   it("AiGenerationConfirm renders when a confirmation is pending", async () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import PropTypes from "prop-types";
 import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { AppProvider, useAppContext } from "./contexts/AppContext";
@@ -131,42 +131,28 @@ RequireAdmin.propTypes = {
 };
 
 const AppLayout = () => {
-  const { isDarkMode, alert, closeAlert } = useAppContext();
+  const { isDarkMode, alert, closeAlert, user } = useAppContext();
   const { pathname } = useLocation();
-  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
   // Detect touch/mobile devices — compass cursor is mouse-only
   const isTouchDevice =
     typeof window !== "undefined" &&
     (navigator.maxTouchPoints > 0 || "ontouchstart" in window);
 
-  useEffect(() => {
-    if (isTouchDevice) return; // skip mouse tracking on mobile
-
-    const handleMouseMove = (e) => {
-      setCursorPos({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [isTouchDevice]);
+  // On unless the learner turned it off in Settings › Appearance; absent means
+  // "never chosen", which is on, as it was for everyone before the switch.
+  // The mouse tracking lives inside the component, so this layout — which
+  // renders every page — no longer re-renders on each mouse move.
+  const showCompass = !isTouchDevice && user?.customCursor !== false;
 
   return (
     <>
-      {!isTouchDevice && (
-        <style>{`* { cursor: none !important; }`}</style>
-      )}
       <AlertMessage alert={alert} onClose={closeAlert} />
 
       {/* Asks before any billable AI call — see services/aiService.js */}
       <AiGenerationConfirm />
 
-      {!isTouchDevice && (
-        <GlobalCompassCursor
-          x={cursorPos.x}
-          y={cursorPos.y}
-          isDarkMode={isDarkMode}
-        />
-      )}
+      {showCompass && <GlobalCompassCursor isDarkMode={isDarkMode} />}
 
       <div
         className={`min-h-screen transition-colors duration-500 flex flex-col overflow-x-hidden

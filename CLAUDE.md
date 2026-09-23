@@ -132,7 +132,7 @@ panel is the only place those four messages are visible outside the repo.
 Per-language wording is unchanged: other locales are still Firestore documents,
 still translated from this file, and still fixed by a force resync.
 
-## The theme and the AI voice save on pick; everything else waits for Save
+## The theme, the AI voice and the cursor save on pick; everything else waits for Save
 
 `/settings` batches its fields behind a Save button, and the theme was in that
 batch. It is the one setting whose effect you see immediately, so the screen
@@ -156,6 +156,18 @@ conversation it was made for. `handleChangeVoice` writes only
 `preferredVoice`, applies it to the context user first, and puts it back if
 the write fails. Like `theme`, it is outside the Save payload and the dirty
 check.
+
+**The compass cursor is the third**, and for the theme's reason — its effect
+is under the hand that pressed it. `users/{uid}.customCursor` turns it off only
+when explicitly `false`; absent is on, as it was for everyone before the switch
+existed. Some users reported problems with it, and one likely cause was
+structural rather than a preference: the mouse position was state in
+`AppLayout`, which renders every route, so each mouse move — dozens a second —
+re-rendered whichever page was open. `GlobalCompassCursor` now tracks the mouse
+itself and owns the rule that hides the native pointer, so a move re-renders
+one small element, and turning it off (unmounting it) brings the system cursor
+back, I-beam in text fields included. Do not move the position back up into a
+layout component.
 
 ## One voice for everything the app says aloud
 

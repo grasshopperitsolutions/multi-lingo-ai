@@ -30,6 +30,8 @@ import {
   ExternalLink,
   Clock,
   Volume2,
+  Compass,
+  MousePointer2,
 } from "lucide-react";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { SettingsSection, TtsControls } from "../components/ui";
@@ -183,6 +185,7 @@ const SettingsForm = ({
   interests, setInterests,
   isDarkModeOn, onToggleTheme, isSavingTheme,
   preferredVoice, onChangeVoice, isSavingVoice,
+  customCursorOn, onToggleCursor, isSavingCursor,
   timezone, setTimezone,
   isSaving, isUploading, handleSave,
   previewUrl, onFileSelect,
@@ -317,6 +320,35 @@ const SettingsForm = ({
               <span>{isDarkModeOn ? t("settings.dark_mode") : t("settings.light_mode")}</span>
               {isDarkModeOn ? <Moon size={20} /> : <Sun size={20} />}
             </button>
+          </div>
+          {/* The compass cursor. Saves on click like the theme, because its
+              effect is just as immediate — the pointer changes under the
+              hand that pressed it. */}
+          <div>
+            <label className={labelClasses}>
+              <Compass size={12} className="inline mr-1" /> {t("settings.custom_cursor")}
+            </label>
+            <button
+              type="button"
+              onClick={onToggleCursor}
+              disabled={isSavingCursor}
+              aria-pressed={customCursorOn}
+              className={`w-full flex items-center justify-between px-5 py-3 rounded-xl border-4 font-black uppercase tracking-widest transition-all active:scale-95
+                ${ customCursorOn
+                  ? (isDarkMode
+                    ? "bg-slate-700 border-yellow-400 text-yellow-400 shadow-[4px_4px_0px_0px_#ca8a04]"
+                    : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]")
+                  : (isDarkMode
+                    ? "bg-slate-800 border-slate-600 text-slate-400 shadow-[4px_4px_0px_0px_#0f172a]"
+                    : "bg-white border-slate-300 text-slate-500 shadow-[4px_4px_0px_0px_#cbd5e1]")
+                }`}
+            >
+              <span>{customCursorOn ? t("settings.custom_cursor_on") : t("settings.custom_cursor_off")}</span>
+              {customCursorOn ? <Compass size={20} /> : <MousePointer2 size={20} />}
+            </button>
+            <p className={`mt-2 text-xs font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              {t("settings.custom_cursor_hint")}
+            </p>
           </div>
           {/* Saves on pick, like the theme, not with the Save button. The
               spoken tutor links straight here to change it, and a choice that
@@ -540,6 +572,10 @@ SettingsForm.propTypes = {
   preferredVoice:     PropTypes.string.isRequired,
   onChangeVoice:      PropTypes.func.isRequired,
   isSavingVoice:      PropTypes.bool.isRequired,
+  /** True unless the profile says `customCursor: false`. */
+  customCursorOn:     PropTypes.bool.isRequired,
+  onToggleCursor:     PropTypes.func.isRequired,
+  isSavingCursor:     PropTypes.bool.isRequired,
   timezone:           PropTypes.string.isRequired,
   setTimezone:        PropTypes.func.isRequired,
   setDraftDarkMode:   PropTypes.func.isRequired,
@@ -619,6 +655,7 @@ const SettingsPage = () => {
   const [timezone,         setTimezone]         = useState(() => user?.timezone || detectTimezone());
   const [isSavingTheme,    setIsSavingTheme]    = useState(false);
   const [isSavingVoice,    setIsSavingVoice]    = useState(false);
+  const [isSavingCursor,   setIsSavingCursor]   = useState(false);
 
   const [isSaving,         setIsSaving]         = useState(false);
 
@@ -854,6 +891,30 @@ const SettingsPage = () => {
     }
   };
 
+  /**
+   * Turn the compass cursor on or off — on click, like the theme, since the
+   * pointer changes the instant it is pressed. One field, applied to the
+   * context user first and put back if the write fails.
+   */
+  const handleToggleCursor = async () => {
+    const firebaseUser = auth?.currentUser;
+    if (!firebaseUser) return;
+
+    const previous = user?.customCursor ?? null;
+    const next = previous === false; // off turns on; on or never-chosen turns off
+    setUser((prev) => (prev ? { ...prev, customCursor: next } : prev));
+    setIsSavingCursor(true);
+    try {
+      const token = await firebaseUser.getIdToken();
+      await updateUserProfile(token, firebaseUser.uid, { customCursor: next });
+    } catch (err) {
+      setUser((prev) => (prev ? { ...prev, customCursor: previous } : prev));
+      showAlert("error", err.message || t("settings.errors.save_failed"));
+    } finally {
+      setIsSavingCursor(false);
+    }
+  };
+
   const handleLogout = async () => {
     const result = await logoutUser();
     if (result?.success) navigate("/");
@@ -938,6 +999,9 @@ const SettingsPage = () => {
         preferredVoice={resolveVoice(user?.preferredVoice)}
         onChangeVoice={handleChangeVoice}
         isSavingVoice={isSavingVoice}
+        customCursorOn={user?.customCursor !== false}
+        onToggleCursor={handleToggleCursor}
+        isSavingCursor={isSavingCursor}
         timezone={timezone}
         setTimezone={setTimezone}
         isSaving={isSaving}
