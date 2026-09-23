@@ -18,6 +18,7 @@
 
 import { apiFetch } from './apiClient';
 import { getPrompt, renderTemplate } from './promptService';
+import { Sentry } from '../sentry';
 
 /**
  * Used when `live-tutor-prompt` names no model — the state of a fresh install.
@@ -29,6 +30,55 @@ import { getPrompt, renderTemplate } from './promptService';
  * since a token only works with the model it was minted for.
  */
 const FALLBACK_MODEL = 'gemini-3.8-live-extended-thinking';
+
+/**
+ * The thinking level that travels with FALLBACK_MODEL, and only with it.
+ *
+ * **`gemini-3.8-live-extended-thinking` refuses a session that does not name
+ * one** — the socket opens and closes within 300 ms with 1007 "Thinking level
+ * must be specified for this model." Google's own guide says thinking is
+ * "supported but not required" for this model; the server disagrees, and the
+ * server is what answers.
+ *
+ * Low because this is a conversation: every level of thought is latency before
+ * the tutor speaks, and a pause that reads as thinking in text reads as a
+ * dropped line in a voice. `minimal` is not accepted by this model.
+ *
+ * Paired with the fallback model rather than sent for every model, so nothing
+ * here guesses from a model's *name* whether it thinks. A prompt document that
+ * names its own model owns its thinking level too: set `thinkingLevel` beside
+ * `model` in Admin (it sits in the raw-JSON box), or leave it blank for a
+ * model that does not think.
+ */
+const FALLBACK_THINKING_LEVEL = 'LOW';
+
+/** The values Google accepts, in the case the wire expects. */
+const THINKING_LEVELS = ['MINIMAL', 'LOW', 'MEDIUM', 'HIGH'];
+
+/**
+ * Resolve the thinking level for a prompt document.
+ *
+ * Normalised here rather than trusted as typed, because it is typed by hand
+ * into a JSON box: "low" and "LOW" should both work, and a typo should warn
+ * rather than surface as a refusal from Google with no pointer back to Admin.
+ *
+ * @param {{model?: string, thinkingLevel?: string}} promptDoc
+ * @returns {string} '' when none should be sent
+ */
+function _thinkingLevelFor(promptDoc) {
+  const asked = String(promptDoc.thinkingLevel ?? '').trim().toUpperCase();
+
+  if (asked) {
+    if (THINKING_LEVELS.includes(asked)) return asked;
+    console.warn(
+      `[liveTutorService] "${promptDoc.thinkingLevel}" is not a thinking level `
+        + `(expected one of ${THINKING_LEVELS.join(', ')}). Fix it on "live-tutor-prompt" in Admin.`,
+    );
+    return '';
+  }
+
+  return promptDoc.model ? '' : FALLBACK_THINKING_LEVEL;
+}
 
 /**
  * Fetch a one-session token for `model`.
@@ -69,7 +119,7 @@ export async function requestLiveToken(token, model) {
  * is being practised, which one to explain in, and the level to pitch at.
  *
  * @param {{targetLang: string, explanationLang: string, level: string, displayName?: string}} params
- * @returns {Promise<{instructions: string, model: string}>}
+ * @returns {Promise<{instructions: string, model: string, thinkingLevel: string}>}
  */
 export async function buildTutorInstructions({ targetLang, explanationLang, level, displayName }) {
   const promptDoc = await getPrompt('live-tutor-prompt');
@@ -92,7 +142,28 @@ export async function buildTutorInstructions({ targetLang, explanationLang, leve
       learnerName: displayName || '',
     }),
     model: promptDoc.model || FALLBACK_MODEL,
+    thinkingLevel: _thinkingLevelFor(promptDoc),
   };
+}
+
+/** A WebSocket close that means "finished", as opposed to "refused" or "broken". */
+const NORMAL_CLOSURE = 1000;
+
+/**
+ * Say why a session ended, somewhere somebody will read it.
+ *
+ * **Google's close frame is the only place a refused session explains
+ * itself**, and it used to be thrown away: `onclose` ignored its event, the
+ * hook took every close as the learner pressing stop, and a session the server
+ * refused within 300 ms looked like one that ended normally. That hid two
+ * separate faults for the life of this feature.
+ *
+ * Code, reason and model only — never audio, never a transcript. Fault-fixing,
+ * which is what the privacy policy lists Sentry for.
+ */
+function _reportClose(event, { code, reason }, model) {
+  console.error(`[liveTutorService] ${event}: ${code} ${reason}`, { model });
+  Sentry.captureMessage(event, { level: 'error', extra: { code, reason, model } });
 }
 
 /**
@@ -102,21 +173,32 @@ export async function buildTutorInstructions({ targetLang, explanationLang, leve
  * fires when the model is cut off mid-sentence — everything already queued for
  * playback has to stop, or the tutor keeps talking over the learner.
  *
+ * **A refused setup rejects, with Google's reason as the message.** The SDK's
+ * `live.connect` resolves only once the server acknowledges the setup; when the
+ * server closes the socket instead, that promise never settles at all. So it
+ * is raced against the close, and the caller gets an error it can show rather
+ * than a `start()` that waits for ever.
+ *
+ * `onClose` receives `{code, reason}` for anything after setup, so the caller
+ * can tell a dropped line from the end of a lesson.
+ *
  * @param {object} params
  * @param {string} params.liveToken     - from requestLiveToken
  * @param {string} params.model
+ * @param {string} [params.thinkingLevel] - from buildTutorInstructions; '' sends none
  * @param {string} params.instructions  - the system instruction
  * @param {(base64: string) => void} params.onAudio
  * @param {() => void} [params.onInterrupted]
  * @param {(text: string, isUser: boolean) => void} [params.onTranscript]
  * @param {() => void} [params.onOpen]
  * @param {(error: Error) => void} [params.onError]
- * @param {() => void} [params.onClose]
+ * @param {(closed: {code: number|null, reason: string}) => void} [params.onClose]
  * @returns {Promise<{sendAudio: (base64: string) => void, close: () => void}>}
  */
 export async function connectLiveTutor({
   liveToken,
   model,
+  thinkingLevel,
   instructions,
   onAudio,
   onInterrupted,
@@ -131,41 +213,76 @@ export async function connectLiveTutor({
   // it is short-lived, single-use, and locked to this model server-side.
   const ai = new GoogleGenAI({ apiKey: liveToken });
 
-  const session = await ai.live.connect({
-    model,
-    config: {
-      responseModalities: [Modality.AUDIO],
-      systemInstruction: instructions,
-      // Asked for explicitly so the conversation can be shown as it happens.
-      // A spoken lesson with no text is impossible to follow back over, and a
-      // learner who mishears a correction has no way to check it.
-      inputAudioTranscription: {},
-      outputAudioTranscription: {},
-    },
-    callbacks: {
-      onopen: () => onOpen?.(),
-      onmessage: (message) => {
-        const content = message?.serverContent;
+  // All of this reaches the model only because /api/live-token sends a
+  // `fieldMask`. Without one, the token's own setup replaced this object
+  // wholesale — the instruction below was silently dropped and the tutor spoke
+  // as a generic assistant. If that ever happens again, look there first.
+  const config = {
+    responseModalities: [Modality.AUDIO],
+    systemInstruction: instructions,
+    // Asked for explicitly so the conversation can be shown as it happens.
+    // A spoken lesson with no text is impossible to follow back over, and a
+    // learner who mishears a correction has no way to check it.
+    inputAudioTranscription: {},
+    outputAudioTranscription: {},
+  };
+  if (thinkingLevel) config.thinkingConfig = { thinkingLevel };
 
-        // Interruption first: whatever else this message carries, the queued
-        // audio is now stale and must not keep playing.
-        if (content?.interrupted) onInterrupted?.();
+  let setupDone = false;
+  let closingOnPurpose = false;
+  let refuse = () => {};
+  const refused = new Promise((_, reject) => { refuse = reject; });
 
-        for (const part of content?.modelTurn?.parts ?? []) {
-          if (part?.inlineData?.data) onAudio(part.inlineData.data);
-        }
+  const session = await Promise.race([
+    ai.live.connect({
+      model,
+      config,
+      callbacks: {
+        onopen: () => onOpen?.(),
+        onmessage: (message) => {
+          const content = message?.serverContent;
 
-        if (content?.inputTranscription?.text) {
-          onTranscript?.(content.inputTranscription.text, true);
-        }
-        if (content?.outputTranscription?.text) {
-          onTranscript?.(content.outputTranscription.text, false);
-        }
+          // Interruption first: whatever else this message carries, the queued
+          // audio is now stale and must not keep playing.
+          if (content?.interrupted) onInterrupted?.();
+
+          for (const part of content?.modelTurn?.parts ?? []) {
+            if (part?.inlineData?.data) onAudio(part.inlineData.data);
+          }
+
+          if (content?.inputTranscription?.text) {
+            onTranscript?.(content.inputTranscription.text, true);
+          }
+          if (content?.outputTranscription?.text) {
+            onTranscript?.(content.outputTranscription.text, false);
+          }
+        },
+        onerror: (event) => onError?.(new Error(event?.message ?? 'Live session error')),
+        onclose: (event) => {
+          const closed = { code: event?.code ?? null, reason: event?.reason ?? '' };
+
+          if (!setupDone) {
+            _reportClose('live_session_refused', closed, model);
+            refuse(Object.assign(
+              new Error(closed.reason || `Live session refused (${closed.code})`),
+              closed,
+            ));
+            return;
+          }
+
+          // Our own close() arrives here too, usually as 1005 rather than
+          // 1000, and reporting every lesson a learner finished would bury the
+          // ones that actually broke.
+          if (!closingOnPurpose && closed.code !== NORMAL_CLOSURE) {
+            _reportClose('live_session_dropped', closed, model);
+          }
+          onClose?.(closed);
+        },
       },
-      onerror: (event) => onError?.(new Error(event?.message ?? 'Live session error')),
-      onclose: () => onClose?.(),
-    },
-  });
+    }),
+    refused,
+  ]);
+  setupDone = true;
 
   return {
     sendAudio(base64) {
@@ -174,6 +291,7 @@ export async function connectLiveTutor({
       });
     },
     close() {
+      closingOnPurpose = true;
       try {
         session.close();
       } catch {

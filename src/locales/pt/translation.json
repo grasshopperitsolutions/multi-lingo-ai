@@ -1247,6 +1247,7 @@
     "ended": "Conversa terminada.",
     "ended_idle": "Como ficou tudo em silêncio, a conversa terminou.",
     "ended_limit": "A conversa chegou ao tempo máximo e terminou.",
+    "ended_dropped": "A ligação caiu e a conversa terminou.",
     "ended_hint": "Podes começar outra quando quiseres.",
     "privacy_note": "A conversa não fica gravada — nem o áudio nem a transcrição.",
     "mic_denied": "Não conseguimos usar o microfone. Dá permissão ao teu navegador e tenta outra vez.",

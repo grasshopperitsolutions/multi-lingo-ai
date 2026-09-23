@@ -889,6 +889,21 @@ reaches the browser. Consequence to keep in view: **the server cannot meter the
 conversation** — not minutes, not content — so "may a session begin" is the
 only quantity anyone controls, and `aiCallsToday` is deliberately untouched.
 
+**Three things the Live API needs that no document said, all found by
+opening a real socket and reading the close frame.** The token must carry a
+`fieldMask`, or its setup silently replaces everything this app sends — the
+tutor's instructions included, so it connects and talks as a generic
+assistant (the sibling repo's CLAUDE.md has the experiment).
+`gemini-3.8-live-extended-thinking` refuses any session without a thinking
+level, whatever Google's guide says, so `FALLBACK_THINKING_LEVEL` travels with
+`FALLBACK_MODEL`; a prompt that names its own model owns its `thinkingLevel`
+too, in Admin's raw-JSON box. And **the close frame is the only place a refused
+session explains itself**: the SDK's `live.connect` never settles when setup is
+refused, so `connectLiveTutor` races it against the close and rejects with
+Google's reason, and a drop after setup ends as `END_REASON.DROPPED` rather
+than looking like the learner pressed stop. Both reach Sentry. If this feature
+misbehaves, read the close code before reading any documentation.
+
 **Nothing from the pronunciation feature transfers, and `pcmAudio.js` exists
 because of it.** Live wants raw little-endian PCM16 — 16 kHz up, 24 kHz down —
 while `MediaRecorder` produces a *container* (webm/opus, mp4). A container is

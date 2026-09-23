@@ -42,6 +42,10 @@ export const END_REASON = {
   USER: "user",
   IDLE: "idle",
   LIMIT: "limit",
+  // The other end hung up. Used to fall through to USER, which is how a
+  // session Google refused within 300 ms read on screen as the learner having
+  // pressed stop — a fault indistinguishable from a normal ending.
+  DROPPED: "dropped",
 };
 
 /**
@@ -148,7 +152,7 @@ export function useLiveTutor({ user, targetLang, explanationLang, level }) {
       // The prompt document comes first, because the token is minted *for* a
       // model and that is where the model is configured. It is a cached read
       // in practice — promptService holds the list for the life of the tab.
-      const { instructions, model } = await buildTutorInstructions({
+      const { instructions, model, thinkingLevel } = await buildTutorInstructions({
         targetLang,
         explanationLang,
         level,
@@ -175,6 +179,7 @@ export function useLiveTutor({ user, targetLang, explanationLang, level }) {
         // from `model` only when the API fell back, which is exactly the case
         // where following it rather than our own value is what connects.
         model: serverModel || model,
+        thinkingLevel,
         instructions,
         onAudio: (base64) => {
           if (stoppingRef.current) return;
@@ -198,7 +203,9 @@ export function useLiveTutor({ user, targetLang, explanationLang, level }) {
           stop();
         },
         onClose: () => {
-          if (!stoppingRef.current) stop();
+          // Only reachable after setup: a refusal rejects connectLiveTutor
+          // instead, and lands in the catch below with Google's reason.
+          if (!stoppingRef.current) stop(END_REASON.DROPPED);
         },
       });
       sessionRef.current = session;

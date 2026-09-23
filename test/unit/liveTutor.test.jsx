@@ -386,3 +386,31 @@ describe("when it cannot start", () => {
     expect(result.current.error).toContain("plan");
   });
 });
+
+describe("what reaches the connection, and how it ends", () => {
+  it("passes the thinking level from the prompt document to the connection", async () => {
+    // gemini-3.8-live-extended-thinking refuses any session that does not name
+    // one — 1007 within 300 ms. Resolved once, off the same prompt read as
+    // the model, and dropping it here would bring that refusal straight back.
+    buildTutorInstructions.mockResolvedValue({
+      instructions: "be a tutor", model: "from-prompt", thinkingLevel: "LOW",
+    });
+    const { result } = await mount();
+
+    await act(async () => { await result.current.start(); });
+
+    expect(connectLiveTutor.mock.calls[0][0].thinkingLevel).toBe("LOW");
+  });
+
+  it("says the line dropped when Google hangs up, not that the learner stopped", async () => {
+    // Every close used to read as END_REASON.USER, so a session the server
+    // ended looked exactly like one the learner finished on purpose.
+    const { result } = await mount();
+    await act(async () => { await result.current.start(); });
+
+    await act(async () => { callbacks.onClose({ code: 1011, reason: "Internal error" }); });
+
+    await waitFor(() => expect(result.current.status).toBe("ended"));
+    expect(result.current.endedBy).toBe("dropped");
+  });
+});

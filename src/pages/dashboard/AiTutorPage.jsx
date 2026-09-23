@@ -108,7 +108,9 @@ const AiTutorPage = () => {
       ? `${t("live_tutor.ended_idle")} ${t("live_tutor.ended_hint")}`
       : endedBy === END_REASON.LIMIT
         ? `${t("live_tutor.ended_limit")} ${t("live_tutor.ended_hint")}`
-        : `${t("live_tutor.ended")} ${t("live_tutor.ended_hint")}`;
+        : endedBy === END_REASON.DROPPED
+          ? `${t("live_tutor.ended_dropped")} ${t("live_tutor.ended_hint")}`
+          : `${t("live_tutor.ended")} ${t("live_tutor.ended_hint")}`;
 
   const statusLabel = isConnecting
     ? t("live_tutor.connecting")
