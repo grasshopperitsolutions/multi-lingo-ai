@@ -25,6 +25,7 @@
 
 import { askAI } from './aiService';
 import { getPrompt, renderTemplate } from './promptService';
+import { DEFAULT_AI_VOICE, resolveVoice } from '../config/aiVoices';
 
 /**
  * Fallback TTS model, used only when the `tts-build-prompt` Firestore doc has
@@ -70,20 +71,35 @@ function _paceConfig(pace) {
 }
 
 /**
- * Prebuilt Gemini TTS voices, split by perceived gender.
+ * The learner's chosen voice, for every clip.
  *
- * Every clip used to be read by 'Sulafat' (female), so a dialogue between two
- * people sounded like one person talking to herself — students had no way to
- * tell speakers apart. Until multi-speaker synthesis lands, the voice is picked
- * deterministically from the text so that a given transcript always sounds the
- * same (re-reading an exercise doesn't swap the narrator) while different
- * exercises vary.
+ * **This replaced a deliberate variety, on purpose.** The voice used to be
+ * hashed from the text across eight voices, so different exercises sounded
+ * like different people. That made sense when nobody could choose; now the
+ * learner picks one voice in Settings and hears it everywhere — the same one
+ * the spoken tutor uses — which is the point of choosing.
+ *
+ * Module state rather than a parameter on every call, because TTS is reached
+ * from three components and a hook, and "everywhere" should not depend on
+ * each of them remembering to pass it. AppContext sets it whenever the
+ * profile's `preferredVoice` changes, the same way it registers the AI confirm
+ * handler.
+ *
+ * Two costs worth knowing. The server-side clip cache keys on the voice, so
+ * clips cached under the old per-text voices are not reused by anyone whose
+ * voice differs — they are regenerated once. And a learner on a non-default
+ * voice shares cached clips only with others on the same voice.
  */
-const GEMINI_VOICES = {
-  female: ['Sulafat', 'Aoede', 'Kore', 'Leda'],
-  male:   ['Charon', 'Puck', 'Fenrir', 'Orus'],
-};
-const ALL_VOICES = [...GEMINI_VOICES.female, ...GEMINI_VOICES.male];
+let _preferredVoice = DEFAULT_AI_VOICE;
+
+/**
+ * Set the voice every subsequent clip is read in.
+ *
+ * @param {unknown} voice - a name from config/aiVoices; anything else is the default
+ */
+export function setPreferredVoice(voice) {
+  _preferredVoice = resolveVoice(voice);
+}
 
 /**
  * Maximum number of generated clips held in memory at once.
@@ -250,15 +266,6 @@ function _cacheSet(key, value) {
   while (_audioCache.size > AUDIO_CACHE_LIMIT) {
     _audioCache.delete(_audioCache.keys().next().value);
   }
-}
-
-/**
- * Pick a deterministic voice for a piece of text so the same transcript always
- * gets the same narrator across replays (and therefore the same cache key).
- */
-function _pickVoice(text, lang) {
-  const idx = parseInt(_hashText(`${lang}:${text.trim()}`), 36) % ALL_VOICES.length;
-  return ALL_VOICES[idx];
 }
 
 /** Release the current audio element and any blob URL backing it. */
@@ -462,7 +469,9 @@ async function _buildTtsPrompt(text, lang, pace) {
 // ---------------------------------------------------------------------------
 
 async function _speakWithGemini(token, text, lang, pace, cacheable, seq, onStart, onEnd, onError) {
-  const voice = _pickVoice(text, lang);
+  // Read once, here, so a voice changed mid-generation cannot give one clip
+  // a key under one voice and audio in another.
+  const voice = _preferredVoice;
   const key   = _cacheKey(text, lang, voice, pace);
 
   // Serve a previously generated clip without touching the API. Each pace is a

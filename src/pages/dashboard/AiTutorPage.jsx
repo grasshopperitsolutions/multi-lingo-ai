@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Mic, Square, Loader2, ShieldCheck } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { useTierAccess } from "../../hooks/useTierAccess";
 import { useLiveTutor, LIVE_STATUS, END_REASON } from "../../hooks/useLiveTutor";
 import { getCefrLevelOptions } from "../../config/examLevels";
+import { resolveVoice } from "../../config/aiVoices";
 import NeoDropdown from "../../components/NeoDropdown";
 import LiveTutorBlob from "../../components/LiveTutorBlob";
 import {
@@ -71,6 +72,12 @@ const AiTutorPage = () => {
   const [level, setLevel] = useState("A1");
   const cefrLevelOptions = getCefrLevelOptions(t);
 
+  // The learner's one voice, chosen in Settings and used for every clip in the
+  // app as well as here — so it is shown and linked rather than picked on this
+  // page, where a second control for the same setting could only disagree with
+  // the first. Sent to the Live API by name; the prompt is not touched by it.
+  const voice = resolveVoice(user?.preferredVoice);
+
   const {
     status,
     error,
@@ -86,6 +93,7 @@ const AiTutorPage = () => {
     targetLang: user?.learningDialect,
     explanationLang: interfaceLang,
     level,
+    voice,
   });
 
   const isLive = status === LIVE_STATUS.LIVE;
@@ -167,27 +175,53 @@ const AiTutorPage = () => {
 
               <div className="relative grid min-h-[26rem] md:grid-cols-[minmax(0,1fr)_minmax(0,19rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
                 <div className="flex flex-col justify-between gap-5 p-4 sm:p-5">
-                  {/* Only while a session is open. Once it has ended the level
-                      is a choice again, for the next one. */}
+                  {/* Chips only while a session is open: both are baked in at
+                      connect time, so a dropdown that still looked live would
+                      silently change nothing. Once it has ended they are a
+                      choice again, for the next one. */}
                   {isOpen ? (
-                    <span className="inline-flex items-center gap-2 self-start rounded-full border-2 border-slate-400/40 bg-slate-950/60 px-3 py-1.5 backdrop-blur-md">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                        {t("live_tutor.level_label")}
-                      </span>
-                      <span className="text-xs font-black text-slate-100">{level}</span>
-                    </span>
+                    <div className="flex flex-wrap gap-2 self-start">
+                      {[
+                        [t("live_tutor.level_label"), level],
+                        [t("live_tutor.voice_label"), voice],
+                      ].map(([label, value]) => (
+                        <span
+                          key={label}
+                          className="inline-flex items-center gap-2 rounded-full border-2 border-slate-400/40 bg-slate-950/60 px-3 py-1.5 backdrop-blur-md"
+                        >
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                            {label}
+                          </span>
+                          <span className="text-xs font-black text-slate-100">{value}</span>
+                        </span>
+                      ))}
+                    </div>
                   ) : (
-                    // Dark-mode styling regardless of the theme: this control
-                    // sits on the stage, and the stage is always night.
-                    <div className="max-w-[13rem] text-slate-200">
-                      <NeoDropdown
-                        options={cefrLevelOptions}
-                        value={level}
-                        onChange={setLevel}
-                        isDarkMode
-                        label={t("live_tutor.level_label")}
-                        searchable={false}
-                      />
+                    // Dark-mode styling regardless of the theme: these controls
+                    // sit on the stage, and the stage is always night.
+                    <div className="flex flex-col gap-2 text-slate-200">
+                      <div className="w-[13rem] max-w-full">
+                        <NeoDropdown
+                          options={cefrLevelOptions}
+                          value={level}
+                          onChange={setLevel}
+                          isDarkMode
+                          label={t("live_tutor.level_label")}
+                          searchable={false}
+                        />
+                      </div>
+                      <p className="flex flex-wrap items-center gap-x-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          {t("live_tutor.voice_label")}
+                        </span>
+                        <span className="text-xs font-black text-slate-100">{voice}</span>
+                        <Link
+                          to="/settings#appearance"
+                          className="inline-flex min-h-[44px] items-center rounded px-1 text-xs font-black text-sky-300 underline underline-offset-2 hover:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                        >
+                          {t("live_tutor.voice_change")}
+                        </Link>
+                      </p>
                     </div>
                   )}
 

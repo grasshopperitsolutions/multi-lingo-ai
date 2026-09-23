@@ -14,6 +14,7 @@ import { getTiersConfig } from "../services/tiersConfigService";
 import { getFeatures } from "../services/featuresService";
 import { ALL_FAVOURITE_FIELDS } from "../services/favouritesService";
 import { registerAiConfirmHandler } from "../services/aiService";
+import { setPreferredVoice } from "../services/getTtsService";
 import { normalizeCode } from "../utils/languageCode";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
@@ -441,6 +442,15 @@ export const AppProvider = ({ children }) => {
     return () => registerAiConfirmHandler(null);
   }, []);
 
+  // The voice every read-aloud clip is spoken in, from the profile. Handed to
+  // the TTS service here, once, rather than passed by each of its callers —
+  // "everywhere" should not depend on every caller remembering. Signed out,
+  // this is undefined and the service falls back to the default voice.
+  const preferredVoice = user?.preferredVoice;
+  useEffect(() => {
+    setPreferredVoice(preferredVoice);
+  }, [preferredVoice]);
+
   const resolveAiConfirm = useCallback((proceed, { muteToday = false } = {}) => {
     const resolve = aiConfirmResolver.current;
     aiConfirmResolver.current = null;
@@ -625,6 +635,10 @@ export const AppProvider = ({ children }) => {
         // Absent means "not chosen yet", which useDashboardPresentation
         // resolves by viewport rather than by guessing a default here.
         dashboardPresentation: profile?.dashboardPresentation ?? null,
+        // The voice for everything the app says aloud and for the spoken
+        // tutor. Absent until chosen; config/aiVoices resolves that (and any
+        // name no longer offered) to the default.
+        preferredVoice: profile?.preferredVoice ?? null,
         // IANA zone, chosen in Settings and captured from the browser on the
         // first load that finds it missing. The reminder job treats "not set"
         // as its own case and skips the user rather than assuming UTC, which

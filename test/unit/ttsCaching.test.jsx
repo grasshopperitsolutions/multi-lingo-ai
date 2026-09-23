@@ -207,6 +207,39 @@ describe("speak() and the cacheable flag", () => {
   });
 });
 
+describe("the learner's voice", () => {
+  /**
+   * The voice used to be hashed from the text, so different exercises sounded
+   * like different people. It is now the one the learner chose in Settings,
+   * for every clip. Distinct text per call for the same reason as above: the
+   * in-memory LRU would otherwise serve a repeat without reaching askAI.
+   */
+  let n = 0;
+  const voiceFor = async (chosen, text) => {
+    const tts = await import("../../src/services/getTtsService");
+    tts.setPreferredVoice(chosen);
+    n += 1;
+    await tts.speak(text ?? `voz ${n}`, "pt-PT", { token: "tok", preferFallback: false });
+    const voice = askAI.mock.calls.at(-1)?.[2]?.voice;
+    tts.setPreferredVoice(undefined);
+    return voice;
+  };
+
+  it("reads a clip in the voice the learner chose", async () => {
+    expect(await voiceFor("Charon")).toBe("Charon");
+  });
+
+  it("reads different texts in the same voice, rather than varying by text", async () => {
+    expect(await voiceFor("Kore", "primeiro texto")).toBe("Kore");
+    expect(await voiceFor("Kore", "um texto completamente diferente")).toBe("Kore");
+  });
+
+  it("uses Sulafat with no choice, or one that is not offered", async () => {
+    expect(await voiceFor(undefined)).toBe("Sulafat");
+    expect(await voiceFor("NotARealVoice")).toBe("Sulafat");
+  });
+});
+
 describe("the surfaces that read back a user's own words", () => {
   it("keeps both translator panes out of the shared cache", async () => {
     // The output pane is a translation *of* what the user typed, which is no
@@ -382,4 +415,48 @@ describe("TtsControls forwards what it is given", () => {
     const playTts = await renderControls({ cacheable: false, variant: "single" });
     expect(playTts).toHaveBeenCalledWith(expect.objectContaining({ cacheable: false }));
   });
+});
+
+describe("the speaker inside a form", () => {
+  // Settings puts the voice sample inside the Settings form, and a bare
+  // <button> in a form is a submit button: pressing the speaker saved the
+  // whole form. Every button this component renders must say type="button".
+  const renderInForm = async (variant) => {
+    const { default: i18n } = await import("../../src/i18n");
+    const { default: TtsControls } = await import("../../src/components/ui/TtsControls");
+    const onSubmit = vi.fn((event) => event.preventDefault());
+    const view = render(
+      <I18nextProvider i18n={i18n}>
+        <form onSubmit={onSubmit}>
+          <TtsControls
+            ttsKey="sample"
+            text="Olá"
+            lang="pt-PT"
+            token="tok"
+            variant={variant}
+            ttsState={{ activeKey: "sample", isPaused: false, isGenerating: false }}
+            playTts={vi.fn()}
+            pauseTts={vi.fn()}
+            stopTts={vi.fn()}
+            isDarkMode={false}
+          />
+        </form>
+      </I18nextProvider>,
+    );
+    return { view, onSubmit };
+  };
+
+  for (const variant of ["single", "full"]) {
+    it(`never submits the form it sits in (${variant})`, async () => {
+      const { view, onSubmit } = await renderInForm(variant);
+      const buttons = view.container.querySelectorAll("button");
+
+      expect(buttons.length).toBeGreaterThan(0);
+      for (const button of buttons) {
+        expect(button.getAttribute("type")).toBe("button");
+        fireEvent.click(button);
+      }
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+  }
 });

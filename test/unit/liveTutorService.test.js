@@ -205,3 +205,41 @@ describe("connectLiveTutor — how it ends", () => {
     expect(captureMessage).not.toHaveBeenCalled();
   });
 });
+
+describe("the tutor's voice", () => {
+  it("asks Google for the voice the learner picked", async () => {
+    const { pending } = await connecting({ voice: "Charon" });
+    sdk.resolve();
+    await pending;
+
+    expect(sdk.connectArgs.config.speechConfig).toEqual({
+      voiceConfig: { prebuiltVoiceConfig: { voiceName: "Charon" } },
+    });
+  });
+
+  it("sends no voice rather than an unknown one", async () => {
+    // Google accepts a name it does not know and speaks in some default,
+    // measured at 218 Hz for "NotARealVoice", so a stale or misspelt name
+    // would give the learner a different voice from the one they chose, with
+    // nothing to say so. Only names from the list go out.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { pending } = await connecting({ voice: "NotARealVoice" });
+    sdk.resolve();
+    await pending;
+
+    expect(sdk.connectArgs.config).not.toHaveProperty("speechConfig");
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("NotARealVoice"));
+    warn.mockRestore();
+  });
+
+  it("leaves the instructions exactly as the template renders them", async () => {
+    // Every word the tutor is given comes from live-tutor-prompt, so whoever
+    // reads it in Admin is reading all of it. The voice goes to the
+    // connection and never into the prompt; nothing is appended in code.
+    const { buildTutorInstructions } = await service();
+
+    const { instructions } = await buildTutorInstructions({ ...PARAMS, voice: "Sulafat" });
+
+    expect(instructions).toBe("Teach pt-PT at A2, explaining in en-US.");
+  });
+});

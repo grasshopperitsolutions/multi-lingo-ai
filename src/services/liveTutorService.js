@@ -19,6 +19,7 @@
 import { apiFetch } from './apiClient';
 import { getPrompt, renderTemplate } from './promptService';
 import { Sentry } from '../sentry';
+import { AI_VOICES } from '../config/aiVoices';
 
 /**
  * Used when `live-tutor-prompt` names no model — the state of a fresh install.
@@ -118,6 +119,11 @@ export async function requestLiveToken(token, model) {
  * *language* tutor rather than a chatbot that happens to talk: which language
  * is being practised, which one to explain in, and the level to pitch at.
  *
+ * **The rendered template is the whole instruction — nothing is added in code.**
+ * Every word the tutor is given comes from `live-tutor-prompt`, so whoever
+ * reads it in Admin is reading all of it. The chosen voice is not part of the
+ * prompt at all; it goes to the connection (see connectLiveTutor).
+ *
  * @param {{targetLang: string, explanationLang: string, level: string, displayName?: string}} params
  * @returns {Promise<{instructions: string, model: string, thinkingLevel: string}>}
  */
@@ -186,6 +192,7 @@ function _reportClose(event, { code, reason }, model) {
  * @param {string} params.liveToken     - from requestLiveToken
  * @param {string} params.model
  * @param {string} [params.thinkingLevel] - from buildTutorInstructions; '' sends none
+ * @param {string} [params.voice]       - a name from config/aiVoices; anything else sends none
  * @param {string} params.instructions  - the system instruction
  * @param {(base64: string) => void} params.onAudio
  * @param {() => void} [params.onInterrupted]
@@ -199,6 +206,7 @@ export async function connectLiveTutor({
   liveToken,
   model,
   thinkingLevel,
+  voice,
   instructions,
   onAudio,
   onInterrupted,
@@ -227,6 +235,16 @@ export async function connectLiveTutor({
     outputAudioTranscription: {},
   };
   if (thinkingLevel) config.thinkingConfig = { thinkingLevel };
+
+  // Only a name from the list. Google does not refuse one it does not know —
+  // "NotARealVoice" connected without complaint and spoke in some default at
+  // 218 Hz — so a stale or misspelt name would quietly give the learner a
+  // different voice from the one they picked, with nothing to say so.
+  if (voice && AI_VOICES.includes(voice)) {
+    config.speechConfig = { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } };
+  } else if (voice) {
+    console.warn(`[liveTutorService] "${voice}" is not a known voice; using the model's default.`);
+  }
 
   let setupDone = false;
   let closingOnPurpose = false;

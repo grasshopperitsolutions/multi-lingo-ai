@@ -76,7 +76,7 @@ const SPEECH_LEVEL = 0.02;
  */
 const FALLBACK_SESSION_MS = 15 * 60_000;
 
-export function useLiveTutor({ user, targetLang, explanationLang, level }) {
+export function useLiveTutor({ user, targetLang, explanationLang, level, voice }) {
   const [status, setStatus] = useState(LIVE_STATUS.IDLE);
   const [error, setError] = useState(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -180,6 +180,7 @@ export function useLiveTutor({ user, targetLang, explanationLang, level }) {
         // where following it rather than our own value is what connects.
         model: serverModel || model,
         thinkingLevel,
+        voice,
         instructions,
         onAudio: (base64) => {
           if (stoppingRef.current) return;
@@ -236,7 +237,7 @@ export function useLiveTutor({ user, targetLang, explanationLang, level }) {
       setStatus(LIVE_STATUS.IDLE);
       setEndedBy(null);
     }
-  }, [status, user, targetLang, explanationLang, level, appendTranscript, stop]);
+  }, [status, user, targetLang, explanationLang, level, voice, appendTranscript, stop]);
 
   /**
    * The two ways a conversation ends without anybody pressing anything.

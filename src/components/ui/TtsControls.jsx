@@ -15,6 +15,11 @@ import { SPEECH_PACE } from '../../services/getTtsService';
  * buttons in TooltipButton, the other used bare `title` attributes); this
  * keeps the TooltipButton behaviour, which is the accessible one.
  *
+ * **Every button is `type="button"`.** A bare `<button>` inside a `<form>` is a
+ * submit button, and Settings › Appearance puts this inside the Settings form:
+ * pressing the voice sample saved the whole form. It had never mattered before
+ * because nothing had placed this inside a form.
+ *
  * Playback state is owned by the caller's useTts() hook and passed in, because
  * useTts enforces a single active source app-wide — one component per page
  * must not mean one independent player per component.
@@ -110,6 +115,7 @@ const TtsControls = ({
     return (
       <TooltipButton tooltip={label} isDarkMode={isDarkMode}>
         <button
+          type="button"
           onClick={() => (isActive ? stopTts() : playTts({ key: ttsKey, text, lang, token, cacheable }))}
           disabled={!hasText}
           aria-label={label}
@@ -138,6 +144,7 @@ const TtsControls = ({
       {/* Play (Volume2) / Pause toggle */}
       <TooltipButton tooltip={playLabel} isDarkMode={isDarkMode}>
         <button
+          type="button"
           onClick={handlePlayPause}
           disabled={!hasText}
           aria-label={playLabel}
@@ -155,6 +162,7 @@ const TtsControls = ({
       {/* Slow play (Turtle) */}
       <TooltipButton tooltip={t('translator.listen_slow', 'Listen slowly')} isDarkMode={isDarkMode}>
         <button
+          type="button"
           onClick={() => playTts({ key: `${ttsKey}-slow`, text, lang, token, pace: SPEECH_PACE.SLOW, cacheable })}
           disabled={!hasText}
           aria-label={t('translator.listen_slow', 'Listen slowly')}
@@ -168,6 +176,7 @@ const TtsControls = ({
       {/* Stop — only enabled while this key or its slow variant is active */}
       <TooltipButton tooltip={t('translator.stop', 'Stop')} isDarkMode={isDarkMode}>
         <button
+          type="button"
           onClick={stopTts}
           disabled={!isActive && !isSlowKey}
           aria-label={t('translator.stop', 'Stop')}

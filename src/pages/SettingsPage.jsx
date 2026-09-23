@@ -29,9 +29,12 @@ import {
   Star,
   ExternalLink,
   Clock,
+  Volume2,
 } from "lucide-react";
 import { useTierAccess } from "../hooks/useTierAccess";
-import { SettingsSection } from "../components/ui";
+import { SettingsSection, TtsControls } from "../components/ui";
+import { useTts } from "../hooks/useTts";
+import { BASE_LOCALE } from "../i18n";
 import { updateUserProfile, uploadProfileImage, deleteAccount } from "../services/userService";
 import NotificationSettings from "../components/NotificationSettings";
 import ReminderSettings from "../components/ReminderSettings";
@@ -43,6 +46,7 @@ import { auth } from "../firebase";
 import { normalizeCode } from "../utils/languageCode";
 import { detectTimezone, timezoneOptions } from "../utils/timezones";
 import { buildProfileKey } from "../utils/profileKey";
+import { AI_VOICES, resolveVoice } from "../config/aiVoices";
 
 // ── Avatar Upload Widget ─────────────────────────────────────────────────────────
 const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading, t }) => {
@@ -178,6 +182,7 @@ const SettingsForm = ({
   learningDialect, setLearningDialect,
   interests, setInterests,
   isDarkModeOn, onToggleTheme, isSavingTheme,
+  preferredVoice, onChangeVoice, isSavingVoice,
   timezone, setTimezone,
   isSaving, isUploading, handleSave,
   previewUrl, onFileSelect,
@@ -190,8 +195,19 @@ const SettingsForm = ({
   isSeedingInterface, isSeedingLanguage,
   isDirty,
   openLanguageSection,
+  openAppearanceSection,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { ttsState, playTts, pauseTts, stopTts } = useTts();
+
+  // The voice sample is read in the language its sentence actually resolved
+  // in. Until a locale has been filled with this key, i18next falls back to
+  // the pt-PT string, and reading Portuguese with, say, a Spanish accent would
+  // make every voice sound wrong. One sentence for everyone per language, so
+  // each voice is generated once and then served from the shared cache.
+  const sampleLang = i18n.getResource(i18n.language, "translation", "settings.ai_voice_sample")
+    ? i18n.language
+    : BASE_LOCALE;
 
   const inputClasses = `w-full px-4 py-3 rounded-xl border-4 font-bold outline-none transition-all
     ${ isDarkMode
@@ -274,10 +290,13 @@ const SettingsForm = ({
       </SettingsSection>
 
       {/* ── Appearance ── */}
+      {/* The spoken tutor's "change" link comes here, for the voice. */}
       <SettingsSection
+        id="appearance"
         title={t("settings.appearance")}
         icon={<Palette size={16} className="inline mr-2" />}
         isDarkMode={isDarkMode}
+        defaultOpen={openAppearanceSection}
       >
         <div className="space-y-5">
           <div>
@@ -298,6 +317,50 @@ const SettingsForm = ({
               <span>{isDarkModeOn ? t("settings.dark_mode") : t("settings.light_mode")}</span>
               {isDarkModeOn ? <Moon size={20} /> : <Sun size={20} />}
             </button>
+          </div>
+          {/* Saves on pick, like the theme, not with the Save button. The
+              spoken tutor links straight here to change it, and a choice that
+              only stuck after scrolling to Save would be lost on the way back
+              to the conversation it was made for. */}
+          <div>
+            <label className={labelClasses}>
+              <Volume2 size={12} className="inline mr-1" /> {t("settings.ai_voice")}
+            </label>
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <NeoDropdown
+                  options={AI_VOICES.map((name) => ({ value: name, label: name }))}
+                  value={preferredVoice}
+                  onChange={(next) => {
+                    // A sample still playing is the old voice; stop it rather
+                    // than let it read as the one just picked.
+                    stopTts();
+                    onChangeVoice(next);
+                  }}
+                  disabled={isSavingVoice}
+                  isDarkMode={isDarkMode}
+                  className="w-full"
+                />
+              </div>
+              {/* Plays the saved voice: a pick saves at once and TTS reads in
+                  the saved voice, so what you hear is what you chose. Keyed by
+                  voice so the button's state follows the pick. */}
+              <TtsControls
+                ttsKey={`voice-sample-${preferredVoice}`}
+                text={t("settings.ai_voice_sample")}
+                lang={sampleLang}
+                token={user?.token}
+                variant="single"
+                ttsState={ttsState}
+                playTts={playTts}
+                pauseTts={pauseTts}
+                stopTts={stopTts}
+                isDarkMode={isDarkMode}
+              />
+            </div>
+            <p className={`mt-2 text-xs font-bold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              {t("settings.ai_voice_hint")}
+            </p>
           </div>
           <div>
             <label className={labelClasses}>
@@ -458,6 +521,8 @@ SettingsForm.propTypes = {
     interfaceLang: PropTypes.string,
     learningDialect: PropTypes.string,
     interests: PropTypes.arrayOf(PropTypes.string),
+    /** Firebase ID token — the voice sample is an ordinary TTS request. */
+    token: PropTypes.string,
   }),
   isDarkMode:         PropTypes.bool.isRequired,
   displayName:        PropTypes.string.isRequired,
@@ -471,6 +536,10 @@ SettingsForm.propTypes = {
   isDarkModeOn:       PropTypes.bool.isRequired,
   onToggleTheme:      PropTypes.func.isRequired,
   isSavingTheme:      PropTypes.bool.isRequired,
+  /** Already resolved: always a name from config/aiVoices. */
+  preferredVoice:     PropTypes.string.isRequired,
+  onChangeVoice:      PropTypes.func.isRequired,
+  isSavingVoice:      PropTypes.bool.isRequired,
   timezone:           PropTypes.string.isRequired,
   setTimezone:        PropTypes.func.isRequired,
   setDraftDarkMode:   PropTypes.func.isRequired,
@@ -501,11 +570,13 @@ SettingsForm.propTypes = {
   isDirty:                PropTypes.bool.isRequired,
   /** True when the URL is /settings#practiceLanguage. */
   openLanguageSection:    PropTypes.bool,
+  /** True when the URL is /settings#appearance — the tutor's voice link. */
+  openAppearanceSection:  PropTypes.bool,
 };
 
 // ── Settings Page ───────────────────────────────────────────────────────────────
 const SettingsPage = () => {
-  const { isDarkMode, setIsDarkMode, user, isLoadingUser, logoutUser, showAlert, refreshUser, changeLanguage, supportedLanguages, isLoadingLanguages, refreshSupportedLanguages, categories, isLoadingCategories } = useAppContext();
+  const { isDarkMode, setIsDarkMode, user, setUser, isLoadingUser, logoutUser, showAlert, refreshUser, changeLanguage, supportedLanguages, isLoadingLanguages, refreshSupportedLanguages, categories, isLoadingCategories } = useAppContext();
 
   /**
    * Every card starts closed except Profile, at every width.
@@ -547,6 +618,7 @@ const SettingsPage = () => {
   const [interests,        setInterests]        = useState(user?.interests || []);
   const [timezone,         setTimezone]         = useState(() => user?.timezone || detectTimezone());
   const [isSavingTheme,    setIsSavingTheme]    = useState(false);
+  const [isSavingVoice,    setIsSavingVoice]    = useState(false);
 
   const [isSaving,         setIsSaving]         = useState(false);
 
@@ -755,6 +827,33 @@ const SettingsPage = () => {
     }
   };
 
+  /**
+   * Save the voice the moment it is picked — the theme's treatment, for the
+   * same kind of reason: this is a setting people arrive at from somewhere
+   * else (the spoken tutor links here) and go straight back, and a choice that
+   * waited for Save would be lost on the way.
+   *
+   * Written as the one field, applied to the context user first so every
+   * clip from here on is read in it, and put back if the write fails.
+   */
+  const handleChangeVoice = async (next) => {
+    const firebaseUser = auth?.currentUser;
+    if (!firebaseUser) return;
+
+    const previous = user?.preferredVoice ?? null;
+    setUser((prev) => (prev ? { ...prev, preferredVoice: next } : prev));
+    setIsSavingVoice(true);
+    try {
+      const token = await firebaseUser.getIdToken();
+      await updateUserProfile(token, firebaseUser.uid, { preferredVoice: next });
+    } catch (err) {
+      setUser((prev) => (prev ? { ...prev, preferredVoice: previous } : prev));
+      showAlert("error", err.message || t("settings.errors.save_failed"));
+    } finally {
+      setIsSavingVoice(false);
+    }
+  };
+
   const handleLogout = async () => {
     const result = await logoutUser();
     if (result?.success) navigate("/");
@@ -836,6 +935,9 @@ const SettingsPage = () => {
         isDarkModeOn={isDarkMode}
         onToggleTheme={handleToggleTheme}
         isSavingTheme={isSavingTheme}
+        preferredVoice={resolveVoice(user?.preferredVoice)}
+        onChangeVoice={handleChangeVoice}
+        isSavingVoice={isSavingVoice}
         timezone={timezone}
         setTimezone={setTimezone}
         isSaving={isSaving}
@@ -855,6 +957,7 @@ const SettingsPage = () => {
         isSeedingLanguage={isSeedingLanguage}
         isDirty={isDirty}
         openLanguageSection={openFromHash === "#practiceLanguage"}
+        openAppearanceSection={openFromHash === "#appearance"}
       />
 
         {/* ── Word bank ── */}

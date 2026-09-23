@@ -132,7 +132,7 @@ panel is the only place those four messages are visible outside the repo.
 Per-language wording is unchanged: other locales are still Firestore documents,
 still translated from this file, and still fixed by a force resync.
 
-## The theme saves on click; everything else on that page waits for Save
+## The theme and the AI voice save on pick; everything else waits for Save
 
 `/settings` batches its fields behind a Save button, and the theme was in that
 batch. It is the one setting whose effect you see immediately, so the screen
@@ -147,6 +147,67 @@ field-level write, so a one-field payload leaves the rest of the profile alone
 — the header toggle sends four fields defensively, which is unnecessary but
 harmless. `theme` is out of the Save payload and out of the dirty check, so
 changing it no longer makes the form look unsaved.
+
+**The AI voice is the second exception**, for a different reason: people
+arrive at it from somewhere else — the spoken tutor shows the voice with a
+"change" link to `/settings#appearance` — and go straight back. A choice that
+only stuck after scrolling to Save would be lost on the way back to the
+conversation it was made for. `handleChangeVoice` writes only
+`preferredVoice`, applies it to the context user first, and puts it back if
+the write fails. Like `theme`, it is outside the Save payload and the dirty
+check.
+
+## One voice for everything the app says aloud
+
+`users/{uid}.preferredVoice` is chosen once, in Settings › Appearance, and
+used for **every** read-aloud clip and for the spoken tutor. `config/aiVoices`
+is the list: all thirty Gemini prebuilt voices by Google's own names,
+alphabetical, `Sulafat` the default. Absent, blank, or a name no longer on the
+list all resolve to the default through `resolveVoice`, and nothing else
+reaches an API.
+
+**The names were checked against the real API, and the two surfaces fail
+differently on a bad one.** TTS refuses an unknown voice with a 400 (`No
+matching speaker voice found`), which is what made it possible to test all
+thirty; the Live API does *not* refuse one — it quietly speaks in some default
+voice — so a typo would give a learner a different tutor voice from the one
+they picked. Spell new entries exactly as Google does. Testing the list also
+showed the TTS model (`gemini-3.1-flash-tts-preview`) has a tight **per-minute**
+limit: thirty calls back to back earned 429s that real users would have shared.
+Space any such check out.
+
+**It replaced a deliberate variety.** The voice used to be hashed from the
+text across eight voices so different exercises sounded like different people.
+With a choice, the choice wins everywhere. Two consequences: clips cached
+server-side under the old per-text voices are not reused by anyone whose voice
+differs, so they are regenerated once; and a learner on a non-default voice
+shares cached clips only with others on the same voice.
+
+**`getTtsService` holds the voice as module state**, set by AppContext from the
+profile — the same shape as `registerAiConfirmHandler`. TTS is reached from
+three components and a hook, and "everywhere" should not depend on each of them
+remembering to pass it. Like every profile field, `preferredVoice` is on
+AppContext's hydration allow-list; left off, it would save and then vanish on
+the next load.
+
+**The speaker beside the picker plays a sample**, `settings.ai_voice_sample`,
+in the saved voice (a pick saves at once, so what plays is what was chosen).
+Three things keep it cheap. The sentence is the same for everyone per language
+— never a name or anything personal — so each voice is generated once per
+language and then served from the shared cache, free and outside the daily
+allowance. It is read in the language the string *resolved* in, not the
+interface language: until a locale has the key, i18next falls back to pt-PT,
+and reading Portuguese with another language's accent would make every voice
+sound wrong. And the first person to preview a voice nobody has heard yet in
+their language pays one call — for an Explorer, one of three — so warming the
+cache (an admin playing each voice once per interface language) makes every
+later preview free for everyone.
+
+**The prompt is untouched by any of this.** The tutor's voice goes to the Live
+API as `speechConfig`, never into `live-tutor-prompt` — nothing in code adds
+text to a prompt, not even to say which voice is speaking. A consequence worth
+knowing: the model cannot hear its own voice, so in a gendered language it
+speaks of itself in the masculine unless the admin's template says otherwise.
 
 ## Timezone
 
@@ -177,7 +238,8 @@ desktop half was wrong for the same reason the phone half was right — nine
 expanded forms is a long scroll with no overview, and a wide screen just means
 scrolling past more of it. Closed cards are a table of contents.
 
-Five cards open themselves when the URL names them, and scroll there:
+Six cards open themselves when the URL names them, and scroll there:
+`#appearance` (the spoken tutor's "change" link beside its voice),
 `#practiceLanguage` (the practice-language card and badge, and the challenge
 theme picker's "choose your interests" — interests live inside that card, not
 in one of their own), `#profile` (the reminder card's "change it in your

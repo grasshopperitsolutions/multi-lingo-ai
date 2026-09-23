@@ -414,3 +414,25 @@ describe("what reaches the connection, and how it ends", () => {
     expect(result.current.endedBy).toBe("dropped");
   });
 });
+
+describe("the chosen voice", () => {
+  it("goes to the connection, and never into the instructions", async () => {
+    // The prompt is the admin's, word for word. The voice is a setting on the
+    // connection, not something the tutor is told.
+    const { useLiveTutor } = await import("../../src/hooks/useLiveTutor");
+    const { result } = renderHook(() =>
+      useLiveTutor({
+        user: { token: "tok", uid: "u1", displayName: "Nuno" },
+        targetLang: "pt-PT",
+        explanationLang: "en-US",
+        level: "A2",
+        voice: "Charon",
+      })
+    );
+
+    await act(async () => { await result.current.start(); });
+
+    expect(connectLiveTutor.mock.calls[0][0].voice).toBe("Charon");
+    expect(buildTutorInstructions.mock.calls[0][0]).not.toHaveProperty("voice");
+  });
+});
