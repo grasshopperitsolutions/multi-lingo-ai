@@ -12,6 +12,7 @@ import { useLongPress } from "../hooks/useLongPress";
 import { getStory, getStoryTranslation, getStoryPoolStatus } from "../services/storyService";
 import { markStorySeen } from "../services/userService";
 import { tokenizeWords } from "../utils/tokenizeWords";
+import { sentenceAt } from "../utils/sentenceAt";
 import { getCefrLevelOptions } from "../config/examLevels";
 import { STORY_THEMES, DEFAULT_STORY_THEME, CUSTOM_STORY_THEME } from "../config/storyThemes";
 import Loader from "./Loader";
@@ -107,6 +108,9 @@ const StoryReader = ({ isDarkMode }) => {
   const [error, setError] = useState(null);
   const [translationError, setTranslationError] = useState(null);
   const [activeWord, setActiveWord] = useState(null);
+  // The sentence the word was tapped in, so the lookup can describe the sense
+  // the reader actually met rather than the word's commonest one.
+  const [activeSentence, setActiveSentence] = useState(null);
   const [selectedWords, setSelectedWords] = useState([]);
   // Indices whose translation the reader has opened. Reset with each story so
   // a new one starts closed like the last one did.
@@ -552,7 +556,10 @@ const StoryReader = ({ isDarkMode }) => {
                                 key={i}
                                 text={token.text}
                                 word={token.word}
-                                onLookup={setActiveWord}
+                                onLookup={(tapped) => {
+                                  setActiveWord(tapped);
+                                  setActiveSentence(sentenceAt(paragraph, token.start, targetLang));
+                                }}
                                 onBank={handleBankWord}
                                 isDarkMode={isDarkMode}
                               />
@@ -581,9 +588,13 @@ const StoryReader = ({ isDarkMode }) => {
 
       <WordLookupSheet
         word={activeWord}
+        sentence={activeSentence ?? undefined}
         targetLang={targetLang}
         isDarkMode={isDarkMode}
-        onClose={() => setActiveWord(null)}
+        onClose={() => {
+          setActiveWord(null);
+          setActiveSentence(null);
+        }}
       />
     </FeaturePageShell>
   );

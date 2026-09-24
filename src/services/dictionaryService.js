@@ -41,6 +41,8 @@
  * @property {string[]} [wordTypes]  - Grammatical categories to define the word as.
  *                                     Empty = every available category; the model
  *                                     returns one entry per category. See WORD_TYPES.
+ * @property {string} [sentence]     - The sentence the word was tapped in, when there
+ *                                     is one. Reaches the template as {{sentence}}.
  */
 
 /**
@@ -114,6 +116,9 @@ export const MAX_WORD_TYPES = 3;
  * response can still arrive with extras.
  */
 export const MAX_ENTRIES = 3;
+
+/** Enough for any sentence in a graded text; see utils/sentenceAt. */
+const MAX_SENTENCE_CHARS = 400;
 
 /**
  * Build the response schema for a lookup.
@@ -209,7 +214,7 @@ function buildResponseSchema(types, commonSenses) {
  * @param {LookupParams} params
  * @returns {Promise<LookupResult>}
  */
-export async function lookupWord({ token, word, interfaceLang, learningLang, wordTypes = [], commonSenses = 1 }) {
+export async function lookupWord({ token, word, interfaceLang, learningLang, wordTypes = [], commonSenses = 1, sentence }) {
   if (!word?.trim())      throw new Error('[dictionaryService] word is required');
   if (!token)             throw new Error('[dictionaryService] token is required');
   if (!interfaceLang)     throw new Error('[dictionaryService] interfaceLang is required');
@@ -228,8 +233,24 @@ export async function lookupWord({ token, word, interfaceLang, learningLang, wor
     .slice(0, MAX_WORD_TYPES);
 
   const promptDoc = await getPrompt('dictionary-lookup-prompt');
+
+  // The sentence a word was tapped in is what tells the model which sense the
+  // reader actually met — "foram" belongs to both "ir" and "ser", and only the
+  // sentence says which. A value, never wording: how to use it is the
+  // template's to say, and "none" is the value when there is no sentence, so
+  // the placeholder never renders as an empty gap. Bounded because it is
+  // pasted into a prompt the API caps at 8000 characters.
+  const context = String(sentence ?? '').trim().slice(0, MAX_SENTENCE_CHARS);
+  if (context && !String(promptDoc.template).includes('{{sentence}}')) {
+    console.warn(
+      '[dictionaryService] A sentence was passed, but the "dictionary-lookup-prompt" template has no '
+        + '{{sentence}} placeholder, so the lookup cannot use it. Add it in Admin > Prompts.',
+    );
+  }
+
   const prompt = renderTemplate(promptDoc.template, {
     word: word.trim(),
+    sentence: context || 'none',
     // The template injects this as plain text in a grammatical-category list
     // ("noun, verb, ..."), so it's joined into a human-readable string here.
     wordTypes: types.join(', '),

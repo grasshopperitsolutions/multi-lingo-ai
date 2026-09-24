@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { X, Volume2, Square, Loader2 } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { useTts } from "../hooks/useTts";
 import { useWordFavourites } from "../hooks/useWordFavourites";
 import { lookupWord } from "../services/dictionaryService";
-import { FavouriteButton } from "./ui";
+import { FavouriteButton, TtsControls } from "./ui";
 
 /**
  * WordLookupSheet
@@ -19,11 +19,16 @@ import { FavouriteButton } from "./ui";
  *
  * Renders nothing when `word` is null/empty; the caller controls visibility
  * by setting/clearing `word`.
+ *
+ * `sentence` is where the word was tapped, when the caller has one (the story
+ * reader does; the word bank does not). It goes with the lookup of that word
+ * only — a synonym tapped inside the sheet was never in that sentence, and
+ * sending it along would describe the synonym as if it were.
  */
-const WordLookupSheet = ({ word, targetLang, isDarkMode, onClose }) => {
+const WordLookupSheet = ({ word, sentence, targetLang, isDarkMode, onClose }) => {
   const { t } = useTranslation();
   const { user, interfaceLang } = useAppContext();
-  const { ttsState, playTts, stopTts } = useTts();
+  const { ttsState, playTts, pauseTts, stopTts } = useTts();
   const { isFavourite, toggle } = useWordFavourites();
 
   const [activeWord, setActiveWord] = useState(word);
@@ -50,17 +55,22 @@ const WordLookupSheet = ({ word, targetLang, isDarkMode, onClose }) => {
     // drinks), and showing only the commonest sense can be actively wrong for
     // the sentence in front of them. Ask for the two commonest instead.
     // Narrowing by category is still the full Dictionary page's job.
-    lookupWord({ token: user?.token, word: activeWord, interfaceLang, learningLang: targetLang, commonSenses: 2 })
+    lookupWord({
+      token: user?.token,
+      word: activeWord,
+      interfaceLang,
+      learningLang: targetLang,
+      commonSenses: 2,
+      sentence: activeWord === word ? sentence : undefined,
+    })
       .then((data) => { if (!cancelled) setEntries(data.entries ?? []); })
       .catch((err) => { if (!cancelled) setError(err.message); })
       .finally(() => { if (!cancelled) setIsLoading(false); });
 
     return () => { cancelled = true; };
-  }, [activeWord, user?.token, interfaceLang, targetLang]);
+  }, [activeWord, word, sentence, user?.token, interfaceLang, targetLang]);
 
   if (!word) return null;
-
-  const isPlaying = ttsState.activeKey === "word-lookup";
 
   return (
     <div
@@ -95,20 +105,25 @@ const WordLookupSheet = ({ word, targetLang, isDarkMode, onClose }) => {
           >
             {activeWord}
           </h3>
-          <button
-            type="button"
-            onClick={() =>
-              isPlaying
-                ? stopTts()
-                : playTts({ key: "word-lookup", text: activeWord, lang: targetLang, token: user?.token })
-            }
-            aria-label={isPlaying ? t("common.stop", "Stop") : t("grammar.listen", "Listen")}
-            className={`shrink-0 p-1.5 rounded-lg border-2 transition-transform hover:scale-110 active:scale-95 ${
-              isDarkMode ? "border-amber-500/50 text-amber-400" : "border-amber-400 text-amber-600"
-            }`}
-          >
-            {isPlaying ? <Square size={12} /> : <Volume2 size={12} />}
-          </button>
+          {/* The games' square amber speaker, which shows a spinner while the
+              clip is generated — a word can take a couple of seconds, and a
+              silent button that looks like it is already playing reads as
+              broken. Keyed by word so a synonym tapped mid-play gets its own
+              state rather than inheriting the last word's. */}
+          <TtsControls
+            ttsKey={`word-lookup-${activeWord}`}
+            text={activeWord}
+            lang={targetLang}
+            token={user?.token}
+            accent="amber"
+            variant="single"
+            iconSize={14}
+            ttsState={ttsState}
+            playTts={playTts}
+            pauseTts={pauseTts}
+            stopTts={stopTts}
+            isDarkMode={isDarkMode}
+          />
           <FavouriteButton
             isFavourite={isFavourite(activeWord)}
             onToggle={() => toggle(activeWord)}
@@ -186,6 +201,8 @@ const WordLookupSheet = ({ word, targetLang, isDarkMode, onClose }) => {
 
 WordLookupSheet.propTypes = {
   word: PropTypes.string,
+  /** The sentence `word` was tapped in, if the caller knows it. */
+  sentence: PropTypes.string,
   targetLang: PropTypes.string.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,

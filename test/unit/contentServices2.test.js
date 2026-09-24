@@ -781,3 +781,54 @@ describe("dictionaryService — feeding the word pool", () => {
     expect(result.entries[0].definition).toBe("past tense of the verb to go");
   });
 });
+
+/**
+ * The sentence a word was tapped in reaches the dictionary prompt as a value.
+ *
+ * "foram" is a form of both "ir" and "ser"; only the sentence says which. How
+ * to use it is the admin-edited template's to say — the code passes the value
+ * and nothing else, never wording of its own.
+ */
+describe("dictionaryService — the sentence it was tapped in", () => {
+  const LOOKUP = JSON.stringify({
+    entries: [{ wordType: "verb", translation: "went", definition: "went", synonyms: [], englishKey: "went", baseForm: "ir" }],
+  });
+
+  const withTemplate = (template) =>
+    setCollection("prompts", [{ id: "dictionary-lookup-prompt", template }]);
+
+  const look = async (extra = {}) => {
+    const { lookupWord } = await import("../../src/services/dictionaryService");
+    await lookupWord({ token: "tok", word: "foram", interfaceLang: "en-US", learningLang: "pt-PT", ...extra });
+    return askAI.mock.calls[0][1];
+  };
+
+  beforeEach(() => {
+    askAI.mockResolvedValue(aiText(LOOKUP));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  it("hands the template the sentence, as a value", async () => {
+    withTemplate("Define {{word}}. Sentence: {{sentence}}");
+
+    const prompt = await look({ sentence: "Eles foram ao mercado." });
+
+    expect(prompt).toBe("Define foram. Sentence: Eles foram ao mercado.");
+  });
+
+  it("says none when there is no sentence, rather than leaving a gap", async () => {
+    withTemplate("Define {{word}}. Sentence: {{sentence}}");
+
+    expect(await look()).toBe("Define foram. Sentence: none");
+  });
+
+  it("warns when a sentence is passed but the template has nowhere to put it", async () => {
+    withTemplate("Define {{word}}");
+
+    const prompt = await look({ sentence: "Eles foram ao mercado." });
+
+    // Dropped, not appended: the template is the whole prompt.
+    expect(prompt).toBe("Define foram");
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining("{{sentence}}"));
+  });
+});

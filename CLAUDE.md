@@ -1670,6 +1670,18 @@ knows whether the hold already fired — and suppresses `contextmenu`, which
 otherwise raises the selection UI over the word being held on touch. The word
 spans carry `select-none` for the same reason.
 
+**A tapped word is looked up with the sentence it sits in.** The story reader
+finds it with `utils/sentenceAt` — `Intl.Segmenter`, so sentence breaks follow
+the language (Japanese 。, abbreviations) rather than a split on full stops —
+from each token's `start` in `tokenizeWords`. It reaches
+`dictionary-lookup-prompt` as the **value** `{{sentence}}`, `none` when there is
+no sentence (word bank, typed lookups); how to use it is the template's to say,
+and `lookupWord` warns when a sentence is passed to a template with no slot
+for it. It goes with the tapped word only: a synonym tapped inside the sheet
+was never in that sentence. "foram" is a form of both *ir* and *ser* — the
+sentence is what lets the first entry, which is also what the word pool
+files, be the sense the reader actually met.
+
 **`getFavouriteIds` returns a fresh `[]` when the field does not exist yet.**
 The array is returned by reference when it is there — deliberately, so
 callbacks keyed on it are stable — but a profile with no `favWordIds` gets a

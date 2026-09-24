@@ -11,22 +11,30 @@
  * accented characters (á, ã, ç, õ...) count as word characters — \w only
  * matches ASCII.
  *
+ * `start` is the token's character index in `text`, so a tapped word can be
+ * placed back in its sentence (see utils/sentenceAt).
+ *
  * @param {string} text
- * @returns {Array<{ text: string, word: string|null }>}
+ * @returns {Array<{ text: string, word: string|null, start: number }>}
  */
 export function tokenizeWords(text) {
   if (!text) return [];
 
   // Split on whitespace, keeping the whitespace itself as its own token so
-  // the original spacing is preserved exactly on render.
-  const parts = text.split(/(\s+)/);
+  // the original spacing is preserved exactly on render — which is also what
+  // makes each token's start the running total of the ones before it.
+  const parts = text.split(/(\s+)/).filter((part) => part.length > 0);
 
-  return parts
-    .filter((part) => part.length > 0)
-    .map((part) => {
-      if (/^\s+$/.test(part)) return { text: part, word: null };
-
-      const stripped = part.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
-      return { text: part, word: stripped || null };
-    });
+  let start = 0;
+  return parts.map((part) => {
+    const token = /^\s+$/.test(part)
+      ? { text: part, word: null, start }
+      : {
+          text: part,
+          word: part.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '') || null,
+          start,
+        };
+    start += part.length;
+    return token;
+  });
 }
