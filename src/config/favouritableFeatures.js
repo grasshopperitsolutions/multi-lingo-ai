@@ -185,6 +185,9 @@ export const GRAMMAR_SECTIONS = [
     color: "bg-emerald-400",
     titleKey: "grammar.practice",
     descKey: "grammar.practice_desc",
+    // AI-written like the exams, so it follows their per-dialect switch
+    // rather than the hand-written library list.
+    availability: "structured-practice",
   },
   {
     id: "text",

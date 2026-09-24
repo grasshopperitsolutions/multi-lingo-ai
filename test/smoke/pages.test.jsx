@@ -316,8 +316,8 @@ const FEATURE_PAGES = [
   ["GrammarAskPage", () => import("../../src/pages/dashboard/grammar/GrammarAskPage")],
   ["GrammarTextPage", () => import("../../src/pages/dashboard/grammar/GrammarTextPage")],
   [
-    "GrammarPracticeComingSoonPage",
-    () => import("../../src/pages/dashboard/grammar/GrammarPracticeComingSoonPage"),
+    "GrammarPracticePage",
+    () => import("../../src/pages/dashboard/grammar/GrammarPracticePage"),
   ],
   ["AiTutorPage", () => import("../../src/pages/dashboard/AiTutorPage")],
   ["VoicePracticePage", () => import("../../src/pages/dashboard/VoicePracticePage")],

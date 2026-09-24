@@ -65,7 +65,8 @@ describe("which sections a language gets", () => {
     expect(isGrammarSupported("pt-PT")).toBe(true);
 
     for (const section of GRAMMAR_SECTIONS) {
-      if (section.needsLibrary === false) continue;
+      // Practice follows the exam switch instead — see grammarPractice.test.js.
+      if (section.needsLibrary === false || section.availability === "structured-practice") continue;
       expect(isGrammarSectionAvailable(section, "es-ES"), section.id).toBe(false);
       expect(isGrammarSectionAvailable(section, "pt-PT"), section.id).toBe(true);
     }

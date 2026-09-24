@@ -33,6 +33,12 @@
  *   wordCountPenalty number
  *   timerRef         ref
  *
+ *   // Reuse by other practice pages (all optional)
+ *   typeOptions      {value,label}[] — replaces the built-in reading/listening lists
+ *   extraControls    node            — extra pickers, drawn under the type picker
+ *   generateLabel    string          — replaces "Generate"
+ *   showTimer        bool            — false hides the exam timer (default true)
+ *
  *   // Full Exam props (all optional, ignored when examMode=false)
  *   examMode          bool
  *   examPhase         'generating'|'listening'|'reading'|'writing'|'results'
@@ -90,6 +96,10 @@ const ExerciseSidebar = ({
   maxWords,
   wordCountPenalty,
   timerRef,
+  typeOptions: typeOptionsOverride,
+  extraControls,
+  generateLabel,
+  showTimer,
   // Full Exam props
   examMode,
   examPhase,
@@ -104,12 +114,12 @@ const ExerciseSidebar = ({
   const cefrLevelOptions = getCefrLevelOptions(t);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  const typeOptions =
-    exerciseType === "listening"
+  const typeOptions = typeOptionsOverride
+    ?? (exerciseType === "listening"
       ? LISTENING_TYPES
       : exerciseType === "reading"
         ? READING_TYPES
-        : [];
+        : []);
 
   const panelBase = `rounded-2xl border-4 ${
     isDarkMode
@@ -309,6 +319,8 @@ const ExerciseSidebar = ({
         />
       )}
 
+      {showSetupControls && extraControls}
+
       {showSetupControls && (
         <button
           onClick={onGenerate}
@@ -321,7 +333,7 @@ const ExerciseSidebar = ({
               : "bg-emerald-400 border-slate-900 text-slate-900 hover:bg-emerald-300 shadow-[4px_4px_0px_0px_#0f172a]"
           }`}
         >
-          {t("exam.sidebar.generate", "Generate")} <ChevronRight size={16} />
+          {generateLabel || t("exam.sidebar.generate", "Generate")} <ChevronRight size={16} />
         </button>
       )}
 
@@ -345,9 +357,7 @@ const ExerciseSidebar = ({
   );
 
   // ── Timer — rendered directly, no outer card wrapper.
-  const timerSection = (
-    <ExamTimer ref={timerRef} isDarkMode={isDarkMode} />
-  );
+  const timerSection = showTimer ? <ExamTimer ref={timerRef} isDarkMode={isDarkMode} /> : null;
 
   // ── Standard score panel (non-exam) ──────────────────────────────────────
   const hasScore = !examMode && score != null && maxScore != null;
@@ -458,7 +468,7 @@ const ExerciseSidebar = ({
 };
 
 ExerciseSidebar.propTypes = {
-  exerciseType: PropTypes.oneOf(["reading", "listening", "writing"]),
+  exerciseType: PropTypes.oneOf(["reading", "listening", "writing", "grammar"]),
   level: PropTypes.string,
   onLevelChange: PropTypes.func,
   questionType: PropTypes.string,
@@ -477,6 +487,10 @@ ExerciseSidebar.propTypes = {
   maxWords: PropTypes.number,
   wordCountPenalty: PropTypes.number,
   timerRef: PropTypes.shape({ current: PropTypes.object }),
+  typeOptions: PropTypes.arrayOf(PropTypes.shape({ value: PropTypes.string, label: PropTypes.string })),
+  extraControls: PropTypes.node,
+  generateLabel: PropTypes.string,
+  showTimer: PropTypes.bool,
   // Full Exam props
   examMode: PropTypes.bool,
   examPhase: PropTypes.oneOf(["generating", "listening", "reading", "writing", "results"]),
@@ -503,6 +517,10 @@ ExerciseSidebar.defaultProps = {
   maxWords: null,
   wordCountPenalty: null,
   timerRef: { current: null },
+  typeOptions: null,
+  extraControls: null,
+  generateLabel: null,
+  showTimer: true,
   // Full Exam defaults
   examMode: false,
   examPhase: "generating",

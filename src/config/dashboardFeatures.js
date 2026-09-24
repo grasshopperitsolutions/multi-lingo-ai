@@ -35,6 +35,7 @@ import {
   BookUser,
 } from "lucide-react";
 
+import { isStructuredPracticeSupported } from "./structuredPracticeSupport";
 import { DASHBOARD_GROUP_IDS, FALLBACK_GROUP_ID, isGroupId } from "./dashboardGroups";
 
 /**
@@ -64,10 +65,9 @@ export const DASHBOARD_FEATURES = [
     color: "text-teal-500",
     titleKey: "dashboard.exam_training",
     descKey: "dashboard.exam_training_desc",
+    // Shared with Grammar Practice: one switch opens both for a dialect.
     isUnavailable: ({ user, supportedLanguages }) =>
-      !(supportedLanguages ?? []).some(
-        (lang) => lang.code === user?.learningDialect && lang.examSupported,
-      ),
+      !isStructuredPracticeSupported(user?.learningDialect, supportedLanguages),
     unavailableReasonKey: "dashboard.exam_not_available_for_language",
   },
   {

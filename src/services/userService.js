@@ -425,6 +425,7 @@ const emptySeenExerciseIds = () => ({
   reading: [],
   listening: [],
   writing: [],
+  grammar: [],
 });
 
 /**

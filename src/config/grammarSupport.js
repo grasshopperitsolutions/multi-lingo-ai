@@ -15,6 +15,8 @@
  * in grammarService covers a locale that has no hand-written file), then add
  * the dialect code here.
  */
+import { isStructuredPracticeSupported } from './structuredPracticeSupport';
+
 export const GRAMMAR_SUPPORTED_DIALECTS = ['pt-PT'];
 
 /**
@@ -40,11 +42,20 @@ export function isGrammarSupported(dialect) {
  * is the safe direction: a section wrongly marked library-free ships
  * unreviewed grammar, while one wrongly marked as needing it is merely absent.
  *
- * @param {{needsLibrary?: boolean}} section - an entry from GRAMMAR_SECTIONS
+ * A section marked `availability: "structured-practice"` follows Exam
+ * Training's switch instead of the library list (see structuredPracticeSupport):
+ * Grammar Practice writes its exercises with AI, like the exams, and the two
+ * open to a dialect together.
+ *
+ * @param {{needsLibrary?: boolean, availability?: string}} section - an entry from GRAMMAR_SECTIONS
  * @param {string} [dialect]
+ * @param {Array<object>} [supportedLanguages] - needed for structured-practice sections
  * @returns {boolean}
  */
-export function isGrammarSectionAvailable(section, dialect) {
+export function isGrammarSectionAvailable(section, dialect, supportedLanguages) {
+  if (section?.availability === "structured-practice") {
+    return isStructuredPracticeSupported(dialect, supportedLanguages);
+  }
   if (section?.needsLibrary === false) return true;
   return isGrammarSupported(dialect);
 }
