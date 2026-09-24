@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { buildCrossword, checkEntry, CELL } from "../../src/utils/crosswordUtils";
-import { buildGrid, checkSelection } from "../../src/utils/wordSearchUtils";
+import { buildGrid, checkSelection, splitLetters } from "../../src/utils/wordSearchUtils";
 import { letterKey } from "../../src/utils/letterKeys";
 
 /**
@@ -188,6 +188,71 @@ describe("buildGrid (word search)", () => {
       const colsSame = p.cells.every((c) => c.col === p.cells[0].col);
       expect(rowsSame || colsSame).toBe(true);
     }
+  });
+});
+
+describe("buildGrid in the practice language's own script", () => {
+  // Tamil: தமிழ் (Tamil), வணக்கம் (hello), அம்மா (mother), and பூ (flower),
+  // which is a single letter.
+  const tamil = words("தமிழ்", "வணக்கம்", "அம்மா", "பூ");
+
+  it("splits a word into the letters a reader sees, not UTF-16 units", () => {
+    // கா is க plus a vowel sign; split by index, the sign landed in a cell of
+    // its own and rendered as a broken glyph.
+    expect(splitLetters("தமிழ்")).toEqual(["த", "மி", "ழ்"]);
+    expect(splitLetters("அம்மா")).toEqual(["அ", "ம்", "மா"]);
+    expect(splitLetters("AÇÃO")).toEqual(["A", "Ç", "Ã", "O"]);
+  });
+
+  it("never leaves a vowel sign or accent alone in a cell", () => {
+    const { grid } = buildGrid(tamil, 10, 10);
+    for (const row of grid) {
+      for (const cell of row) expect(cell.letter).not.toMatch(/^\p{M}/u);
+    }
+  });
+
+  it("fills the grid with the words' own letters, not A to Z", () => {
+    const allowed = new Set(tamil.flatMap(({ word }) => splitLetters(word.toUpperCase())));
+    const { grid } = buildGrid(tamil, 10, 10);
+    for (const row of grid) {
+      for (const cell of row) expect(allowed.has(cell.letter)).toBe(true);
+    }
+  });
+
+  it("still spells each placed word along its cells", () => {
+    const { grid, placements } = buildGrid(tamil, 10, 10);
+    expect(placements.length).toBeGreaterThan(0);
+    for (const placement of placements) {
+      const spelled = placement.cells.map(({ row, col }) => grid[row][col].letter).join("");
+      expect(spelled).toBe(placement.word);
+      expect(placement.cells).toHaveLength(splitLetters(placement.word).length);
+    }
+  });
+
+  it("skips a one-letter word, which a two-cell selection could never find", () => {
+    // Placed, பூ would make the puzzle unwinnable.
+    const { placedWords } = buildGrid(tamil, 10, 10);
+    expect(placedWords.map((w) => w.word)).not.toContain("பூ");
+  });
+
+  it("places a two-word answer joined up, and never puts a blank in the grid", () => {
+    // விமான நிலையம் ("airport") is two words. Its space became a cell, and
+    // once the filler drew from the words it scattered blanks through the grid.
+    const { grid, placements, placedWords } = buildGrid(words("விமான நிலையம்", "காற்று"), 12, 12);
+
+    for (const cell of grid.flat()) expect(cell.letter).toMatch(/[\p{L}\p{N}]/u);
+    const airport = placements.find((p) => p.word.startsWith("விமா"));
+    expect(airport.word).toBe("விமானநிலையம்");
+    // The list still shows it as written.
+    expect(placedWords.map((w) => w.word)).toContain("விமான நிலையம்");
+  });
+
+  it("gives Portuguese accented letters to the filler too", () => {
+    // With an A-Z filler every Ç and Ã in the grid belonged to an answer.
+    const { grid } = buildGrid(words("CORAÇÃO", "AÇÃO", "PÃO"), 12, 12);
+    const letters = grid.flat().map((cell) => cell.letter);
+    const inWords = new Set(["C", "O", "R", "A", "Ç", "Ã", "P"]);
+    for (const letter of letters) expect(inWords.has(letter)).toBe(true);
   });
 });
 

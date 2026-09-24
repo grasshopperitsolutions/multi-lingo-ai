@@ -5,6 +5,7 @@
  * No React, no services — fully testable in isolation.
  *
  * Exports:
+ *   splitLetters(word) → string[]   (one entry per grid cell, see below)
  *   buildGrid(words, gridCols, gridRows, hardMode) → { grid, placements, placedWords }
  *   checkSelection(placements, selectedCells) → Placement | null
  *
@@ -58,13 +59,45 @@ const DELTAS = {
 // ---------------------------------------------------------------------------
 
 /**
+ * The letters of a word as a reader sees them — one per grid cell.
+ *
+ * **Not `word[i]`.** A JavaScript string indexes UTF-16 units, and in many
+ * scripts a letter is several of them: Tamil கா is க plus the vowel sign ா,
+ * and indexing split the sign into a cell of its own, where it renders as a
+ * broken glyph beside a dotted circle — every Tamil word was garbled before
+ * a single filler letter was drawn. `Intl.Segmenter` in grapheme mode keeps a
+ * consonant with its vowel sign, a letter with its accent, and a Korean
+ * syllable block whole, in any script the browser knows.
+ *
+ * @param {string} word
+ * @returns {string[]}
+ */
+export function splitLetters(word) {
+  const text = String(word ?? '');
+  try {
+    _graphemes ??= new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+    return Array.from(_graphemes.segment(text), ({ segment }) => segment);
+  } catch {
+    // Code points: still keeps surrogate pairs whole, which UTF-16 does not.
+    return Array.from(text);
+  }
+}
+
+/** Grapheme segmentation does not depend on language, so one instance serves all. */
+let _graphemes;
+
+/** A letter or digit in any script — what may occupy a cell. */
+function _isPlayable(grapheme) {
+  return /[\p{L}\p{N}]/u.test(grapheme);
+}
+
+/**
  * Build a word-search grid.
  *
  * @param {Array<{word: string, conceptId: string}>} words  — already filtered to maxLength
  * @param {number} gridCols   - number of columns (horizontal extent), e.g. 10
  * @param {number} gridRows   - number of rows    (vertical extent),   e.g. 15
  * @param {boolean} hardMode  - false = H+V only; true = all 8 directions
- * @param {string} [script]   - BCP-47 script hint for filler alphabet (see _buildAlphabet)
  * @returns {{ grid: Cell[][], placements: Placement[], placedWords: {word,hint,conceptId}[] }}
  *
  * NOTE — placedWords is the subset of `words` that were successfully placed.
@@ -72,7 +105,7 @@ const DELTAS = {
  * condition and word-list display, so that unplaceable words never make the
  * game unwinnable.
  */
-export function buildGrid(words, gridCols, gridRows, hardMode = false, script = 'latin') {
+export function buildGrid(words, gridCols, gridRows, hardMode = false) {
   const directions = hardMode ? ALL_DIRECTIONS : EASY_DIRECTIONS;
 
   // Initialize empty grid — rows × cols
@@ -82,12 +115,28 @@ export function buildGrid(words, gridCols, gridRows, hardMode = false, script = 
 
   const placements  = [];
   const placedWords = []; // only words that were actually placed (see NOTE above)
+  // Every letter of every word, repeats included — the filler is drawn from
+  // this, so its letters come in the words' own proportions.
+  const letterBag = [];
 
   for (let wi = 0; wi < words.length; wi++) {
     const entry = words[wi];
     // Always uppercase for consistent comparison in checkSelection
     const upper = entry.word.toUpperCase();
-    const placed = _placeWord(grid, upper, entry.conceptId, wi, directions, gridCols, gridRows);
+    // Letters and digits only. A pooled answer can be two words — Tamil
+    // விமான நிலையம் is "airport" — and a space or a hyphen in a cell is a
+    // blank the player cannot read; worse, drawn into the filler, it put empty
+    // cells in the grid. Placed joined up, the way word searches print them;
+    // the word list still shows the answer as written.
+    const letters = splitLetters(upper).filter(_isPlayable);
+    letterBag.push(...letters);
+
+    // A one-letter word fills one cell, and a selection needs two — it could
+    // never be found, so placing it would make the puzzle unwinnable. Tamil
+    // பூ ("flower") is one letter. Skipped like an unplaceable word.
+    if (letters.length < 2) continue;
+
+    const placed = _placeWord(grid, letters, entry.conceptId, wi, directions, gridCols, gridRows);
     if (placed) {
       placements.push(placed);
       placedWords.push({ ...entry, word: upper }); // store uppercase to match placement
@@ -96,18 +145,25 @@ export function buildGrid(words, gridCols, gridRows, hardMode = false, script = 
     // placedWords will not include it, so win condition remains reachable.
   }
 
-  // Fill empty cells with random filler letters from the appropriate script.
-  const alphabet = _buildAlphabet(script);
+  // Fill empty cells from the words' own letters. That is the practice
+  // language's alphabet by construction — Tamil fills with Tamil, Japanese
+  // with kana — with no table per script to write or keep current, and it
+  // keeps a word from standing out: an A–Z filler left every ã and ç in a
+  // Portuguese grid visibly belonging to an answer.
+  const filler = letterBag.length > 0 ? letterBag : LATIN_FALLBACK;
   for (let r = 0; r < gridRows; r++) {
     for (let c = 0; c < gridCols; c++) {
       if (!grid[r][c].letter) {
-        grid[r][c].letter = alphabet[Math.floor(Math.random() * alphabet.length)];
+        grid[r][c].letter = filler[Math.floor(Math.random() * filler.length)];
       }
     }
   }
 
   return { grid, placements, placedWords };
 }
+
+/** Only for a grid with no words at all, where there is nothing to draw from. */
+const LATIN_FALLBACK = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 // ---------------------------------------------------------------------------
 // Public: checkSelection
@@ -154,7 +210,11 @@ export function checkSelection(placements, selectedCells) {
 // Private: _placeWord
 // ---------------------------------------------------------------------------
 
-function _placeWord(grid, word, conceptId, wordIndex, directions, gridCols, gridRows) {
+/**
+ * @param {string[]} letters - the word as splitLetters returns it, one per cell
+ */
+function _placeWord(grid, letters, conceptId, wordIndex, directions, gridCols, gridRows) {
+  const word = letters.join('');
   // Shuffle directions to avoid always preferring the same first
   const shuffledDirs = [...directions].sort(() => Math.random() - 0.5);
 
@@ -165,17 +225,17 @@ function _placeWord(grid, word, conceptId, wordIndex, directions, gridCols, grid
     const startCol = Math.floor(Math.random() * gridCols);
 
     // Check bounds for all letters using the correct axis limits
-    const endRow = startRow + dr * (word.length - 1);
-    const endCol = startCol + dc * (word.length - 1);
+    const endRow = startRow + dr * (letters.length - 1);
+    const endCol = startCol + dc * (letters.length - 1);
     if (endRow < 0 || endRow >= gridRows || endCol < 0 || endCol >= gridCols) continue;
 
     // Check collisions — allow overlap only when the same letter occupies the cell
     let canPlace = true;
-    for (let i = 0; i < word.length; i++) {
+    for (let i = 0; i < letters.length; i++) {
       const r = startRow + dr * i;
       const c = startCol + dc * i;
       const existing = grid[r][c].letter;
-      if (existing && existing !== word[i]) {
+      if (existing && existing !== letters[i]) {
         canPlace = false;
         break;
       }
@@ -184,10 +244,10 @@ function _placeWord(grid, word, conceptId, wordIndex, directions, gridCols, grid
 
     // Place the word
     const cells = [];
-    for (let i = 0; i < word.length; i++) {
+    for (let i = 0; i < letters.length; i++) {
       const r = startRow + dr * i;
       const c = startCol + dc * i;
-      grid[r][c] = { letter: word[i], conceptId, wordIndex };
+      grid[r][c] = { letter: letters[i], conceptId, wordIndex };
       cells.push({ row: r, col: c });
     }
 
@@ -197,37 +257,4 @@ function _placeWord(grid, word, conceptId, wordIndex, directions, gridCols, grid
   // Could not place after 150 attempts — caller decides how to handle
   console.warn(`[wordSearchUtils] Could not place word: "${word}" — skipped.`);
   return null;
-}
-
-// ---------------------------------------------------------------------------
-// Private: _buildAlphabet
-// ---------------------------------------------------------------------------
-
-/**
- * Returns an array of uppercase filler characters for the given script.
- *
- * Currently only 'latin' (A–Z) is implemented.
- *
- * TODO: Add cases for each non-Latin script when those languages are added:
- *
- *   case 'hiragana': return Array.from('あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん');
- *   case 'katakana': return Array.from('アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン');
- *   case 'arabic':   return Array.from('ابتثجحخدذرزسشصضطظعغفقكلمنهوي');
- *   case 'cyrillic': return Array.from('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ');
- *   case 'hebrew':   return Array.from('אבגדהוזחטיכלמנסעפצקרשת');
- *   case 'hangul':   — Korean syllables are too numerous; use a curated common-syllable list.
- *
- * The `script` value should be derived from the user's learningDialect BCP-47
- * tag, e.g. 'ja' → 'hiragana', 'ar' → 'arabic', 'ru' → 'cyrillic', etc.
- *
- * @param {string} script
- * @returns {string[]}
- */
-function _buildAlphabet(script = 'latin') {
-  switch (script) {
-    // TODO: add non-Latin cases here as new languages are onboarded
-    case 'latin':
-    default:
-      return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-  }
 }

@@ -1619,6 +1619,20 @@ Search each draw N words in a loop, excluding the ids already drawn — which is
 correct and insufficient, because several concepts can carry one word. Compared
 through `normalizeChar`, so `río` cannot come back beside `rio`.
 
+**Word Search works in letters, not string indices, and fills from its own
+words.** A cell holds one grapheme (`splitLetters`, `Intl.Segmenter`): Tamil
+கா is க plus a vowel sign, and indexing the string put the sign alone in a
+cell as a broken glyph. Only letters and digits are placed — a two-word
+answer like விமான நிலையம் goes in joined up, the list still shows it as
+written — and a one-letter word (பூ) is skipped, since a selection needs two
+cells. The filler is drawn from the puzzle's own letters in their own
+proportions, which makes it the practice language's script with no table per
+script, and stops accented letters (ã, ç) being giveaways as they were in an
+A–Z filler. Found words are tracked by `conceptId`, so the joined-up and
+as-written spellings never need to match. Wide letters step down a size and
+the widest are scaled to fit their cell (ணெ needs 24px in 21px on a phone);
+the grid must stay uniform, because lining up is the game.
+
 **Collecting words has a time budget** (`utils/wordBudget`), because nothing
 was watching the total: Word Search asks for twelve words one at a time, and
 when the pool cannot serve them each is an AI generation of about two seconds.

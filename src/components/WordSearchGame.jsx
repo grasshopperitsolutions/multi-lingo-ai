@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Trophy, RotateCcw, ChevronDown } from "lucide-react";
@@ -66,18 +66,40 @@ const GridCell = ({ letter, isSelected, isFound, onClick, isDarkMode }) => {
     border = isDarkMode ? "border-slate-600" : "border-slate-300";
   }
 
+  // A letter can be several characters — Tamil டை is a consonant with a vowel
+  // sign drawn around it, about two glyphs wide — and the squares are sized
+  // for one Latin capital. Such a letter gets one size smaller, and the cell
+  // clips, so a wide letter never spills over its neighbours: in a word search
+  // the grid lining up is the whole game.
+  const isCompound = Array.from(letter).length > 1;
+
+  // The step down fits almost everything; the widest letters (Tamil ணெ needs
+  // 24px in a 21px square on a phone) are scaled to fit their own cell rather
+  // than shrinking every letter for the sake of a few. Measured before paint,
+  // so nothing flashes at the wrong size; the clip above is the safety net.
+  const letterRef = useRef(null);
+  useLayoutEffect(() => {
+    const span = letterRef.current;
+    if (!span) return;
+    span.style.transform = "";
+    const room = span.parentElement?.clientWidth ?? 0;
+    const need = span.offsetWidth;
+    if (room > 0 && need > room) span.style.transform = `scale(${room / need})`;
+  }, [letter]);
+
   return (
     <button
       type="button"
       onClick={onClick}
       className={`
-        w-6 h-6 sm:w-8 sm:h-8 rounded-md border-2 flex items-center justify-center
-        font-black text-xs sm:text-sm uppercase select-none transition-all active:scale-90
+        w-6 h-6 sm:w-8 sm:h-8 rounded-md border-2 flex items-center justify-center overflow-hidden
+        font-black leading-none uppercase select-none transition-all active:scale-90
+        ${isCompound ? "text-[10px] sm:text-xs tracking-tighter" : "text-xs sm:text-sm"}
         ${bg} ${text} ${border}
       `}
       aria-label={`Letter ${letter}`}
     >
-      {letter}
+      <span ref={letterRef} className="inline-block whitespace-nowrap">{letter}</span>
     </button>
   );
 };
