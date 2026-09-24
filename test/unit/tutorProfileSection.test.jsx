@@ -237,6 +237,44 @@ describe("languages spoken", () => {
     expect(ctx.current.refreshSupportedLanguages).toHaveBeenCalled();
   });
 
+  it("covers the page while a new language is being created, and lifts it after", async () => {
+    // Creating a language is an AI call plus translating the whole interface
+    // into it — tens of seconds — so the page is covered rather than left
+    // editable, or navigable, while it runs.
+    let finishSeeding;
+    seedLanguage.mockImplementationOnce((code) => new Promise((resolve) => {
+      finishSeeding = () => resolve({ id: code });
+    }));
+
+    const { container, findByText } = await mount();
+    await waitFor(() => expect(container.querySelector("textarea")).not.toBeNull());
+    [...container.querySelectorAll("button")].find((b) => /Adicionar l[ií]ngua/i.test(b.textContent)).click();
+    (await findByText("Outro")).click();
+
+    const { fireEvent } = await import("@testing-library/react");
+    const input = await waitFor(() => {
+      const el = container.querySelector('input[placeholder="ex.: Inglês da Austrália"]');
+      expect(el).not.toBeNull();
+      return el;
+    });
+    fireEvent.change(input, { target: { value: "Klingon" } });
+    const addButton = await waitFor(() => {
+      const btn = [...container.querySelectorAll("button")].find(
+        (b) => b.textContent.trim() === "Adicionar" && !b.disabled,
+      );
+      expect(btn).toBeDefined();
+      return btn;
+    });
+    addButton.click();
+
+    const overlay = () => container.querySelector('[role="status"][aria-label^="A adicionar o novo idioma"]');
+    await waitFor(() => expect(overlay()).not.toBeNull());
+
+    finishSeeding();
+    await waitFor(() => expect(overlay()).toBeNull());
+    await findByText("Klingon");
+  });
+
   it("removes a language pill", async () => {
     const { container, queryByText } = await mount();
     await waitFor(() => expect(queryByText("Português")).toBeInTheDocument());

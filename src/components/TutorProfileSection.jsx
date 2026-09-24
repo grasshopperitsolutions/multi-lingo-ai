@@ -34,6 +34,7 @@ import {
   validateUrlWithAi,
 } from "../services/tutorUrlValidation";
 import TutorApplicationForm from "./TutorApplicationForm";
+import Loader from "./Loader";
 
 /**
  * Editor for the signed-in user's public tutor profile.
@@ -101,6 +102,10 @@ const TutorProfileSection = ({ isDarkMode, user, defaultOpen = false, id = undef
   const [showOtherLanguage, setShowOtherLanguage] = useState(false);
   const [otherLanguageText, setOtherLanguageText] = useState("");
   const [isAddingLanguage, setIsAddingLanguage] = useState(false);
+  // Only while a language that does not exist yet is being created — the slow
+  // part, an AI call plus translating the whole interface into it. Adding one
+  // that is already known is instant and keeps just the button's spinner.
+  const [isSeedingLanguage, setIsSeedingLanguage] = useState(false);
 
   const eligible = canBeTutor(tier);
 
@@ -205,10 +210,15 @@ const TutorProfileSection = ({ isDarkMode, user, defaultOpen = false, id = undef
       );
       let code = known?.code;
       if (!code) {
-        const token = await auth.currentUser.getIdToken();
-        const created = await seedLanguage(typed, typed, token);
-        code = created?.id ?? typed;
-        await refreshSupportedLanguages();
+        setIsSeedingLanguage(true);
+        try {
+          const token = await auth.currentUser.getIdToken();
+          const created = await seedLanguage(typed, typed, token);
+          code = created?.id ?? typed;
+          await refreshSupportedLanguages();
+        } finally {
+          setIsSeedingLanguage(false);
+        }
       }
       addLanguage(code);
       setOtherLanguageText("");
@@ -321,6 +331,12 @@ const TutorProfileSection = ({ isDarkMode, user, defaultOpen = false, id = undef
   };
 
   return (
+    <>
+    {/* Beside the card, not inside it: a fixed overlay inside a transformed
+        ancestor is positioned against that ancestor instead of the screen. */}
+    {isSeedingLanguage && (
+      <Loader fullScreen isDarkMode={isDarkMode} message={t("settings.adding_language")} />
+    )}
     <SettingsSection
       id={id}
       title={t("tutors.edit_title")}
@@ -719,6 +735,7 @@ const TutorProfileSection = ({ isDarkMode, user, defaultOpen = false, id = undef
         />
       )}
     </SettingsSection>
+    </>
   );
 };
 

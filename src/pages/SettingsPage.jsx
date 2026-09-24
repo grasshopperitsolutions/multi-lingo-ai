@@ -527,7 +527,7 @@ const SettingsForm = ({
                 isUploading
                   ? t("settings.uploading")
                   : (isSeedingInterface || isSeedingLanguage)
-                    ? "Adding new language via AI, this may take a moment..."
+                    ? t("settings.adding_language")
                     : t("settings.saving")
               }</>
             : <><Save size={20} /> {t("settings.save_settings")}</>
@@ -728,13 +728,23 @@ const SettingsPage = () => {
   // Seed a new "Other" language via AI if it's not already known, returning
   // the canonical code to persist (the seeded document's id, or the existing
   // known code unchanged).
-  const seedIfNeeded = async (code, token) => {
+  //
+  // `setSeeding` is raised only when a language is actually being created, not
+  // for one that already exists: creating one means an AI call to identify it
+  // and then translating the whole interface into it — tens of seconds — and
+  // that is what the full-page loader is for. A known language returns at once
+  // and should not flash it.
+  const seedIfNeeded = async (code, token, setSeeding) => {
     const known = supportedLanguages.find((l) => normalizeCode(l.code) === normalizeCode(code));
-    if (!known) {
+    if (known) return known.code;
+
+    setSeeding(true);
+    try {
       const created = await seedLanguage(code, code, token);
       return created?.id ?? code;
+    } finally {
+      setSeeding(false);
     }
-    return known.code;
   };
 
   const handleSave = async (e) => {
@@ -761,20 +771,10 @@ const SettingsPage = () => {
       let finalLearningDialect = learningDialect;
 
       if (showOtherInterface) {
-        setIsSeedingInterface(true);
-        try {
-          finalInterfaceLang = await seedIfNeeded(interfaceLang, token);
-        } finally {
-          setIsSeedingInterface(false);
-        }
+        finalInterfaceLang = await seedIfNeeded(interfaceLang, token, setIsSeedingInterface);
       }
       if (showOtherLearning) {
-        setIsSeedingLanguage(true);
-        try {
-          finalLearningDialect = await seedIfNeeded(learningDialect, token);
-        } finally {
-          setIsSeedingLanguage(false);
-        }
+        finalLearningDialect = await seedIfNeeded(learningDialect, token, setIsSeedingLanguage);
       }
       if (showOtherInterface || showOtherLearning) {
         await refreshSupportedLanguages();
@@ -942,6 +942,14 @@ const SettingsPage = () => {
 
   return (
     <>
+      {/* Over the whole page, not just the Save button: adding a language
+          runs for tens of seconds, and the one thing that must not happen
+          meanwhile is the reader navigating away from a half-seeded language
+          or editing the form it is about to save. */}
+      {(isSeedingInterface || isSeedingLanguage) && (
+        <Loader fullScreen isDarkMode={isDarkMode} message={t("settings.adding_language")} />
+      )}
+
       {showDeleteModal && (
         <ConfirmModal
           isDarkMode={isDarkMode}
