@@ -399,3 +399,30 @@ describe("checkOpenAnswer", () => {
     expect(askAI).not.toHaveBeenCalled();
   });
 });
+
+describe("getPracticeExercise with a typed topic", () => {
+  let service;
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    service = await import("../../src/services/grammarPracticeService");
+  });
+
+  it("skips the pool, sends the learner's words as the topic, and keeps the model's key", async () => {
+    queryCollection.mockResolvedValue({
+      documents: [{ id: "ex1", type: "conjugate", topicKey: "verbs-past", level: "A2", dialects: ["pt-PT"] }],
+    });
+    createDocument.mockResolvedValue({ id: "x" });
+    askAI.mockResolvedValue({ text: JSON.stringify(MODEL_EXERCISE) });
+
+    const result = await service.getPracticeExercise({
+      token: "t", dialect: "pt-PT", level: "A2", type: "conjugate", customTopic: "  verbos com preposição  ",
+    });
+
+    expect(getDocument).not.toHaveBeenCalledWith(expect.stringContaining("/ex1/"), expect.anything(), expect.anything());
+    expect(askAI.mock.calls[0][1]).toContain("verbos com preposição");
+    expect(result.source).toBe("ai");
+    expect(result.topicKey).toBe("verbs-past-simple");
+    const filters = queryCollection.mock.calls.find((call) => call[0] === "grammarExercises")[1];
+    expect(filters).not.toHaveProperty("topicKey");
+  });
+});

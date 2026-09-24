@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BookOpen, Volume2, Square, MousePointerClick, Loader2, Eye, EyeOff } from "lucide-react";
+import { Volume2, Square, MousePointerClick, Loader2, Eye, EyeOff } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { useInterestTopics } from "../hooks/useInterestTopics";
@@ -13,15 +13,14 @@ import { getStory, getStoryTranslation, getStoryPoolStatus } from "../services/s
 import { markStorySeen } from "../services/userService";
 import { tokenizeWords } from "../utils/tokenizeWords";
 import { sentenceAt } from "../utils/sentenceAt";
-import { getCefrLevelOptions } from "../config/examLevels";
 import { STORY_THEMES, DEFAULT_STORY_THEME, CUSTOM_STORY_THEME } from "../config/storyThemes";
 import Loader from "./Loader";
-import NeoDropdown from "./NeoDropdown";
 import CustomRequestInput from "./CustomRequestInput";
 import WordLookupSheet from "./WordLookupSheet";
 import WordBankSidebar from "./WordBankSidebar";
+import ExerciseSidebar from "./ExerciseSidebar";
 import DownloadPdfButton from "./DownloadPdfButton";
-import { FeaturePageShell, Card, ErrorBanner, PrimaryButton, LevelBadge } from "./ui";
+import { FeaturePageShell, Card, ErrorBanner, LevelBadge } from "./ui";
 
 /**
  * StoryReader
@@ -89,11 +88,6 @@ const StoryReader = ({ isDarkMode }) => {
   const { ttsState, playTts, stopTts } = useTts();
   const { words: bankedWords, isFavourite: isBanked, toggle: toggleBanked, remove: removeBanked } = useWordFavourites();
   const { t } = useTranslation();
-
-  // Built inline rather than memoised: six t() calls cost nothing, and a memo
-  // here only invites the labels going stale when the interface language
-  // changes without `t` changing identity.
-  const cefrLevelOptions = getCefrLevelOptions(t);
   const navigate = useNavigate();
 
   const [level, setLevel] = useState("A1");
@@ -330,56 +324,23 @@ const StoryReader = ({ isDarkMode }) => {
       breadcrumbItems={[{ label: t("common.back", "Back"), onClick: () => navigate("/dashboard") }]}
     >
       <div className="flex flex-col lg:flex-row gap-5">
-        <WordBankSidebar
-          words={bankedWords}
-          selected={selectedWords}
-          onToggleSelect={handleToggleSelect}
-          onRemove={removeBanked}
-          maxSelected={MAX_SELECTED_WORDS}
-          canSelect={canCustomise}
-          isDarkMode={isDarkMode}
-        />
-
-        <div className="flex-1 min-w-0 flex flex-col gap-4">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-              <NeoDropdown
-                options={cefrLevelOptions}
-                value={level}
-                onChange={setLevel}
-                isDarkMode={isDarkMode}
-                label={t("exam.sidebar.level", "Level")}
-                className="flex-1"
-              />
-              {/* Level and theme are one decision made twice, so they share a
-                  row and the button sits after both — pressing it before
-                  picking a theme is the thing that shouldn't be easy. */}
-              <NeoDropdown
-                options={themeOptions}
-                value={activeTheme}
-                onChange={setTheme}
-                isDarkMode={isDarkMode}
-                label={t("story.theme_label")}
-                className="flex-1"
-              />
-              <PrimaryButton
-                onClick={handleGetStory}
-                disabled={isLoadingStory}
-                loading={isLoadingStory}
-                isDarkMode={isDarkMode}
-                color="sky"
-              >
-                <BookOpen size={16} />
-                {story ? t("story.new_story") : t("story.get_story")}
-              </PrimaryButton>
-            </div>
-
-            {/* Same component as the description box below, because it is the
-                same bargain: arbitrary words can never be served from the
-                shared pool, so this always spends a generation. Only reachable
-                once "Other" is in the picker, which is already the unlocked
-                case — so its locked state never renders here. */}
-            {activeTheme === CUSTOM_STORY_THEME && (
+        {/* Same sidebar as the exercises, with the word bank under it. On a
+            phone the controls come first: here they are what the page starts
+            from, unlike an exam where the sheet is. */}
+        <ExerciseSidebar
+          exerciseType="story"
+          level={level}
+          onLevelChange={setLevel}
+          questionType={activeTheme}
+          onQuestionTypeChange={setTheme}
+          typeOptions={themeOptions}
+          typeLabel={t("story.theme_label")}
+          extraControls={
+            // Same component as the description box, because it is the same
+            // bargain: arbitrary words can never be served from the shared
+            // pool, so this always spends a generation. Only reachable once
+            // "Other" is in the picker, which is already the unlocked case.
+            activeTheme === CUSTOM_STORY_THEME ? (
               <CustomRequestInput
                 value={customTheme}
                 onChange={setCustomTheme}
@@ -388,8 +349,31 @@ const StoryReader = ({ isDarkMode }) => {
                 disabled={isLoadingStory}
                 isDarkMode={isDarkMode}
               />
-            )}
+            ) : null
+          }
+          generateLabel={story ? t("story.new_story") : t("story.get_story")}
+          onGenerate={handleGetStory}
+          loading={isLoadingStory}
+          isDarkMode={isDarkMode}
+          showReset={false}
+          showTimer={false}
+          mobileFirst
+          footer={
+            <WordBankSidebar
+              embedded
+              words={bankedWords}
+              selected={selectedWords}
+              onToggleSelect={handleToggleSelect}
+              onRemove={removeBanked}
+              maxSelected={MAX_SELECTED_WORDS}
+              canSelect={canCustomise}
+              isDarkMode={isDarkMode}
+            />
+          }
+        />
 
+        <div className="flex-1 min-w-0 flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <CustomRequestInput
               value={description}
               onChange={setDescription}

@@ -20,6 +20,7 @@ import Loader from "../../../components/Loader";
 import NeoDropdown from "../../../components/NeoDropdown";
 import PracticeItem from "../../../components/grammarPractice/PracticeItem";
 import ExerciseSidebar from "../../../components/ExerciseSidebar";
+import CustomRequestInput from "../../../components/CustomRequestInput";
 import { FeaturePageShell, Card, ErrorBanner, PrimaryButton, LevelBadge, AiNotice } from "../../../components/ui";
 
 /**
@@ -36,6 +37,8 @@ import { FeaturePageShell, Card, ErrorBanner, PrimaryButton, LevelBadge, AiNotic
 
 const LEVEL_STORAGE_KEY = "grammarPractice.level";
 const ANY = "";
+/** The "Other" row of the topic picker. Never a real topic key. */
+const OTHER = "__other__";
 
 function readStoredLevel() {
   try {
@@ -54,7 +57,7 @@ function humanizeKey(key) {
 
 const GrammarPracticePage = () => {
   const { isDarkMode, user, setUser, interfaceLang, supportedLanguages, showAlert } = useAppContext();
-  const { featureStatus, isReady } = useTierAccess();
+  const { featureStatus, isReady, canAccess } = useTierAccess();
   const { topics: interestTopics } = useInterestTopics();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -65,6 +68,11 @@ const GrammarPracticePage = () => {
 
   const [level, setLevel] = useState(readStoredLevel);
   const [topic, setTopic] = useState(ANY);
+  const [customTopic, setCustomTopic] = useState("");
+  // True once a request had to generate: the learner has seen everything
+  // that matched, so a typed topic costs nothing extra — the same rule that
+  // unlocks custom requests elsewhere.
+  const [poolExhausted, setPoolExhausted] = useState(false);
   const [type, setType] = useState(ANY);
   const [knownTopics, setKnownTopics] = useState([]);
 
@@ -95,13 +103,21 @@ const GrammarPracticePage = () => {
     };
   }, [user?.token, dialect]);
 
+  const canCustomise = canAccess("custom_requests") || poolExhausted;
+
+  // "Other" is left out rather than shown locked, like the Tale Creator's.
   const topicOptions = useMemo(
     () => [
       { value: ANY, label: t("grammar_practice.surprise_me") },
       ...knownTopics.map((topicDoc) => ({ value: topicDoc.key, label: humanizeKey(topicDoc.key) })),
+      ...(canCustomise ? [{ value: OTHER, label: t("grammar_practice.other_topic") }] : []),
     ],
-    [knownTopics, t]
+    [knownTopics, canCustomise, t]
   );
+  // Losing access while "Other" is selected falls back to Surprise me,
+  // derived rather than corrected in an effect.
+  const activeTopic = topic === OTHER && !canCustomise ? ANY : topic;
+  const usingCustom = activeTopic === OTHER;
   const typeOptions = useMemo(
     () => [
       { value: ANY, label: t("grammar_practice.any_type") },
@@ -123,6 +139,10 @@ const GrammarPracticePage = () => {
 
   const handleStart = async () => {
     if (!user?.token || !dialect) return;
+    if (usingCustom && !customTopic.trim()) {
+      showAlert("warning", t("grammar_practice.other_topic_required"));
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -132,12 +152,14 @@ const GrammarPracticePage = () => {
         explanationLocale: interfaceLang || user.interfaceLang,
         level,
         type,
-        topicKey: topic,
+        topicKey: usingCustom ? ANY : activeTopic,
+        customTopic: usingCustom ? customTopic : "",
         canOpenAnswer,
         seenIds: user.seenExerciseIds?.grammar ?? [],
         interests: interestTopics.map((item) => item.label).join(", "),
       });
       setPractice(next);
+      if (next.source === "ai") setPoolExhausted(true);
       setIndex(0);
       setResults({});
       // A topic the model just named shows up in the picker next time.
@@ -251,8 +273,18 @@ const GrammarPracticePage = () => {
             typeOptions={typeOptions}
             extraControls={
               <>
-                <NeoDropdown options={topicOptions} value={topic} onChange={setTopic} isDarkMode={isDarkMode}
+                <NeoDropdown options={topicOptions} value={activeTopic} onChange={setTopic} isDarkMode={isDarkMode}
                   label={t("grammar_practice.topic")} disabled={isLoading} />
+                {usingCustom && (
+                  <CustomRequestInput
+                    value={customTopic}
+                    onChange={setCustomTopic}
+                    placeholder={t("grammar_practice.other_topic_placeholder")}
+                    cacheExhausted={poolExhausted}
+                    disabled={isLoading}
+                    isDarkMode={isDarkMode}
+                  />
+                )}
                 {/* The sentence-answer types need AI marking, so they are Maestro
                     and up. Said here rather than hidden without a word. */}
                 {isReady && !canOpenAnswer && (

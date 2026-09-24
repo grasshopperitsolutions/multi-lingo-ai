@@ -345,7 +345,7 @@ async function generateOnce({ token, promptDoc, type, variables }) {
  * Generate, validate and de-duplicate one exercise, retrying once when too
  * many items were dropped.
  */
-async function generateExercise({ token, type, level, dialect, explanationLocale, topicKey, knownTopics, cellDocs, interests }) {
+async function generateExercise({ token, type, level, dialect, explanationLocale, topicKey, customTopic = "", knownTopics, cellDocs, interests }) {
   const promptDoc = await getPrompt(PRACTICE_PROMPT_ID);
 
   const sameType = cellDocs.filter((doc) => doc.type === type);
@@ -364,7 +364,8 @@ async function generateExercise({ token, type, level, dialect, explanationLocale
     targetLang: dialect,
     explanationLang: explanationLocale,
     level,
-    topic: topicKey || "open",
+    // A picked key, the learner's own words, or "open" for Surprise me.
+    topic: topicKey || customTopic || "open",
     knownTopics: knownTopics.length ? knownTopics.join(", ") : "(none yet)",
     commonTopics: commonTopics.length ? commonTopics.join(", ") : "(none)",
     itemCount: String(DEFAULT_ITEM_COUNT),
@@ -389,6 +390,8 @@ async function generateExercise({ token, type, level, dialect, explanationLocale
     throw new Error("GRAMMAR_PRACTICE_GENERATION_FAILED");
   }
   // A learner who picked a topic gets that topic, whatever key the model used.
+  // Typed-in words are not a key: the model names that topic itself, so the
+  // exercise joins the pool under a key the next learner can pick.
   best.topicKey = normalizeTopicKey(topicKey || best.topicKey) || "general";
   return best;
 }
@@ -457,6 +460,8 @@ async function writeExercise({ token, exercise, type, level, dialect, explanatio
  * @param {string} params.level              - CEFR level
  * @param {string} [params.type]             - a type key, or empty for any
  * @param {string} [params.topicKey]         - a topic key, or empty for Surprise me
+ * @param {string} [params.customTopic]      - free text from "Other"; always generates.
+ *                                             Gated by the caller like custom requests.
  * @param {boolean} [params.canOpenAnswer]   - may this learner get open-answer types
  * @param {string[]} [params.seenIds]
  * @param {string} [params.interests]        - comma-separated labels
@@ -469,6 +474,7 @@ export async function getPracticeExercise({
   level,
   type = "",
   topicKey = "",
+  customTopic = "",
   canOpenAnswer = false,
   seenIds = [],
   interests = "",
@@ -479,7 +485,8 @@ export async function getPracticeExercise({
 
   const allowed = availablePracticeTypes({ canOpenAnswer });
   if (type && !allowed.includes(type)) throw new Error("GRAMMAR_PRACTICE_TYPE_LOCKED");
-  const topic = normalizeTopicKey(topicKey);
+  const custom = String(customTopic ?? "").trim().slice(0, 200);
+  const topic = custom ? "" : normalizeTopicKey(topicKey);
   const locale = explanationLocale || "en-US";
 
   const filters = { language: baseLanguage(dialect), level, status: "ready" };
@@ -495,7 +502,9 @@ export async function getPracticeExercise({
     cellDocs.filter((doc) => !seen.has(doc.id) && (doc.dialects ?? []).includes(dialect))
   );
 
-  for (const doc of candidates) {
+  // Words someone typed can never match a pooled exercise, so "Other" skips
+  // straight to generating — which is why it is gated like custom requests.
+  for (const doc of custom ? [] : candidates) {
     const content = await getDataOrNull(`${EXERCISES_COLLECTION}/${doc.id}/content`, dialect, token);
     if (!content?.items?.length) continue;
     const gloss = await getGloss({ token, exerciseId: doc.id, dialect, explanationLocale: locale, targetLang: dialect });
@@ -520,6 +529,7 @@ export async function getPracticeExercise({
     dialect,
     explanationLocale: locale,
     topicKey: topic,
+    customTopic: custom,
     knownTopics: knownKeys,
     cellDocs,
     interests,

@@ -38,6 +38,11 @@
  *   extraControls    node            — extra pickers, drawn under the type picker
  *   generateLabel    string          — replaces "Generate"
  *   showTimer        bool            — false hides the exam timer (default true)
+ *   typeLabel        string          — replaces the "Type" label
+ *   showReset        bool            — false hides the reset button (default true)
+ *   footer           node            — drawn under the sidebar (e.g. the word bank)
+ *   mobileFirst      bool            — on small screens, put the strip above the
+ *                                       content instead of below it
  *
  *   // Full Exam props (all optional, ignored when examMode=false)
  *   examMode          bool
@@ -100,6 +105,10 @@ const ExerciseSidebar = ({
   extraControls,
   generateLabel,
   showTimer,
+  typeLabel,
+  showReset,
+  footer,
+  mobileFirst,
   // Full Exam props
   examMode,
   examPhase,
@@ -315,7 +324,7 @@ const ExerciseSidebar = ({
           value={questionType}
           onChange={onQuestionTypeChange}
           isDarkMode={isDarkMode}
-          label={t("exam.sidebar.type", "Type")}
+          label={typeLabel || t("exam.sidebar.type", "Type")}
         />
       )}
 
@@ -337,7 +346,7 @@ const ExerciseSidebar = ({
         </button>
       )}
 
-      {showSetupControls && (
+      {showSetupControls && showReset && (
         <button
           onClick={() => setShowResetConfirm(true)}
           disabled={seenExerciseCount === 0 || isResetting}
@@ -454,21 +463,26 @@ const ExerciseSidebar = ({
         {examScorePanel}
         {hasControls && <div className={`${panelBase} p-4 flex flex-col gap-4`}>{controls}</div>}
         {timerSection}
+        {footer}
       </aside>
 
-      {/* Mobile bottom strip */}
-      <div className={`lg:hidden order-last w-full ${panelBase} p-4 flex flex-col gap-4`}>
-        {scoreSection}
-        {examScorePanel}
-        {controls}
-        {timerSection}
+      {/* Mobile strip — below the content by default, above it when the
+          controls are what the page starts from (mobileFirst). */}
+      <div className={`lg:hidden ${mobileFirst ? "order-first" : "order-last"} w-full flex flex-col gap-4`}>
+        <div className={`${panelBase} p-4 flex flex-col gap-4`}>
+          {scoreSection}
+          {examScorePanel}
+          {controls}
+          {timerSection}
+        </div>
+        {footer}
       </div>
     </>
   );
 };
 
 ExerciseSidebar.propTypes = {
-  exerciseType: PropTypes.oneOf(["reading", "listening", "writing", "grammar"]),
+  exerciseType: PropTypes.oneOf(["reading", "listening", "writing", "grammar", "story"]),
   level: PropTypes.string,
   onLevelChange: PropTypes.func,
   questionType: PropTypes.string,
@@ -491,6 +505,10 @@ ExerciseSidebar.propTypes = {
   extraControls: PropTypes.node,
   generateLabel: PropTypes.string,
   showTimer: PropTypes.bool,
+  typeLabel: PropTypes.string,
+  showReset: PropTypes.bool,
+  footer: PropTypes.node,
+  mobileFirst: PropTypes.bool,
   // Full Exam props
   examMode: PropTypes.bool,
   examPhase: PropTypes.oneOf(["generating", "listening", "reading", "writing", "results"]),
@@ -521,6 +539,10 @@ ExerciseSidebar.defaultProps = {
   extraControls: null,
   generateLabel: null,
   showTimer: true,
+  typeLabel: null,
+  showReset: true,
+  footer: null,
+  mobileFirst: false,
   // Full Exam defaults
   examMode: false,
   examPhase: "generating",

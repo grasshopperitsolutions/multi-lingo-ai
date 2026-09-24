@@ -1,6 +1,7 @@
+import { useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { X, BookMarked } from "lucide-react";
+import { X, BookMarked, ChevronDown } from "lucide-react";
 
 /**
  * WordBankSidebar
@@ -20,6 +21,11 @@ import { X, BookMarked } from "lucide-react";
  *
  * Layout follows ExerciseSidebar: a fixed left column on lg+, a strip below
  * the content on smaller screens. It renders in both places from one call.
+ *
+ * `embedded` renders one panel instead, for pages that put it under
+ * ExerciseSidebar via its `footer`. There it collapses on small screens,
+ * closed by default: the bank is secondary to the controls above it, and a
+ * long list of chips would push the story itself off the first screen.
  */
 const WordBankSidebar = ({
   words,
@@ -29,9 +35,11 @@ const WordBankSidebar = ({
   maxSelected,
   canSelect,
   hintKey = "word_bank.select_hint",
+  embedded = false,
   isDarkMode,
 }) => {
   const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
 
   const panelBase = `rounded-2xl border-4 ${
     isDarkMode
@@ -118,6 +126,31 @@ const WordBankSidebar = ({
     </div>
   );
 
+  if (embedded) {
+    return (
+      <div className={`${panelBase} p-4 flex flex-col gap-3`}>
+        {/* Small screens only: the header toggles the bank. On lg+ it is
+            always open, so the toggle is hidden there. */}
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          aria-expanded={open}
+          className={`lg:hidden flex items-center justify-between gap-2 text-xs font-black uppercase tracking-widest ${
+            isDarkMode ? "text-slate-400" : "text-slate-500"
+          }`}
+        >
+          <span className="flex items-center gap-1.5">
+            <BookMarked size={13} />
+            {t("word_bank.title")}
+            {words.length > 0 && <span className="tabular-nums">({words.length})</span>}
+          </span>
+          <ChevronDown size={16} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+        </button>
+        <div className={`${open ? "block" : "hidden"} lg:block`}>{body}</div>
+      </div>
+    );
+  }
+
   return (
     <>
       <aside className={`hidden lg:flex flex-col w-64 shrink-0 ${panelBase} p-4`}>{body}</aside>
@@ -141,6 +174,8 @@ WordBankSidebar.propTypes = {
    *  shared by the Tale Creator and Practice Text, and each produces a
    *  different thing. Locked copy is the same for both. */
   hintKey: PropTypes.string,
+  /** One panel for ExerciseSidebar's footer, collapsible on small screens. */
+  embedded: PropTypes.bool,
   isDarkMode: PropTypes.bool.isRequired,
 };
 

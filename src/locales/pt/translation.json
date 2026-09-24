@@ -1451,6 +1451,9 @@
     "ai_checking": "A IA está a verificar...",
     "ai_corrected": "Versão corrigida",
     "sample_answers": "Exemplos de respostas",
-    "open_types_upsell": "Reescrever, traduzir e completar livremente estão disponíveis a partir do plano Maestro."
+    "open_types_upsell": "Reescrever, traduzir e completar livremente estão disponíveis a partir do plano Maestro.",
+    "other_topic": "Outro (escreve o teu)",
+    "other_topic_placeholder": "Ex.: pronomes antes e depois do verbo, verbos com preposição...",
+    "other_topic_required": "Escreve primeiro o tema que queres treinar."
   }
 }
