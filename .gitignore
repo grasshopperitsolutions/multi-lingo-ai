@@ -118,3 +118,4 @@ proguard-rules.pro
 .vite-react-ssg-temp/
 
 *-ignore*
+social-content/
