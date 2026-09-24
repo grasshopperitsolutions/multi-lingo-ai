@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { CheckCircle2, XCircle, AlertCircle, RotateCcw } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, RotateCcw, Sparkles, Loader2 } from "lucide-react";
 import AccentBar from "./AccentBar";
 import { PrimaryButton } from "../ui";
 import {
@@ -21,6 +21,8 @@ import {
  */
 
 const TYPED = new Set(["conjugate", "conjugate-contrast", "gap-by-cue", "inflect"]);
+/** Sentence answers: always marked by the AI (Maestro and up). */
+const OPEN = new Set(["transform", "build-sentence", "translate", "open-completion"]);
 
 /** Sentence with ___ drawn as a blank and [[words]] in bold. */
 export function RichPrompt({ text, isDarkMode, blank = "…" }) {
@@ -58,12 +60,13 @@ const choiceClasses = (isDarkMode, { selected = false, state = null } = {}) => {
   return `${base} ${isDarkMode ? "bg-slate-800 border-slate-600 text-slate-100 hover:border-amber-400" : "bg-white border-slate-900 text-slate-900 hover:border-amber-500"}`;
 };
 
-const PracticeItem = ({ type, item, exercise, dialect, isDarkMode, result, onResult }) => {
+const PracticeItem = ({ type, item, exercise, dialect, isDarkMode, result, onResult, onAskAI }) => {
   const { t } = useTranslation();
   const inputRef = useRef(null);
   const [text, setText] = useState("");
   const [picked, setPicked] = useState([]);
   const [judgement, setJudgement] = useState(null); // null | true | false
+  const [aiBusy, setAiBusy] = useState(false);
   const answered = Boolean(result);
 
   // A new item starts clean.
@@ -71,10 +74,11 @@ const PracticeItem = ({ type, item, exercise, dialect, isDarkMode, result, onRes
     setText("");
     setPicked([]);
     setJudgement(null);
+    setAiBusy(false);
   }, [item.id]);
 
   useEffect(() => {
-    if (!answered && (TYPED.has(type) || judgement === false)) inputRef.current?.focus();
+    if (!answered && (TYPED.has(type) || OPEN.has(type) || judgement === false)) inputRef.current?.focus();
   }, [item.id, type, judgement, answered]);
 
   const accepted = acceptedAnswersFor(item);
@@ -83,6 +87,28 @@ const PracticeItem = ({ type, item, exercise, dialect, isDarkMode, result, onRes
     if (!normalizeAnswer(value)) return;
     const { verdict } = checkTypedAnswer(value, accepted);
     onResult({ verdict, given: value });
+  };
+
+  /**
+   * The AI's verdict replaces the code's. A declined or failed call resolves
+   * to null and leaves whatever was there.
+   */
+  const askAI = async (value, base) => {
+    if (!onAskAI) return;
+    setAiBusy(true);
+    try {
+      const ai = await onAskAI(item, value);
+      if (ai) onResult({ ...base, given: value, verdict: ai.acceptable ? VERDICT.CORRECT : VERDICT.WRONG, ai });
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+  const submitOpen = (value) => {
+    if (!normalizeAnswer(value)) return;
+    // A sentence can be right in more ways than any key lists, so the model
+    // marks every one. If the call is declined or fails the item stays open.
+    askAI(value, { verdict: VERDICT.WRONG });
   };
 
   const submitChoice = (value) => {
@@ -108,9 +134,9 @@ const PracticeItem = ({ type, item, exercise, dialect, isDarkMode, result, onRes
         autoCapitalize="off"
         spellCheck={false}
         value={text}
-        disabled={answered}
+        disabled={answered || aiBusy}
         onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter" && !answered) onSubmit(text); }}
+        onKeyDown={(e) => { if (e.key === "Enter" && !answered && !aiBusy) onSubmit(text); }}
         placeholder={t("grammar_practice.answer_placeholder")}
         aria-label={t("grammar_practice.answer_placeholder")}
         className={inputClasses}
@@ -118,7 +144,7 @@ const PracticeItem = ({ type, item, exercise, dialect, isDarkMode, result, onRes
       {!answered && (
         <>
           <AccentBar dialect={dialect} inputRef={inputRef} value={text} onChange={setText} isDarkMode={isDarkMode} />
-          <PrimaryButton onClick={() => onSubmit(text)} disabled={!normalizeAnswer(text)} isDarkMode={isDarkMode} color="amber" className="self-start">
+          <PrimaryButton onClick={() => onSubmit(text)} disabled={!normalizeAnswer(text) || aiBusy} loading={aiBusy} isDarkMode={isDarkMode} color="amber" className="self-start">
             {t("grammar_practice.check")}
           </PrimaryButton>
         </>
@@ -151,9 +177,56 @@ const PracticeItem = ({ type, item, exercise, dialect, isDarkMode, result, onRes
     return null;
   };
 
+  const chip = (label, strong = false) => (
+    <span className={`px-3 py-1 rounded-full border-2 text-sm ${strong ? "font-black" : "font-bold"} ${
+      strong
+        ? isDarkMode ? "border-amber-400 text-amber-300" : "border-amber-500 text-amber-700"
+        : isDarkMode ? "border-slate-600 text-slate-300" : "border-slate-300 text-slate-600"
+    }`}>
+      {label}
+    </span>
+  );
+
   let task = null;
 
-  if (TYPED.has(type)) {
+  if (OPEN.has(type)) {
+    task = (
+      <>
+        {type === "translate" && (
+          <>
+            <p className={`text-sm font-semibold ${muted}`}>{t("grammar_practice.translate_this")}</p>
+            <p className={`text-xl font-bold leading-relaxed ${body}`}>“{item.source}”</p>
+          </>
+        )}
+        {type === "transform" && (
+          <>
+            {exercise.operation && <div>{chip(exercise.operation, true)}</div>}
+            <p className={`text-xl font-bold leading-relaxed ${body}`}><RichPrompt text={item.prompt} isDarkMode={isDarkMode} /></p>
+          </>
+        )}
+        {type === "build-sentence" && (
+          <>
+            <p className={`text-sm font-semibold ${muted}`}>{t("grammar_practice.build_from")}</p>
+            <div className="flex flex-wrap gap-2">
+              {(item.parts ?? []).map((part) => <span key={part}>{chip(part, true)}</span>)}
+            </div>
+          </>
+        )}
+        {type === "open-completion" && (
+          <>
+            <p className={`text-xl font-bold leading-relaxed ${body}`}>{item.prompt}</p>
+            {item.constraint && <div>{chip(item.constraint)}</div>}
+          </>
+        )}
+        {typedInput(submitOpen)}
+        {aiBusy && !answered && (
+          <p className={`flex items-center gap-2 text-sm font-bold ${muted}`}>
+            <Loader2 size={14} className="animate-spin" /> {t("grammar_practice.ai_checking")}
+          </p>
+        )}
+      </>
+    );
+  } else if (TYPED.has(type)) {
     task = (
       <>
         <p className={`text-xl font-bold leading-relaxed ${body}`}>
@@ -339,6 +412,7 @@ const ResultPanel = ({ result, item, isDarkMode }) => {
   const Icon = tone.icon;
   // A sentence that was already right has no correction to show: show it.
   const answers = item.isCorrect === true ? [item.prompt] : (item.answers ?? []);
+  const ai = result.ai;
 
   return (
     <div className={`rounded-xl border-4 p-4 flex flex-col gap-2 ${tone.classes}`} role="status">
@@ -348,12 +422,27 @@ const ResultPanel = ({ result, item, isDarkMode }) => {
           {t("grammar_practice.correct_answer")}: <span className="font-black">{answers.join(" · ")}</span>
         </p>
       )}
+      {ai?.explanation && (
+        <p className="text-sm font-bold flex items-start gap-2">
+          <Sparkles size={14} className="mt-0.5 shrink-0" /> <span>{ai.explanation}</span>
+        </p>
+      )}
+      {ai && !ai.acceptable && ai.correctedAnswer && normalizeAnswer(ai.correctedAnswer) !== normalizeAnswer(result.given) && (
+        <p className="font-bold">
+          {t("grammar_practice.ai_corrected")}: <span className="font-black">{ai.correctedAnswer}</span>
+        </p>
+      )}
+      {item.sampleAnswers?.length > 0 && (
+        <p className="font-bold">
+          {t("grammar_practice.sample_answers")}: <span className="font-black">{item.sampleAnswers.join(" · ")}</span>
+        </p>
+      )}
       {item.explanation && <p className="text-sm font-semibold opacity-90">{item.explanation}</p>}
     </div>
   );
 };
 ResultPanel.propTypes = {
-  result: PropTypes.shape({ verdict: PropTypes.string.isRequired }).isRequired,
+  result: PropTypes.shape({ verdict: PropTypes.string.isRequired, given: PropTypes.any, ai: PropTypes.object }).isRequired,
   item: PropTypes.object.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
 };
@@ -364,8 +453,10 @@ PracticeItem.propTypes = {
   exercise: PropTypes.object.isRequired,
   dialect: PropTypes.string,
   isDarkMode: PropTypes.bool.isRequired,
-  result: PropTypes.shape({ verdict: PropTypes.string, given: PropTypes.any }),
+  result: PropTypes.shape({ verdict: PropTypes.string, given: PropTypes.any, ai: PropTypes.object }),
   onResult: PropTypes.func.isRequired,
+  /** (item, answer) => Promise<{acceptable, correctedAnswer, explanation} | null> */
+  onAskAI: PropTypes.func,
 };
 
 export default PracticeItem;

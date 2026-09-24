@@ -50,6 +50,7 @@ export const EXERCISES_COLLECTION = "grammarExercises";
 export const TOPICS_COLLECTION = "grammarTopics";
 export const PRACTICE_PROMPT_ID = "grammar-practice-prompt";
 export const GLOSS_PROMPT_ID = "grammar-practice-gloss-prompt";
+export const CHECK_PROMPT_ID = "grammar-practice-check-prompt";
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const POOL_LIMIT = 100;
@@ -544,4 +545,80 @@ export async function getPracticeExercise({
     source: "ai",
     exercise: mergeGloss(content, gloss),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Open answers (Maestro and up)
+// ---------------------------------------------------------------------------
+
+const CHECK_SCHEMA = {
+  type: "object",
+  properties: {
+    acceptable: { type: "boolean" },
+    correctedAnswer: { type: "string" },
+    explanation: { type: "string" },
+  },
+  required: ["acceptable", "correctedAnswer", "explanation"],
+};
+
+/** The item as the learner saw it, in one line for the check prompt. */
+function describeItem(item) {
+  if (item?.source) return item.source;
+  if (Array.isArray(item?.parts)) return item.parts.join(" · ");
+  return String(item?.prompt ?? "").replace(/\[\[|\]\]/g, "");
+}
+
+/** What the learner was asked to do, from the exercise and the item. */
+function describeTask(exercise, item) {
+  return [exercise?.instructions, exercise?.operation, item?.constraint].filter(Boolean).join(" — ");
+}
+
+/**
+ * Mark one typed sentence with the model. Every open-answer item is marked
+ * this way — the key is context for the model, never the judge — and nothing
+ * is stored: these types are Maestro and up, whose AI calls are unlimited.
+ *
+ * @returns {Promise<{ acceptable: boolean, correctedAnswer: string, explanation: string }>}
+ */
+export async function checkOpenAnswer({
+  token,
+  dialect,
+  explanationLocale,
+  level,
+  exercise,
+  item,
+  answer,
+}) {
+  if (!token) throw new Error("[grammarPracticeService] token is required");
+  if (!String(answer ?? "").trim()) throw new Error("[grammarPracticeService] answer is required");
+
+  const promptDoc = await getPrompt(CHECK_PROMPT_ID);
+  const accepted = [...(item?.answers ?? []), ...(item?.sampleAnswers ?? [])];
+  const prompt = renderTemplate(promptDoc.template, {
+    targetLang: dialect,
+    explanationLang: explanationLocale || "en-US",
+    level,
+    task: describeTask(exercise, item) || "(none)",
+    item: describeItem(item) || "(none)",
+    acceptedAnswers: accepted.length ? accepted.join(" | ") : "(none)",
+    learnerAnswer: String(answer).trim(),
+  });
+
+  const data = await askAI(token, prompt, {
+    provider: "gemini",
+    model: promptDoc.model || GEMINI_MODEL,
+    explorerModel: promptDoc.explorerModel,
+    temperature: 0.2,
+    jsonMode: true,
+    responseSchema: CHECK_SCHEMA,
+    ...(promptDoc.maxTokens ? { maxOutputTokens: promptDoc.maxTokens } : {}),
+  });
+  const parsed = parseAIJSON(data?.text ?? "");
+  const verdict = {
+    acceptable: parsed?.acceptable === true,
+    correctedAnswer: String(parsed?.correctedAnswer ?? "").trim(),
+    explanation: String(parsed?.explanation ?? "").trim(),
+  };
+
+  return verdict;
 }

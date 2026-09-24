@@ -20,7 +20,28 @@ import {
 import { isStructuredPracticeSupported } from "../../src/config/structuredPracticeSupport";
 import { isGrammarSectionAvailable } from "../../src/config/grammarSupport";
 import { GRAMMAR_SECTIONS } from "../../src/config/favouritableFeatures";
-import { PROMPT_SEEDS } from "../../src/services/promptSeedService";
+
+/**
+ * Stand-ins for the Firestore prompt documents. The real templates live in
+ * appConfig/config/prompts and are edited in Admin; these only need to carry
+ * the variables so the service's rendering can be checked.
+ */
+const VARS = "{{targetLang}} {{explanationLang}} {{level}} {{topic}} {{knownTopics}} {{commonTopics}} {{itemCount}} {{interests}} {{avoid}}";
+const PROMPT_SEEDS = [
+  {
+    id: "grammar-practice-prompt",
+    model: "",
+    variants: ["choose-option", "multi-select", "judge-correct", "classify", "word-order", "conjugate",
+      "conjugate-contrast", "gap-by-cue", "inflect", "fill-from-bank", "transform", "build-sentence",
+      "translate", "open-completion"].map((key) => ({ key, template: `${key}: ${VARS}` })),
+  },
+  { id: "grammar-practice-gloss-prompt", model: "", template: "{{sourceLang}} {{targetLocale}} {{fieldsJson}}" },
+  {
+    id: "grammar-practice-check-prompt",
+    model: "",
+    template: "{{targetLang}} {{level}} Task: {{task}} Item: {{item}} Accepted: {{acceptedAnswers}} Learner: {{learnerAnswer}} {{explanationLang}}",
+  },
+];
 
 /**
  * Grammar Practice. The pieces that decide whether a learner is marked right,
@@ -192,38 +213,19 @@ describe("types and guards", () => {
   });
 });
 
-describe("prompt seeds", () => {
-  const practice = PROMPT_SEEDS.find((p) => p.id === "grammar-practice-prompt");
-
-  it("has one variant per type, each carrying every variable the service fills", () => {
-    const keys = practice.variants.map((v) => v.key);
-    for (const key of RENDERABLE_TYPES) expect(keys).toContain(key);
-    for (const variant of practice.variants) {
-      for (const name of ["targetLang", "explanationLang", "level", "topic", "knownTopics", "commonTopics", "itemCount", "interests", "avoid"]) {
-        expect(variant.template, `${variant.key} misses {{${name}}}`).toContain(`{{${name}}}`);
-      }
-    }
-  });
-
-  it("never assumes Portuguese", () => {
-    for (const seed of PROMPT_SEEDS) {
-      const text = [seed.template ?? "", ...(seed.variants ?? []).map((v) => v.template)].join(" ");
-      expect(text).not.toMatch(/pt-PT|portugu/i);
-    }
-  });
-});
-
 // ── Service: empty collections are normal ───────────────────────────────────
 
 const queryCollection = vi.fn();
 const getDocument = vi.fn();
 const createDocument = vi.fn();
+const updateDocument = vi.fn();
 const askAI = vi.fn();
 
 vi.mock("../../src/services/firestoreService", () => ({
   queryCollection: (...a) => queryCollection(...a),
   getDocument: (...a) => getDocument(...a),
   createDocument: (...a) => createDocument(...a),
+  updateDocument: (...a) => updateDocument(...a),
 }));
 vi.mock("../../src/services/aiService", () => ({
   askAI: (...a) => askAI(...a),
@@ -355,5 +357,45 @@ describe("schemaForType", () => {
       expect(item.required, key).toContain(key === "open-completion" ? "sampleAnswers" : "answers");
     }
     expect(Object.keys(schemaForType("conjugate").properties.items.items.properties)).not.toContain("options");
+  });
+});
+
+describe("checkOpenAnswer", () => {
+  let service;
+  const item = { id: "i1", prompt: "O João lavou [[o carro]].", answers: ["O João lavou-o."] };
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    service = await import("../../src/services/grammarPracticeService");
+  });
+
+  const call = (target, answer = "Lavou-o o João.") =>
+    service.checkOpenAnswer({
+      token: "t", dialect: "pt-PT", explanationLocale: "en-US", level: "B1",
+      exercise: { instructions: "Replace with a pronoun.", operation: "pronoun" }, item: target, answer,
+    });
+
+  it("sends the item, task, key and answer, and returns the verdict", async () => {
+    askAI.mockResolvedValue({ text: JSON.stringify({ acceptable: true, correctedAnswer: "Lavou-o o João.", explanation: "Fine." }) });
+    const verdict = await call(item);
+
+    expect(verdict).toEqual({ acceptable: true, correctedAnswer: "Lavou-o o João.", explanation: "Fine." });
+    const prompt = askAI.mock.calls[0][1];
+    expect(prompt).toContain("O João lavou o carro.");
+    expect(prompt).toContain("O João lavou-o.");
+    expect(prompt).toContain("Lavou-o o João.");
+    expect(prompt).toContain("Replace with a pronoun.");
+  });
+
+  it("stores nothing, whatever the verdict", async () => {
+    askAI.mockResolvedValue({ text: JSON.stringify({ acceptable: true, correctedAnswer: "", explanation: "" }) });
+    await call(item);
+    await call({ id: "i2", prompt: "Se eu pudesse,", sampleAnswers: ["viajava."], answers: [] }, "iria à lua.");
+    expect(createDocument).not.toHaveBeenCalled();
+    expect(updateDocument).not.toHaveBeenCalled();
+  });
+
+  it("refuses an empty answer without spending a call", async () => {
+    await expect(call(item, "   ")).rejects.toThrow(/answer is required/);
+    expect(askAI).not.toHaveBeenCalled();
   });
 });

@@ -37,9 +37,8 @@ export const PRACTICE_TYPES = [
 ];
 
 /**
- * Types whose renderer is built. The open-answer types have prompts seeded
- * but no screen yet, so they are listed but not offered until this includes
- * them.
+ * Types whose renderer is built. A type listed above but missing here has a
+ * prompt variant and no screen yet, and is not offered.
  */
 export const RENDERABLE_TYPES = new Set([
   "choose-option",
@@ -52,6 +51,10 @@ export const RENDERABLE_TYPES = new Set([
   "gap-by-cue",
   "inflect",
   "fill-from-bank",
+  "transform",
+  "build-sentence",
+  "translate",
+  "open-completion",
 ]);
 
 /** Items to ask for per exercise. */

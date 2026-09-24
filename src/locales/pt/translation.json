@@ -1444,6 +1444,12 @@
       "build-sentence": "Construir a frase",
       "translate": "Traduzir",
       "open-completion": "Completar livremente"
-    }
+    },
+    "translate_this": "Traduz para a língua que praticas:",
+    "build_from": "Constrói uma frase com:",
+    "ai_checking": "A IA está a verificar...",
+    "ai_corrected": "Versão corrigida",
+    "sample_answers": "Exemplos de respostas",
+    "open_types_upsell": "Reescrever, traduzir e completar livremente estão disponíveis a partir do plano Maestro."
   }
 }

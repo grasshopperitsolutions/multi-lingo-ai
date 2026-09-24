@@ -82,11 +82,10 @@ export function checkSelection(chosen = [], accepted = []) {
 }
 
 /**
- * Every answer a checker should accept for an item: the key plus anything the
- * AI has accepted before.
+ * Every answer a checker should accept for an item.
  *
- * @param {{ answers?: string[], learnedAnswers?: string[] }} item
+ * @param {{ answers?: string[] }} item
  */
 export function acceptedAnswersFor(item) {
-  return [...(item?.answers ?? []), ...(item?.learnedAnswers ?? [])];
+  return [...(item?.answers ?? [])];
 }

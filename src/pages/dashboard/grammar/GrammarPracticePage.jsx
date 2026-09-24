@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowRight, Trophy } from "lucide-react";
+import { ArrowRight, Trophy, Lock } from "lucide-react";
 import { useAppContext } from "../../../contexts/AppContext";
 import { useTierAccess } from "../../../hooks/useTierAccess";
 import { useInterestTopics } from "../../../hooks/useInterestTopics";
 import { isAiDeclined } from "../../../services/aiService";
-import { getPracticeExercise, getKnownTopics } from "../../../services/grammarPracticeService";
+import { getPracticeExercise, getKnownTopics, checkOpenAnswer } from "../../../services/grammarPracticeService";
 import { markExerciseSeen, resetSeenExercises } from "../../../services/userService";
 import { CEFR_LEVELS } from "../../../config/examLevels";
 import {
@@ -157,6 +157,27 @@ const GrammarPracticePage = () => {
 
   const seenCount = user?.seenExerciseIds?.grammar?.length ?? 0;
 
+  /**
+   * One AI marking call for a sentence answer. Resolves to null when the
+   * learner declines the call or it fails, so the code's verdict stands.
+   */
+  const handleAskAI = async (item, answer) => {
+    try {
+      return await checkOpenAnswer({
+        token: user.token,
+        dialect,
+        explanationLocale: interfaceLang || user.interfaceLang,
+        level: practice?.level ?? level,
+        exercise: practice?.exercise,
+        item,
+        answer,
+      });
+    } catch (err) {
+      if (!isAiDeclined(err)) showAlert("error", errorMessage(err));
+      return null;
+    }
+  };
+
   const handleReset = async () => {
     if (!user?.token || !user?.uid) return;
     setIsResetting(true);
@@ -229,8 +250,24 @@ const GrammarPracticePage = () => {
             onQuestionTypeChange={setType}
             typeOptions={typeOptions}
             extraControls={
-              <NeoDropdown options={topicOptions} value={topic} onChange={setTopic} isDarkMode={isDarkMode}
-                label={t("grammar_practice.topic")} disabled={isLoading} />
+              <>
+                <NeoDropdown options={topicOptions} value={topic} onChange={setTopic} isDarkMode={isDarkMode}
+                  label={t("grammar_practice.topic")} disabled={isLoading} />
+                {/* The sentence-answer types need AI marking, so they are Maestro
+                    and up. Said here rather than hidden without a word. */}
+                {isReady && !canOpenAnswer && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/pricing")}
+                    className={`flex items-start gap-2 text-left text-xs font-bold ${
+                      isDarkMode ? "text-amber-300 hover:text-amber-200" : "text-amber-700 hover:text-amber-800"
+                    }`}
+                  >
+                    <Lock size={14} className="mt-0.5 shrink-0" />
+                    <span>{t("grammar_practice.open_types_upsell")}</span>
+                  </button>
+                )}
+              </>
             }
             generateLabel={practice ? t("grammar_practice.another") : t("grammar_practice.start")}
             onGenerate={handleStart}
@@ -287,6 +324,7 @@ const GrammarPracticePage = () => {
                 isDarkMode={isDarkMode}
                 result={results[current.id]}
                 onResult={(result) => setResults((prev) => ({ ...prev, [current.id]: result }))}
+                onAskAI={canOpenAnswer ? handleAskAI : undefined}
               />
 
               {results[current.id] && (
