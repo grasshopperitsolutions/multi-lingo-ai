@@ -37,7 +37,6 @@
 import { queryCollection, createDocument } from './firestoreService';
 import { askAI } from './aiService';
 import { getPrompt, renderTemplate } from './promptService';
-import { getGrammarDescription } from './examPromptTemplates';
 import { parseAIJSON } from '../utils/parseAIJSON';
 
 export const PASSAGES_COLLECTION = 'pronunciationPassages';
@@ -184,7 +183,6 @@ async function _generatePassage({ token, level, targetLang, existing }) {
     targetLang,
     level,
     sentenceCount,
-    grammarDescription: getGrammarDescription(level),
     avoidTexts: existing.filter(Boolean).slice(0, 12).join(' | ') || '(none yet)',
   });
 

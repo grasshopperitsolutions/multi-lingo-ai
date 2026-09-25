@@ -43,7 +43,6 @@
 import { queryCollection, getDocument, createDocument } from './firestoreService';
 import { askAI } from './aiService';
 import { getPrompt, renderTemplate } from './promptService';
-import { getGrammarDescription } from './examPromptTemplates';
 import { parseAIJSON } from '../utils/parseAIJSON';
 import {
   DEFAULT_STORY_THEME,
@@ -286,7 +285,6 @@ async function _generateStory({
   theme = DEFAULT_STORY_THEME, customTheme = '',
 }) {
   const paragraphCount = PARAGRAPH_COUNT_BY_LEVEL[level] ?? DEFAULT_PARAGRAPH_COUNT;
-  const grammarDescription = getGrammarDescription(level);
   // An explicit description wins over interests: the reader asked for
   // something specific, so interests would only dilute it.
   const interestsLine = description
@@ -324,7 +322,6 @@ async function _generateStory({
     targetLang,
     level,
     interests: interestsLine,
-    grammarDescription,
     avoidTitles,
     paragraphCount,
     // The instruction, not the id: "underwater — the sea, the coast, boats..."

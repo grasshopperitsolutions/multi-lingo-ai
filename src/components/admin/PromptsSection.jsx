@@ -35,7 +35,10 @@ function previewText(prompt) {
 
 function matchesSearch(prompt, term) {
   if (!term) return true;
-  const haystack = [prompt.name, prompt.id, prompt.category, prompt.status, prompt.description, prompt.sourceFile, prompt.sourceFunction]
+  // Template text is included, so a word the model is told (say "Portuguese")
+  // can be found across every prompt and variant at once.
+  const templates = [prompt.template, ...(Array.isArray(prompt.variants) ? prompt.variants.map((v) => v?.template) : [])];
+  const haystack = [prompt.name, prompt.id, prompt.category, prompt.status, prompt.description, prompt.sourceFile, prompt.sourceFunction, ...templates]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();

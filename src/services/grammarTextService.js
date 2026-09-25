@@ -26,7 +26,6 @@
 
 import { askAI } from './aiService';
 import { getPrompt, renderTemplate } from './promptService';
-import { getGrammarDescription } from './examPromptTemplates';
 import { parseAIJSON } from '../utils/parseAIJSON';
 
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
@@ -106,7 +105,6 @@ export async function generatePracticeText({
     explanationLang,
     level,
     focus: focus.trim(),
-    grammarDescription: getGrammarDescription(level),
     paragraphCount,
     // A plain list, not a sentence — the instruction around it belongs in the
     // editable template.

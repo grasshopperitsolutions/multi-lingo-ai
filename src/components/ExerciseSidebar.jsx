@@ -61,23 +61,28 @@ import ConfirmModal from "./ConfirmModal";
 import { LevelBadge } from "./ui";
 import { getCefrLevelOptions } from "../config/examLevels";
 
+/**
+ * Question types per exercise, as values. Labels come from `exam.types.*` in
+ * the locale files; the English here is only t()'s fallback for a locale that
+ * has not been filled yet.
+ */
 const READING_TYPES = [
-  { value: "random", label: "Random" },
-  { value: "multiple-choice", label: "Multiple Choice" },
-  { value: "true-false", label: "True / False" },
-  { value: "best-title", label: "Best Title" },
-  { value: "ordering", label: "Ordering" },
-  { value: "cloze", label: "Cloze" },
-  { value: "fill-blanks", label: "Fill Blanks" },
-  { value: "matching", label: "Matching" },
-  { value: "notice-sign", label: "Notice / Sign" },
+  ["random", "Random"],
+  ["multiple-choice", "Multiple Choice"],
+  ["true-false", "True / False"],
+  ["best-title", "Best Title"],
+  ["ordering", "Ordering"],
+  ["cloze", "Cloze"],
+  ["fill-blanks", "Fill Blanks"],
+  ["matching", "Matching"],
+  ["notice-sign", "Notice / Sign"],
 ];
 
 const LISTENING_TYPES = [
-  { value: "random", label: "Random" },
-  { value: "multiple-choice", label: "Multiple Choice" },
-  { value: "true-false", label: "True / False" },
-  { value: "fill-blanks", label: "Fill Blanks" },
+  ["random", "Random"],
+  ["multiple-choice", "Multiple Choice"],
+  ["true-false", "True / False"],
+  ["fill-blanks", "Fill Blanks"],
 ];
 
 const ExerciseSidebar = ({
@@ -123,12 +128,10 @@ const ExerciseSidebar = ({
   const cefrLevelOptions = getCefrLevelOptions(t);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
+  const builtInTypes =
+    exerciseType === "listening" ? LISTENING_TYPES : exerciseType === "reading" ? READING_TYPES : [];
   const typeOptions = typeOptionsOverride
-    ?? (exerciseType === "listening"
-      ? LISTENING_TYPES
-      : exerciseType === "reading"
-        ? READING_TYPES
-        : []);
+    ?? builtInTypes.map(([value, fallback]) => ({ value, label: t(`exam.types.${value}`, fallback) }));
 
   const panelBase = `rounded-2xl border-4 ${
     isDarkMode

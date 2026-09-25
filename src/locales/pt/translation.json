@@ -626,7 +626,18 @@
     "audio_set_speed": "Definir a velocidade para {{rate}}×",
     "audio_listened_count": "Ouvido × {{count}}",
     "passage": "Texto",
-    "evaluating_writing": "A avaliar a escrita..."
+    "evaluating_writing": "A avaliar a escrita...",
+    "types": {
+      "random": "Aleatório",
+      "multiple-choice": "Escolha múltipla",
+      "true-false": "Verdadeiro / Falso",
+      "best-title": "Melhor título",
+      "ordering": "Ordenar",
+      "cloze": "Completar com opções",
+      "fill-blanks": "Preencher espaços em branco",
+      "matching": "Correspondência",
+      "notice-sign": "Avisos e sinais"
+    }
   },
   "exam_exercises": {
     "text": "Texto",

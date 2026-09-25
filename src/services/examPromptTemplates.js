@@ -1,27 +1,35 @@
 /**
  * examPromptTemplates.js
  *
- * Builds level/type-specific AI prompts for exam exercise generation.
- * The instructional copy itself lives in Firestore (appConfig/config/prompts,
- * see promptService.js) — this file only computes the level/type-dependent
- * *variables* (grammar rules, word counts, phrasing, labels) and renders them
- * into the fetched template.
+ * Renders the exam prompts. The wording lives in Firestore
+ * (appConfig/config/prompts, see promptService.js) and is edited in Admin;
+ * this file only computes **values** from the level and type — word counts,
+ * durations, item counts, raw type keys — and renders them into the fetched
+ * template.
+ *
+ * No sentence is built here, in any language. This file used to send the
+ * model Portuguese exam instructions ("Marca a resposta correta."), a
+ * Portuguese description of each level's grammar ("presente do indicativo",
+ * "pretérito perfeito"…) and English labels with Portuguese glosses
+ * ("phone message/recado"). All of it was wrong for any other language, and
+ * none of it could be edited without a deploy. The templates now say what
+ * they need in terms of the values below; see plans/multi-dialect-practice.md.
  *
  * Usage:
  *   import { getReadingPrompt, getListeningPrompt, getWritingPrompt } from '../services/examPromptTemplates';
  *
  *   const prompt = await getReadingPrompt('A1', 'pt-PT', { type: 'true-false' });
- *   const prompt = await getListeningPrompt('B1', 'pt-PT', { type: 'matching' });
+ *   const prompt = await getListeningPrompt('B1', 'en-US', { type: 'fill-blanks', audioFormat: 'interview' });
  */
 
 import { getPrompt, renderTemplate } from './promptService';
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Values per level
 // ---------------------------------------------------------------------------
 
 /**
- * Get the appropriate word count range for a given CEFR level.
+ * Word count range for a writing task at a CEFR level.
  */
 export function getWordCountRange(level) {
   const ranges = {
@@ -35,227 +43,131 @@ export function getWordCountRange(level) {
   return ranges[level] ?? ranges.A1;
 }
 
-/**
- * Get level-appropriate grammar structures description.
- * Exported for reuse by other prompt-building services (e.g. storyService)
- * that need the same level-to-grammar-constraints mapping.
- */
-export function getGrammarDescription(level) {
-  const descriptions = {
-    A1: 'Use only presente do indicativo (simple present), basic vocabulary (colours, numbers, family, food, daily objects), short simple sentences. No past or future tenses.',
-    A2: 'Mainly presente do indicativo with some pretérito perfeito simples (simple past). Basic connectors (e, mas, porque). Concrete vocabulary about routines, weather, clothes, school, etc.',
-    B1: 'Mix of presente, pretérito perfeito and pretérito imperfeito. Some future (ir + infinitive). Subjunctive in basic contexts (espero que). Connectors (embora, no entanto, por isso). Abstract topics.',
-    B2: 'Full range of indicative tenses, some subjunctive (presente do conjuntivo). Conditional (gostaria de). Complex connectors. Passive voice. Idiomatic expressions.',
-    C1: 'Full mastery of indicative, subjunctive, conditional, and compound tenses. Sophisticated connectors (não obstante, todavia, por conseguinte). Academic and nuanced vocabulary. Complex sentence structures.',
-  };
-  return descriptions[level] ?? descriptions.A1;
-}
-
-/**
- * Get level-appropriate passage length (words) for reading.
- */
+/** Reading passage length in words. */
 function getPassageLength(level) {
   const lengths = { A1: 40, A2: 80, B1: 150, B2: 250, C1: 350, C2: 400 };
   return lengths[level] ?? lengths.A1;
 }
 
-/**
- * Get level-appropriate audio duration (seconds) for listening.
- */
+/** Listening audio duration in seconds. */
 function getAudioDuration(level) {
   const durations = { A1: 40, A2: 60, B1: 90, B2: 120, C1: 150, C2: 180 };
   return durations[level] ?? durations.A1;
 }
 
-/**
- * Get official exam phrasing based on exercise type and level.
- */
-function getExamPhrasing(type, level) {
-  const isBeginner = level === 'A1' || level === 'A2';
-
-  const phrasings = {
-    'multiple-choice': isBeginner
-      ? 'Marca a resposta correta.'
-      : 'Assinale a opção correta.',
-    'true-false': isBeginner
-      ? 'Identifica as frases verdadeiras (V) e as falsas (F), de acordo com o texto.'
-      : 'Identifique as frases verdadeiras (V) e as falsas (F), de acordo com o texto.',
-    // Reading matching pairs two columns of text — there are no images in this
-    // exercise, so the old beginner phrasing ("Associa um nome a cada imagem")
-    // told students to do something the UI never showed them.
-    'matching': isBeginner
-      ? 'Associa cada elemento da coluna A ao elemento correspondente da coluna B.'
-      : 'Faça corresponder cada elemento da coluna A ao único elemento da coluna B que permite formar uma afirmação correta.',
-    'fill-blanks': isBeginner
-      ? 'Preenche cada espaço com a palavra correta do quadro abaixo. Há três palavras a mais.'
-      : 'Preencha cada espaço com a palavra correta do quadro abaixo. Há palavras a mais.',
-    'cloze-bank': isBeginner
-      ? 'Completa as frases com as palavras do quadro.'
-      : 'Complete as frases com as palavras do quadro.',
-    'cloze-options': 'Complete as frases com a letra da opção correta.',
-    'best-title': 'Seleccione o melhor título para o texto.',
-    'ordering': 'Ordene os parágrafos de acordo com o sentido do texto.',
-    'transcription': 'Copie do texto a frase que corresponde à afirmação seguinte.',
-    'notice-sign': isBeginner
-      ? 'Completa os avisos com um verbo do quadro abaixo. Há três verbos a mais.'
-      : 'Associa cada frase a um único aviso. Há três avisos a mais.',
-  };
-
-  return phrasings[type] || phrasings['multiple-choice'];
-}
+const isBeginner = (level) => level === 'A1' || level === 'A2';
 
 // ---------------------------------------------------------------------------
-// Reading Exercise Prompts
+// Reading
 // ---------------------------------------------------------------------------
 
 /**
- * Generate a reading exercise prompt.
+ * Render a reading prompt. One variant per exercise type.
  *
- * @param {string} level     - CEFR level
- * @param {string} targetLang - Target language
+ * Variables: level, targetLang, passageLength, questionCount, extraItems.
+ *
+ * @param {string} level      - CEFR level
+ * @param {string} targetLang - the learner's dialect, e.g. 'pt-PT'
  * @param {object} options
- * @param {string} options.type - Exercise type: 'multiple-choice' | 'true-false' | 'matching' | 'best-title' | 'ordering' | 'cloze-options' | 'fill-blanks' | 'notice-sign'
+ * @param {string} options.type - variant key: 'multiple-choice' | 'true-false' | 'matching' | 'best-title' | 'ordering' | 'cloze-options' | 'fill-blanks' | 'notice-sign'
  * @param {number} [options.questionCount=4]
- * @param {string} [options.topic] - Optional specific topic
- * @returns {Promise<string>} The AI prompt
+ * @returns {Promise<string>}
  */
-export async function getReadingPrompt(level, targetLang, { type = 'multiple-choice', questionCount = 4, topic } = {}) {
-  const passageLength = getPassageLength(level);
-  const grammarDescription = getGrammarDescription(level);
-  const examPhrasing = getExamPhrasing(type, level);
-  const extraItems = (level === 'A1' || level === 'A2') ? 2 : 3;
-  const topicLine = topic ? `Topic: ${topic}` : '';
-
+export async function getReadingPrompt(level, targetLang, { type = 'multiple-choice', questionCount = 4 } = {}) {
   const prompt = await getPrompt('exam-reading-prompt');
   const variant = prompt.variants?.find((v) => v.key === type) ?? prompt.variants?.find((v) => v.key === 'multiple-choice');
 
   return renderTemplate(variant.template, {
-    level, targetLang, grammarDescription, passageLength, topicLine, questionCount, examPhrasing, extraItems,
+    level,
+    targetLang,
+    passageLength: getPassageLength(level),
+    questionCount,
+    // Distractors in column B for matching; fewer for beginners.
+    extraItems: isBeginner(level) ? 2 : 3,
   });
 }
 
 // ---------------------------------------------------------------------------
-// Listening Exercise Prompts
+// Listening
 // ---------------------------------------------------------------------------
 
 /**
- * Generate a listening exercise prompt.
+ * Render the listening prompt. One template for every question type, so the
+ * template itself describes the fields each type returns.
  *
- * @param {string} level     - CEFR level
- * @param {string} targetLang - Target language
+ * Variables: targetLang, level, audioFormat, questionType, questionCount, duration.
+ *
+ * @param {string} level      - CEFR level
+ * @param {string} targetLang - the learner's dialect
  * @param {object} options
- * @param {string} options.type - Exercise type: 'multiple-choice' | 'true-false' | 'fill-blanks' | 'matching'
+ * @param {string} options.type        - 'multiple-choice' | 'true-false' | 'fill-blanks'
  * @param {string} options.audioFormat - 'dialogue' | 'monologue' | 'phone-message' | 'announcement' | 'interview'
- * @returns {Promise<string>} The AI prompt
+ * @returns {Promise<string>}
  */
 export async function getListeningPrompt(level, targetLang, { type = 'multiple-choice', audioFormat = 'dialogue' } = {}) {
-  const duration = getAudioDuration(level);
-  const isBeginner = level === 'A1' || level === 'A2';
-  const questionCount = isBeginner ? 3 : 5;
-
-  const formatLabels = {
-    'dialogue': 'a natural dialogue between two people',
-    'monologue': 'a monologue by one person',
-    'phone-message': 'a phone message/recado',
-    'announcement': 'a public announcement',
-    'interview': 'an interview (questions and answers)',
-  };
-
-  const toneDescriptions = {
-    'dialogue': 'casual conversation between friends or family members',
-    'monologue': 'a person talking to themselves or to an audience',
-    'phone-message': 'a recorded phone message with clear articulation',
-    'announcement': 'a formal public announcement with clear enunciation',
-    'interview': 'a semi-formal interview with questions and answers',
-  };
-
-  const audioFormatLabel = formatLabels[audioFormat] || 'a dialogue';
-  const toneDescription = toneDescriptions[audioFormat] || 'natural conversation';
-
-  const listeningTypeLabel = type === 'multiple-choice' ? 'multiple choice'
-    : type === 'true-false' ? 'true/false'
-    : 'fill in the blanks (select from a word bank)';
-
-  const listeningFieldList = type === 'multiple-choice'
-    ? `  - "questions": array of { id, text, options[], correctAnswer }`
-    : type === 'true-false'
-      ? `  - "statements": array of { id, text, isTrue }\n  - "questions": array of { id, text, options[], correctAnswer }`
-      : `  - "passage": the same text as the transcript but with key words replaced by ___ (triple underscore)\n  - "wordBank": array of words in ${targetLang} (correct answers + plausible distractors)\n  - "blanks": array of { id, position, correctAnswer }`;
-
   const prompt = await getPrompt('exam-listening-prompt');
 
   return renderTemplate(prompt.template, {
-    targetLang, level, audioFormatLabel, listeningTypeLabel, questionCount, toneDescription, duration, listeningFieldList,
+    targetLang,
+    level,
+    audioFormat,
+    questionType: type,
+    questionCount: isBeginner(level) ? 3 : 5,
+    duration: getAudioDuration(level),
   });
 }
 
 // ---------------------------------------------------------------------------
-// Writing Exercise Prompts
+// Writing
 // ---------------------------------------------------------------------------
 
 /**
- * Generate a writing exercise prompt.
+ * Render the writing prompt.
  *
- * @param {string} level       - CEFR level
- * @param {string} targetLang  - Target language
+ * Variables: level, targetLang, textType, minWords, maxWords.
+ *
+ * @param {string} level      - CEFR level
+ * @param {string} targetLang - the learner's dialect
  * @param {object} options
  * @param {string} options.textType - 'email' | 'message' | 'story' | 'article' | 'opinion' | 'letter' | 'essay'
- * @param {string} [options.topic] - Optional specific topic
- * @returns {Promise<string>} The AI prompt
+ * @returns {Promise<string>}
  */
-export async function getWritingPrompt(level, targetLang, { textType = 'message', topic } = {}) {
+export async function getWritingPrompt(level, targetLang, { textType = 'message' } = {}) {
   const { min, max } = getWordCountRange(level);
-  const grammarDescription = getGrammarDescription(level);
-
-  const textTypeLabels = {
-    'email': 'an email',
-    'message': 'a message/letter',
-    'story': 'a short story/relato',
-    'article': 'a newspaper article',
-    'opinion': 'an opinion article',
-    'letter': 'a formal/informal letter',
-    'essay': 'an argumentative essay',
-  };
-  const textTypeLabel = textTypeLabels[textType] || 'a text';
-  const topicLine = topic ? `Topic: ${topic}` : '';
-
   const prompt = await getPrompt('exam-writing-prompt');
 
   return renderTemplate(prompt.template, {
-    level, targetLang, grammarDescription, textTypeLabel, minWords: min, maxWords: max, topicLine,
+    level,
+    targetLang,
+    textType,
+    minWords: min,
+    maxWords: max,
   });
 }
 
 // ---------------------------------------------------------------------------
-// Oral Expression Prompts
+// Oral expression (no caller yet)
 // ---------------------------------------------------------------------------
 
 /**
- * Generate an oral expression exercise prompt.
+ * Render the oral expression prompt.
+ *
+ * Variables: level, targetLang, prepTimeMinutes, speakingTimeMinutes, oralType.
  *
  * @param {string} level      - CEFR level
- * @param {string} targetLang - Target language
+ * @param {string} targetLang - the learner's dialect
  * @param {object} options
  * @param {string} options.type - 'conversation' | 'roleplay' | 'description' | 'opinion' | 'presentation'
- * @returns {Promise<string>} The AI prompt
+ * @returns {Promise<string>}
  */
 export async function getOralPrompt(level, targetLang, { type = 'conversation' } = {}) {
-  const grammarDescription = getGrammarDescription(level);
-  const prepTimeMinutes = { A1: 5, A2: 10, B1: 15, B2: 20, C1: 25, C2: 30 }[level] || 15;
-  const speakingTimeMinutes = { A1: 3, A2: 5, B1: 7, B2: 10, C1: 12, C2: 15 }[level] || 5;
-
-  const typeLabels = {
-    'conversation': 'a guided conversation with the examiner',
-    'roleplay': 'a role-play scenario with the examiner',
-    'description': 'a description of an image or situation',
-    'opinion': 'an opinion discussion on a given topic',
-    'presentation': 'a short presentation followed by questions',
-  };
-  const oralTypeLabel = typeLabels[type] || 'a guided conversation';
-
   const prompt = await getPrompt('exam-oral-prompt');
 
   return renderTemplate(prompt.template, {
-    level, targetLang, grammarDescription, prepTimeMinutes, speakingTimeMinutes, oralTypeLabel, oralType: type,
+    level,
+    targetLang,
+    prepTimeMinutes: { A1: 5, A2: 10, B1: 15, B2: 20, C1: 25, C2: 30 }[level] || 15,
+    speakingTimeMinutes: { A1: 3, A2: 5, B1: 7, B2: 10, C1: 12, C2: 15 }[level] || 5,
+    oralType: type,
   });
 }

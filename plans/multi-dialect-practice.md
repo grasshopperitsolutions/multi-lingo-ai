@@ -1,6 +1,6 @@
 # Multi-dialect practice
 
-**Status:** Phase 1 done on 2026-09-25. Phase 2's code built and set up on 2026-09-25; testing pt-BR and turning on its flag are still open (see below). Phase 3 queued. Written 2026-09-25.
+**Status:** Phase 1 done on 2026-09-25. Phase 2's code built and set up on 2026-09-25; testing pt-BR and turning on its flag are still open (see below). Phase 3's code built on 2026-09-25; its prompt edits, testing and flags are still open. Written 2026-09-25.
 **Covers:** Exam Training and Grammar Practice, which open to new dialects and languages together.
 
 ## Why
@@ -60,11 +60,58 @@ grammarExercises/{id}/gloss/{dialect}__{lang}   Grammar Practice only
 - Then pt-AO and pt-MZ, one at a time.
 - **Known gap:** `getGrammarDescription()` uses pt-PT terms ("presente do conjuntivo"), which Brazilian learners call "subjuntivo". The model copes, but Phase 3's fix covers this too.
 
-## Phase 3: open to any language, English first
+## Phase 3: open to any language, English first (code built 2026-09-25)
 
-- **Remove the Portuguese that is hardcoded in code.** `getGrammarDescription()` in `examPromptTemplates.js` describes level grammar in Portuguese terms (presente do indicativo, pretérito perfeito…) and is sent to every exam and tale prompt. For another language it is wrong. Move the level guidance into the prompt documents in language-neutral terms, or have the model derive it from the level. Code must not carry prompt text.
-- English (en-US, en-GB) first, then other languages one by one, each behind `examSupported`.
-- Check the per-language pieces: the accent bar (`src/utils/accentCharacters.js`) has no entry for many languages, which is fine for English. Also review exam type labels, which are hardcoded English in `ExerciseSidebar`.
+**Built:**
+
+- **No prompt text in `examPromptTemplates.js` any more.** Gone:
+  - `getGrammarDescription()`: level grammar in Portuguese terms, sent to six prompts.
+  - `getExamPhrasing()`: ready-made Portuguese exam instructions, sent to every reading exercise.
+  - The English label maps with Portuguese glosses ("phone message/recado", "short story/relato").
+  - The listening field list and `topicLine`.
+
+  The code now sends only values: level, dialect, counts, word bounds, durations and raw type keys.
+- **Tale Creator, Practice Text and pronunciation** no longer send `grammarDescription` either.
+- **Exam type labels in `ExerciseSidebar`** now come from `exam.types.*` in the locale files instead of hardcoded English.
+- **The Admin › Prompts search** now searches template text, so words like "Portug" can be found across every prompt and variant.
+
+**Prompt edits (by hand, in Admin › Prompts).** `renderTemplate` leaves any placeholder it isn't given in the text, so **make these edits at the same time as deploying the code**: an old placeholder would reach the model as literal text. Keep any tuning of your own; only these lines change.
+
+The level line used below:
+> Use only the grammar, tenses and vocabulary a learner of {{targetLang}} at CEFR {{level}} is expected to know.
+
+1. **`exam-reading-prompt`** (every variant):
+   - Anything naming Portuguese ("a Portuguese language examiner", "European Portuguese (pt-PT)") becomes neutral: "a language examiner", "{{targetLang}}".
+   - The `{{grammarDescription}}` line becomes the level line.
+   - Delete the `{{topicLine}}` line.
+   - `Official phrasing: "{{examPhrasing}}"` becomes: *Write the instruction line in {{targetLang}}, worded the way an official {{targetLang}} language exam words this task at level {{level}}.*
+   - `"instructions": ["{{examPhrasing}}"]` becomes `"instructions": ["<the instruction line, in {{targetLang}}>"]`.
+   - **true-false variant:** delete the `"questions"` array with "Verdadeiro"/"Falso" (the code reads `statements` only), and change "true (V) and false (F)" to "true or false".
+2. **`exam-listening-prompt`**:
+   - `{{audioFormatLabel}}` becomes `{{audioFormat}} (dialogue, monologue, phone-message, announcement or interview)`.
+   - `{{listeningTypeLabel}}` becomes `{{questionType}}`.
+   - `"tone": "{{toneDescription}}"` becomes `"tone": "<a few words on how the voice should deliver it>"`.
+   - Replace the `{{listeningFieldList}}` line with:
+     ```
+     Depending on the exercise type, also return:
+       - multiple-choice: "questions": array of { id, text, options[], correctAnswer }, with correctAnswer copied exactly from options
+       - true-false: "statements": array of { id, text, isTrue }
+       - fill-blanks: "passage": the transcript with the key words replaced by ___ (three underscores); "wordBank": array of words in {{targetLang}} (the correct answers plus plausible distractors); "blanks": array of { id, position, correctAnswer }
+     ```
+3. **`exam-writing-prompt`**:
+   - The Portuguese examiner line, and both "European Portuguese (pt-PT)" lines, become neutral with `{{targetLang}}`.
+   - The `{{grammarDescription}}` line becomes the level line.
+   - `{{textTypeLabel}}` becomes `{{textType}} (email, message, story, article, opinion, letter or essay)`.
+   - Delete the `{{topicLine}}` line.
+4. **`exam-oral-prompt`** (no caller yet, so optional): the same examiner and level-line edits; `{{oralTypeLabel}}` becomes `{{oralType}}`.
+5. **`story-generate-prompt`**, **`grammar-text-generate-prompt`** and **`pronunciation-passage-prompt`**: the `{{grammarDescription}}` line becomes the level line. In the story prompt the whole "Language constraints for {{level}}:" block becomes: *Language constraints: use only the grammar, tenses and vocabulary a learner of {{targetLang}} at CEFR {{level}} is expected to know.*
+6. **Then search Admin › Prompts** for "Portug", "pt-PT", "europeu", "Verdadeiro" and "Falso", and neutralise anything left in any other prompt.
+
+**Still open after the edits:**
+
+- **Test English as an admin**: switch your practice language to en-US, then en-GB. Try every exam type, grammar practice, and adaptation between en-US and en-GB. Then turn on `examSupported` for each, one at a time.
+- Then other languages, one at a time, each behind `examSupported`. The accent bar (`src/utils/accentCharacters.js`) has entries for pt, es, fr, it, de, ca, ro, pl, nl, sv and tr; other languages simply show none.
+- **Allowed, and not a problem:** values that fill a variable, such as the Tale Creator's theme descriptions (`config/storyThemes.js`), may be English phrases. Prompts are always written in English, and the model writes content in the requested language. What gets translated is the labels a learner sees, in their interface language or their practice language.
 
 ## Later, not phased
 
