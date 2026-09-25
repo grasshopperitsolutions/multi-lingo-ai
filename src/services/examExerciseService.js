@@ -32,6 +32,10 @@
  *     dialect, adaptedFrom: null | "<dialect>", type, questionType,
  *     writing | reading | listening: the exercise itself, createdAt
  *
+ * When the learner's dialect has nothing unseen, an exercise from a sibling
+ * dialect is adapted with exam-adapt-prompt before a new one is written, so
+ * the dialects of a language share one pool.
+ *
  * The pool is safe to read before it exists: an empty query is "nothing yet",
  * a missing document is null, and queries use equality filters only, so they
  * never need a composite index.
@@ -43,7 +47,20 @@ import { generateWritingExercise } from './examWritingExerciseService';
 import { generateListeningExercise } from './examListeningExerciseService';
 import { generateReadingExercise } from './examReadingExerciseService';
 import { queryCollection, createDocument } from './firestoreService';
-import { baseLanguage, getDataOrNull, newPoolId, shuffle } from './practicePool';
+import {
+  baseLanguage,
+  getDataOrNull,
+  newPoolId,
+  shuffle,
+  adaptCandidates,
+  sourceDialectOf,
+  recordAdaptation,
+  markDialectSpecific,
+} from './practicePool';
+import { askAI, isAiDeclined } from './aiService';
+import { getPrompt, renderTemplate } from './promptService';
+import { parseAIJSON } from '../utils/parseAIJSON';
+import { rebuildAdaptation } from '../utils/adaptShape';
 import { normalizeAnswer } from '../utils/grammarAnswerCheck';
 import { similarity, DUPLICATE_THRESHOLD } from '../utils/grammarDuplicates';
 
@@ -64,11 +81,13 @@ import { similarity, DUPLICATE_THRESHOLD } from '../utils/grammarDuplicates';
  * @property {string}      type
  * @property {string}      level
  * @property {string}      [questionType]
- * @property {'db'|'ai'}   source
+ * @property {'db'|'adapted'|'ai'} source
  * @property {Object}      content      - writing/reading/listening content
  */
 
 export const EXAM_COLLECTION = 'examExercises';
+export const EXAM_ADAPT_PROMPT_ID = 'exam-adapt-prompt';
+const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 const POOL_LIMIT = 100;
 /** How much of the opening text a fingerprint keeps. Enough to tell two passages apart. */
 const FINGERPRINT_CHARS = 400;
@@ -117,6 +136,23 @@ export async function getExercise({
       source: 'db',
       content,
     };
+  }
+
+  // Nothing for this dialect: adapt one from a sibling dialect first. One
+  // attempt per request; a refusal is recorded and it falls through.
+  const [candidate] = adaptCandidates(cellDocs, dialect, seen);
+  if (candidate) {
+    const content = await _adaptExercise({ token, doc: candidate, dialect });
+    if (content) {
+      return {
+        exerciseId: candidate.id,
+        type: candidate.type,
+        level: candidate.level,
+        questionType: candidate.questionType,
+        source: 'adapted',
+        content,
+      };
+    }
   }
 
   // Pool exhausted — generate a new exercise.
@@ -255,6 +291,76 @@ async function _writeNewExercise({ generated, dialect, fingerprint, token }) {
     console.warn('[examExerciseService] could not store exercise', err);
     return null;
   }
+}
+
+/**
+ * Port a pooled exercise to the learner's dialect. The model may change
+ * wording only: rebuildAdaptation keeps the original's keys, ids, list
+ * lengths, booleans and numbers, and checks every answer still matches its
+ * options. Anything else returns null and the caller writes a new exercise.
+ *
+ * @returns {Promise<object|null>} display-ready content, or null
+ */
+async function _adaptExercise({ token, doc, dialect }) {
+  const sourceDialect = sourceDialectOf(doc);
+  if (!sourceDialect) return null;
+  const data = await getDataOrNull(`${EXAM_COLLECTION}/${doc.id}/content`, sourceDialect, token);
+  const original = data?.[data?.type];
+  if (!original) return null;
+
+  let parsed;
+  try {
+    const promptDoc = await getPrompt(EXAM_ADAPT_PROMPT_ID);
+    const prompt = renderTemplate(promptDoc.template, {
+      sourceDialect,
+      targetDialect: dialect,
+      type: data.type,
+      exerciseJson: JSON.stringify(original),
+    });
+    const response = await askAI(token, prompt, {
+      provider: 'gemini',
+      model: promptDoc.model || GEMINI_MODEL,
+      explorerModel: promptDoc.explorerModel,
+      temperature: 0.3,
+      jsonMode: true,
+      ...(promptDoc.maxTokens ? { maxOutputTokens: promptDoc.maxTokens } : {}),
+    });
+    parsed = parseAIJSON(response?.text ?? '');
+  } catch (err) {
+    // Declining the call is the learner's answer, not a failure to route around.
+    if (isAiDeclined(err)) throw err;
+    console.warn('[examExerciseService] adaptation failed', err);
+    return null;
+  }
+
+  if (parsed?.portable === false) {
+    await markDialectSpecific({ token, collection: EXAM_COLLECTION, doc });
+    return null;
+  }
+
+  const adapted = rebuildAdaptation(original, parsed?.exercise);
+  if (!adapted) {
+    console.info('[examExerciseService] adaptation did not keep the exercise shape', doc.id);
+    return null;
+  }
+
+  const contentDoc = {
+    dialect,
+    adaptedFrom: sourceDialect,
+    type: data.type,
+    questionType: data.questionType ?? null,
+    [data.type]: adapted,
+    source: 'ai',
+    createdAt: new Date().toISOString(),
+  };
+  try {
+    await createDocument(`${EXAM_COLLECTION}/${doc.id}/content`, contentDoc, dialect, token);
+    await recordAdaptation({ token, collection: EXAM_COLLECTION, doc, dialect });
+  } catch (err) {
+    // Served anyway: the learner has paid for it. Adapted again next time.
+    console.warn('[examExerciseService] could not store adaptation', err);
+  }
+  return _extractContent(contentDoc);
 }
 
 // ---------------------------------------------------------------------------

@@ -12,7 +12,7 @@
  * document is null, never an error.
  */
 
-import { getDocument } from "./firestoreService";
+import { getDocument, updateDocument } from "./firestoreService";
 
 /** "pt-PT" → "pt". The pool query key; dialects are filtered in code. */
 export function baseLanguage(dialect) {
@@ -51,4 +51,66 @@ export function shuffle(list) {
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
+}
+
+// ---------------------------------------------------------------------------
+// Adapting across dialects
+// ---------------------------------------------------------------------------
+
+/**
+ * Exercises a learner could get by adapting one from a sibling dialect:
+ * unseen, with content somewhere, not already in this dialect, and not ruled
+ * out by an earlier attempt. Shuffled, so learners spread across the pool.
+ *
+ * @param {object[]} docs - root documents from the pool query
+ * @param {string} dialect - the learner's dialect
+ * @param {Iterable<string>} seenIds
+ */
+export function adaptCandidates(docs, dialect, seenIds = []) {
+  const seen = new Set(seenIds);
+  return shuffle(
+    (docs ?? []).filter(
+      (doc) =>
+        !seen.has(doc.id) &&
+        (doc.dialects ?? []).length > 0 &&
+        !(doc.dialects ?? []).includes(dialect) &&
+        doc.portability !== "dialect-specific"
+    )
+  );
+}
+
+/** The dialect to adapt from: where it was written, if that content is still listed. */
+export function sourceDialectOf(doc) {
+  const dialects = doc?.dialects ?? [];
+  return dialects.includes(doc?.originDialect) ? doc.originDialect : dialects[0];
+}
+
+/**
+ * After writing content/{dialect}: list the dialect on the root so the next
+ * learner finds it without adapting again. Best effort — if this fails the
+ * content is simply adapted again later, and the second write merges onto
+ * the first.
+ */
+export async function recordAdaptation({ token, collection, doc, dialect }) {
+  try {
+    await updateDocument(collection, doc.id, {
+      dialects: [...new Set([...(doc.dialects ?? []), dialect])],
+      portability: "portable",
+      updatedAt: new Date().toISOString(),
+    }, token);
+  } catch (err) {
+    console.warn("[practicePool] could not record adaptation", err);
+  }
+}
+
+/** The model said this exercise cannot be adapted: never ask again. Best effort. */
+export async function markDialectSpecific({ token, collection, doc }) {
+  try {
+    await updateDocument(collection, doc.id, {
+      portability: "dialect-specific",
+      updatedAt: new Date().toISOString(),
+    }, token);
+  } catch (err) {
+    console.warn("[practicePool] could not mark dialect-specific", err);
+  }
 }

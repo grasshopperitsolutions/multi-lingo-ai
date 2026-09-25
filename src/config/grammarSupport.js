@@ -50,11 +50,12 @@ export function isGrammarSupported(dialect) {
  * @param {{needsLibrary?: boolean, availability?: string}} section - an entry from GRAMMAR_SECTIONS
  * @param {string} [dialect]
  * @param {Array<object>} [supportedLanguages] - needed for structured-practice sections
+ * @param {{ isAdmin?: boolean }} [options] - admins preview structured practice in any dialect
  * @returns {boolean}
  */
-export function isGrammarSectionAvailable(section, dialect, supportedLanguages) {
+export function isGrammarSectionAvailable(section, dialect, supportedLanguages, options) {
   if (section?.availability === "structured-practice") {
-    return isStructuredPracticeSupported(dialect, supportedLanguages);
+    return isStructuredPracticeSupported(dialect, supportedLanguages, options);
   }
   if (section?.needsLibrary === false) return true;
   return isGrammarSupported(dialect);

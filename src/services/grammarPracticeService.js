@@ -34,7 +34,7 @@
  */
 
 import { queryCollection, createDocument } from "./firestoreService";
-import { askAI } from "./aiService";
+import { askAI, isAiDeclined } from "./aiService";
 import { getPrompt, renderTemplate } from "./promptService";
 import { parseAIJSON } from "../utils/parseAIJSON";
 import { availablePracticeTypes, isOpenAnswerType, DEFAULT_ITEM_COUNT } from "../config/grammarPracticeTypes";
@@ -45,7 +45,16 @@ import {
   EXERCISE_GLOSS_FIELDS,
 } from "../utils/grammarExerciseValidators";
 import { dropDuplicates, fingerprint } from "../utils/grammarDuplicates";
-import { baseLanguage, getDataOrNull, newPoolId, shuffle } from "./practicePool";
+import {
+  baseLanguage,
+  getDataOrNull,
+  newPoolId,
+  shuffle,
+  adaptCandidates,
+  sourceDialectOf,
+  recordAdaptation,
+  markDialectSpecific,
+} from "./practicePool";
 
 // Kept importable from here: callers and tests already use it.
 export { baseLanguage };
@@ -55,6 +64,7 @@ export const TOPICS_COLLECTION = "grammarTopics";
 export const PRACTICE_PROMPT_ID = "grammar-practice-prompt";
 export const GLOSS_PROMPT_ID = "grammar-practice-gloss-prompt";
 export const CHECK_PROMPT_ID = "grammar-practice-check-prompt";
+export const ADAPT_PROMPT_ID = "grammar-practice-adapt-prompt";
 
 const GEMINI_MODEL = "gemini-3.5-flash-lite";
 const POOL_LIMIT = 100;
@@ -172,8 +182,9 @@ const glossId = (dialect, locale) => `${dialect}__${baseLanguage(locale)}`;
 
 /**
  * The gloss for a reader language, translated and cached on first use. Falls
- * back to whichever gloss exists rather than showing nothing — an explanation
- * in the wrong language beats no explanation.
+ * back to another reader language's gloss *for the same dialect* rather than
+ * showing nothing — an explanation in the wrong language beats none. Never a
+ * sibling dialect's: its explanations quote that dialect's forms.
  */
 async function getGloss({ token, exerciseId, dialect, explanationLocale, targetLang }) {
   const collection = `${EXERCISES_COLLECTION}/${exerciseId}/gloss`;
@@ -182,8 +193,8 @@ async function getGloss({ token, exerciseId, dialect, explanationLocale, targetL
 
   let fallback = null;
   try {
-    const any = await queryCollection(collection, {}, { limit: 1 }, token);
-    fallback = any?.documents?.[0] ?? null;
+    const any = await queryCollection(collection, {}, { limit: 20 }, token);
+    fallback = (any?.documents ?? []).find((doc) => String(doc.id ?? "").startsWith(`${dialect}__`)) ?? null;
   } catch {
     fallback = null;
   }
@@ -196,7 +207,8 @@ async function getGloss({ token, exerciseId, dialect, explanationLocale, targetL
     fields.items = fallback.items ?? {};
     const prompt = renderTemplate(promptDoc.template, {
       targetLang,
-      sourceLang: fallback.locale ?? "the source language",
+      // The id carries the reader language when an old document lacks `locale`.
+      sourceLang: fallback.locale || String(fallback.id ?? "").split("__")[1] || "",
       targetLocale: explanationLocale,
       fieldsJson: JSON.stringify(fields),
     });
@@ -218,6 +230,7 @@ async function getGloss({ token, exerciseId, dialect, explanationLocale, targetL
     const gloss = {
       ...parsed,
       items: parsed.items && typeof parsed.items === "object" ? parsed.items : {},
+      dialect,
       locale: explanationLocale,
     };
     try {
@@ -392,6 +405,7 @@ async function writeExercise({ token, exercise, type, level, dialect, explanatio
     }, dialect, token);
     await createDocument(`${EXERCISES_COLLECTION}/${id}/gloss`, {
       ...gloss,
+      dialect,
       locale: explanationLocale,
     }, glossId(dialect, explanationLocale), token);
     await createDocument(EXERCISES_COLLECTION, {
@@ -422,6 +436,100 @@ async function writeExercise({ token, exercise, type, level, dialect, explanatio
 }
 
 // ---------------------------------------------------------------------------
+// Adapting from a sibling dialect
+// ---------------------------------------------------------------------------
+
+/** Pool fields that describe the stored document, not the exercise. */
+const STORAGE_FIELDS = ["id", "dialect", "adaptedFrom", "createdAt", "createdBy", "updatedAt", "locale"];
+
+/**
+ * Port one pooled exercise to the learner's dialect with
+ * grammar-practice-adapt-prompt, instead of writing a new one.
+ *
+ * The exercise is sent with its explanations in the learner's language (the
+ * gloss merged in), because explanations quote forms and have to change with
+ * them. The answers come back worked out again for the new dialect and go
+ * through the same validation as a fresh exercise.
+ *
+ * @returns {Promise<{ exercise: object } | { rejected: true } | null>}
+ *   the display-ready exercise; `rejected` when the model says it cannot be
+ *   adapted (recorded, so it is never tried again); null on any failure.
+ */
+async function adaptExercise({ token, doc, dialect, locale, knownKeys }) {
+  const sourceDialect = sourceDialectOf(doc);
+  if (!sourceDialect) return null;
+  const content = await getDataOrNull(`${EXERCISES_COLLECTION}/${doc.id}/content`, sourceDialect, token);
+  if (!content?.items?.length) return null;
+
+  const gloss = await getGloss({ token, exerciseId: doc.id, dialect: sourceDialect, explanationLocale: locale, targetLang: sourceDialect });
+  const source = mergeGloss(content, gloss);
+  for (const field of STORAGE_FIELDS) delete source[field];
+  source.topicKey = doc.topicKey;
+  source.family = doc.family ?? "";
+  source.focus = doc.focus ?? "";
+
+  let parsed;
+  try {
+    const promptDoc = await getPrompt(ADAPT_PROMPT_ID);
+    const prompt = renderTemplate(promptDoc.template, {
+      sourceDialect,
+      targetDialect: dialect,
+      exerciseJson: JSON.stringify(source),
+    });
+    const data = await askAI(token, prompt, {
+      provider: "gemini",
+      model: promptDoc.model || GEMINI_MODEL,
+      explorerModel: promptDoc.explorerModel,
+      temperature: 0.3,
+      jsonMode: true,
+      ...(promptDoc.maxTokens ? { maxOutputTokens: promptDoc.maxTokens } : {}),
+    });
+    parsed = parseAIJSON(data?.text ?? "");
+  } catch (err) {
+    // Declining the call is the learner's answer, not a failure to route around.
+    if (isAiDeclined(err)) throw err;
+    console.warn("[grammarPracticeService] adaptation failed", err);
+    return null;
+  }
+
+  if (parsed?.portable === false) {
+    await markDialectSpecific({ token, collection: EXERCISES_COLLECTION, doc });
+    return { rejected: true };
+  }
+
+  const { exercise } = sanitizeExercise(doc.type, parsed?.exercise);
+  const originalIds = new Set(content.items.map((item) => item.id));
+  if (!exercise || exercise.items.length < MIN_ITEMS || !exercise.items.every((item) => originalIds.has(item.id))) {
+    console.info("[grammarPracticeService] adaptation did not validate", doc.id);
+    return null;
+  }
+  exercise.topicKey = doc.topicKey;
+
+  const { content: adapted, gloss: adaptedGloss } = splitGloss(exercise);
+  const now = new Date().toISOString();
+  try {
+    await createDocument(`${EXERCISES_COLLECTION}/${doc.id}/content`, {
+      ...adapted,
+      dialect,
+      adaptedFrom: sourceDialect,
+      createdAt: now,
+    }, dialect, token);
+    await createDocument(`${EXERCISES_COLLECTION}/${doc.id}/gloss`, {
+      ...adaptedGloss,
+      dialect,
+      locale,
+    }, glossId(dialect, locale), token);
+    await recordAdaptation({ token, collection: EXERCISES_COLLECTION, doc, dialect });
+  } catch (err) {
+    // Served anyway: the learner has paid for it. Adapted again next time.
+    console.warn("[grammarPracticeService] could not store adaptation", err);
+  }
+  await registerTopic({ token, dialect, key: doc.topicKey, family: doc.family, level: doc.level, known: new Set(knownKeys) });
+
+  return { exercise: mergeGloss(adapted, adaptedGloss) };
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -440,7 +548,7 @@ async function writeExercise({ token, exercise, type, level, dialect, explanatio
  * @param {boolean} [params.canOpenAnswer]   - may this learner get open-answer types
  * @param {string[]} [params.seenIds]
  * @param {string} [params.interests]        - comma-separated labels
- * @returns {Promise<{ exerciseId: string|null, type: string, topicKey: string, level: string, source: 'db'|'ai', exercise: object }>}
+ * @returns {Promise<{ exerciseId: string|null, type: string, topicKey: string, level: string, source: 'db'|'adapted'|'ai', exercise: object }>}
  */
 export async function getPracticeExercise({
   token,
@@ -495,6 +603,27 @@ export async function getPracticeExercise({
 
   const known = await getKnownTopics({ token, dialect });
   const knownKeys = known.map((t) => t.key);
+
+  // Nothing for this dialect: adapt one from a sibling dialect before writing
+  // a new one, so the dialects of a language share a pool. One attempt per
+  // request; a refusal is recorded and the request falls through to generate.
+  if (!custom) {
+    const [candidate] = adaptCandidates(cellDocs, dialect, seen);
+    if (candidate) {
+      const adapted = await adaptExercise({ token, doc: candidate, dialect, locale, knownKeys });
+      if (adapted?.exercise) {
+        return {
+          exerciseId: candidate.id,
+          type: candidate.type,
+          topicKey: candidate.topicKey,
+          level: candidate.level,
+          source: "adapted",
+          exercise: adapted.exercise,
+        };
+      }
+    }
+  }
+
   const generatedType = type || allowed[Math.floor(Math.random() * allowed.length)];
 
   const exercise = await generateExercise({

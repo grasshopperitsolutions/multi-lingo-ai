@@ -67,7 +67,9 @@ export const DASHBOARD_FEATURES = [
     descKey: "dashboard.exam_training_desc",
     // Shared with Grammar Practice: one switch opens both for a dialect.
     isUnavailable: ({ user, supportedLanguages }) =>
-      !isStructuredPracticeSupported(user?.learningDialect, supportedLanguages),
+      !isStructuredPracticeSupported(user?.learningDialect, supportedLanguages, {
+        isAdmin: user?.subscriptionTier === "admin",
+      }),
     unavailableReasonKey: "dashboard.exam_not_available_for_language",
   },
   {

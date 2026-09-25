@@ -57,13 +57,13 @@ function humanizeKey(key) {
 
 const GrammarPracticePage = () => {
   const { isDarkMode, user, setUser, interfaceLang, supportedLanguages, showAlert } = useAppContext();
-  const { featureStatus, isReady, canAccess } = useTierAccess();
+  const { featureStatus, isReady, canAccess, isAdmin } = useTierAccess();
   const { topics: interestTopics } = useInterestTopics();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
   const dialect = user?.learningDialect;
-  const supported = isStructuredPracticeSupported(dialect, supportedLanguages);
+  const supported = isStructuredPracticeSupported(dialect, supportedLanguages, { isAdmin });
   const canOpenAnswer = isReady && featureStatus(GRAMMAR_PRACTICE_OPEN_FEATURE) === FEATURE_STATUS.AVAILABLE;
 
   const [level, setLevel] = useState(readStoredLevel);

@@ -54,7 +54,7 @@ const GrammarMenu = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, supportedLanguages } = useAppContext();
-  const { featureStatus, isReady } = useTierAccess();
+  const { featureStatus, isReady, isAdmin } = useTierAccess();
 
   const dialect = user?.learningDialect;
   const supported = isGrammarSupported(dialect);
@@ -69,7 +69,7 @@ const GrammarMenu = ({ isDarkMode }) => {
   // language, so it is left out entirely rather than shown locked. One that
   // writes from scratch is always in.
   const sectionCards = isReady
-    ? SECTIONS.filter((section) => isGrammarSectionAvailable(section, dialect, supportedLanguages)).map((section) => {
+    ? SECTIONS.filter((section) => isGrammarSectionAvailable(section, dialect, supportedLanguages, { isAdmin })).map((section) => {
         const status = featureStatus(`grammar_${section.id}`);
         const badge = getStatusBadge(status);
         return {

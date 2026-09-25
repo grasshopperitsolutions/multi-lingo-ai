@@ -36,6 +36,7 @@ const PROMPT_SEEDS = [
       "translate", "open-completion"].map((key) => ({ key, template: `${key}: ${VARS}` })),
   },
   { id: "grammar-practice-gloss-prompt", model: "", template: "{{sourceLang}} {{targetLocale}} {{fieldsJson}}" },
+  { id: "grammar-practice-adapt-prompt", model: "", template: "{{sourceDialect}} -> {{targetDialect}}: {{exerciseJson}}" },
   {
     id: "grammar-practice-check-prompt",
     model: "",
@@ -210,6 +211,10 @@ describe("types and guards", () => {
     expect(isGrammarSectionAvailable(practice, "pt-BR", langs)).toBe(false);
     expect(isGrammarSectionAvailable(practice, "pt-PT", langs)).toBe(true);
     expect(isGrammarSectionAvailable(practice, "pt-PT", undefined)).toBe(false);
+    // Admins preview a dialect before its flag opens it to everyone.
+    expect(isStructuredPracticeSupported("pt-BR", langs, { isAdmin: true })).toBe(true);
+    expect(isGrammarSectionAvailable(practice, "pt-BR", langs, { isAdmin: true })).toBe(true);
+    expect(isStructuredPracticeSupported(undefined, langs, { isAdmin: true })).toBe(false);
   });
 });
 
@@ -330,7 +335,8 @@ describe("getPracticeExercise", () => {
 
     const result = await service.getPracticeExercise({ token: "t", dialect: "pt-PT", level: "A2", type: "conjugate" });
     expect(result.source).toBe("ai");
-    expect(getDocument).not.toHaveBeenCalledWith(expect.stringContaining("/br/"), expect.anything(), expect.anything());
+    // Read only as a source to adapt from, never served as pt-PT content.
+    expect(getDocument).not.toHaveBeenCalledWith("grammarExercises/br/content", "pt-PT", "t");
   });
 
   it("gives a clear error when the model returns too little", async () => {
@@ -424,5 +430,105 @@ describe("getPracticeExercise with a typed topic", () => {
     expect(result.topicKey).toBe("verbs-past-simple");
     const filters = queryCollection.mock.calls.find((call) => call[0] === "grammarExercises")[1];
     expect(filters).not.toHaveProperty("topicKey");
+  });
+});
+
+describe("adapting a grammar exercise from a sibling dialect", () => {
+  let service;
+  const PT_DOC = {
+    id: "g1", type: "conjugate", topicKey: "verbs-past-simple", family: "verbs", focus: "preterite",
+    level: "A2", originDialect: "pt-PT", dialects: ["pt-PT"], portability: "unknown",
+  };
+  // The answer key without the reader-language text, as content/{dialect} stores it.
+  const ptContent = {
+    items: MODEL_EXERCISE.items.map((item) => {
+      const rest = { ...item };
+      delete rest.explanation;
+      return rest;
+    }),
+  };
+  const ptGloss = {
+    instructions: "Conjuga o verbo.",
+    items: Object.fromEntries(MODEL_EXERCISE.items.map((item) => [item.id, { explanation: item.explanation }])),
+  };
+  const brExercise = {
+    ...MODEL_EXERCISE,
+    items: MODEL_EXERCISE.items.map((item) => ({ ...item, explanation: "Ação concluída (pt-BR)." })),
+  };
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    service = await import("../../src/services/grammarPracticeService");
+    queryCollection.mockImplementation(async (collection) => {
+      if (collection === "grammarExercises") return { documents: [PT_DOC] };
+      return { documents: [] };
+    });
+    getDocument.mockImplementation(async (collection, id) => {
+      if (collection === "grammarExercises/g1/content" && id === "pt-PT") return { id, data: ptContent };
+      if (collection === "grammarExercises/g1/gloss" && id === "pt-PT__pt") return { id, data: ptGloss };
+      return null;
+    });
+    createDocument.mockResolvedValue({ id: "x" });
+    updateDocument.mockResolvedValue({});
+  });
+
+  const call = () => service.getPracticeExercise({ token: "t", dialect: "pt-BR", explanationLocale: "pt-PT", level: "A2", type: "conjugate" });
+
+  it("adapts with explanations included, and stores content, gloss and the new dialect", async () => {
+    askAI.mockResolvedValue({ text: JSON.stringify({ portable: true, exercise: brExercise }) });
+    const result = await call();
+
+    expect(result).toMatchObject({ exerciseId: "g1", source: "adapted", topicKey: "verbs-past-simple" });
+    expect(result.exercise.items[0].explanation).toBe("Ação concluída (pt-BR).");
+    expect(askAI).toHaveBeenCalledTimes(1);
+    const prompt = askAI.mock.calls[0][1];
+    expect(prompt).toContain("pt-PT -> pt-BR");
+    expect(prompt).toContain("Ação concluída.");
+
+    const writes = createDocument.mock.calls.map(([collection, , id]) => `${collection}#${id}`);
+    expect(writes).toContain("grammarExercises/g1/content#pt-BR");
+    expect(writes).toContain("grammarExercises/g1/gloss#pt-BR__pt");
+    expect(writes).toContain("grammarTopics#pt-BR__verbs-past-simple");
+    expect(createDocument.mock.calls.find(([c]) => c.endsWith("/content"))[1]).toMatchObject({ dialect: "pt-BR", adaptedFrom: "pt-PT" });
+    expect(updateDocument).toHaveBeenCalledWith(
+      "grammarExercises", "g1", expect.objectContaining({ dialects: ["pt-PT", "pt-BR"], portability: "portable" }), "t"
+    );
+  });
+
+  it("records a refusal and generates instead", async () => {
+    askAI
+      .mockResolvedValueOnce({ text: JSON.stringify({ portable: false, reason: "clitic placement" }) })
+      .mockResolvedValue({ text: JSON.stringify(MODEL_EXERCISE) });
+    const result = await call();
+
+    expect(updateDocument).toHaveBeenCalledWith("grammarExercises", "g1", expect.objectContaining({ portability: "dialect-specific" }), "t");
+    expect(result.source).toBe("ai");
+  });
+
+  it("generates when the adapted items do not match the original ids", async () => {
+    const renamed = { ...brExercise, items: brExercise.items.map((item, i) => ({ ...item, id: `x${i}` })) };
+    askAI.mockResolvedValueOnce({ text: JSON.stringify({ portable: true, exercise: renamed }) }).mockResolvedValue({ text: JSON.stringify(MODEL_EXERCISE) });
+    const result = await call();
+    expect(result.source).toBe("ai");
+    expect(updateDocument).not.toHaveBeenCalled();
+  });
+
+  it("never falls back to a sibling dialect's gloss", async () => {
+    // A pt-BR exercise served from the pool, read in a language with no gloss
+    // yet: only a pt-BR gloss may be translated, never the pt-PT one.
+    queryCollection.mockImplementation(async (collection) => {
+      if (collection === "grammarExercises") return { documents: [{ ...PT_DOC, dialects: ["pt-PT", "pt-BR"] }] };
+      if (collection.endsWith("/gloss")) return { documents: [{ id: "pt-PT__en", locale: "en-US", items: {} }] };
+      return { documents: [] };
+    });
+    getDocument.mockImplementation(async (collection, id) => {
+      if (collection.endsWith("/content") && id === "pt-BR") return { id, data: ptContent };
+      return null;
+    });
+    const result = await service.getPracticeExercise({ token: "t", dialect: "pt-BR", explanationLocale: "fr-FR", level: "A2", type: "conjugate" });
+
+    expect(result.source).toBe("db");
+    expect(askAI).not.toHaveBeenCalled();
+    expect(result.exercise.items[0].explanation).toBeUndefined();
   });
 });

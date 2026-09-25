@@ -1,6 +1,6 @@
 # Multi-dialect practice
 
-**Status:** Phase 1 built on 2026-09-25, apart from deleting the old exam data (see below). Phases 2 and 3 queued. Written 2026-09-25.
+**Status:** Phase 1 built on 2026-09-25, apart from deleting the old exam data. Phase 2's code built on 2026-09-25; its testing and flag steps are still open (see below). Phase 3 queued. Written 2026-09-25.
 **Covers:** Exam Training and Grammar Practice, which open to new dialects and languages together.
 
 ## Why
@@ -9,7 +9,7 @@ Both features write their exercises with AI into shared pools. Grammar Practice 
 
 ## The switch (all phases)
 
-`examSupported` on each language document in `appConfig/config/languages` (Admin › Languages). It is read through `isStructuredPracticeSupported()` in `src/config/structuredPracticeSupport.js`, by both the Exam Training tile and the Grammar Practice section. Turning it on for a dialect opens both features for it. It stays the gate in every phase, so languages are added one at a time, after testing, never all at once.
+`examSupported` on each language document in `appConfig/config/languages` (Admin › Languages). It is read through `isStructuredPracticeSupported()` in `src/config/structuredPracticeSupport.js`, by both the Exam Training tile and the Grammar Practice section. Turning it on for a dialect opens both features for it. It stays the gate in every phase, so languages are added one at a time, after testing, never all at once. **Admins get through for any dialect** regardless of the flag: that's how a dialect is tested before it opens.
 
 ## The shared data model
 
@@ -43,12 +43,23 @@ grammarExercises/{id}/gloss/{dialect}__{lang}   Grammar Practice only
 - Shared pool helpers (`baseLanguage`, id generation, safe document reads) move into one module used by both services.
 - The call sites (Reading, Listening, Writing, Full Exam) keep the same `getExercise` signature, so they don't change.
 
-## Phase 2: open to the Portuguese dialects
+## Phase 2: open to the Portuguese dialects (code built 2026-09-25)
 
-- Wire `grammar-practice-adapt-prompt` (already seeded) into both services: when a learner's dialect has nothing unseen but a sibling dialect does, adapt that exercise, write `content/{dialect}`, and add the dialect to `dialects`. Record `portability` from the adapt prompt's answer, and never try to port a `dialect-specific` exercise again.
-- Exams need their own adapt prompt, or the same one with an exam variant: a passage adapts differently from a list of grammar items. Decide when building.
-- Test pt-BR first (the dialect furthest from pt-PT), then pt-AO and pt-MZ. Turn on `examSupported` one dialect at a time.
-- Check the topic list on the new dialects. `grammarTopics` is per dialect, so pt-BR starts with only the keys the model coins.
+**Built:**
+
+- **The order of a request** in both services: first an unseen exercise that already has content in the learner's dialect. Then one attempt to adapt an unseen exercise from a sibling dialect. Only then generate a new one. When an adaptation succeeds, `content/{dialect}` is written, the dialect is added to `dialects`, and `portability` becomes `"portable"`. When the model refuses, `portability` becomes `"dialect-specific"` and that exercise is never tried again. Any other failure falls through to generating.
+- **Grammar Practice** uses `grammar-practice-adapt-prompt`. The exercise is sent with its explanations merged in (in the learner's language), because explanations quote forms and have to change with them. The result goes through the same validation as a new exercise and must keep the original item ids. It also writes `gloss/{dialect}__{lang}` and registers the topic for the new dialect.
+- **Exam Training** uses its own `exam-adapt-prompt`, because a passage adapts differently from a list of grammar items. `src/utils/adaptShape.js` rejects any adaptation that changes the exercise's keys, ids, list lengths, true/false values or numbers, empties a text, or leaves a `correctAnswer` outside its options or word bank.
+- **Glosses never cross dialects.** A missing reader-language gloss is translated from another gloss *of the same dialect* only. A sibling dialect's gloss quotes that dialect's forms.
+- **Admin preview:** admins can reach both features in any dialect before its flag is on.
+
+**Still open:**
+
+- **Seed `exam-adapt-prompt`** with the temporary button in Admin › Prompts, then remove `src/services/promptSeedService.js` with its button and handler.
+- **Edit `grammar-practice-adapt-prompt`** in Admin. Replace the line *"Leave explanations, instructions and labels in the language they are written in."* with: *"Keep explanations, instructions and labels in the language they are written in, but change every example they quote to how it is said in {{targetDialect}}."*
+- **Test pt-BR as an admin** (switch your practice language). pt-BR is the dialect furthest from pt-PT. Check the adapted grammar items and exams, the refusals, and the topic list: `grammarTopics` is per dialect, so pt-BR starts with only the keys it gets. Then turn on `examSupported` for pt-BR.
+- Then pt-AO and pt-MZ, one at a time.
+- **Known gap:** `getGrammarDescription()` uses pt-PT terms ("presente do conjuntivo"), which Brazilian learners call "subjuntivo". The model copes, but Phase 3's fix covers this too.
 
 ## Phase 3: open to any language, English first
 
