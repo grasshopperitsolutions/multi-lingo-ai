@@ -1789,6 +1789,12 @@ day it is seeded. Names resolve in **English** on purpose: the prompt around
 them is English, and `supportedLanguages.label` holds the language's name in
 its own tongue, which reads as an instruction to switch languages mid-sentence.
 
+## Future plans live in `plans/`
+
+`plans/` is a queue of agreed but unbuilt work, one file per plan, indexed in `plans/README.md`. Read it before proposing something large, since it may already be planned, or dropped for a recorded reason. When a plan is built, delete its file and its index line. When one is dropped, move its line to "Dropped" with the date and reason.
+
+Queued now: **App Current Pulse** (`plans/app-current-pulse.md`), an admin usage overview with metrics and charts.
+
 ## Do not assume
 
 - that a backend exists in this repo
