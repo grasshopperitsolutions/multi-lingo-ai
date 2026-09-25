@@ -193,6 +193,7 @@ describe("firebase", () => {
     expect(typeof app.initializeApp).toBe("function");
     expect(typeof auth.getAuth).toBe("function");
     expect(typeof auth.onAuthStateChanged).toBe("function");
+    expect(typeof auth.onIdTokenChanged).toBe("function");
     expect(typeof auth.signInWithPopup).toBe("function");
   });
 });

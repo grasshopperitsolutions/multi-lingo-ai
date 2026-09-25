@@ -67,8 +67,27 @@ const muteAiConfirmForToday = () => {
   }
 };
 
-// ── Token validation interval (50 min — Firebase ID tokens expire after 1 hr)
-const TOKEN_CHECK_INTERVAL_MS = 50 * 60 * 1000;
+// ── Keeping the sign-in token current ───────────────────────────────────────
+// Firebase ID tokens last an hour. Renew this long before one expires, so a
+// request never goes out on a token about to lapse. Firebase's own proactive
+// refresh uses the same five minutes.
+const TOKEN_RENEW_LEAD_MS = 5 * 60 * 1000;
+// After a renewal that failed for a reason that may pass — offline, rate
+// limited — try again this much later.
+const TOKEN_RETRY_MS = 60 * 1000;
+// Renewal failures that mean the session is over rather than unreachable: the
+// account was disabled or deleted, or its refresh token revoked (a password
+// change, "sign out everywhere"). Firebase signs the user out by itself for
+// the first two; `invalid-refresh-token` it leaves to us. Anything not listed
+// is treated as passing and retried — signing someone out because their
+// laptop woke up before its Wi-Fi did is the bug this replaced.
+const SESSION_OVER_CODES = new Set([
+  "auth/user-token-expired",
+  "auth/user-disabled",
+  "auth/user-not-found",
+  "auth/invalid-refresh-token",
+  "auth/invalid-user-token",
+]);
 
 // Helper to get saved theme from localStorage (fallback for non-logged-in users)
 const getSavedTheme = () => {
@@ -107,8 +126,12 @@ export const AppProvider = ({ children }) => {
   const [isLoadingTranslations, setIsLoadingTranslations] = useState(true);
   const [alert, setAlert] = useState({ show: false, type: "", message: "", action: null });
   const [user, setUser] = useState(null);
-  const [tokenExpired, setTokenExpired] = useState(false);
-  const tokenCheckRef = useRef(null);
+  // The pending token renewal, and two facts the auth listener needs to tell
+  // a session that ended on its own from one the user ended: whether a real
+  // user was signed in, and whether they asked to leave.
+  const tokenTimerRef = useRef(null);
+  const hadUserRef = useRef(false);
+  const signingOutRef = useRef(false);
 
   // ── Supported Languages & Writing Systems state ───────────────────────────
   const [supportedLanguages, setSupportedLanguages] = useState([]);
@@ -284,85 +307,84 @@ export const AppProvider = ({ children }) => {
       };
     }), []);
 
-  /**
-   * Attempt to force-refresh the Firebase ID token.
-   * Returns the fresh token on success, or null on failure (session expired).
-   */
-  const validateToken = useCallback(async () => {
-    const firebaseUser = auth?.currentUser;
-    if (!firebaseUser) return null;
-    try {
-      const freshToken = await firebaseUser.getIdToken(true);
-      return freshToken;
-    } catch {
-      return null;
-    }
-  }, []);
-
-  /**
-   * Called when we detect the token can no longer be refreshed.
-   * Marks the session as expired and shows a persistent warning.
-   */
-  const handleTokenExpired = useCallback(() => {
-    setTokenExpired(true);
-    // Use a non-auto-dismissing alert so the user sees the warning
-    setAlert({
-      show: true,
-      type: "error",
-      message: "__SESSION_EXPIRED__", // sentinel; AlertMessage will resolve via i18n
-    });
-  }, []);
-
-  /**
-   * Dismiss the expired-session banner and attempt to recover by
-   * re-validating the token (e.g. after the user re-authenticates).
-   */
-  const dismissTokenExpired = useCallback(() => {
-    setTokenExpired(false);
-    setAlert({ show: false, type: "", message: "", action: null });
-  }, []);
-
-  // ── Periodic token validation ──────────────────────────────────────────
-  // Every TOKEN_CHECK_INTERVAL_MS, try to force-refresh the ID token.
-  // If the refresh fails the session is considered expired.
+  // ── Keeping the sign-in token current ──────────────────────────────────
+  // `user.token` is read in well over a hundred places and passed to every
+  // service, so it is the token that has to stay fresh — not merely the one
+  // inside Firebase. It used to be read once, at sign-in and on a profile
+  // reload, and then go stale an hour later: every request after that was
+  // refused with 401 "Invalid or expired token", shown as a red error. An
+  // interval did force a renewal every fifty minutes, but threw the new token
+  // away, and a single failed renewal — offline for a moment — raised a
+  // permanent "session expired" banner.
+  //
+  // Renewal is scheduled from the token's own expiry, not from a fixed
+  // interval: a reload restores a token that may already be fifty minutes
+  // old. And it is scheduled here because Firebase will not do it for us —
+  // its proactive refresh only runs for the Firestore and Storage SDKs'
+  // internal listeners, and this app uses neither in the browser.
+  //
+  // A timer is not enough on its own: a closed laptop or a frozen background
+  // tab runs none, so the token is also checked the moment the tab is visible
+  // again or the network returns. That check is free while the token is
+  // valid — getIdTokenResult only goes to the network when it has to.
   useEffect(() => {
     if (!auth) return;
+    let disposed = false;
 
-    const startTokenCheck = () => {
-      tokenCheckRef.current = setInterval(async () => {
-        const token = await validateToken();
-        if (!token && auth.currentUser) {
-          handleTokenExpired();
+    const renew = async (force) => {
+      clearTimeout(tokenTimerRef.current);
+      const firebaseUser = auth.currentUser;
+      if (disposed || !firebaseUser || firebaseUser.isAnonymous) return;
+      try {
+        const { token, expirationTime } = await firebaseUser.getIdTokenResult(force);
+        if (disposed || auth.currentUser !== firebaseUser) return;
+        setUser((prev) =>
+          prev && prev.uid === firebaseUser.uid && prev.token !== token ? { ...prev, token } : prev,
+        );
+        const wait = Math.max(0, Date.parse(expirationTime) - Date.now() - TOKEN_RENEW_LEAD_MS);
+        // Cleared again here, not only on entry: two renewals can overlap
+        // (a new token and the tab becoming visible at once), and the one
+        // finishing first must not leave its timer behind.
+        clearTimeout(tokenTimerRef.current);
+        tokenTimerRef.current = setTimeout(() => renew(true), wait);
+      } catch (err) {
+        if (disposed) return;
+        if (SESSION_OVER_CODES.has(err?.code)) {
+          // The session cannot be renewed. Sign out properly so the app
+          // treats it like any other sign-out — the auth listener tells
+          // the user and RequireAuth takes them to sign in. Firebase has
+          // already done this for some of these codes; doing it again is
+          // harmless.
+          auth.signOut().catch(() => {});
+          return;
         }
-      }, TOKEN_CHECK_INTERVAL_MS);
+        clearTimeout(tokenTimerRef.current);
+        tokenTimerRef.current = setTimeout(() => renew(true), TOKEN_RETRY_MS);
+      }
     };
 
-    startTokenCheck();
+    // Fires on sign-in, sign-out and every renewal. A renewal lands here and
+    // schedules the next one; renew(false) costs nothing when the token is
+    // still good, so there is no loop.
+    const unsubscribe = auth.onIdTokenChanged((firebaseUser) => {
+      if (firebaseUser && !firebaseUser.isAnonymous) renew(false);
+      else clearTimeout(tokenTimerRef.current);
+    });
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") renew(false);
+    };
+    const onOnline = () => renew(false);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", onOnline);
 
     return () => {
-      if (tokenCheckRef.current) clearInterval(tokenCheckRef.current);
+      disposed = true;
+      clearTimeout(tokenTimerRef.current);
+      unsubscribe();
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", onOnline);
     };
-  }, [validateToken, handleTokenExpired]);
-
-  // ── Listen for auth state → clear expired flag when user re-auths ──────
-  useEffect(() => {
-    if (!auth) return;
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
-      // Tag error reports with the account that hit them. Anonymous guest
-      // sessions stay unattributed — their uid is per-browser and would
-      // just be noise.
-      setSentryUser(
-        firebaseUser && !firebaseUser.isAnonymous ? firebaseUser.uid : null
-      );
-
-      if (firebaseUser && !firebaseUser.isAnonymous && tokenExpired) {
-        // User re-authenticated (e.g. signed in again from another tab)
-        setTokenExpired(false);
-        setAlert({ show: false, type: "", message: "", action: null });
-      }
-    });
-    return () => unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Load translations for the current interface language ───────────────
@@ -725,9 +747,18 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      // Tag error reports with the account that hit them. Anonymous guest
+      // sessions stay unattributed — their uid is per-browser and would
+      // just be noise.
+      setSentryUser(
+        firebaseUser && !firebaseUser.isAnonymous ? firebaseUser.uid : null
+      );
+
       // Anonymous sessions (used to let guests read public data like
       // translations) must never be treated as a real logged-in user.
       if (firebaseUser && !firebaseUser.isAnonymous) {
+        hadUserRef.current = true;
+        signingOutRef.current = false;
         const token = await firebaseUser.getIdToken();
         const authUser = {
           uid: firebaseUser.uid,
@@ -748,6 +779,15 @@ export const AppProvider = ({ children }) => {
         }));
         loadUserProfile(authUser);
       } else {
+        // A signed-in user is gone and did not ask to leave: the session
+        // could not be renewed, or they signed out in another tab. Say so,
+        // calmly — RequireAuth is about to move them off the page, and a
+        // silent jump to the start page reads as a crash.
+        if (hadUserRef.current && !signingOutRef.current) {
+          showAlert("info", i18n.t("session.expired_message"));
+        }
+        hadUserRef.current = false;
+        signingOutRef.current = false;
         setUser(null);
         setIsLoadingUser(false);
         const savedTheme = getSavedTheme();
@@ -798,6 +838,9 @@ export const AppProvider = ({ children }) => {
   };
 
   const logoutUser = async () => {
+    // Read and cleared by the auth listener, not here: Firebase notifies it
+    // after signOut resolves, so a reset in a finally block would race it.
+    signingOutRef.current = true;
     try {
       await logoutUserService();
       setUser(null);
@@ -805,6 +848,7 @@ export const AppProvider = ({ children }) => {
       setExamSession(null);
       return { success: true };
     } catch (e) {
+      signingOutRef.current = false;
       showAlert("error", e.message);
       return { success: false };
     }
@@ -835,10 +879,6 @@ export const AppProvider = ({ children }) => {
         loginTwitter,
         logoutUser,
         refreshUser,
-        tokenExpired,
-        handleTokenExpired,
-        dismissTokenExpired,
-        validateToken,
         // Supported languages & writing systems
         supportedLanguages,
         interfaceLanguageOptions,

@@ -439,6 +439,44 @@ Migrating a caller from the old `filters`/`activeFilters`/`onFilterToggle` shape
 
 This replaced a real bug: `DashboardLayout` used to render `if (!user) return <Loader fullScreen .../>` with nothing that would ever change that — no redirect, no timeout. A guest opening any `/dashboard/*` URL (a shared tutor-directory link, a bookmark, a second tab after signing out) got a spinner that never resolved. `DashboardLayout`'s own `!user` branch now returns `null` — defensive only, since `RequireAuth` should mean it's unreachable — rather than repeating the same shape of bug at a second layer. Do not add a full-screen loader anywhere that has no corresponding path back out; a loading state needs a guard that eventually decides "yes" or "no", not just "wait".
 
+## `user.token` is renewed in place; nobody should read it once and keep it
+
+Firebase ID tokens last an hour. `user.token` is what every service is handed,
+and it used to be read at sign-in and never again, so an hour in every request
+came back 401 "Invalid or expired token" as a red error. An interval did force
+a renewal every fifty minutes — and threw the new token away — and one failed
+renewal (offline for a moment) raised a permanent "session expired" banner.
+
+`AppContext` now owns the token's life:
+
+- **Renewal is scheduled from the token's own `exp`**, five minutes ahead, not
+  on a fixed interval: a reload restores a token that can already be fifty
+  minutes old. Firebase will not do this for us — its proactive refresh only
+  runs for the Firestore and Storage SDKs' internal listeners, and this app
+  uses neither in the browser. `onIdTokenChanged` writes each new token into
+  `user.token`.
+- **It is re-checked when the tab becomes visible and when the network
+  returns**, because a closed laptop runs no timers. `getIdTokenResult(false)`
+  is free while the token is good.
+- **Only a session that cannot be renewed ends it** (`SESSION_OVER_CODES`: a
+  disabled or deleted account, a revoked refresh token). Anything else —
+  offline, rate-limited — is retried a minute later. Firebase signs the user
+  out itself for some of those codes but not for `invalid-refresh-token`, so
+  the app signs out for all of them.
+- **An ending the user did not ask for is announced** as an `info` alert
+  (`session.expired_message`) and `RequireAuth` takes them to sign in. A
+  sign-out they chose says nothing; `signingOutRef` tells the two apart and is
+  cleared by the auth listener, not by `logoutUser`, because Firebase notifies
+  the listener after `signOut` resolves.
+
+Verified end to end by expiring the stored token with the page open: Firebase
+renewed it, and every request on the next page carried the new one.
+
+Still open: the six games each carry a private `isSessionExpiredError` that
+answers a 401 with a browser `alert()` and a reload. With the token kept fresh
+it should almost never fire, but it is the one remaining place a session
+problem looks like a crash.
+
 ## Dependencies
 
 Dependabot is configured in `.github/dependabot.yml`, grouped so minor/patch updates arrive as two PRs a week and majors arrive individually — ten green PRs at once is how a real break gets merged. `npm test` now runs blocking in CI ahead of `build`, so a bump that breaks rendering fails the PR instead of reaching Pages.

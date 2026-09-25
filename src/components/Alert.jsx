@@ -1,16 +1,8 @@
 import { useEffect } from "react";
 import { AlertTriangle, CheckCircle, Info, X } from "lucide-react";
-import { useTranslation } from "react-i18next";
 import PropTypes from "prop-types";
 
 const AlertMessage = ({ alert, onClose }) => {
-  const { t } = useTranslation();
-
-  const isSessionExpired = alert.message === "__SESSION_EXPIRED__";
-  const displayMessage = isSessionExpired
-    ? t("session.expired_title")
-    : alert.message;
-
   // Auto-dismiss after 10s in all cases
   useEffect(() => {
     if (alert.show) {
@@ -53,24 +45,10 @@ const AlertMessage = ({ alert, onClose }) => {
         <Icon size={24} className="flex-shrink-0" />
         <div className="flex flex-col gap-1">
           <span className="font-black uppercase tracking-tight text-lg">
-            {displayMessage}
+            {alert.message}
           </span>
-          {isSessionExpired && (
-            <span className="text-sm font-normal normal-case tracking-normal opacity-90">
-              {t("session.expired_message")}
-            </span>
-          )}
         </div>
-        {isSessionExpired ? (
-          <button
-            onClick={() => {
-              window.location.reload();
-            }}
-            className="ml-4 px-4 py-2 rounded-xl bg-white text-rose-500 font-bold uppercase text-sm hover:scale-105 transition-all active:scale-95 whitespace-nowrap"
-          >
-            {t("session.refresh_button")}
-          </button>
-        ) : alert.action ? (
+        {alert.action ? (
           <button
             onClick={handleActionClick}
             className="ml-4 px-4 py-2 rounded-xl bg-white text-rose-500 font-bold uppercase text-sm hover:scale-105 transition-all active:scale-95 whitespace-nowrap"

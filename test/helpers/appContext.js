@@ -16,10 +16,6 @@ export function makeAppContext(overrides = {}) {
     user: null,
     setUser: vi.fn(),
     token: "test-token",
-    validateToken: vi.fn(async () => true),
-    tokenExpired: false,
-    handleTokenExpired: vi.fn(),
-    dismissTokenExpired: vi.fn(),
     isLoadingUser: false,
     refreshUser: vi.fn(async () => {}),
 

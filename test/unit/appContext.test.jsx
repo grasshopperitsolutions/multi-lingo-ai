@@ -23,6 +23,7 @@ vi.mock("../../src/firebase", () => ({
   auth: {
     currentUser: null,
     onAuthStateChanged: (...args) => onAuthStateChanged(...args),
+    onIdTokenChanged: () => () => {},
   },
   default: {},
   getMessagingIfSupported: vi.fn(async () => null),
