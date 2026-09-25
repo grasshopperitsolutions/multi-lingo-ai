@@ -32,6 +32,8 @@
  *   ac.abort(); // cancels the request
  */
 
+import i18next from 'i18next';
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -70,6 +72,38 @@ export function registerAiConfirmHandler(fn) {
  */
 export function isAiDeclined(err) {
   return Boolean(err?.declined);
+}
+
+// ---------------------------------------------------------------------------
+// Usage
+//
+// A counted call comes back with the server's count (`data.usage`), and so
+// does the daily-limit refusal. AppContext registers a handler that mirrors
+// it into the profile, so the meter is the server's number rather than the
+// one read at sign-in. Same registration pattern as the confirm handler.
+// ---------------------------------------------------------------------------
+
+let _usageHandler = null;
+
+/**
+ * @param {null|((usage: {aiCallsToday: number, aiCallsDate: string, aiCallsPerDay: number}) => void)} fn
+ */
+export function registerAiUsageHandler(fn) {
+  _usageHandler = typeof fn === 'function' ? fn : null;
+}
+
+function _reportUsage(usage) {
+  if (!_usageHandler || !usage || typeof usage.aiCallsToday !== 'number') return;
+  try {
+    _usageHandler(usage);
+  } catch (err) {
+    console.warn('[aiService] usage handler failed', err);
+  }
+}
+
+/** True when an error is the daily AI allowance being used up. */
+export function isDailyLimit(err) {
+  return err?.code === 'DAILY_LIMIT';
 }
 
 /** Thrown when the user declines the generation prompt. */
@@ -146,17 +180,34 @@ export async function askAI(token, prompt, providerParams, options = {}) {
       const json = await response.json();
 
       if (!response.ok) {
+        // The app's own allowance, not a provider's rate limit (also a 429):
+        // correct the meter and say it in the reader's language. The server's
+        // English text is only the fallback before translations load.
+        if (json?.code === 'DAILY_LIMIT') {
+          _reportUsage(json.usage);
+          const limitError = new Error(
+            i18next.t('ai_usage.limit_reached', { defaultValue: json?.error || 'Daily AI limit reached.' })
+          );
+          limitError.code = 'DAILY_LIMIT';
+          throw limitError;
+        }
         throw new Error(
           json?.error || json?.message || `AI request failed (${response.status})`
         );
       }
 
+      _reportUsage(json?.data?.usage);
       return json?.data ?? {};
     } catch (err) {
       lastError = err;
 
       // Don't retry if the request was explicitly aborted by the caller
       if (err.name === 'AbortError' && signal?.aborted) {
+        throw err;
+      }
+
+      // Nor when the allowance is spent: a retry only asks again.
+      if (isDailyLimit(err)) {
         throw err;
       }
 

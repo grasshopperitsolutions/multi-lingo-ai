@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from "react";
+import { callsTodayFor } from "../utils/aiUsage";
 import { useAppContext } from "../contexts/AppContext";
 import { BOOTSTRAP_TIER } from "../config/tierLimits";
 import {
@@ -45,7 +46,8 @@ export const useTierAccess = () => {
   // back to the configured Explorer tier rather than to anything in code.
   const limits = tiersConfig?.[tier] ?? tiersConfig?.explorer ?? BOOTSTRAP_TIER;
 
-  const callsToday = user?.aiCallsToday ?? 0;
+  // Yesterday's count is not today's: see utils/aiUsage.
+  const callsToday = callsTodayFor(user);
   const aiCallsRemaining =
     limits.aiCallsPerDay === Infinity
       ? Infinity

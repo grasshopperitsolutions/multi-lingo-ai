@@ -13,7 +13,8 @@ import { getCategories } from "../services/categoriesService";
 import { getTiersConfig } from "../services/tiersConfigService";
 import { getFeatures } from "../services/featuresService";
 import { ALL_FAVOURITE_FIELDS } from "../services/favouritesService";
-import { registerAiConfirmHandler } from "../services/aiService";
+import { registerAiConfirmHandler, registerAiUsageHandler } from "../services/aiService";
+import { callsTodayFor } from "../utils/aiUsage";
 import { setPreferredVoice } from "../services/getTtsService";
 import { normalizeCode } from "../utils/languageCode";
 import { auth } from "../firebase";
@@ -186,7 +187,7 @@ export const AppProvider = ({ children }) => {
       unlimited: perDay === Infinity,
       remaining: perDay === Infinity
         ? Infinity
-        : Math.max(0, perDay - (user?.aiCallsToday ?? 0)),
+        : Math.max(0, perDay - callsTodayFor(user)),
     };
   }, [user, tiersConfig]);
 
@@ -440,6 +441,19 @@ export const AppProvider = ({ children }) => {
   // be "no". Resolves true to proceed. Only one prompt can be open at a time; a
   // second request while one is pending is declined rather than queued, so a
   // burst can't stack modals.
+  // The server sends its count back with every counted call, and with the
+  // daily-limit refusal. Mirroring it into the profile keeps the header meter
+  // and every page's allowance check on the server's number instead of the
+  // one read at sign-in.
+  useEffect(() => {
+    registerAiUsageHandler((usage) => {
+      setUser((prev) => (prev
+        ? { ...prev, aiCallsToday: usage.aiCallsToday, aiCallsDate: usage.aiCallsDate }
+        : prev));
+    });
+    return () => registerAiUsageHandler(null);
+  }, []);
+
   useEffect(() => {
     registerAiConfirmHandler(() => {
       const { unlimited, remaining } = aiQuotaRef.current;

@@ -856,6 +856,34 @@ for the viewer, or `isFeatureVisible(feature, tierId)` from
 pricing page). Adding a dashboard tile without that filter leaks hidden
 features. Toggle the flag in Admin > Features.
 
+## The daily allowance shown is the server's count
+
+`/api/ask-ai` counts Explorer and Voyager calls in `aiCallsToday` with its
+date in `aiCallsDate`, and only resets the count on the first counted call of
+a new day. Three things keep the frontend honest about it:
+
+- **Read the count through `callsTodayFor(user)`** (`utils/aiUsage`), never
+  `user.aiCallsToday` on its own. The raw field is yesterday's number until
+  that first call, and since pages check the allowance *before* calling, an
+  Explorer who used every call yesterday was told "limit reached" all of
+  today, never making the call that would have reset it. `useTierAccess` and
+  AppContext's pre-call check both go through it.
+- **The meter follows the server.** A counted call returns `data.usage`
+  (`aiCallsToday`, `aiCallsDate`, `aiCallsPerDay`), and so does the refusal.
+  `aiService` hands it to the handler AppContext registers with
+  `registerAiUsageHandler` — the same shape as `registerAiConfirmHandler` —
+  which writes it into the profile. Before that, the profile was read once at
+  sign-in and the meter never moved.
+- **The refusal is recognised by `code: 'DAILY_LIMIT'`, not by the 429**,
+  which a provider's rate limit also returns. `aiService` throws it with
+  `err.code = 'DAILY_LIMIT'` (test with `isDailyLimit(err)`), the message from
+  `ai_usage.limit_reached` in the reader's language (the server's English is
+  only the fallback), and does not retry it.
+
+The count itself is checked and incremented in one transaction on the API
+side, so calls fired at once cannot all slip under the limit; see the API's
+CLAUDE.md.
+
 ## PDF export reaches exactly as far as the font does
 
 Stories and history/culture pieces export through `utils/readingPdf` — one

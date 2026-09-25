@@ -110,6 +110,60 @@ describe("aiService.askAI", () => {
     expect(isAiDeclined(new Error("network"))).toBe(false);
     expect(isAiDeclined(null)).toBe(false);
   });
+
+  it("hands the server's count to the usage handler after a counted call", async () => {
+    const usage = { aiCallsToday: 2, aiCallsDate: "2026-09-25", aiCallsPerDay: 5 };
+    globalThis.fetch = okJson({ success: true, data: { text: "ok", usage } });
+
+    const { askAI, registerAiUsageHandler } = await load();
+    const onUsage = vi.fn();
+    registerAiUsageHandler(onUsage);
+    await askAI("tok", "p", {}, { skipConfirm: true });
+
+    expect(onUsage).toHaveBeenCalledWith(usage);
+  });
+
+  it("says nothing to the usage handler when the call was not counted", async () => {
+    globalThis.fetch = okJson({ success: true, data: { text: "ok" } });
+
+    const { askAI, registerAiUsageHandler } = await load();
+    const onUsage = vi.fn();
+    registerAiUsageHandler(onUsage);
+    await askAI("tok", "p", {}, { skipConfirm: true });
+
+    expect(onUsage).not.toHaveBeenCalled();
+  });
+
+  it("recognises the daily limit, corrects the count, and never retries it", async () => {
+    const usage = { aiCallsToday: 5, aiCallsDate: "2026-09-25", aiCallsPerDay: 5 };
+    globalThis.fetch = okJson(
+      { success: false, error: "Daily AI limit reached. Upgrade to Voyager for more.", code: "DAILY_LIMIT", usage },
+      { ok: false, status: 429 },
+    );
+
+    const { askAI, registerAiUsageHandler, isDailyLimit } = await load();
+    const onUsage = vi.fn();
+    registerAiUsageHandler(onUsage);
+    const err = await askAI("tok", "p", {}, { skipConfirm: true, retries: 2 }).catch((e) => e);
+
+    expect(isDailyLimit(err)).toBe(true);
+    expect(onUsage).toHaveBeenCalledWith(usage);
+    // A provider's rate limit is also a 429; only this one is the app's quota.
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(isDailyLimit(new Error("Rate limited"))).toBe(false);
+  });
+});
+
+describe("callsTodayFor", () => {
+  it("counts today's calls and treats another day's count as zero", async () => {
+    const { callsTodayFor, todayUTC } = await import("../../src/utils/aiUsage");
+    // Yesterday's count would otherwise block a user all day, since pages
+    // check the allowance before making the call that resets it.
+    expect(callsTodayFor({ aiCallsToday: 5, aiCallsDate: todayUTC() })).toBe(5);
+    expect(callsTodayFor({ aiCallsToday: 5, aiCallsDate: "2000-01-01" })).toBe(0);
+    expect(callsTodayFor({ aiCallsToday: 5 })).toBe(0);
+    expect(callsTodayFor(null)).toBe(0);
+  });
 });
 
 describe("examUtils scoring", () => {
