@@ -1,0 +1,62 @@
+# Multi-dialect practice
+
+**Status:** Phase 1 built on 2026-09-25, apart from deleting the old exam data (see below). Phases 2 and 3 queued. Written 2026-09-25.
+**Covers:** Exam Training and Grammar Practice, which open to new dialects and languages together.
+
+## Why
+
+Both features write their exercises with AI into shared pools. Grammar Practice was built on a model that separates the language, the dialect and the reader's language. Exam Training was still one pool per dialect. Putting both on the same model means one exercise can be reused across the dialects of a language (adapted, never translated), and the two features can be opened to a new dialect or language with one switch.
+
+## The switch (all phases)
+
+`examSupported` on each language document in `appConfig/config/languages` (Admin › Languages). It is read through `isStructuredPracticeSupported()` in `src/config/structuredPracticeSupport.js`, by both the Exam Training tile and the Grammar Practice section. Turning it on for a dialect opens both features for it. It stays the gate in every phase, so languages are added one at a time, after testing, never all at once.
+
+## The shared data model
+
+```
+{pool}/{exerciseId}                  one exercise, at language level
+  language: "pt"                     base language (query key)
+  originDialect: "pt-PT"             where it was first written
+  dialects: ["pt-PT"]                dialects that have content (filtered in code)
+  portability: "unknown" | "portable" | "dialect-specific"
+  type, level, ...                   feature-specific fields
+  fingerprint(s)                     for the duplicate check
+  status: "ready" | "draft" | "blocked"
+  source: "ai", verified: false, qualityScore: null, createdAt, updatedAt
+
+{pool}/{id}/content/{dialect}        the exercise and its answer key, per dialect
+  dialect, adaptedFrom: null | "<dialect>"
+
+grammarExercises/{id}/gloss/{dialect}__{lang}   Grammar Practice only
+```
+
+- **Queries use equality filters only:** `language`, `level`, `status`, plus type fields. There is no `orderBy`, range or `array-contains`, so no composite index is ever needed. Dialect availability is filtered in code from `dialects`.
+- **Writes go children first, root last.** A failed write leaves an orphan nobody can see, never a root pointing at missing content.
+- **Missing collections and documents are normal:** an empty result means "nothing yet".
+- **Exams have no gloss.** An exam is read entirely in the practised dialect, as a real one would be. The one part in the reader's language, the writing feedback, is generated per attempt and never stored.
+
+## Phase 1: exam prep on the shared model (built 2026-09-25)
+
+- Rewrite `src/services/examExerciseService.js` on the model above: `examExercises/{id}` at language level with `content/{dialect}`, through `firestoreService` rather than raw `fetch`.
+- A fingerprint per exercise (the normalised opening of the passage, transcript or writing prompt), compared with the Grammar Practice duplicate check. A new exercise too close to one already in its pool cell is still served, since the learner paid for it, but is not written to the pool. No second AI call is spent.
+- **No migration.** Delete the existing `examExercises` documents in Firestore; the pool refills on demand. **Still to do, by hand:** the new code never matches the old documents (they have no `language` field), so they are dead weight until deleted. Old ids in `seenExerciseIds.{reading,listening,writing}` never match anything and are harmless.
+- Shared pool helpers (`baseLanguage`, id generation, safe document reads) move into one module used by both services.
+- The call sites (Reading, Listening, Writing, Full Exam) keep the same `getExercise` signature, so they don't change.
+
+## Phase 2: open to the Portuguese dialects
+
+- Wire `grammar-practice-adapt-prompt` (already seeded) into both services: when a learner's dialect has nothing unseen but a sibling dialect does, adapt that exercise, write `content/{dialect}`, and add the dialect to `dialects`. Record `portability` from the adapt prompt's answer, and never try to port a `dialect-specific` exercise again.
+- Exams need their own adapt prompt, or the same one with an exam variant: a passage adapts differently from a list of grammar items. Decide when building.
+- Test pt-BR first (the dialect furthest from pt-PT), then pt-AO and pt-MZ. Turn on `examSupported` one dialect at a time.
+- Check the topic list on the new dialects. `grammarTopics` is per dialect, so pt-BR starts with only the keys the model coins.
+
+## Phase 3: open to any language, English first
+
+- **Remove the Portuguese that is hardcoded in code.** `getGrammarDescription()` in `examPromptTemplates.js` describes level grammar in Portuguese terms (presente do indicativo, pretérito perfeito…) and is sent to every exam and tale prompt. For another language it is wrong. Move the level guidance into the prompt documents in language-neutral terms, or have the model derive it from the level. Code must not carry prompt text.
+- English (en-US, en-GB) first, then other languages one by one, each behind `examSupported`.
+- Check the per-language pieces: the accent bar (`src/utils/accentCharacters.js`) has no entry for many languages, which is fine for English. Also review exam type labels, which are hardcoded English in `ExerciseSidebar`.
+
+## Later, not phased
+
+- **Review the exam exercise types** against the Grammar Practice catalogue. The goal is practice, so reading and listening can borrow types such as judge-and-correct and contrast gaps, and the one-item-at-a-time feedback.
+- **Topic labels:** the Grammar Practice picker shows English keys tidied up ("Verbs past imperfect"). A label per topic in the reader's language would fix it.

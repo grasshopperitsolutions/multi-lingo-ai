@@ -33,7 +33,7 @@
  * use equality filters only, so they never need a composite index.
  */
 
-import { queryCollection, getDocument, createDocument } from "./firestoreService";
+import { queryCollection, createDocument } from "./firestoreService";
 import { askAI } from "./aiService";
 import { getPrompt, renderTemplate } from "./promptService";
 import { parseAIJSON } from "../utils/parseAIJSON";
@@ -45,6 +45,10 @@ import {
   EXERCISE_GLOSS_FIELDS,
 } from "../utils/grammarExerciseValidators";
 import { dropDuplicates, fingerprint } from "../utils/grammarDuplicates";
+import { baseLanguage, getDataOrNull, newPoolId, shuffle } from "./practicePool";
+
+// Kept importable from here: callers and tests already use it.
+export { baseLanguage };
 
 export const EXERCISES_COLLECTION = "grammarExercises";
 export const TOPICS_COLLECTION = "grammarTopics";
@@ -62,11 +66,6 @@ const MAX_AVOID = 40;
 // Small helpers
 // ---------------------------------------------------------------------------
 
-/** "pt-PT" → "pt". */
-export function baseLanguage(dialect) {
-  return String(dialect ?? "").split("-")[0].toLowerCase();
-}
-
 /**
  * Topic keys are made up by the model, so they are normalised here rather
  * than by asking the model to format them: lower case, ASCII, hyphens.
@@ -79,30 +78,6 @@ export function normalizeTopicKey(key) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
-}
-
-/** getDocument resolves to `{ id, data }` or null on a 404; hand back the fields. */
-async function getDataOrNull(collection, id, token) {
-  try {
-    const doc = await getDocument(collection, id, token);
-    return doc?.data ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function shuffle(list) {
-  const copy = [...list];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
-function newExerciseId() {
-  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID().replace(/-/g, "");
-  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -405,7 +380,7 @@ async function generateExercise({ token, type, level, dialect, explanationLocale
  * @returns {Promise<string|null>} the exercise id, or null if not stored
  */
 async function writeExercise({ token, exercise, type, level, dialect, explanationLocale }) {
-  const id = newExerciseId();
+  const id = newPoolId();
   const now = new Date().toISOString();
   const { content, gloss } = splitGloss(exercise);
   try {

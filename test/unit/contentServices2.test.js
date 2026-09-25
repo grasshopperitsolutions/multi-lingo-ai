@@ -331,18 +331,16 @@ describe("examExerciseService", () => {
 
   it("serves a cached exercise rather than generating one", async () => {
     setCollection("exercises", [
-      {
-        id: "e1",
-        type: "reading",
-        level: "B1",
-        targetLang: "pt-PT",
-        status: "ready",
-        questions: [{ id: "q1", text: "A?", correctAnswer: "a" }],
-      },
+      { id: "e1", type: "reading", level: "B1", language: "pt", dialects: ["pt-PT"], status: "ready" },
     ]);
+    // getDocument resolves to the { id, data } envelope.
     getDocument.mockResolvedValue({
-      questions: [{ id: "q1", text: "A?", correctAnswer: "a" }],
-      passage: "Texto.",
+      id: "pt-PT",
+      data: {
+        type: "reading",
+        questionType: "multiple-choice",
+        reading: { questions: [{ id: "q1", text: "A?", correctAnswer: "a" }], passage: "Texto." },
+      },
     });
 
     const { getExercise } = await import("../../src/services/examExerciseService");

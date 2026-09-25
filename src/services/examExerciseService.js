@@ -1,92 +1,77 @@
 /**
  * examExerciseService.js
  *
- * Core exercise management service with Firestore caching.
- * Routes exercise generation to type-specific services and manages Firestore operations.
- *
- * Type-specific services:
+ * Exam Training exercises, served from a shared pool and generated only when
+ * the learner has seen everything that matches. Routes generation to the
+ * type-specific services:
  *   - examWritingExerciseService: generateWritingExercise + evaluateWriting
- *   - examListeningExerciseService: generateListeningExercise + checkListeningAnswers
- *   - examReadingExerciseService: generateReadingExercise + checkReadingAnswers
+ *   - examListeningExerciseService: generateListeningExercise
+ *   - examReadingExerciseService: generateReadingExercise
  *
- * Flow:
- *   1. Query examExercises where status == "ready", filtered by level, type, targetLang
- *   2. Find first unseen exercise (not in seenExerciseIds)
- *   3. If found → fetch content/{targetLang} → return
- *   4. If all seen → route to type-specific service for generation
- *   5. Write generated exercise to Firestore → return
+ * Same data model as Grammar Practice (see plans/multi-dialect-practice.md):
+ * one exercise per document at *language* level, its content per *dialect*
+ * underneath, so a pt-PT exercise can later be adapted for pt-BR instead of
+ * written again. Exams have no gloss layer: an exam is read entirely in the
+ * practised dialect, like a real one.
  *
  * Firestore schema:
  *
  *   examExercises/{exerciseId}
+ *     language: "pt"                        base language (query key)
+ *     originDialect: "pt-PT"
+ *     dialects: ["pt-PT"]                   dialects that have content (filtered in code)
+ *     portability: "unknown"                decided when adapting exists
  *     type: "writing" | "reading" | "listening"
- *     level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"
- *     targetLang: "pt-PT" | "en-US"
- *     questionType: string (for reading: "multiple-choice" | "true-false" | "best-title" | "ordering" | "cloze" | "fill-blanks" | "matching" | "notice-sign")
- *                        (for listening: "multiple-choice" | "true-false" | "fill-blanks")
+ *     questionType: string                  reading/listening subtype
+ *     level: "A1" … "C2"
+ *     fingerprint: string                   for the duplicate check
  *     status: "ready" | "draft" | "blocked"
- *     aiGenerated: boolean
- *     verified: boolean
- *     qualityScore: number | null
- *     createdAt: Timestamp
- *     updatedAt: Timestamp
+ *     source: "ai", verified: false, qualityScore: null, createdAt, updatedAt
  *
- *   examExercises/{exerciseId}/content/{targetLang}
- *     locale: string
- *     language: string
- *     region: string | null
- *     type: "writing" | "reading" | "listening"
- *     questionType: string (for reading exercises)
- *     writing: { prompt, instructions[], minWords, maxWords, hints }
- *     reading: { questionType, text, questions[], vocabulary[], instructions, hints }
- *     listening: { audioUrl, transcript, duration, questions[], instructions }
- *     source: "human" | "ai"
- *     verified: boolean
- *     qualityScore: number | null
- *     createdAt: Timestamp
- *     updatedAt: Timestamp
+ *   examExercises/{exerciseId}/content/{dialect}
+ *     dialect, adaptedFrom: null | "<dialect>", type, questionType,
+ *     writing | reading | listening: the exercise itself, createdAt
+ *
+ * The pool is safe to read before it exists: an empty query is "nothing yet",
+ * a missing document is null, and queries use equality filters only, so they
+ * never need a composite index.
  *
  * @module examExerciseService
  */
 
-// ---------------------------------------------------------------------------
-// Imports
-// ---------------------------------------------------------------------------
-
 import { generateWritingExercise } from './examWritingExerciseService';
 import { generateListeningExercise } from './examListeningExerciseService';
 import { generateReadingExercise } from './examReadingExerciseService';
-
-// ---------------------------------------------------------------------------
-// Types (JSDoc only)
-// ---------------------------------------------------------------------------
+import { queryCollection, createDocument } from './firestoreService';
+import { baseLanguage, getDataOrNull, newPoolId, shuffle } from './practicePool';
+import { normalizeAnswer } from '../utils/grammarAnswerCheck';
+import { similarity, DUPLICATE_THRESHOLD } from '../utils/grammarDuplicates';
 
 /**
  * @typedef {Object} GetExerciseParams
  * @property {string}   token            - Firebase ID token
- * @property {string}   level            - CEFR level: 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'
- * @property {string}   type             - Exercise type: 'writing' | 'reading' | 'listening'
- * @property {string}   targetLang       - Target learning language: 'pt-PT' | 'en-US'
- * @property {string}   userDialect      - User's native language: 'en-US' | 'pt-PT'
- * @property {string[]} seenExerciseIds  - Already-seen exercise IDs
+ * @property {string}   level            - CEFR level
+ * @property {string}   type             - 'writing' | 'reading' | 'listening'
+ * @property {string}   [questionType]   - reading/listening subtype; omit for any
+ * @property {string}   targetLang       - the learner's dialect, e.g. 'pt-PT'
+ * @property {string}   [userDialect]    - the learner's interface language (unused: exams are monolingual)
+ * @property {string[]} seenExerciseIds  - already-seen exercise ids for this type
  */
 
 /**
  * @typedef {Object} ExerciseResult
- * @property {string}    exerciseId       - examExercises document ID
- * @property {string}    type             - Exercise type
- * @property {string}    level            - CEFR level
- * @property {string}    [questionType]   - Question type (for reading and listening exercises)
- * @property {'db'|'ai'} source           - Where it came from
- * @property {Object}    content          - Exercise content (writing/reading/listening)
+ * @property {string|null} exerciseId   - null when the exercise could not be stored
+ * @property {string}      type
+ * @property {string}      level
+ * @property {string}      [questionType]
+ * @property {'db'|'ai'}   source
+ * @property {Object}      content      - writing/reading/listening content
  */
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
+export const EXAM_COLLECTION = 'examExercises';
 const POOL_LIMIT = 100;
+/** How much of the opening text a fingerprint keeps. Enough to tell two passages apart. */
+const FINGERPRINT_CHARS = 400;
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -104,7 +89,6 @@ export async function getExercise({
   type,
   questionType,
   targetLang,
-  userDialect,
   seenExerciseIds,
 }) {
   if (!token) throw new Error('[examExerciseService] token is required');
@@ -112,42 +96,42 @@ export async function getExercise({
   if (!type) throw new Error('[examExerciseService] type is required');
   if (!targetLang) throw new Error('[examExerciseService] targetLang is required');
 
-  const seenSet = new Set(seenExerciseIds ?? []);
+  const dialect = targetLang;
+  const cellDocs = await _fetchReadyExercises(token, { type, level, dialect, questionType });
 
-  // Fetch ready exercises matching type, level, target language
-  // (and questionType, when provided, to honor the user's selection)
-  const allExercises = await _fetchReadyExercises(token, { type, level, targetLang, questionType });
-
-  // Walk unseen exercises in order
-  for (const exercise of allExercises) {
-    if (seenSet.has(exercise.id)) continue;
-
-    // Fetch language-specific content
-    const content = await _fetchExerciseContent(
-      exercise.id,
-      targetLang,
-      token
-    );
-
-    if (content) {
-      return {
-        exerciseId: exercise.id,
-        type: exercise.type,
-        level: exercise.level,
-        questionType: exercise.questionType,
-        source: 'db',
-        content,
-      };
-    }
-  }
-
-  // Pool exhausted — generate a new exercise
-  const generated = await _generateNewExercise(
-    { type, level, questionType, targetLang, userDialect },
-    token
+  const seen = new Set(seenExerciseIds ?? []);
+  const candidates = shuffle(
+    cellDocs.filter((doc) => !seen.has(doc.id) && (doc.dialects ?? []).includes(dialect))
   );
 
-  const exerciseId = await _writeNewExercise(generated, targetLang, token);
+  for (const doc of candidates) {
+    const content = _extractContent(
+      await getDataOrNull(`${EXAM_COLLECTION}/${doc.id}/content`, dialect, token)
+    );
+    if (!content) continue;
+    return {
+      exerciseId: doc.id,
+      type: doc.type,
+      level: doc.level,
+      questionType: doc.questionType,
+      source: 'db',
+      content,
+    };
+  }
+
+  // Pool exhausted — generate a new exercise.
+  const generated = await _generateNewExercise({ token, type, level, questionType, targetLang: dialect });
+  const print = examFingerprint(generated.content);
+
+  // Too close to something already in this cell: still served, because the
+  // learner has paid for it, but kept out of the pool rather than spending a
+  // second call on a retry.
+  const isDuplicate = cellDocs.some(
+    (doc) => doc.fingerprint && similarity(doc.fingerprint, print) >= DUPLICATE_THRESHOLD
+  );
+  const exerciseId = isDuplicate
+    ? null
+    : await _writeNewExercise({ generated, dialect, fingerprint: print, token });
 
   return {
     exerciseId,
@@ -160,227 +144,137 @@ export async function getExercise({
 }
 
 /**
- * Get the total number of "ready" exercises in the pool for a given type/level/language.
- * Used for progress UI.
+ * Number of "ready" exercises for a type/level/dialect. Used for progress UI.
  *
  * @param {string} token
- * @param {string} type - 'writing' | 'reading' | 'listening'
+ * @param {string} type
  * @param {string} level
- * @param {string} targetLang
+ * @param {string} targetLang - the learner's dialect
  * @returns {Promise<number>}
  */
 export async function getExercisePoolCount(token, type, level, targetLang) {
-  const exercises = await _fetchReadyExercises(token, { type, level, targetLang });
-  return exercises.length;
+  const docs = await _fetchReadyExercises(token, { type, level, dialect: targetLang });
+  return docs.filter((doc) => (doc.dialects ?? []).includes(targetLang)).length;
+}
+
+/**
+ * The text a duplicate check compares: the normalised opening of whatever
+ * the exercise is built on — the reading passage, the listening transcript
+ * or the writing prompt. Exported for tests.
+ *
+ * @param {object} content
+ * @returns {string}
+ */
+export function examFingerprint(content) {
+  const source =
+    content?.passage ||
+    content?.text ||
+    content?.transcript ||
+    content?.prompt ||
+    (content?.questions ?? []).map((q) => q?.text ?? q?.question ?? '').join(' ');
+  return normalizeAnswer(String(source ?? '').slice(0, FINGERPRINT_CHARS))
+    .replace(/[.,;:!?()"«»]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 // ---------------------------------------------------------------------------
 // Firestore helpers
 // ---------------------------------------------------------------------------
 
-async function _fetchReadyExercises(token, { type, level, targetLang, questionType }) {
-  const filters = [
-    { field: 'status', op: '==', value: 'ready' },
-    { field: 'type', op: '==', value: type },
-    { field: 'level', op: '==', value: level },
-    { field: 'targetLang', op: '==', value: targetLang },
-  ];
-  // When the user picked a specific questionType, also filter the pool
-  // by it so we don't hand back an unrelated exercise of the same type.
-  if (questionType) filters.push({ field: 'questionType', op: '==', value: questionType });
-
-  const params = new URLSearchParams({
-    collection: 'examExercises',
-    filters: JSON.stringify(filters),
-    limit: String(POOL_LIMIT),
-  });
-  const response = await fetch(
-    `${PROXY_URL}/api/firestore?${params}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-  const json = await response.json();
-  if (!response.ok) throw new Error(json?.error || json?.message || 'Failed to fetch exercises');
-  return json?.data?.documents ?? [];
+/** Equality filters only — never needs a composite index. Empty or missing is []. */
+async function _fetchReadyExercises(token, { type, level, dialect, questionType }) {
+  const filters = { language: baseLanguage(dialect), level, type, status: 'ready' };
+  if (questionType) filters.questionType = questionType;
+  const result = await queryCollection(EXAM_COLLECTION, filters, { limit: POOL_LIMIT }, token);
+  return result?.documents ?? [];
 }
 
-async function _fetchExerciseContent(exerciseId, locale, token) {
-  const col = `examExercises/${exerciseId}/content`;
-  const response = await fetch(
-    `${PROXY_URL}/api/firestore?collection=${encodeURIComponent(col)}&id=${encodeURIComponent(locale)}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-  if (response.status === 404) return null;
-  const json = await response.json();
-  if (!response.ok) throw new Error(json?.error || json?.message || 'Failed to fetch exercise content');
-  const data = json?.data?.data ?? null;
+/** Pull the type's content out of a content document, or null if it has none. */
+function _extractContent(data) {
   if (!data) return null;
-  // Extract the appropriate content based on type
-  const type = data.type;
-  if (type === 'writing') return data.writing;
-  if (type === 'reading') {
-    // Include questionType in the reading content
-    return {
-      ...data.reading,
-      questionType: data.questionType || data.reading.questionType,
-    };
+  if (data.type === 'writing') return data.writing ?? null;
+  if (data.type === 'reading') {
+    if (!data.reading) return null;
+    return { ...data.reading, questionType: data.questionType || data.reading.questionType };
   }
-  if (type === 'listening') return data.listening;
+  if (data.type === 'listening') return data.listening ?? null;
   return null;
 }
 
-async function _writeNewExercise(generated, targetLang, token) {
+/**
+ * Content first, root last, so a failed write leaves an orphan nobody can see
+ * rather than a root pointing at nothing. Best effort: the learner already
+ * has the exercise, so a failure here is logged, not thrown.
+ *
+ * @returns {Promise<string|null>} the new id, or null if it was not stored
+ */
+async function _writeNewExercise({ generated, dialect, fingerprint, token }) {
+  const id = newPoolId();
   const now = new Date().toISOString();
+  const questionType = generated.questionType ?? null;
 
-  // Write root document
-  const exerciseData = {
-    type: generated.type,
-    level: generated.level,
-    targetLang: generated.targetLang,
-    status: 'ready',
-    aiGenerated: true,
-    verified: false,
-    qualityScore: null,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  // Add questionType for reading exercises
-  if (generated.type === 'reading' && generated.questionType) {
-    exerciseData.questionType = generated.questionType;
+  try {
+    await createDocument(
+      `${EXAM_COLLECTION}/${id}/content`,
+      {
+        dialect,
+        adaptedFrom: null,
+        type: generated.type,
+        questionType,
+        [generated.type]: generated.content,
+        source: 'ai',
+        createdAt: now,
+      },
+      dialect,
+      token
+    );
+    await createDocument(
+      EXAM_COLLECTION,
+      {
+        language: baseLanguage(dialect),
+        originDialect: dialect,
+        dialects: [dialect],
+        portability: 'unknown',
+        type: generated.type,
+        questionType,
+        level: generated.level,
+        fingerprint,
+        status: 'ready',
+        source: 'ai',
+        verified: false,
+        qualityScore: null,
+        createdAt: now,
+        updatedAt: now,
+      },
+      id,
+      token
+    );
+    return id;
+  } catch (err) {
+    console.warn('[examExerciseService] could not store exercise', err);
+    return null;
   }
-
-  // Add questionType for listening exercises (hoisted from content.exerciseType)
-  if (generated.type === 'listening' && generated.questionType) {
-    exerciseData.questionType = generated.questionType;
-  }
-
-  const exerciseResponse = await fetch(`${PROXY_URL}/api/firestore`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      collection: 'examExercises',
-      data: exerciseData,
-    }),
-  });
-  const exerciseJson = await exerciseResponse.json();
-  if (!exerciseResponse.ok) {
-    throw new Error(exerciseJson?.error || exerciseJson?.message || 'Failed to create exercise');
-  }
-
-  const exerciseId = exerciseJson?.data?.id;
-  if (!exerciseId) throw new Error('[examExerciseService] Exercise write did not return an ID');
-
-  // Write content document
-  await _writeExerciseContent(exerciseId, targetLang, generated, token);
-
-  return exerciseId;
-}
-
-async function _writeExerciseContent(exerciseId, locale, generated, token) {
-  const col = `examExercises/${exerciseId}/content`;
-  const now = new Date().toISOString();
-
-  const [language, region] = locale.split('-');
-
-  const contentData = {
-    locale,
-    language,
-    region: region || null,
-    type: generated.type,
-    source: 'ai',
-    verified: false,
-    qualityScore: null,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  // Add type-specific content
-  if (generated.type === 'writing') {
-    contentData.writing = generated.content;
-  } else if (generated.type === 'reading') {
-    contentData.reading = generated.content;
-    // Also store questionType at the content document level for easier querying
-    if (generated.questionType) {
-      contentData.questionType = generated.questionType;
-    }
-  } else if (generated.type === 'listening') {
-    contentData.listening = generated.content;
-    // Also store questionType at the content document level for easier querying
-    if (generated.questionType) {
-      contentData.questionType = generated.questionType;
-    }
-  }
-
-  const response = await fetch(`${PROXY_URL}/api/firestore`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      collection: col,
-      id: locale,
-      data: contentData,
-    }),
-  });
-  const json = await response.json();
-  if (!response.ok) throw new Error(json?.error || json?.message || 'Failed to write exercise content');
 }
 
 // ---------------------------------------------------------------------------
 // AI helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Route to the appropriate type-specific service for exercise generation.
- */
-async function _generateNewExercise({ type, level, questionType, targetLang }, token) {
+/** Route to the type-specific generator. */
+async function _generateNewExercise({ token, type, level, questionType, targetLang }) {
   if (type === 'writing') {
     const content = await generateWritingExercise({ token, level, targetLang });
-    return {
-      type: 'writing',
-      level,
-      targetLang,
-      content,
-    };
+    return { type: 'writing', level, targetLang, content };
   }
-
   if (type === 'reading') {
     const content = await generateReadingExercise({ token, level, targetLang, questionType });
-    return {
-      type: 'reading',
-      level,
-      targetLang,
-      questionType: content.questionType,
-      content,
-    };
+    return { type: 'reading', level, targetLang, questionType: content.questionType, content };
   }
-
   if (type === 'listening') {
     const content = await generateListeningExercise({ token, level, targetLang, questionType });
-    return {
-      type: 'listening',
-      level,
-      targetLang,
-      questionType: content.exerciseType,  // hoist exerciseType from content to root level
-      content,
-    };
+    // exerciseType is hoisted to the root so the pool can be filtered by it.
+    return { type: 'listening', level, targetLang, questionType: content.exerciseType, content };
   }
-
   throw new Error(`[examExerciseService] Unknown exercise type: ${type}`);
 }
