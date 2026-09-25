@@ -335,7 +335,7 @@ const TutorProfileSection = ({ isDarkMode, user, defaultOpen = false, id = undef
     {/* Beside the card, not inside it: a fixed overlay inside a transformed
         ancestor is positioned against that ancestor instead of the screen. */}
     {isSeedingLanguage && (
-      <Loader fullScreen isDarkMode={isDarkMode} message={t("settings.adding_language")} />
+      <Loader fullScreen isDarkMode={isDarkMode} message={t("settings.adding_language_short")} />
     )}
     <SettingsSection
       id={id}

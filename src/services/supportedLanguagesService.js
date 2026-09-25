@@ -117,7 +117,13 @@ export async function getWritingSystems(token) {
  * 3. If exists → update its supportedLanguageCodes array.
  *    If not   → create new writing system document.
  * 4. Create the new supportedLanguages document linking the writing system IDs.
- * 5. Return the created language document.
+ * 5. Start translating the interface into it, in the background.
+ * 6. Return the created language document — without waiting for step 5.
+ *
+ * Step 5 is ~19 AI calls and takes about a minute; the language is usable
+ * before it finishes (the interface shows the base-locale text and switches
+ * over when the translation lands, via loadRemoteTranslations). So the caller
+ * waits only for the one call that identifies the language.
  *
  * @param {string} code     - BCP-47 language code (e.g. "pt-PT").
  * @param {string} name     - Human-readable language name (for AI context).
@@ -151,7 +157,12 @@ export async function seedLanguage(code, name, token) {
       // discover the gap after spending the call.
       responseSchema: LANGUAGE_SEED_SCHEMA,
       maxOutputTokens: promptDoc.maxTokens ?? 2048,
-    }
+      // Adding a language doesn't spend the user's daily allowance.
+      purpose: "language-identify",
+    },
+    // Nor does it ask first: the user already chose to add it, and the call
+    // costs them nothing.
+    { skipConfirm: true }
   );
 
   // The API returns the JSON string inside the `text` field
@@ -267,17 +278,18 @@ export async function seedLanguage(code, name, token) {
   const created = await createDocument(LANGUAGES_COLLECTION, languageDoc, canonicalCode, token);
   console.info(`[supportedLanguagesService] seedLanguage("${code}") — created language doc "${canonicalCode}"`);
 
-  // 5. Seed UI translations for this language
-  try {
-    await seedLanguageTranslations(canonicalCode, token);
-  } catch (translationErr) {
+  // 5. Translate the interface into it, in the background. Not awaited: the
+  // language is usable now, and a reader who switches to it meanwhile joins
+  // this same run (seedLanguageTranslations de-dupes per locale) rather than
+  // starting another. A failure is non-fatal and retried automatically the
+  // next time this language is loaded as an interface language.
+  seedLanguageTranslations(canonicalCode, token).catch((translationErr) => {
     console.warn(
       `[supportedLanguagesService] Language "${canonicalCode}" created but UI translations failed: ${translationErr.message}. ` +
-      `The language is usable but will fall back to en-US strings until translations are seeded ` +
-      `(this retries automatically next time "${canonicalCode}" is selected as the interface language).`
+      `It shows the base-locale text until translations are seeded ` +
+      `(retried automatically the next time "${canonicalCode}" is loaded as the interface language).`
     );
-    // Non-fatal — the language is usable, just missing UI strings (falls back to en-US)
-  }
+  });
 
   // 6. Return the created document (API returns { id, data, collection })
   return created?.data ?? { ...languageDoc, id: canonicalCode };

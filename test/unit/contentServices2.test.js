@@ -236,6 +236,69 @@ describe("translationService — seeding a new language", () => {
     await expect(seedLanguageTranslations("de-DE", "tok")).rejects.toThrow(/all \d+ chunk/);
     expect(createDocument).not.toHaveBeenCalled();
   });
+
+  it("shares one run when the same language is seeded twice at once", async () => {
+    seedTranslationPrompt();
+    askAI.mockImplementation(async (_token, prompt) => aiText(prompt));
+
+    const { seedLanguageTranslations } = await import("../../src/services/translationService");
+    // The background seed after creating a language, and a reader switching
+    // to it meanwhile: one run of the chunks, one write.
+    const [a, b] = await Promise.all([
+      seedLanguageTranslations("de-DE", "tok"),
+      seedLanguageTranslations("de-DE", "tok"),
+    ]);
+    const callsForOneRun = askAI.mock.calls.length;
+
+    expect(a).toBe(b);
+    expect(createDocument).toHaveBeenCalledTimes(1);
+
+    // A later seed is a new run, not a cached one.
+    await seedLanguageTranslations("de-DE", "tok");
+    expect(askAI.mock.calls.length).toBe(callsForOneRun * 2);
+  });
+
+  it("marks every chunk as interface translation for its language", async () => {
+    seedTranslationPrompt();
+    askAI.mockImplementation(async (_token, prompt) => aiText(prompt));
+
+    const { seedLanguageTranslations } = await import("../../src/services/translationService");
+    await seedLanguageTranslations("de-DE", "tok");
+
+    // The API keeps these out of the user's daily allowance only when they
+    // say what they are and name the language.
+    for (const [, , params] of askAI.mock.calls) {
+      expect(params).toMatchObject({ purpose: "ui-translation", locale: "de-DE" });
+    }
+  });
+});
+
+describe("supportedLanguagesService — adding a language", () => {
+  it("returns once the language exists, without waiting for the interface translation", async () => {
+    setCollection("prompts", [
+      { id: "language-metadata-seed-prompt", template: "Identify {{code}} ({{humanName}})" },
+      { id: "translation-fill-missing-prompt", template: "{{missingKeysJson}}", maxTokens: 8192 },
+    ]);
+    let releaseTranslation;
+    const translationHeld = new Promise((resolve) => { releaseTranslation = resolve; });
+    askAI.mockImplementation(async (_token, prompt) => {
+      if (prompt.startsWith("Identify")) {
+        return aiText(JSON.stringify({ code: "is-IS", label: "Icelandic (Iceland)", flag: "🇮🇸", characters: { default: ["a"], special: ["þ"] } }));
+      }
+      await translationHeld; // the interface translation never finishes in this test
+      return aiText(prompt);
+    });
+    createDocument.mockImplementation(async (collection, data, id) => ({ id, data, collection }));
+
+    const { seedLanguage } = await import("../../src/services/supportedLanguagesService");
+    const created = await seedLanguage("icelandic", "icelandic", "tok");
+
+    expect(created.code).toBe("is-IS");
+    expect(askAI.mock.calls[0][2]).toMatchObject({ purpose: "language-identify" });
+    const locales = createDocument.mock.calls.filter(([collection]) => collection.includes("locales"));
+    expect(locales).toHaveLength(0); // still translating in the background
+    releaseTranslation();
+  });
 });
 
 describe("getWordService", () => {

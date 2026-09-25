@@ -756,6 +756,27 @@ rate limit on the shared API key, not against Vercel concurrency, which is far
 higher on Pro: firing all fourteen at once would earn a 429 for every other AI
 feature in the app at the same moment.
 
+**Adding a language does not wait for the translation.** `seedLanguage` awaits
+only the call that identifies the language, then starts
+`seedLanguageTranslations` in the background and returns, so the Settings,
+Onboarding and tutor-profile overlays last seconds instead of a minute. The
+language is usable at once in the base-locale text and switches when the
+translation lands. Three pieces make that work: `seedLanguageTranslations`
+de-dupes per locale (a reader switching to the new language joins the running
+seed instead of starting a second one), it pushes its result live through
+`loadRemoteTranslations`, and i18n is set to `bindI18nStore: 'added'` so an
+added bundle re-renders the screen (before that, the missing-key fill's "live"
+push only showed after something else re-rendered). A seed interrupted by
+closing the tab writes nothing and is retried the next time the language is
+loaded as an interface language.
+
+**None of it spends the user's daily AI allowance.** Every translationService
+call (seed, missing-key fill, admin resync) sends `purpose: "ui-translation"`
+with its `locale`, and the call that identifies a new language sends
+`purpose: "language-identify"` (without the spend-a-call confirmation). The API
+honours that only for a language that exists, up to a per-user safety cap; see
+"Maintenance calls skip the allowance" in the API's CLAUDE.md.
+
 **A chunk that fails is skipped, not fatal.** `requestTranslatedChunk` still
 escalates the output budget and then bisects the chunk, but when even that
 fails, `translateChunks` records the failure and moves on. Its keys are simply

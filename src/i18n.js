@@ -51,6 +51,14 @@ i18n
     interpolation: {
       escapeValue: false,
     },
+    // Re-render when a translation bundle is added, not only when the
+    // language changes. Translations arrive in the background — a new
+    // language is translated after it is created, and missing keys are
+    // filled while the page is open — and without this the screen kept the
+    // fallback text until something else happened to re-render it.
+    react: {
+      bindI18nStore: 'added',
+    },
     // When a key is missing in the current language, try to fill it
     // by calling fillMissingTranslations (which uses AI to translate
     // the missing keys and persist them to Firestore).

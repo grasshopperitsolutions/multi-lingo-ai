@@ -527,7 +527,7 @@ const SettingsForm = ({
                 isUploading
                   ? t("settings.uploading")
                   : (isSeedingInterface || isSeedingLanguage)
-                    ? t("settings.adding_language")
+                    ? t("settings.adding_language_short")
                     : t("settings.saving")
               }</>
             : <><Save size={20} /> {t("settings.save_settings")}</>
@@ -731,9 +731,9 @@ const SettingsPage = () => {
   //
   // `setSeeding` is raised only when a language is actually being created, not
   // for one that already exists: creating one means an AI call to identify it
-  // and then translating the whole interface into it — tens of seconds — and
-  // that is what the full-page loader is for. A known language returns at once
-  // and should not flash it.
+  // — a few seconds — and that is what the full-page loader is for. The
+  // interface translation that follows runs in the background (seedLanguage).
+  // A known language returns at once and should not flash the loader.
   const seedIfNeeded = async (code, token, setSeeding) => {
     const known = supportedLanguages.find((l) => normalizeCode(l.code) === normalizeCode(code));
     if (known) return known.code;
@@ -942,12 +942,12 @@ const SettingsPage = () => {
 
   return (
     <>
-      {/* Over the whole page, not just the Save button: adding a language
-          runs for tens of seconds, and the one thing that must not happen
-          meanwhile is the reader navigating away from a half-seeded language
-          or editing the form it is about to save. */}
+      {/* Over the whole page, not just the Save button: identifying a new
+          language is an AI call, and the reader must not edit the form it is
+          about to save meanwhile. Translating the interface into it happens
+          afterwards, in the background, so this is seconds, not a minute. */}
       {(isSeedingInterface || isSeedingLanguage) && (
-        <Loader fullScreen isDarkMode={isDarkMode} message={t("settings.adding_language")} />
+        <Loader fullScreen isDarkMode={isDarkMode} message={t("settings.adding_language_short")} />
       )}
 
       {showDeleteModal && (

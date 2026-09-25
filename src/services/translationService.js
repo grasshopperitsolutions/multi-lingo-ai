@@ -42,6 +42,11 @@ const _cache = new Map();
 /** @type {Map<string, Promise<number>>} */
 const _fillInFlight = new Map();
 
+// Same for full seeds: a new language is translated in the background right
+// after it is created, and a reader switching to it meanwhile would otherwise
+// start a second, identical run of every chunk.
+const _seedInFlight = new Map();
+
 // ---------------------------------------------------------------------------
 // Deep-diff / dot-notation helpers (for fillMissingTranslations)
 // ---------------------------------------------------------------------------
@@ -210,6 +215,11 @@ async function requestTranslatedChunk({ token, prompt, promptDoc, chunk, locale,
         temperature: 0.1,
         jsonMode: true,
         maxOutputTokens,
+        // Interface translation is app maintenance, not something this user
+        // asked for, so the API keeps it out of their daily allowance. The
+        // locale must name an existing language for that to apply.
+        purpose: "ui-translation",
+        locale,
       },
       // Background/admin work — never interrupt the user with a generation prompt.
       { skipConfirm: true },
@@ -622,6 +632,21 @@ export async function seedLanguageTranslations(locale, token) {
     throw new Error("[translationService] Firebase ID token is required for seeding");
   }
 
+  if (_seedInFlight.has(locale)) {
+    console.info(`[translationService] seedLanguageTranslations("${locale}") — already in flight, reusing`);
+    return _seedInFlight.get(locale);
+  }
+
+  const promise = _seedLanguageTranslations(locale, token);
+  _seedInFlight.set(locale, promise);
+  try {
+    return await promise;
+  } finally {
+    _seedInFlight.delete(locale);
+  }
+}
+
+async function _seedLanguageTranslations(locale, token) {
   console.info(`[translationService] seedLanguageTranslations("${locale}") — starting`);
 
   const sourceData = SOURCE_TRANSLATIONS;
@@ -663,8 +688,10 @@ export async function seedLanguageTranslations(locale, token) {
   // 3. Persist to Firestore — one write of the fully-merged document.
   const created = await createDocument(LOCALES_COLLECTION, translatedData, locale, token);
 
-  // Warm the cache
+  // Warm the cache, and push it live: the seed runs in the background, so a
+  // reader may already be looking at this language in its fallback text.
   _cache.set(locale, translatedData);
+  loadRemoteTranslations(locale, translatedData);
 
   console.info(`[translationService] seedLanguageTranslations("${locale}") — created locale doc with ${Object.keys(flattenToDotPaths(translatedData)).length} key(s)`);
 
