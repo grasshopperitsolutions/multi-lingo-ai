@@ -9,7 +9,7 @@ A queue of plans agreed but not yet built. One file per plan.
 ## Queued
 
 - [App Current Pulse](app-current-pulse.md): an admin section showing usage metrics and charts. Written 2026-09-24.
-- [Multi-dialect practice](multi-dialect-practice.md): Exam Training on the Grammar Practice data model, then both opened to the Portuguese dialects, then to other languages. Written 2026-09-25; Phases 1 and 2 built, Phase 2 testing open.
+- [Multi-dialect practice](multi-dialect-practice.md): Exam Training on the Grammar Practice data model, then both opened to the Portuguese dialects, then to other languages. Written 2026-09-25; Phase 1 done, Phase 2 built with pt-BR testing open.
 
 ## Dropped
 

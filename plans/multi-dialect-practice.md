@@ -1,6 +1,6 @@
 # Multi-dialect practice
 
-**Status:** Phase 1 built on 2026-09-25, apart from deleting the old exam data. Phase 2's code built on 2026-09-25; its testing and flag steps are still open (see below). Phase 3 queued. Written 2026-09-25.
+**Status:** Phase 1 done on 2026-09-25. Phase 2's code built and set up on 2026-09-25; testing pt-BR and turning on its flag are still open (see below). Phase 3 queued. Written 2026-09-25.
 **Covers:** Exam Training and Grammar Practice, which open to new dialects and languages together.
 
 ## Why
@@ -35,11 +35,11 @@ grammarExercises/{id}/gloss/{dialect}__{lang}   Grammar Practice only
 - **Missing collections and documents are normal:** an empty result means "nothing yet".
 - **Exams have no gloss.** An exam is read entirely in the practised dialect, as a real one would be. The one part in the reader's language, the writing feedback, is generated per attempt and never stored.
 
-## Phase 1: exam prep on the shared model (built 2026-09-25)
+## Phase 1: exam prep on the shared model (done 2026-09-25)
 
 - Rewrite `src/services/examExerciseService.js` on the model above: `examExercises/{id}` at language level with `content/{dialect}`, through `firestoreService` rather than raw `fetch`.
 - A fingerprint per exercise (the normalised opening of the passage, transcript or writing prompt), compared with the Grammar Practice duplicate check. A new exercise too close to one already in its pool cell is still served, since the learner paid for it, but is not written to the pool. No second AI call is spent.
-- **No migration.** Delete the existing `examExercises` documents in Firestore; the pool refills on demand. **Still to do, by hand:** the new code never matches the old documents (they have no `language` field), so they are dead weight until deleted. Old ids in `seenExerciseIds.{reading,listening,writing}` never match anything and are harmless.
+- **No migration.** The old `examExercises` documents were deleted on 2026-09-25 and the pool refills on demand. Old ids in `seenExerciseIds.{reading,listening,writing}` never match anything and are harmless.
 - Shared pool helpers (`baseLanguage`, id generation, safe document reads) move into one module used by both services.
 - The call sites (Reading, Listening, Writing, Full Exam) keep the same `getExercise` signature, so they don't change.
 
@@ -55,8 +55,7 @@ grammarExercises/{id}/gloss/{dialect}__{lang}   Grammar Practice only
 
 **Still open:**
 
-- **Seed `exam-adapt-prompt`** with the temporary button in Admin › Prompts, then remove `src/services/promptSeedService.js` with its button and handler.
-- **Edit `grammar-practice-adapt-prompt`** in Admin. Replace the line *"Leave explanations, instructions and labels in the language they are written in."* with: *"Keep explanations, instructions and labels in the language they are written in, but change every example they quote to how it is said in {{targetDialect}}."*
+- Done on 2026-09-25: `exam-adapt-prompt` seeded (the seeder has been removed), and `grammar-practice-adapt-prompt` edited so that explanations update the forms they quote.
 - **Test pt-BR as an admin** (switch your practice language). pt-BR is the dialect furthest from pt-PT. Check the adapted grammar items and exams, the refusals, and the topic list: `grammarTopics` is per dialect, so pt-BR starts with only the keys it gets. Then turn on `examSupported` for pt-BR.
 - Then pt-AO and pt-MZ, one at a time.
 - **Known gap:** `getGrammarDescription()` uses pt-PT terms ("presente do conjuntivo"), which Brazilian learners call "subjuntivo". The model copes, but Phase 3's fix covers this too.
