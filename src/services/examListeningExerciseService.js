@@ -87,6 +87,13 @@ export async function generateListeningExercise({ token, level, targetLang, ques
       console.error('[examListeningExerciseService] Unexpected fill-blanks response shape', data);
       throw new Error('Something went wrong. Please try again.');
     }
+  } else if (type === 'true-false') {
+    // Statements are what true/false is built from; `questions` is still
+    // accepted from exercises written before the schema dropped it.
+    if (!Array.isArray(data?.statements) && !Array.isArray(data?.questions)) {
+      console.error('[examListeningExerciseService] Unexpected true-false response shape', data);
+      throw new Error('Something went wrong. Please try again.');
+    }
   } else {
     if (!Array.isArray(data?.questions)) {
       console.error('[examListeningExerciseService] Unexpected response shape', data);
@@ -203,21 +210,8 @@ function getResponseSchemaForType(type) {
             minItems: 3,
             maxItems: 5,
           },
-          questions: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                text: { type: 'string' },
-                options: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 2 },
-                correctAnswer: { type: 'string' },
-              },
-              required: ['id', 'text', 'options', 'correctAnswer'],
-            },
-          },
         },
-        required: ['instructions', 'transcript', 'statements', 'questions'],
+        required: ['instructions', 'transcript', 'statements'],
       };
 
     case 'fill-blanks':

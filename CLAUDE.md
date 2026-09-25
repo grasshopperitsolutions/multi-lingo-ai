@@ -612,6 +612,56 @@ required to be copied character-for-character out of the paragraphs, and the
 prompt says to leave the list empty rather than invent an example — an "answer
 key" listing forms that are not in the text is worse than no answer key.
 
+## Grammar Practice and Exam Training share one pool, across dialects
+
+Both write their exercises with AI into shared pools with the same shape, so an
+exercise is reused across the dialects of a language (adapted, never
+translated) and both features open to a new dialect together.
+
+```
+grammarExercises/{id} | examExercises/{id}   one exercise, at language level
+  language: "pt", originDialect, dialects: [...], portability, type, level, status…
+  {id}/content/{dialect}                       the exercise + answer key per dialect
+  grammarExercises/{id}/gloss/{dialect}__{lang}  learner-language text (grammar only)
+```
+
+- **Order of a request** (`grammarPracticeService`, `examExerciseService`):
+  an unseen exercise already in the learner's dialect; else **one** attempt to
+  adapt an unseen one from a sibling dialect (`grammar-practice-adapt-prompt`,
+  `exam-adapt-prompt`); else generate. A refusal sets `portability:
+  "dialect-specific"` and it is never retried. `utils/adaptShape.js` rejects an
+  exam adaptation that changes keys, ids, list lengths, booleans or numbers.
+- **Safe before anything exists.** Equality filters only (`language`, `level`,
+  `status`, type fields); dialect filtered in code from `dialects`; content
+  written before the root; a missing pool or document is "nothing yet".
+  Shared helpers are in `services/practicePool.js`.
+- **Exams have no gloss:** an exam is read entirely in the practised dialect.
+  Grammar glosses never cross dialects — a sibling's explanations quote its forms.
+- **Duplicates:** trigram Dice ≥ 0.75 (`utils/grammarDuplicates.js`), on item
+  fingerprints for grammar and on the opening text for exams. A near-duplicate
+  exam is served but not stored.
+- **The switch** is `examSupported` on the language document, read through
+  `isStructuredPracticeSupported()` by the Exam Training tile and the Grammar
+  Practice section. **Admins get through in any dialect**, which is how a
+  dialect is tested before it opens. Add languages one at a time.
+- **Grammar Practice types** are in `config/grammarPracticeTypes.js`. The
+  sentence-answer ones (transform, build-sentence, translate, open-completion)
+  are always marked by `grammar-practice-check-prompt` and sit behind
+  `grammar_practice_open` (Maestro and up); nothing from a verdict is stored.
+  "Other" topics reuse the custom-requests gate and always generate. Topic keys
+  the model coins go into `grammarTopics` as `status: "practice"`, which
+  Structures never reads.
+- **No prompt text in code.** `examPromptTemplates.js` sends values only (level,
+  dialect, counts, word bounds, durations, raw type keys). The Portuguese it used
+  to inject (`getGrammarDescription`, `getExamPhrasing`) is gone and the wording
+  lives in the admin-edited templates. Prompts are written in English; only
+  learner-facing labels are translated.
+- **Response schemas** are strict per type (`schemaForType` for grammar), since
+  one loose all-types schema made Gemini drop `answers`. The API forces JSON
+  output whenever a schema is sent, so templates need no JSON skeleton. They
+  still need the rules a schema cannot express (copy `correctAnswer` from the
+  options, what goes in the word bank).
+
 ## Translations are collapsed, and now fetched only when opened
 
 The bilingual reader shows the target-language paragraph with its translation
@@ -1793,7 +1843,7 @@ its own tongue, which reads as an instruction to switch languages mid-sentence.
 
 `plans/` is a queue of agreed but unbuilt work, one file per plan, indexed in `plans/README.md`. Read it before proposing something large, since it may already be planned, or dropped for a recorded reason. When a plan is built, delete its file and its index line. When one is dropped, move its line to "Dropped" with the date and reason.
 
-Queued now: **App Current Pulse** (`plans/app-current-pulse.md`), an admin usage overview with metrics and charts. Also **Multi-dialect practice** (`plans/multi-dialect-practice.md`): Exam Training on the Grammar Practice data model, then both opened to the Portuguese dialects, then to other languages.
+Queued now: **App Current Pulse** (`plans/app-current-pulse.md`), an admin usage overview with metrics and charts.
 
 ## Do not assume
 
