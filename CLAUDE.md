@@ -748,9 +748,10 @@ document is ~56KB, well past the backend's hard `MAX_PROMPT_LENGTH = 8000`, so
 it is split by `splitIntoChunks` into subtrees of `CHUNK_SIZE_BUDGET_BYTES` and
 each is translated by its own `ask-ai` call.
 
-Those calls run **`CHUNK_CONCURRENCY` (4) at a time**. They used to run one
-after another, which made adding a language take the sum of ~14 round-trips —
-long enough that people navigated away mid-run. Four is chosen against Gemini's
+Those calls run **`CHUNK_CONCURRENCY` (8) at a time** (it was 4 until
+2026-09-25). They used to run one after another, which made adding a language
+take the sum of ~14 round-trips — long enough that people navigated away
+mid-run. Eight is chosen against Gemini's
 rate limit on the shared API key, not against Vercel concurrency, which is far
 higher on Pro: firing all fourteen at once would earn a 429 for every other AI
 feature in the app at the same moment.

@@ -180,7 +180,7 @@ describe("translationService — seeding a new language", () => {
     // Sequential would peak at 1. The pool is bounded, so it must not simply
     // fire every chunk at once either.
     expect(peak).toBeGreaterThan(1);
-    expect(peak).toBeLessThanOrEqual(4);
+    expect(peak).toBeLessThanOrEqual(8);
   });
 
   it("skips a chunk it cannot translate instead of losing the whole run", async () => {

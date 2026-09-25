@@ -317,16 +317,17 @@ function splitIntoChunks(sourceData, budget = CHUNK_SIZE_BUDGET_BYTES) {
  * The chunks are independent JSON subtrees, so running them one after another
  * was pure wall-clock waste — seeding a new language took the sum of ~14 AI
  * round-trips, long enough that people gave up and navigated away mid-run.
- * Four at a time cuts that to roughly a quarter with no change to the
- * backend's 8000-char prompt cap and no loss of per-chunk isolation.
+ * Eight at a time cuts that to about two rounds, with no change to the
+ * backend's 8000-char prompt cap and no loss of per-chunk isolation. (It was
+ * four; raised on 2026-09-25 to make adding a language faster.)
  *
- * Four rather than "all of them": the ceiling that matters is Gemini's own
+ * Eight rather than "all of them": the ceiling that matters is Gemini's own
  * rate limit on the shared API key, not Vercel concurrency (Pro allows far
  * more than this), and a burst of fourteen large generations is the kind of
  * thing that earns a 429 for every other AI feature in the app at the same
  * moment.
  */
-const CHUNK_CONCURRENCY = 4;
+const CHUNK_CONCURRENCY = 8;
 
 /**
  * Translates every chunk with a bounded-concurrency pool.
