@@ -8,7 +8,7 @@ A queue of plans agreed but not yet built. One file per plan.
 
 ## Queued
 
-- None.
+- [Gemini 3.8 TTS: the transcript and the style go separately](tts-3-8-transcript-and-style.md): stop clips reading their instructions aloud, move Explorer to the Lite model, and compress 3.8's WAV output. Written 2026-09-28.
 
 ## Dropped
 
