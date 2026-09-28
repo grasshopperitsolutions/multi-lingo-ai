@@ -1893,7 +1893,7 @@ its own tongue, which reads as an instruction to switch languages mid-sentence.
 
 `plans/` is a queue of agreed but unbuilt work, one file per plan, indexed in `plans/README.md`. Read it before proposing something large, since it may already be planned, or dropped for a recorded reason. When a plan is built, delete its file and its index line. When one is dropped, move its line to "Dropped" with the date and reason.
 
-Queued now: **App Current Pulse** (`plans/app-current-pulse.md`), an admin usage overview with metrics and charts.
+Queued now: **App Current Pulse** (`plans/app-current-pulse.md`), an admin usage overview with metrics and charts. Phases 1 and 2 are built as Admin › Pulse; Phase 3 remains.
 
 ## Do not assume
 

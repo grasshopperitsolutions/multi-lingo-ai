@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "../hooks/useTierAccess";
@@ -38,6 +38,10 @@ import TierEditModal from "../components/admin/TierEditModal";
 import FeaturesSection from "../components/admin/FeaturesSection";
 import FeatureEditModal from "../components/admin/FeatureEditModal";
 import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
+
+// Lazy so its charts and pool reads add nothing to the main bundle or to
+// opening any other Admin section.
+const PulseSection = lazy(() => import("../components/admin/pulse/PulseSection"));
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
 // Viewer/editor for the appConfig/config/* Firestore subcollections.
@@ -84,6 +88,7 @@ const AdminPage = () => {
   const isEmailTemplatesSection = activeSectionId === "emailTemplates";
   const isTutorApplicationsSection = activeSectionId === "tutorApplications";
   const isReportsSection = activeSectionId === "reports";
+  const isPulseSection = activeSectionId === "pulse";
   const [reportBusyId, setReportBusyId] = useState(null);
   const [applicationBusyId, setApplicationBusyId] = useState(null);
 
@@ -107,7 +112,8 @@ const AdminPage = () => {
               ? await listAllUserProfiles(await auth.currentUser.getIdToken())
             // The template editor loads the one locale document it needs
             // itself; the generic loader would pull down every locale.
-            : section.id === "emailTemplates"
+            // Pulse loads its own data the same way, and only when opened.
+            : section.id === "emailTemplates" || section.id === "pulse"
               ? []
               : await getConfigSectionDocs(section.collection);
       setDocsBySection((prev) => ({ ...prev, [section.id]: docs }));
@@ -461,7 +467,11 @@ const AdminPage = () => {
           </span>
         </div>
 
-        {isLocalesSection ? (
+        {isPulseSection ? (
+          <Suspense fallback={<Loader message="Loading..." isDarkMode={isDarkMode} />}>
+            <PulseSection isDarkMode={isDarkMode} onOpenReports={() => setActiveSectionId("reports")} />
+          </Suspense>
+        ) : isLocalesSection ? (
           <LocalesSection
             docs={docs}
             isDarkMode={isDarkMode}

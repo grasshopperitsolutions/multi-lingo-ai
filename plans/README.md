@@ -8,7 +8,7 @@ A queue of plans agreed but not yet built. One file per plan.
 
 ## Queued
 
-- [App Current Pulse](app-current-pulse.md): an admin section showing usage metrics and charts. Written 2026-09-24.
+- [App Current Pulse](app-current-pulse.md): an admin section showing usage metrics and charts. Written 2026-09-24. Phases 1 and 2 built 2026-09-28; Phase 3 remains.
 
 ## Dropped
 

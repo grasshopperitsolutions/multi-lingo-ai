@@ -1,6 +1,6 @@
 # App Current Pulse
 
-**Status:** queued — not started. Written 2026-09-24.
+**Status:** Phases 1 and 2 built 2026-09-28 (Admin › Pulse, `components/admin/pulse/`, maths in `utils/pulseMetrics.js`, loading in `services/pulseService.js`). Phase 3 queued. Written 2026-09-24.
 **Where it lives:** a new section in Admin, named **Pulse**. It shows how the app is being used, with metrics and charts. The word "analytics" is avoided on purpose.
 
 ## Why
@@ -52,13 +52,15 @@ Everything here is read from what already exists. Nothing new is written anywher
 | Languages added in the period, and by whom | `appConfig/config/languages` (`createdAt`, `createdBy`) | List + count |
 | Open problem reports; new this period | `appConfig/config/reports` | Headline number + link to the Reports section |
 
-**How it's built:** the page computes everything in the browser, from Admin queries the app already makes (`listAllUserProfiles`, with a limit of 1000) and from pool queries filtered by `createdAt`. That's fine at today's size, which is under 100 users. The pool queries return whole documents, so ask for the fewest fields and the narrowest date range possible.
+**How it's built:** the page computes everything in the browser, from Admin queries the app already makes (`listAllUserProfiles`, with a limit of 1000) and from whole-pool reads (`services/pulseService.js`). The pools are **not** filtered by `createdAt` on the server: the proxy's filter values arrive as JSON, and a JSON string never compares equal to a Firestore Timestamp, so `createdAt >=` would match nothing. Only the pools' top-level documents are read, and those are a few small fields each (content lives in subcollections), so this is fine at today's size. The Phase 3 snapshot is what replaces it. Charts are plain divs (`PulseCharts.jsx`), no library; the section is `React.lazy` from AdminPage.
 
 **Known limits, shown on the page:** active users is "last seen within X days", not a daily history. AI calls are today only.
 
 ## Phase 2 — ready now, medium and low interest
 
 The same approach as Phase 1: read-only, computed in the browser.
+
+**As built:** every collection is read with the proxy's `select` (added to `GET /api/firestore` for this), so `ttsClips`, `mailQueue` and `contactSubmissions` are counted without downloading audio, addresses or message bodies. Only Phase 1's sources are required; any Phase 2 collection that fails to load shows an error on its own card. Two rows were moved to Phase 3 because their data is in subcollections, which would take one request per document: **word pool growth by source** (Pulse splits growth by interest-tagged vs untagged, and by status, instead) and **translations made per interface language**.
 
 **Medium**
 
@@ -107,6 +109,7 @@ Each item needs new code, and most need a change in the API. **None needs a new 
 10. **Early retention.** Once snapshots exist: of those who signed up in week N, how many were active in weeks N+1 to N+4.
 11. **Personal space use** (counts only): how many users keep phrases, mistakes, questions and notes. This needs an admin-wide query across users' subcollections, so it belongs in the snapshot.
 12. **Push and email opens.** Low interest; only if reminders become a focus.
+13. **Word pool growth by source, and translations made per interface language** (moved from Phase 2). Both are counted in subcollections (`wordPool/{id}/translations`, `*/content/{locale}`), so they belong in the snapshot, which can read them server-side.
 
 ## Checks per phase
 

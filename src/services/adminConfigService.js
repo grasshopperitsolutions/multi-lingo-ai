@@ -30,6 +30,9 @@ export const CONFIG_SECTIONS = [
   // locale document, so the copy stays inside the translation pipeline.
   { id: "emailTemplates", label: "Email Templates", collection: "appConfig/config/locales" },
   { id: "tutorApplications", label: "Tutor Applications", collection: "appConfig/config/tutorApplications" },
+  // Not a collection — usage counts read from users, the shared pools and
+  // reports (plans/app-current-pulse.md). Loads its own data.
+  { id: "pulse", label: "Pulse", collection: "users + pools, read-only" },
 ];
 
 /**

@@ -98,7 +98,10 @@ export async function getDocument(collection, id, token) {
  * @param {Record<string, unknown>} [filters={}] - Field equality filters, e.g. { code: 'pt-PT' }.
  *   Internally converted to the API's expected `{ field, op, value }[]` shape, with
  *   `op` defaulting to '==' for every entry.
- * @param {{ orderBy?: string, order?: 'asc'|'desc', limit?: number, startAfter?: string }} [options={}]
+ * @param {{ orderBy?: string, order?: 'asc'|'desc', limit?: number, startAfter?: string, select?: string[] }} [options={}]
+ *   `select` asks for only those fields (the API always adds createdBy and
+ *   userId). An API deployed before `select` existed ignores it and returns
+ *   whole documents, so callers must not depend on fields being absent.
  * @param {string} [token] - Optional pre-fetched Firebase ID token.
  * @returns {Promise<import('../challenges-services/types').FirestoreQueryResult>}
  */
@@ -108,7 +111,7 @@ export async function queryCollection(collection, filters = {}, options = {}, to
   // NOTE: orderBy, order, and limit default to undefined — they are only sent
   // when explicitly provided. Without ordering, Firestore returns documents in
   // document ID order without needing composite indexes, which is faster.
-  const { orderBy, order, limit=1000, startAfter } = options;
+  const { orderBy, order, limit=1000, startAfter, select } = options;
 
   // The API expects an array of { field, op, value } filter descriptors under
   // the "filters" query param (see api/firestore.ts). Convert the simple
@@ -126,6 +129,7 @@ export async function queryCollection(collection, filters = {}, options = {}, to
   if (order) url.searchParams.set('order', order);
   if (limit !== undefined) url.searchParams.set('limit', String(limit));
   if (startAfter) url.searchParams.set('startAfter', startAfter);
+  if (select?.length) url.searchParams.set('select', JSON.stringify(select));
 
   const response = await fetch(url.toString(), {
     method: 'GET',
