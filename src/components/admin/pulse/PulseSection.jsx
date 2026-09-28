@@ -14,11 +14,15 @@ import ContentGroup from "./ContentGroup";
 import UsageGroup from "./UsageGroup";
 import CommunityGroup from "./CommunityGroup";
 import MessagingGroup from "./MessagingGroup";
+import ActivityGroup from "./ActivityGroup";
+import GrowthGroup from "./GrowthGroup";
 
 /**
  * Admin › Pulse — how the app is being used, from what Firestore already
- * holds. Phases 1 and 2 of plans/app-current-pulse.md: read-only, computed in
- * the browser, counts only. Loaded lazily from AdminPage.
+ * holds. Phases 1 and 2 read what the app already stores, computed in the
+ * browser; Phase 3's groups (Activity & AI, Growth & money) read the counters,
+ * daily snapshots and weekly actives the API writes (lib/pulse.ts). Counts
+ * only. Loaded lazily from AdminPage.
  *
  * This file owns loading, the period and the headline row; each area of the
  * page is its own group component, handed one `pulse` object with the data
@@ -161,6 +165,8 @@ const PulseSection = ({ isDarkMode, onOpenReports }) => {
         <Stat label="Seen in 30 days" value={people.active.day30} isDarkMode={isDarkMode} />
       </Grid>
 
+      <ActivityGroup pulse={pulse} />
+      <GrowthGroup pulse={pulse} />
       <PeopleGroup pulse={pulse} />
       <PlansGroup pulse={pulse} />
       <ContentGroup pulse={pulse} />
@@ -170,10 +176,10 @@ const PulseSection = ({ isDarkMode, onOpenReports }) => {
 
       <p className={`text-xs font-bold leading-relaxed ${muted}`}>
         Known limits: “seen”, dormancy and streaks come from the last day each person opened the app signed in, not a
-        daily history, so they ignore the period picker. AI calls are today only. Reads, completions, preferences and
-        the outbox are as they stand now. Guests and anything generated without being saved (translator, dictionary,
-        tutor sessions…) leave no trace here. Word sources and translations per language live in subcollections and
-        wait for the daily snapshot.
+        daily history, so they ignore the period picker; the Activity group&apos;s daily actives are the history. The
+        Plans group&apos;s AI calls are today only. Reads, completions, preferences and the outbox are as they stand now.
+        Guests are never counted. The Activity counters and the snapshots start on the day the Phase 3 API was
+        deployed, so earlier days read as zero rather than as quiet.
       </p>
     </div>
   );

@@ -5,6 +5,7 @@ import {
   buildTutorInstructions,
   connectLiveTutor,
 } from "../services/liveTutorService";
+import { reportLiveSeconds } from "../services/pulseReportService";
 
 /**
  * useLiveTutor
@@ -97,6 +98,10 @@ export function useLiveTutor({ user, targetLang, explanationLang, level, voice }
   const micLevelRef = useRef(0);
   const lastVoiceAtRef = useRef(0);
   const deadlineRef = useRef(0);
+  // When the session went live, for Admin › Pulse. The server mints the
+  // token and never sees the conversation, so only the browser knows how long
+  // it lasted. Zero while nothing is live, so a failed connect reports nothing.
+  const liveSinceRef = useRef(0);
 
   const stop = useCallback(async (reason) => {
     // Guarded because this is also an onClick handler somewhere, and a click
@@ -116,6 +121,11 @@ export function useLiveTutor({ user, targetLang, explanationLang, level, voice }
 
     await playerRef.current?.close().catch(() => {});
     playerRef.current = null;
+
+    if (liveSinceRef.current) {
+      reportLiveSeconds((Date.now() - liveSinceRef.current) / 1000);
+      liveSinceRef.current = 0;
+    }
 
     micLevelRef.current = 0;
     setIsSpeaking(false);
@@ -228,6 +238,7 @@ export function useLiveTutor({ user, targetLang, explanationLang, level, voice }
       lastVoiceAtRef.current = now;
       setSecondsLeft(Math.ceil((deadlineRef.current - now) / 1000));
 
+      liveSinceRef.current = now;
       setStatus(LIVE_STATUS.LIVE);
     } catch (err) {
       // Unwind whatever did open before the failure — a token minted and a

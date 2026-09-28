@@ -120,6 +120,8 @@ export async function generateConceptIcon({ conceptId, sourceWord, token }) {
     provider: "gemini",
     model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     temperature: 0.4,
     jsonMode: true,
     responseSchema: {

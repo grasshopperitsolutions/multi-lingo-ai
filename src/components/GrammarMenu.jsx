@@ -8,6 +8,7 @@ import { useTierAccess } from "../hooks/useTierAccess";
 import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from "../utils/featureAccess";
 import StatusBadge from "./StatusBadge";
 import { Breadcrumb, FeatureHeader } from "./ui";
+import { reportLockedAttempt } from "../services/pulseReportService";
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 const GrammarCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel }) => (
@@ -84,6 +85,7 @@ const GrammarMenu = ({ isDarkMode }) => {
 
   const handleSectionSelect = (section) => {
     if (PURCHASABLE_STATUSES.includes(section.status)) {
+      reportLockedAttempt(section.id);
       navigate("/pricing");
       return;
     }

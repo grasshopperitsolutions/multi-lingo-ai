@@ -333,6 +333,36 @@ describe("PulseSection", () => {
     tutorApplications: [{ id: "a1", read: false }],
     contactSubmissions: [{ id: "m1", createdAt: ts("2026-09-28T02:00:00Z") }],
     mailQueue: [],
+    pulseCounters: [
+      {
+        id: "2026-09-28",
+        activeUsers: { total: 3, explorer: 2, maestro: 1 },
+        ai: { "story-generate-prompt": { explorer: { calls: 4, inputTokens: 1000, outputTokens: 400 } } },
+        models: { "gemini-3_5-flash-lite": { calls: 4, inputTokens: 1000, outputTokens: 400 } },
+        limitHits: { explorer: 2 },
+        liveSessions: { maestro: 1 },
+        liveSeconds: { maestro: 600 },
+        pageOpens: { story_generator: { explorer: 5 } },
+        locked: { ai_tutor: { explorer: 3 } },
+        accountDeletions: { self: 1 },
+        planChanges: { upgrade: 1 },
+        planMoves: { voyager_to_maestro: 1 },
+      },
+      { id: "2026-09-27", activeUsers: { total: 1, explorer: 1 } },
+    ],
+    pulseDays: [
+      {
+        id: "2026-09-27",
+        users: { total: 6 },
+        lastSeen: { within1Day: 2, within7Days: 4, within30Days: 5 },
+        revenue: { mrr: { eur: 1499 }, byTier: { maestro: { subscriptions: 1, mrr: { eur: 1000 } } }, active: 2, trialing: 1 },
+        personalSpace: { personalPhrases: { people: 2, items: 7 } },
+        wordTranslations: { bySource: { ai: 9, user: 2 }, byLocale: { "es-ES": 11 } },
+        contentTranslations: { stories: { "en-US": 3 }, historyFacts: {} },
+        errors: {},
+      },
+    ],
+    pulseWeeks: [{ id: "2026-W40", active: 3, cohorts: { "2026-W39": 1 } }],
     errors: { mailQueue: "denied" },
   };
 
@@ -357,6 +387,17 @@ describe("PulseSection", () => {
     expect(statValue("Clip storage")).toBe("2.0 KB");
     expect(statValue("Tutors published")).toBe("1");
     expect(statValue("Words added, last 7 days")).toBe("2");
+    // Phase 3: counters, the latest snapshot and the weekly actives.
+    expect(statValue("Active today")).toBe("3");
+    expect(statValue("Average daily actives, last 7 days")).toBe("2.0");
+    expect(statValue("AI calls, last 7 days")).toBe("4");
+    expect(statValue("Daily limit hit")).toBe("2");
+    expect(statValue("Live tutor")).toBe("1 sessions");
+    expect(statValue("Paying subscriptions")).toBe("2");
+    expect(statValue("Logged in, last 7 days")).toBe("4");
+    expect(screen.getByText("story-generate-prompt")).toBeInTheDocument();
+    expect(screen.getByText("1 by their owner, 0 by an admin.")).toBeInTheDocument();
+
     // One unreadable collection costs its own card, not the page.
     expect(screen.getByText("Could not read the mail queue: denied")).toBeInTheDocument();
 

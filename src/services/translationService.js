@@ -212,6 +212,8 @@ async function requestTranslatedChunk({ token, prompt, promptDoc, chunk, locale,
         provider: "gemini",
         model: promptDoc.model || "gemini-3.5-flash-lite",
         explorerModel: promptDoc.explorerModel,
+        // Which prompt this is, for the Pulse counters. A label only.
+        feature: promptDoc.id,
         temperature: 0.1,
         jsonMode: true,
         maxOutputTokens,

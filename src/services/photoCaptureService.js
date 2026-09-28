@@ -160,6 +160,8 @@ export async function analysePhoto({ token, file, learningLang, interfaceLang })
     provider: "gemini",
     model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     temperature: 0.2,
     jsonMode: true,
     responseSchema: RESPONSE_SCHEMA,

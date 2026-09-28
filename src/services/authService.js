@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import i18n from '../i18n';
+import { readAcquisition, clearAcquisition } from '../utils/acquisition';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 
@@ -36,7 +37,9 @@ const socialLogin = async (provider, action) => {
     const response = await fetch(`${PROXY_URL}/api/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, idToken, interfaceLang }),
+      // Where this visit came from (utils/acquisition.js). The server stores
+      // it only when this sign-in creates the account, and cleans it first.
+      body: JSON.stringify({ action, idToken, interfaceLang, acquisition: readAcquisition() }),
     });
 
     if (!response.ok) {
@@ -45,6 +48,8 @@ const socialLogin = async (provider, action) => {
     }
 
     const { customToken, ...userData } = await response.json();
+    // Sent once; a later sign-in in this tab has nothing new to say.
+    clearAcquisition();
 
     if (customToken) {
       const cred = await signInWithCustomToken(auth, customToken);

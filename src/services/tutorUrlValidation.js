@@ -148,6 +148,8 @@ export async function validateUrlWithAi(token, url) {
         // check cheaper for the free tier the moment anyone wants that.
         model: promptDoc.model || undefined,
         explorerModel: promptDoc.explorerModel,
+        // Which prompt this is, for the Pulse counters. A label only.
+        feature: promptDoc.id,
       },
       // The tutor already pressed a button that says "Validate" — a second
       // confirmation dialog on top of that is noise.

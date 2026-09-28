@@ -8,8 +8,9 @@ A queue of plans agreed but not yet built. One file per plan.
 
 ## Queued
 
-- [App Current Pulse](app-current-pulse.md): an admin section showing usage metrics and charts. Written 2026-09-24. Phases 1 and 2 built 2026-09-28; Phase 3 remains.
+- None.
 
 ## Dropped
 
-- None yet.
+- **Pulse: push and email open tracking** (Phase 3 item 12 of App Current Pulse) — 2026-09-28. Low interest until reminders become a focus; it would need provider webhooks and per-message ids.
+- **Google / Firebase Analytics** (listed as out of scope in App Current Pulse) — 2026-09-28. It sees guests and the path to sign-up, but costs a consent prompt, a rewrite of privacy policy §2.7 (no cookies, consent before any analytics), a Google script on every page and usage data going to Google. Pulse's first-touch acquisition covers part of the question. Reconsider when the question is "what happens before sign-up".

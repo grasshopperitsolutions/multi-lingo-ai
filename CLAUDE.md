@@ -1889,11 +1889,84 @@ day it is seeded. Names resolve in **English** on purpose: the prompt around
 them is English, and `supportedLanguages.label` holds the language's name in
 its own tongue, which reads as an instruction to switch languages mid-sentence.
 
+## Admin › Pulse — usage counts, never activity
+
+`components/admin/pulse/` is the Pulse tab in Admin: how the app is used, as
+counts and charts. The word "analytics" is avoided on purpose. It is lazy
+(`React.lazy` from AdminPage), loads its own data through
+`services/pulseService.js`, and keeps every number in `utils/pulseMetrics.js`
+as pure functions pinned by `test/unit/pulse*.test.*`. Charts are plain divs
+and one SVG polyline (`PulseCharts.jsx`) — no chart library.
+
+**Three kinds of source, and the page says which is which.**
+
+- **What the app already stores** (Phases 1–2): the users list and every
+  pool's top-level documents, read whole with the proxy's `select` so a
+  document arrives as the few fields counted — never a tale's text, a clip's
+  audio (`ttsClips`) or a message body (`mailQueue`, `contactSubmissions`).
+  Filtered by date **in the browser**: the proxy's filter values are JSON, and a
+  JSON string never compares equal to a Firestore Timestamp.
+- **Counters the API keeps** (`appConfig/pulse/counters/{day}` and
+  `/weeks/{week}`): AI calls, tokens, refusals and errors per prompt and tier;
+  tokens per model; daily-limit hits; live-tutor sessions and minutes; page
+  opens; locked attempts; account deletions; plan changes; unique daily and
+  weekly actives by sign-up cohort (the retention table).
+- **The daily snapshot** (`appConfig/pulse/days/{day}`, written by the API's
+  06:00 UTC cron for the day before): users per tier, login recency from
+  Firebase Auth, pool sizes, personal-space use, word-pool translations by
+  source and language, tale and culture translations per language, and MRR
+  read from Stripe.
+
+Counters and snapshots **start on the day the Phase 3 API was deployed**;
+earlier days read as zero, and the page says so rather than showing a quiet
+week. See the API's CLAUDE.md for how they are written.
+
+**Only Phase 1's sources can fail the page.** Every other collection is loaded
+with `allSettled` and a failure costs its own card an error line.
+
+**What the browser reports** (`services/pulseReportService.js`, to
+`POST /api/auth` `action: "pulse"`): `active` once per profile load (the
+server counts each person once a day and once a week), `open` per dashboard
+feature (`dashboardFeatureIdForPath`, in `DashboardLayout` — moving within one
+feature counts once), `locked` wherever the UI turns someone away (a
+purchasable tile in the dashboard, Today, the challenge, grammar and exam
+menus, and the four "upgrade required" redirects), and `liveSeconds` when a
+live-tutor session ends (`useLiveTutor`, since the server never sees the
+conversation). Batched, fire-and-forget, signed-in users only. The server
+checks every feature id against `appConfig/config/features` and files anything
+else under `other`, so no caller can invent counter keys.
+
+**Every AI call names its prompt.** Each service puts `feature: promptDoc.id`
+beside `explorerModel` in `providerParams` (the exam services pass it through
+their `_callAskAI`). The server resolves it against the prompts collection and
+deletes it before the provider sees it. A new AI call should do the same, or it
+counts as `unspecified`. `getImageService` has no prompt document yet and does.
+
+**Where a user came from** (`utils/acquisition.js`): the first page of a
+browser session keeps, in `sessionStorage`, the referrer's **hostname** only,
+`utm_source`/`utm_medium`/`utm_campaign`, and the landing path without its
+query. `authService` sends it with the sign-in, the API stores it once on
+`users/{uid}.acquisition` when that sign-in creates the account, and it is
+cleared after sending. Accounts created before this read as "direct or
+unknown".
+
+**The privacy policy was changed for this** (§2.7, §3.4, date 2026-09-28): §2.7
+lists the sessionStorage record, §3.4 lists what is counted and the one
+per-profile marker (`pulseSeen`: the last day and week someone was counted).
+Other locales keep the old wording until an admin force resync. **Counts only**
+is the rule the policy rests on: never show the content of anyone's notes,
+mistakes, questions or recordings, and never list one person's activity. The
+languages-added list names who added a language; that is configuration, not
+activity.
+
+Not built: cost in currency. The page shows tokens per model; prices are not
+stored anywhere, and a guessed table would go stale silently.
+
 ## Future plans live in `plans/`
 
 `plans/` is a queue of agreed but unbuilt work, one file per plan, indexed in `plans/README.md`. Read it before proposing something large, since it may already be planned, or dropped for a recorded reason. When a plan is built, delete its file and its index line. When one is dropped, move its line to "Dropped" with the date and reason.
 
-Queued now: **App Current Pulse** (`plans/app-current-pulse.md`), an admin usage overview with metrics and charts. Phases 1 and 2 are built as Admin › Pulse; Phase 3 remains.
+Nothing is queued now. App Current Pulse was built (see "Admin › Pulse" above); two ideas from it are under "Dropped" with their reasons.
 
 ## Do not assume
 

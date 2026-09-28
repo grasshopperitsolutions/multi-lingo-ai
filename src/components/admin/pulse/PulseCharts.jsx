@@ -268,3 +268,82 @@ export const SourceError = ({ name, message, isDarkMode }) => (
   </p>
 );
 SourceError.propTypes = { name: PropTypes.string.isRequired, message: PropTypes.string.isRequired, isDarkMode: PropTypes.bool };
+
+/**
+ * One line per day, for series that only exist since the Phase 3 counters
+ * started — a trend reads better as a line than as bars. An SVG stretched to
+ * the width; the stroke keeps its thickness with `vector-effect`.
+ */
+export const DailyLine = ({ data, isDarkMode, colour = "text-sky-500", format = (n) => n }) => {
+  if (data.length === 0) return null;
+  const peak = Math.max(0, ...data.map((d) => d.count));
+  const points = data
+    .map((d, i) => {
+      const x = data.length === 1 ? 50 : (i / (data.length - 1)) * 100;
+      const y = peak ? 100 - (d.count / peak) * 100 : 100;
+      return `${x},${y}`;
+    })
+    .join(" ");
+  return (
+    <div>
+      <div className={`h-28 rounded-lg p-1 ${track(isDarkMode)}`}>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className={`w-full h-full ${colour}`} role="img"
+          aria-label={data.map((d) => `${d.day}: ${format(d.count)}`).join(", ")}>
+          <polyline points={points} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+          {data.map((d, i) => (
+            <circle
+              key={d.day}
+              cx={data.length === 1 ? 50 : (i / (data.length - 1)) * 100}
+              cy={peak ? 100 - (d.count / peak) * 100 : 100}
+              r="1.5"
+              fill="currentColor"
+              vectorEffect="non-scaling-stroke"
+            >
+              <title>{`${shortDay(d.day)}: ${format(d.count)}`}</title>
+            </circle>
+          ))}
+        </svg>
+      </div>
+      <DayAxis first={data[0].day} last={data[data.length - 1].day} peak={peak} isDarkMode={isDarkMode} />
+    </div>
+  );
+};
+DailyLine.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.shape({ day: PropTypes.string, count: PropTypes.number })).isRequired,
+  isDarkMode: PropTypes.bool,
+  colour: PropTypes.string,
+  format: PropTypes.func,
+};
+
+/** A small table; admin-only, so plain. */
+export const SimpleTable = ({ head, rows, isDarkMode, emptyText = "Nothing yet." }) => {
+  if (rows.length === 0) return <p className={`text-sm font-bold ${muted(isDarkMode)}`}>{emptyText}</p>;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs font-bold tabular-nums">
+        <thead>
+          <tr className={muted(isDarkMode)}>
+            {head.map((h, i) => (
+              <th key={h} className={`py-1 pr-3 uppercase tracking-widest text-[10px] ${i ? "text-right" : "text-left"}`}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className={strong(isDarkMode)}>
+          {rows.map((row) => (
+            <tr key={row[0]} className={`border-t ${isDarkMode ? "border-slate-700" : "border-slate-200"}`}>
+              {row.map((cell, i) => (
+                <td key={i} className={`py-1 pr-3 ${i ? "text-right" : "text-left break-all"}`}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+SimpleTable.propTypes = {
+  head: PropTypes.arrayOf(PropTypes.string).isRequired,
+  rows: PropTypes.arrayOf(PropTypes.array).isRequired,
+  isDarkMode: PropTypes.bool,
+  emptyText: PropTypes.string,
+};

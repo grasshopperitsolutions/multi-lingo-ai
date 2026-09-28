@@ -20,6 +20,7 @@ import RecallWidget from "../../../components/personal/widgets/RecallWidget";
 import PhotoCaptureWidget from "../../../components/personal/widgets/PhotoCaptureWidget";
 import PhotoReviewModal from "../../../components/personal/PhotoReviewModal";
 import { PROPOSAL_KINDS } from "../../../services/photoCaptureService";
+import { reportLockedAttempt } from "../../../services/pulseReportService";
 import { FeaturePageShell, ErrorBanner, Card, PracticeLanguage } from "../../../components/ui";
 
 /**
@@ -96,6 +97,7 @@ const PersonalDashboard = () => {
   // pre-existing wart not worth spreading to a new page.
   useEffect(() => {
     if (!isLocked) return;
+    reportLockedAttempt("personal_tools");
     navigate("/dashboard", { replace: true });
     showAlert("warning", t("subscription.errors.upgrade_required"), {
       label: t("pricing.upgrade"),

@@ -283,3 +283,25 @@ export function suggestedFeatureIds(interests = []) {
     TODAY_SUGGESTION_LIMIT,
   );
 }
+
+/**
+ * The dashboard feature a route belongs to, for counting page opens in
+ * Admin › Pulse: the tile whose route is this path or a prefix of it, the
+ * longest match winning. `/dashboard/grammar/text` is the grammar tile, and
+ * `/settings` belongs to none.
+ *
+ * @param {string} pathname
+ * @returns {string|undefined}
+ */
+export function dashboardFeatureIdForPath(pathname) {
+  if (!pathname) return undefined;
+  const path = pathname.replace(/\/+$/, "");
+  let best;
+  for (const feature of DASHBOARD_FEATURES) {
+    if (!feature.route) continue;
+    if (path === feature.route || path.startsWith(`${feature.route}/`)) {
+      if (!best || feature.route.length > best.route.length) best = feature;
+    }
+  }
+  return best?.id;
+}

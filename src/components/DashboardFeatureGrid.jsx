@@ -2,6 +2,7 @@ import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useAppContext } from "../contexts/AppContext";
 import FeatureCard from "./FeatureCard";
+import { reportLockedAttempt } from "../services/pulseReportService";
 
 /**
  * DashboardFeatureGrid
@@ -26,6 +27,7 @@ const DashboardFeatureGrid = ({ tiles, emptyMessage, gridClassName, showDescript
       return;
     }
     if (tile.purchasable) {
+      reportLockedAttempt(tile.id);
       navigate("/pricing");
       return;
     }

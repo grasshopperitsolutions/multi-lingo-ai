@@ -248,6 +248,8 @@ export async function getStoryTranslation({ token, storyId, sourceLang, sourceTi
     provider: 'gemini',
     model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     temperature: 0.3,
     jsonMode: true,
     responseSchema: _storySchema(paragraphCount),
@@ -336,6 +338,8 @@ async function _generateStory({
     provider: 'gemini',
     model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     temperature: 0.8,
     jsonMode: true,
     responseSchema: _storySchema(paragraphCount),

@@ -6,6 +6,7 @@ import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from '../utils/f
 import { Lock } from 'lucide-react';
 import { EXAM_EXERCISES as EXERCISES } from '../config/favouritableFeatures';
 import StatusBadge from './StatusBadge';
+import { reportLockedAttempt } from "../services/pulseReportService";
 import { Breadcrumb, FeatureHeader } from './ui';
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -72,6 +73,7 @@ const ExamTrainingMenu = ({ isDarkMode }) => {
 
   const handleExerciseSelect = (ex) => {
     if (PURCHASABLE_STATUSES.includes(ex.status)) {
+      reportLockedAttempt(ex.id);
       navigate('/pricing');
       return;
     }

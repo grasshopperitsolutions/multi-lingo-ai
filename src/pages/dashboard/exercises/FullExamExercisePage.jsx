@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../../contexts/AppContext";
 import { useTierAccess } from "../../../hooks/useTierAccess";
 import { FeaturePageShell } from "../../../components/ui";
+import { reportLockedAttempt } from "../../../services/pulseReportService";
 import Loader from "../../../components/Loader";
 
 const FullExamExercise = lazy(() => import("../../../components/FullExamExercise"));
@@ -21,6 +22,7 @@ const FullExamExercisePage = () => {
   // so it can't be bypassed by visiting the URL, not just the menu card.
   useEffect(() => {
     if (isLocked) {
+      reportLockedAttempt("full_exam");
       navigate("/dashboard/exam-training", { replace: true });
       showAlert("warning", t("subscription.errors.upgrade_required"), {
         label: t("pricing.upgrade"),

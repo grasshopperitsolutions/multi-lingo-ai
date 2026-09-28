@@ -116,6 +116,8 @@ export async function generatePracticeText({
     provider: 'gemini',
     model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     temperature: 0.7,
     jsonMode: true,
     responseSchema: _textSchema(paragraphCount),

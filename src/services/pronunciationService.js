@@ -190,6 +190,8 @@ async function _generatePassage({ token, level, targetLang, existing }) {
     provider: 'gemini',
     model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     // Lowered from 0.8. The variety in this pool comes from `{{avoidTexts}}`
     // — the last twelve passages, named and ruled out — not from sampling, so
     // the temperature was buying very little and costing fidelity: a pt-PT
@@ -325,6 +327,8 @@ export async function gradePronunciation({
     provider: 'gemini',
     model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     temperature: 0.2,
     jsonMode: true,
     responseSchema: FEEDBACK_SCHEMA,

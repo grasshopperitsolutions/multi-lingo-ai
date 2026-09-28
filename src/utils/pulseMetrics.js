@@ -390,3 +390,182 @@ export function formatBytes(bytes) {
   }
   return `${value < 10 && unit > 0 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`;
 }
+
+// ── Phase 3: counters, snapshots and weeks written by the API ────────────────
+//
+// appConfig/pulse/counters/{day}   live increments (lib/pulse.ts in the API)
+// appConfig/pulse/days/{day}       the 06:00 UTC recount of the day before
+// appConfig/pulse/weeks/{week}     unique weekly actives by sign-up cohort
+//
+// Document ids are the day or week keys; `id` is what the proxy returns them
+// under.
+
+const isNumberMap = (value) => value && typeof value === "object" && !Array.isArray(value);
+
+/** Deep sum of two nested count maps; non-numbers are ignored. */
+function addMaps(into, from) {
+  for (const [key, value] of Object.entries(from ?? {})) {
+    if (typeof value === "number") {
+      into[key] = (typeof into[key] === "number" ? into[key] : 0) + value;
+    } else if (isNumberMap(value)) {
+      into[key] = addMaps(isNumberMap(into[key]) ? into[key] : {}, value);
+    }
+  }
+  return into;
+}
+
+/** The counter documents that fall in the period, summed into one map. */
+export function sumCounters(counterDocs, period) {
+  const total = {};
+  for (const doc of counterDocs ?? []) {
+    if (isInPeriod(doc.id, period)) addMaps(total, doc);
+  }
+  return total;
+}
+
+/** A number found at `path` in a nested map, or 0. */
+export function valueAt(map, path) {
+  let node = map;
+  for (const key of path) {
+    if (!isNumberMap(node)) return 0;
+    node = node[key];
+  }
+  return typeof node === "number" ? node : isNumberMap(node) ? sumLeaves(node) : 0;
+}
+
+/** Every number under a map, however deep. */
+export function sumLeaves(map) {
+  let sum = 0;
+  for (const value of Object.values(map ?? {})) {
+    if (typeof value === "number") sum += value;
+    else if (isNumberMap(value)) sum += sumLeaves(value);
+  }
+  return sum;
+}
+
+/**
+ * One `{ day, count }` per day of the period, read from each day's document
+ * by a path (`["activeUsers", "total"]`) or a function of the document.
+ * A day with no document is zero.
+ */
+export function seriesFromDocs(docs, period, pathOrFn) {
+  const byId = Object.fromEntries((docs ?? []).map((d) => [d.id, d]));
+  const read = typeof pathOrFn === "function" ? pathOrFn : (doc) => valueAt(doc, pathOrFn);
+  return dayKeysBetween(period.from, period.to).map((day) => ({
+    day,
+    count: byId[day] ? Number(read(byId[day])) || 0 : 0,
+  }));
+}
+
+/**
+ * A map's first level as ranked bars, each entry summed over whatever lies
+ * beneath it (`{ story: { explorer: 2, maestro: 1 } }` -> story: 3).
+ */
+export function rankMap(map, leafKey) {
+  return Object.entries(map ?? {})
+    .map(([key, value]) => ({
+      key,
+      count: typeof value === "number" ? value : leafKey ? sumLeafKey(value, leafKey) : sumLeaves(value),
+    }))
+    .filter((r) => r.count > 0)
+    .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
+}
+
+/** Sum of every `leafKey` under a map: all the `calls` of a feature across tiers. */
+export function sumLeafKey(map, leafKey) {
+  let sum = 0;
+  for (const [key, value] of Object.entries(map ?? {})) {
+    if (key === leafKey && typeof value === "number") sum += value;
+    else if (isNumberMap(value)) sum += sumLeafKey(value, leafKey);
+  }
+  return sum;
+}
+
+/**
+ * AI use per feature for the period, from `ai.{feature}.{tier}.{field}`.
+ * Sorted by calls.
+ */
+export function aiByFeature(summed) {
+  return Object.entries(summed.ai ?? {})
+    .map(([feature, byTier]) => ({
+      key: feature,
+      calls: sumLeafKey(byTier, "calls"),
+      cached: sumLeafKey(byTier, "cached"),
+      refused: sumLeafKey(byTier, "refused"),
+      errors: sumLeafKey(byTier, "errors"),
+      inputTokens: sumLeafKey(byTier, "inputTokens"),
+      outputTokens: sumLeafKey(byTier, "outputTokens"),
+      thinkingTokens: sumLeafKey(byTier, "thinkingTokens"),
+    }))
+    .sort((a, b) => b.calls - a.calls || a.key.localeCompare(b.key));
+}
+
+/** The newest snapshot, or null. Sorted in code; ids are day keys. */
+export function latestSnapshot(dayDocs) {
+  const sorted = [...(dayDocs ?? [])].sort((a, b) => String(b.id).localeCompare(String(a.id)));
+  return sorted[0] ?? null;
+}
+
+/** ISO week key ("2026-W40") of a date, UTC, matching the API's isoWeekKey. */
+export function isoWeekOf(ms) {
+  const date = new Date(ms);
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const weekday = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - weekday);
+  const yearStart = Date.UTC(d.getUTCFullYear(), 0, 1);
+  const week = Math.ceil(((d.getTime() - yearStart) / DAY_MS + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+/** The week key `n` weeks after `week`. */
+export function addWeeks(week, n) {
+  const [year, w] = week.split("-W").map(Number);
+  // Monday of ISO week 1 is the Monday on or before January 4th.
+  const jan4 = Date.UTC(year, 0, 4);
+  const mondayWeek1 = jan4 - (((new Date(jan4).getUTCDay() || 7) - 1) * DAY_MS);
+  return isoWeekOf(mondayWeek1 + ((w - 1 + n) * 7 + 3) * DAY_MS);
+}
+
+/**
+ * Early retention: for each sign-up week, its size (from the users list) and
+ * how many of its members were active in each of the following `span` weeks
+ * (from the weeks documents, which count each person once a week). Cohorts
+ * newest first, at most `limit` of them. A week that has not happened yet is
+ * null, so it renders as blank rather than as a zero.
+ */
+export function retentionTable(weekDocs, users, { today, span = 4, limit = 8 } = {}) {
+  const currentWeek = isoWeekOf(Date.parse(`${today}T00:00:00Z`));
+  const sizes = {};
+  for (const u of users ?? []) {
+    const ms = toMillis(u.createdAt);
+    if (ms !== null) sizes[isoWeekOf(ms)] = (sizes[isoWeekOf(ms)] ?? 0) + 1;
+  }
+  const byWeek = Object.fromEntries((weekDocs ?? []).map((d) => [d.id, d]));
+  return Object.keys(sizes)
+    .sort((a, b) => b.localeCompare(a))
+    .slice(0, limit)
+    .map((cohort) => ({
+      cohort,
+      size: sizes[cohort],
+      weeks: Array.from({ length: span }, (_, i) => {
+        const week = addWeeks(cohort, i + 1);
+        if (week > currentWeek) return null;
+        return byWeek[week]?.cohorts?.[cohort] ?? 0;
+      }),
+    }));
+}
+
+/** Minor units per currency -> "€12.34 · $5.00". */
+export function formatMoney(byCurrency) {
+  const entries = Object.entries(byCurrency ?? {}).filter(([, v]) => typeof v === "number");
+  if (!entries.length) return "—";
+  return entries
+    .map(([currency, minor]) => {
+      try {
+        return new Intl.NumberFormat(undefined, { style: "currency", currency: currency.toUpperCase() }).format(minor / 100);
+      } catch {
+        return `${(minor / 100).toFixed(2)} ${currency.toUpperCase()}`;
+      }
+    })
+    .join(" · ");
+}

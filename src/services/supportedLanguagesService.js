@@ -149,6 +149,8 @@ export async function seedLanguage(code, name, token) {
       provider: "gemini",
       model: promptDoc.model || "gemini-3.5-flash-lite",
       explorerModel: promptDoc.explorerModel,
+      // Which prompt this is, for the Pulse counters. A label only.
+      feature: promptDoc.id,
       temperature: 0.2,
       jsonMode: true,
       // Enforced by the API rather than asked for in the prompt. `code` and

@@ -8,6 +8,7 @@ import { useFeatureFavourites } from "../../hooks/useFeatureFavourites";
 import { suggestedFeatureIds, TODAY_SUGGESTION_LIMIT } from "../../config/dashboardFeatures";
 import { favouritableById } from "../../config/favouritableFeatures";
 import { useTierAccess } from "../../hooks/useTierAccess";
+import { reportLockedAttempt } from "../../services/pulseReportService";
 import { FEATURE_STATUS, PURCHASABLE_STATUSES } from "../../utils/featureAccess";
 
 // ── StatCard ────────────────────────────────────────────────────────────────
@@ -179,6 +180,7 @@ const TodayPanel = ({ tiles }) => {
       return;
     }
     if (tile.purchasable) {
+      reportLockedAttempt(tile.id);
       navigate("/pricing");
       return;
     }

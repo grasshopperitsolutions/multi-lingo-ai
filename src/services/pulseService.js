@@ -45,6 +45,11 @@ export const PULSE_SOURCES = {
   tutorApplications: { collection: "appConfig/config/tutorApplications", select: ["createdAt", "read"] },
   contactSubmissions: { collection: "contactSubmissions", select: ["createdAt"] },
   mailQueue: { collection: "mailQueue", select: ["createdAt", "sentAt", "status"] },
+  // Phase 3, written by the API (lib/pulse.ts, lib/pulse-snapshot.ts): small
+  // documents of counts, one per day or week, read whole.
+  pulseCounters: { collection: "appConfig/pulse/counters" },
+  pulseDays: { collection: "appConfig/pulse/days" },
+  pulseWeeks: { collection: "appConfig/pulse/weeks" },
 };
 
 async function readCollection({ collection, select }, token) {

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../contexts/AppContext";
 import { useTierAccess } from "../../hooks/useTierAccess";
+import { reportLockedAttempt } from "../../services/pulseReportService";
 import { FeaturePageShell, ToneChoice, AiNotice } from "../ui";
 
 /**
@@ -38,6 +39,7 @@ const ProToolShell = ({
 
   useEffect(() => {
     if (!isLocked) return;
+    reportLockedAttempt("professional_tools");
     navigate("/dashboard", { replace: true });
     showAlert("warning", t("subscription.errors.upgrade_required"), {
       label: t("pricing.upgrade"),

@@ -6,6 +6,7 @@ import { CHALLENGE_GAMES as GAMES } from "../config/favouritableFeatures";
 import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from "../utils/featureAccess";
 import StatusBadge from "./StatusBadge";
 import { Breadcrumb, FeatureHeader } from "./ui";
+import { reportLockedAttempt } from "../services/pulseReportService";
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 const GameCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel }) => (
@@ -72,6 +73,7 @@ const ChallengesMenu = ({ isDarkMode }) => {
 
   const handleGameSelect = (game) => {
     if (PURCHASABLE_STATUSES.includes(game.status)) {
+      reportLockedAttempt(game.id);
       navigate("/pricing");
       return;
     }

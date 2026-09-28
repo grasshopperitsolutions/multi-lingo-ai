@@ -218,6 +218,8 @@ async function _generateFact({ token, targetLang, locale, interests, existingTit
     provider: 'gemini',
     model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     temperature: 0.8,
     jsonMode: true,
     responseSchema: _factSchema(PARAGRAPH_COUNT),
@@ -276,6 +278,8 @@ async function _translateFact({ token, factId, source, sourceLocale, locale }) {
     provider: 'gemini',
     model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     temperature: 0.3,
     jsonMode: true,
     responseSchema: _factSchema(paragraphCount),

@@ -6,6 +6,7 @@ import { useAppContext } from "../contexts/AppContext";
 import { PROFESSIONAL_SECTIONS as SECTIONS } from "../config/professionalTools";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { Breadcrumb, FeatureHeader, AiNotice } from "./ui";
+import { reportLockedAttempt } from "../services/pulseReportService";
 
 /**
  * ProfessionalToolsMenu
@@ -62,6 +63,7 @@ const ProfessionalToolsMenu = ({ isDarkMode }) => {
 
   useEffect(() => {
     if (!isLocked) return;
+    reportLockedAttempt("professional_tools");
     navigate("/dashboard", { replace: true });
     showAlert("warning", t("subscription.errors.upgrade_required"), {
       label: t("pricing.upgrade"),

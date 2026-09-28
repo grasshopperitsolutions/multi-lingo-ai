@@ -747,6 +747,8 @@ async function _generateTranslation(sourceWord, { userDialect, learningDialect }
     provider:    'gemini',
     model:       promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     temperature: 0.7,
     jsonMode:    true,
     responseSchema: {
@@ -781,6 +783,8 @@ async function _generateHintForDialect(sourceWord, userDialect, token) {
     provider:    'gemini',
     model:       promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     temperature: 0.7,
     jsonMode:    true,
     responseSchema: {
@@ -818,6 +822,8 @@ async function _generateNewConcept({ userDialect, learningDialect, knownWords, t
     provider:    'gemini',
     model:       promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     temperature: 0.9,
     jsonMode:    true,
     responseSchema: {

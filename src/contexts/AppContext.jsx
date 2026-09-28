@@ -23,6 +23,7 @@ import { getTranslations, clearTranslationsCache, fillMissingTranslations } from
 import i18n, { loadRemoteTranslations, registerMissingKeyHandler, BASE_LOCALE } from "../i18n";
 import Loader from "../components/Loader";
 import { setSentryUser } from "../sentry";
+import { reportActive } from "../services/pulseReportService";
 
 const AppContext = createContext();
 
@@ -702,6 +703,10 @@ export const AppProvider = ({ children }) => {
         // the user's other devices.
         fcmTokens: profile?.fcmTokens ?? [],
       }));
+
+      // Admin › Pulse: this person was here today. The server counts each
+      // user once a day and once a week, however often this arrives.
+      reportActive();
     } catch (err) {
       // A brand-new account always lands here once. signInWithPopup fires
       // onAuthStateChanged as soon as the popup closes, which starts this

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet, useNavigate, Link } from "react-router-dom";
+import { Outlet, useNavigate, useLocation, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../../contexts/AppContext";
 import { useTierAccess } from "../../hooks/useTierAccess";
@@ -10,6 +10,8 @@ import MobileMenuDrawer from "../../components/MobileMenuDrawer";
 import LanguageFlagIcon from "../../components/LanguageFlagIcon";
 import { auth } from "../../firebase";
 import { updateUserProfile } from "../../services/userService";
+import { reportFeatureOpen } from "../../services/pulseReportService";
+import { dashboardFeatureIdForPath } from "../../config/dashboardFeatures";
 import {
   Settings,
   LogOut,
@@ -57,6 +59,13 @@ const DashboardLayout = () => {
     document.head.appendChild(meta);
     return () => meta.remove();
   }, []);
+
+  // Admin › Pulse: which feature pages get opened. Moving within one feature
+  // counts once; the dashboard itself and Settings belong to no feature.
+  const { pathname } = useLocation();
+  useEffect(() => {
+    reportFeatureOpen(dashboardFeatureIdForPath(pathname));
+  }, [pathname]);
 
   // Defensive only — RequireAuth (App.jsx) redirects a signed-out visitor to
   // `/` before this ever mounts. It used to return a full-screen Loader here

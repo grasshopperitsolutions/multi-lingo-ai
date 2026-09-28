@@ -219,6 +219,8 @@ async function getGloss({ token, exerciseId, dialect, explanationLocale, targetL
         provider: "gemini",
         model: promptDoc.model || GEMINI_MODEL,
         explorerModel: promptDoc.explorerModel,
+        // Which prompt this is, for the Pulse counters. A label only.
+        feature: promptDoc.id,
         temperature: 0.2,
         jsonMode: true,
         ...(promptDoc.maxTokens ? { maxOutputTokens: promptDoc.maxTokens } : {}),
@@ -314,6 +316,8 @@ async function generateOnce({ token, promptDoc, type, variables }) {
     provider: "gemini",
     model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     temperature: 0.6,
     jsonMode: true,
     responseSchema: schemaForType(type),
@@ -480,6 +484,8 @@ async function adaptExercise({ token, doc, dialect, locale, knownKeys }) {
       provider: "gemini",
       model: promptDoc.model || GEMINI_MODEL,
       explorerModel: promptDoc.explorerModel,
+      // Which prompt this is, for the Pulse counters. A label only.
+      feature: promptDoc.id,
       temperature: 0.3,
       jsonMode: true,
       ...(promptDoc.maxTokens ? { maxOutputTokens: promptDoc.maxTokens } : {}),
@@ -722,6 +728,8 @@ export async function checkOpenAnswer({
     provider: "gemini",
     model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
+    // Which prompt this is, for the Pulse counters. A label only.
+    feature: promptDoc.id,
     temperature: 0.2,
     jsonMode: true,
     responseSchema: CHECK_SCHEMA,
