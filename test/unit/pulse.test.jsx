@@ -169,7 +169,9 @@ describe("pulseMetrics: tallies", () => {
   });
 
   it("counts today's AI calls only, and free users at their limit", () => {
-    expect(aiUsageToday(USERS, TIERS)).toEqual({
+    // Against the fixture's day, not the clock: this passed only on the day it
+    // was written while the function read the date for itself.
+    expect(aiUsageToday(USERS, TIERS, TODAY)).toEqual({
       total: 63,
       byTier: [{ key: "maestro", count: 50 }, { key: "voyager", count: 10 }, { key: "explorer", count: 3 }],
       freeAtLimit: 1,

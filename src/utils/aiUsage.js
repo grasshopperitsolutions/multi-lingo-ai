@@ -18,9 +18,12 @@ export function todayUTC() {
 
 /**
  * @param {{ aiCallsToday?: number, aiCallsDate?: string|null }|null|undefined} user
+ * @param {string} [today] - the UTC day to count, as `YYYY-MM-DD`. Defaults to
+ *   now. Pulse passes the day it is reporting on, so every figure on one screen
+ *   is counted against the same date rather than half of them against the clock.
  * @returns {number} calls counted today; 0 when the count is from another day
  */
-export function callsTodayFor(user) {
-  if (!user || user.aiCallsDate !== todayUTC()) return 0;
+export function callsTodayFor(user, today = todayUTC()) {
+  if (!user || user.aiCallsDate !== today) return 0;
   return user.aiCallsToday ?? 0;
 }

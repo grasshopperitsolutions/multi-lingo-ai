@@ -190,14 +190,21 @@ export function subscriptionHealth(users, nowMs) {
  * Today's AI calls per tier, and how many users on a free tier have used
  * their whole allowance. Counts stamped with another day are zero, exactly as
  * the meter reads them (`callsTodayFor`).
+ *
+ * `today` is the day Pulse is reporting on, like every other function here.
+ * It used to be read from the clock instead, which put one figure on a
+ * different day from the rest of the screen, and made its test pass only on
+ * the day it was written.
+ *
+ * @param {string} [today] - UTC `YYYY-MM-DD`; defaults to now
  */
-export function aiUsageToday(users, tiersConfig) {
+export function aiUsageToday(users, tiersConfig, today) {
   const callsByTier = {};
   let freeAtLimit = 0;
   let total = 0;
   for (const u of users) {
     const tier = tierOf(u);
-    const calls = callsTodayFor(u);
+    const calls = callsTodayFor(u, today);
     total += calls;
     if (calls > 0) callsByTier[tier] = (callsByTier[tier] ?? 0) + calls;
     const config = tiersConfig?.[tier];
@@ -230,7 +237,7 @@ export function summarizeUsers(users, tiersConfig, { today, nowMs, period }) {
     practiceLangs: rankBy(users, (u) => u?.learningDialect, "Not chosen"),
     tiers: rankBy(users, tierOf),
     subscriptions: subscriptionHealth(users, nowMs),
-    ai: aiUsageToday(users, tiersConfig),
+    ai: aiUsageToday(users, tiersConfig, today),
   };
 }
 
