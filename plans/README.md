@@ -8,7 +8,6 @@ A queue of plans agreed but not yet built. One file per plan.
 
 ## Queued
 
-- [Gemini 3.8 TTS: the transcript and the style go separately](tts-3-8-transcript-and-style.md): stop clips reading their instructions aloud, move Explorer to the Lite model, and compress 3.8's WAV output. Written 2026-09-28.
 - [Food of the country you practise](recipes-from-the-country.md): turn the `food` coming-soon stub into a hub. It opens with PDF sharing for tales and culture pieces. Phase 1 is country recipes: a pooled list, "Get me a recipe", a layered duplicate check by name and by ingredients and technique, the country's ingredient and technique list (built when a practice language is added, generated on first use otherwise), favourites, and a leave-out and favourite-foods sidebar kept in the browser. Phase 2 is creating a recipe from the country's typical ingredients and techniques, downloaded or shared, never stored. Phase 3, optional, is where to eat through Google Maps. Written 2026-09-28.
 
 ## Dropped
