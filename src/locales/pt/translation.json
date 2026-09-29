@@ -384,6 +384,9 @@
     "learning_language": "Língua que estás a aprender",
     "interests": "Interesses",
     "interests_hint": "Escolhe os teus temas favoritos.",
+    "practice_level": "Nível em que praticas",
+    "practice_level_hint": "Cada funcionalidade começa neste nível. Podes mudá-lo em cada uma sem alterar este.",
+    "practice_level_needs_language": "Escolhe primeiro a língua que praticas.",
     "notifications": {
       "title": "Notificações",
       "intro": "Escolhe como queres ser avisado. Emails sobre a tua conta e pagamentos são sempre enviados.",
@@ -1252,6 +1255,10 @@
   "favourites": {
     "add": "Adicionar aos favoritos",
     "remove": "Remover dos favoritos"
+  },
+  "practice_level": {
+    "default_label": "Nível predefinido",
+    "change": "Mudar"
   },
   "live_tutor": {
     "start": "Começar a conversa",

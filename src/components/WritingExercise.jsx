@@ -23,6 +23,7 @@ import { getScoreColor } from "../services/examUtils";
 import { getWritingSpec } from "../config/examLevels";
 import { markExerciseSeen, resetSeenExercises } from "../services/userService";
 import useGenerateConfirm from "../hooks/useGenerateConfirm";
+import { usePracticeLevel } from "../hooks/usePracticeLevel";
 
 const PARAM_NAME_KEYS = {
   A: "exam.param_a_name",
@@ -97,11 +98,11 @@ const WritingExercise = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const { user, setUser, showAlert } = useAppContext();
 
-  const [level, setLevel] = useState("A1");
+  const { level, setLevel } = usePracticeLevel();
   const [exercise, setExercise] = useState(null);
   const [exerciseId, setExerciseId] = useState(null);
-  const [minWords, setMinWords] = useState(getWritingSpec("A1").minWords);
-  const [maxWords, setMaxWords] = useState(getWritingSpec("A1").maxWords);
+  const [minWords, setMinWords] = useState(() => getWritingSpec(level).minWords);
+  const [maxWords, setMaxWords] = useState(() => getWritingSpec(level).maxWords);
   const [userText, setUserText] = useState("");
   const [evaluation, setEval] = useState(null);
   const [loading, setLoading] = useState(false);

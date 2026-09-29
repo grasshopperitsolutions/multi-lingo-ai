@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Mic, Square, Loader2, ShieldCheck } from "lucide-react";
@@ -6,6 +6,8 @@ import { useAppContext } from "../../contexts/AppContext";
 import { useTierAccess } from "../../hooks/useTierAccess";
 import { useLiveTutor, LIVE_STATUS, END_REASON } from "../../hooks/useLiveTutor";
 import { getCefrLevelOptions } from "../../config/examLevels";
+import { usePracticeLevel } from "../../hooks/usePracticeLevel";
+import DefaultLevelLink from "../../components/DefaultLevelLink";
 import { resolveVoice } from "../../config/aiVoices";
 import NeoDropdown from "../../components/NeoDropdown";
 import LiveTutorBlob from "../../components/LiveTutorBlob";
@@ -69,7 +71,7 @@ const AiTutorPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [level, setLevel] = useState("A1");
+  const { level, setLevel } = usePracticeLevel();
   const cefrLevelOptions = getCefrLevelOptions(t);
 
   // The learner's one voice, chosen in Settings and used for every clip in the
@@ -210,6 +212,7 @@ const AiTutorPage = () => {
                           searchable={false}
                         />
                       </div>
+                      <DefaultLevelLink isDarkMode />
                       <p className="flex flex-wrap items-center gap-x-2">
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                           {t("live_tutor.voice_label")}

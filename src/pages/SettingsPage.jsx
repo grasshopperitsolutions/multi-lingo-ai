@@ -32,6 +32,7 @@ import {
   Volume2,
   Compass,
   MousePointer2,
+  GraduationCap,
 } from "lucide-react";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { SettingsSection, TtsControls } from "../components/ui";
@@ -49,6 +50,7 @@ import { normalizeCode } from "../utils/languageCode";
 import { detectTimezone, timezoneOptions } from "../utils/timezones";
 import { buildProfileKey } from "../utils/profileKey";
 import { AI_VOICES, resolveVoice } from "../config/aiVoices";
+import { getCefrLevelOptions, resolvePracticeLevel } from "../config/examLevels";
 
 // ── Avatar Upload Widget ─────────────────────────────────────────────────────────
 const AvatarUpload = ({ user, isDarkMode, previewUrl, onFileSelect, isUploading, t }) => {
@@ -186,6 +188,7 @@ const SettingsForm = ({
   isDarkModeOn, onToggleTheme, isSavingTheme,
   preferredVoice, onChangeVoice, isSavingVoice,
   customCursorOn, onToggleCursor, isSavingCursor,
+  practiceLevel, onChangePracticeLevel, isSavingLevel,
   timezone, setTimezone,
   isSaving, isUploading, handleSave,
   previewUrl, onFileSelect,
@@ -488,6 +491,32 @@ const SettingsForm = ({
               </>
             )}
           </div>
+          {/* The default level for the language chosen just above. Saved the
+              moment it is picked — every level picker in the app links here
+              and people go straight back — for the language in the dropdown,
+              even before Save: a level set for a language the learner is about
+              to switch to is simply waiting when they do. A language still
+              being typed under "Other" has no code yet to file it under. */}
+          <div>
+            <label className={labelClasses}>
+              <GraduationCap size={12} className="inline mr-1" /> {t("settings.practice_level")}
+            </label>
+            <p className={`text-xs font-semibold mb-3
+              ${ isDarkMode ? "text-slate-500" : "text-slate-400" }`}>
+              {showOtherLearning || !learningDialect
+                ? t("settings.practice_level_needs_language")
+                : t("settings.practice_level_hint")}
+            </p>
+            <NeoDropdown
+              options={getCefrLevelOptions(t)}
+              value={practiceLevel}
+              onChange={onChangePracticeLevel}
+              isDarkMode={isDarkMode}
+              disabled={isSavingLevel || showOtherLearning || !learningDialect}
+              searchable={false}
+              className="w-full"
+            />
+          </div>
           <div>
             <label className={labelClasses}>
               {t("settings.interests")}
@@ -576,6 +605,10 @@ SettingsForm.propTypes = {
   customCursorOn:     PropTypes.bool.isRequired,
   onToggleCursor:     PropTypes.func.isRequired,
   isSavingCursor:     PropTypes.bool.isRequired,
+  /** Already resolved for the dialect in the form: always a CEFR level. */
+  practiceLevel:        PropTypes.string.isRequired,
+  onChangePracticeLevel: PropTypes.func.isRequired,
+  isSavingLevel:        PropTypes.bool.isRequired,
   timezone:           PropTypes.string.isRequired,
   setTimezone:        PropTypes.func.isRequired,
   setDraftDarkMode:   PropTypes.func.isRequired,
@@ -655,6 +688,7 @@ const SettingsPage = () => {
   const [timezone,         setTimezone]         = useState(() => user?.timezone || detectTimezone());
   const [isSavingTheme,    setIsSavingTheme]    = useState(false);
   const [isSavingVoice,    setIsSavingVoice]    = useState(false);
+  const [isSavingLevel,    setIsSavingLevel]    = useState(false);
   const [isSavingCursor,   setIsSavingCursor]   = useState(false);
 
   const [isSaving,         setIsSaving]         = useState(false);
@@ -892,6 +926,38 @@ const SettingsPage = () => {
   };
 
   /**
+   * Set the default level for the practice language in the form — on pick,
+   * like the voice, because every level picker in the app links here and
+   * people go straight back to what they were doing.
+   *
+   * Filed under the dialect in the dropdown, even one not saved yet: a level
+   * set for a language the learner is about to switch to is waiting when they
+   * press Save. The whole map is written, not a dotted field path, the same
+   * way favourites write their whole array; two tabs racing on it can lose a
+   * pick, which is acceptable for a default. Applied to the context user
+   * first and put back if the write fails.
+   */
+  const handleChangePracticeLevel = async (next) => {
+    const firebaseUser = auth?.currentUser;
+    const dialect = learningDialect;
+    if (!firebaseUser || !dialect || showOtherLearning) return;
+
+    const previous = user?.practiceLevels ?? null;
+    const updated = { ...(previous ?? {}), [dialect]: next };
+    setUser((prev) => (prev ? { ...prev, practiceLevels: updated } : prev));
+    setIsSavingLevel(true);
+    try {
+      const token = await firebaseUser.getIdToken();
+      await updateUserProfile(token, firebaseUser.uid, { practiceLevels: updated });
+    } catch (err) {
+      setUser((prev) => (prev ? { ...prev, practiceLevels: previous } : prev));
+      showAlert("error", err.message || t("settings.errors.save_failed"));
+    } finally {
+      setIsSavingLevel(false);
+    }
+  };
+
+  /**
    * Turn the compass cursor on or off — on click, like the theme, since the
    * pointer changes the instant it is pressed. One field, applied to the
    * context user first and put back if the write fails.
@@ -1007,6 +1073,9 @@ const SettingsPage = () => {
         preferredVoice={resolveVoice(user?.preferredVoice)}
         onChangeVoice={handleChangeVoice}
         isSavingVoice={isSavingVoice}
+        practiceLevel={resolvePracticeLevel(user?.practiceLevels, learningDialect)}
+        onChangePracticeLevel={handleChangePracticeLevel}
+        isSavingLevel={isSavingLevel}
         customCursorOn={user?.customCursor !== false}
         onToggleCursor={handleToggleCursor}
         isSavingCursor={isSavingCursor}

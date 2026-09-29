@@ -42,6 +42,7 @@ import { getScoreColor } from "../services/examUtils";
 import { markExercisesSeen } from "../services/userService";
 import { getWritingSpec } from "../config/examLevels";
 import { isAiDeclined } from "../services/aiService";
+import { usePracticeLevel } from "../hooks/usePracticeLevel";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const EXAM_STRUCTURE = {
@@ -888,7 +889,7 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [exerciseIndex, setExerciseIndex] = useState(0);
-  const [selectedLevel, setSelectedLevel] = useState("A1");
+  const { level: selectedLevel, setLevel: setSelectedLevel } = usePracticeLevel();
   const timerRef = useRef(null);
 
   const phase = examSession?.phase ?? "generating";

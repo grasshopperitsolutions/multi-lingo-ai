@@ -9,6 +9,8 @@ import { useWordFavourites } from "../../../hooks/useWordFavourites";
 import { isAiDeclined } from "../../../services/aiService";
 import { generatePracticeText } from "../../../services/grammarTextService";
 import { getCefrLevelOptions } from "../../../config/examLevels";
+import { usePracticeLevel } from "../../../hooks/usePracticeLevel";
+import DefaultLevelLink from "../../../components/DefaultLevelLink";
 import Loader from "../../../components/Loader";
 import NeoDropdown from "../../../components/NeoDropdown";
 import WordBankSidebar from "../../../components/WordBankSidebar";
@@ -53,7 +55,7 @@ const GrammarTextPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [level, setLevel] = useState("A1");
+  const { level, setLevel } = usePracticeLevel();
   const [focus, setFocus] = useState("");
   const [selectedWords, setSelectedWords] = useState([]);
   const [text, setText] = useState(null);
@@ -196,6 +198,7 @@ const GrammarTextPage = () => {
                 {text ? t("grammar.text_generate_another") : t("grammar.text_generate")}
               </PrimaryButton>
             </div>
+            <DefaultLevelLink isDarkMode={isDarkMode} />
 
             {/* Before anything is generated, per Terms §3.3. */}
             <AiNotice isDarkMode={isDarkMode} variant="input" />

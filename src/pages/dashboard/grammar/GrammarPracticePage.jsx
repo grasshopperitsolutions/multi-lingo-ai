@@ -8,7 +8,6 @@ import { useInterestTopics } from "../../../hooks/useInterestTopics";
 import { isAiDeclined } from "../../../services/aiService";
 import { getPracticeExercise, getKnownTopics, checkOpenAnswer } from "../../../services/grammarPracticeService";
 import { markExerciseSeen, resetSeenExercises } from "../../../services/userService";
-import { CEFR_LEVELS } from "../../../config/examLevels";
 import {
   availablePracticeTypes,
   GRAMMAR_PRACTICE_OPEN_FEATURE,
@@ -22,6 +21,7 @@ import PracticeItem from "../../../components/grammarPractice/PracticeItem";
 import ExerciseSidebar from "../../../components/ExerciseSidebar";
 import CustomRequestInput from "../../../components/CustomRequestInput";
 import { FeaturePageShell, Card, ErrorBanner, PrimaryButton, LevelBadge, AiNotice } from "../../../components/ui";
+import { usePracticeLevel } from "../../../hooks/usePracticeLevel";
 
 /**
  * GrammarPracticePage — Exercícios de Treino
@@ -35,19 +35,9 @@ import { FeaturePageShell, Card, ErrorBanner, PrimaryButton, LevelBadge, AiNotic
  * explanation straight after — practice, not an exam sheet.
  */
 
-const LEVEL_STORAGE_KEY = "grammarPractice.level";
 const ANY = "";
 /** The "Other" row of the topic picker. Never a real topic key. */
 const OTHER = "__other__";
-
-function readStoredLevel() {
-  try {
-    const stored = localStorage.getItem(LEVEL_STORAGE_KEY);
-    return CEFR_LEVELS.includes(stored) ? stored : "A1";
-  } catch {
-    return "A1";
-  }
-}
 
 /** "verbs-past-imperfect" → "Verbs past imperfect", for keys with no label yet. */
 function humanizeKey(key) {
@@ -66,7 +56,9 @@ const GrammarPracticePage = () => {
   const supported = isStructuredPracticeSupported(dialect, supportedLanguages, { isAdmin });
   const canOpenAnswer = isReady && featureStatus(GRAMMAR_PRACTICE_OPEN_FEATURE) === FEATURE_STATUS.AVAILABLE;
 
-  const [level, setLevel] = useState(readStoredLevel);
+  // Starts from the default level in Settings. This page used to remember
+  // its own level in localStorage; one default for every feature replaced it.
+  const { level, setLevel } = usePracticeLevel();
   const [topic, setTopic] = useState(ANY);
   const [customTopic, setCustomTopic] = useState("");
   // True once a request had to generate: the learner has seen everything
@@ -83,13 +75,6 @@ const GrammarPracticePage = () => {
   const [error, setError] = useState(null);
   const [isResetting, setIsResetting] = useState(false);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(LEVEL_STORAGE_KEY, level);
-    } catch {
-      // Remembering the level is a convenience; nothing breaks without it.
-    }
-  }, [level]);
 
   // Topics known for this dialect. Empty is normal: only "Surprise me" then.
   useEffect(() => {

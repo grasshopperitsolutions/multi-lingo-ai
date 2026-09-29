@@ -676,6 +676,10 @@ export const AppProvider = ({ children }) => {
         // tutor. Absent until chosen; config/aiVoices resolves that (and any
         // name no longer offered) to the default.
         preferredVoice: profile?.preferredVoice ?? null,
+        // The default level per practice language, keyed by dialect code
+        // (`{ "pt-PT": "B1" }`). Set in Settings; every level picker starts
+        // there. config/examLevels resolves an absent entry to A1.
+        practiceLevels: profile?.practiceLevels ?? null,
         // The compass cursor. Only an explicit false turns it off; absent is
         // on, which is every user until they change it.
         customCursor: profile?.customCursor ?? null,

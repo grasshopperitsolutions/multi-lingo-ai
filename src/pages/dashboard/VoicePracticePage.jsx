@@ -10,6 +10,8 @@ import { isAiDeclined } from "../../services/aiService";
 import { getPassage, gradePronunciation } from "../../services/pronunciationService";
 import { markPassageSeen } from "../../services/userService";
 import { getCefrLevelOptions } from "../../config/examLevels";
+import { usePracticeLevel } from "../../hooks/usePracticeLevel";
+import DefaultLevelLink from "../../components/DefaultLevelLink";
 import { saveTake, loadTake, clearTake } from "../../utils/recordingStore";
 import Loader from "../../components/Loader";
 import NeoDropdown from "../../components/NeoDropdown";
@@ -54,7 +56,7 @@ const VoicePracticePage = () => {
   // every page load.
   const restoredBlobRef = useRef(null);
 
-  const [level, setLevel] = useState("A1");
+  const { level, setLevel } = usePracticeLevel();
   const [passage, setPassage] = useState(null);
   const [feedback, setFeedback] = useState(null);
   const [isLoadingPassage, setIsLoadingPassage] = useState(false);
@@ -73,7 +75,8 @@ const VoicePracticePage = () => {
     loadTake().then((take) => {
       if (cancelled || !take?.passage) return;
       setPassage(take.passage);
-      setLevel(take.passage.level ?? "A1");
+      // A take saved before passages carried a level goes back to the default.
+      setLevel(take.passage.level ?? null);
       restoredBlobRef.current = take.blob;
       recorder.adopt(take.blob, take.mimeType);
     });
@@ -211,6 +214,7 @@ const VoicePracticePage = () => {
             {passage ? t("pronunciation.new_passage") : t("pronunciation.get_passage")}
           </PrimaryButton>
         </div>
+        <DefaultLevelLink isDarkMode={isDarkMode} />
 
         {/* Before anything is generated, per Terms §3.3. */}
         <AiNotice isDarkMode={isDarkMode} variant="input" />

@@ -32,12 +32,13 @@ import {
   NoticeSignExercise,
 } from "./exercises";
 import useGenerateConfirm from "../hooks/useGenerateConfirm";
+import { usePracticeLevel } from "../hooks/usePracticeLevel";
 
 const ReadingExercise = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const { user, setUser, showAlert } = useAppContext();
 
-  const [level, setLevel] = useState("A1");
+  const { level, setLevel } = usePracticeLevel();
   const [questionType, setQuestionType] = useState("random");
   const [exercise, setExercise] = useState(null);
   const [exerciseId, setExerciseId] = useState(null);

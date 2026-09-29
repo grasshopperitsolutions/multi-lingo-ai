@@ -52,6 +52,26 @@ export function getWritingSpec(level) {
  */
 export const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
+/** Where every level picker starts when the learner has not set a default. */
+export const DEFAULT_PRACTICE_LEVEL = 'A1';
+
+/**
+ * The learner's default level for one practice language.
+ *
+ * Kept per language (`users/{uid}.practiceLevels`, keyed by dialect code)
+ * rather than as one value: someone at B2 in Portuguese who starts Japanese is
+ * a beginner there, and switching back should find B2 waiting. Absent, or a
+ * value that is not a CEFR level, resolves to the default.
+ *
+ * @param {Record<string, string> | null | undefined} practiceLevels
+ * @param {string | null | undefined} dialect - e.g. 'pt-PT'
+ * @returns {string} one of CEFR_LEVELS
+ */
+export function resolvePracticeLevel(practiceLevels, dialect) {
+  const stored = dialect ? practiceLevels?.[dialect] : undefined;
+  return CEFR_LEVELS.includes(stored) ? stored : DEFAULT_PRACTICE_LEVEL;
+}
+
 /**
  * English fallbacks, used as t()'s default value so a locale that hasn't been
  * back-filled yet still reads as a level name rather than a raw key.

@@ -31,6 +31,7 @@ import {
 } from "../services/examUtils";
 import { markExerciseSeen, resetSeenExercises } from "../services/userService";
 import useGenerateConfirm from "../hooks/useGenerateConfirm";
+import { usePracticeLevel } from "../hooks/usePracticeLevel";
 
 const ListeningExercise = ({ isDarkMode }) => {
   const { t } = useTranslation();
@@ -38,7 +39,7 @@ const ListeningExercise = ({ isDarkMode }) => {
 
   const targetLang = user?.learningDialect ?? "pt-PT";
 
-  const [level, setLevel] = useState("A1");
+  const { level, setLevel } = usePracticeLevel();
   const [questionType, setQuestionType] = useState("random");
   const [exercise, setExercise] = useState(null);
   const [exerciseId, setExerciseId] = useState(null);

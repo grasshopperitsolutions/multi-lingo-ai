@@ -60,6 +60,7 @@ import ExamTimer from "./ExamTimer";
 import ConfirmModal from "./ConfirmModal";
 import { LevelBadge } from "./ui";
 import { getCefrLevelOptions } from "../config/examLevels";
+import DefaultLevelLink from "./DefaultLevelLink";
 
 /**
  * Question types per exercise, as values. Labels come from `exam.types.*` in
@@ -312,13 +313,16 @@ const ExerciseSidebar = ({
       {examSectionNav}
 
       {showSetupControls && (
-        <NeoDropdown
-          options={cefrLevelOptions}
-          value={level}
-          onChange={onLevelChange}
-          isDarkMode={isDarkMode}
-          label={t("exam.sidebar.level", "Level")}
-        />
+        <div>
+          <NeoDropdown
+            options={cefrLevelOptions}
+            value={level}
+            onChange={onLevelChange}
+            isDarkMode={isDarkMode}
+            label={t("exam.sidebar.level", "Level")}
+          />
+          <DefaultLevelLink isDarkMode={isDarkMode} />
+        </div>
       )}
 
       {!examMode && exerciseType !== "writing" && typeOptions.length > 0 && (

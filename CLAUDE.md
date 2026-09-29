@@ -132,7 +132,7 @@ panel is the only place those four messages are visible outside the repo.
 Per-language wording is unchanged: other locales are still Firestore documents,
 still translated from this file, and still fixed by a force resync.
 
-## The theme, the AI voice and the cursor save on pick; everything else waits for Save
+## The theme, the AI voice, the cursor and the practice level save on pick; everything else waits for Save
 
 `/settings` batches its fields behind a Save button, and the theme was in that
 batch. It is the one setting whose effect you see immediately, so the screen
@@ -168,6 +168,42 @@ itself and owns the rule that hides the native pointer, so a move re-renders
 one small element, and turning it off (unmounting it) brings the system cursor
 back, I-beam in text fields included. Do not move the position back up into a
 layout component.
+
+**The default practice level is the fourth**, for the voice's reason: every
+level picker in the app links to it, and people go straight back.
+
+## One default level per practice language
+
+`users/{uid}.practiceLevels` holds the learner's default CEFR level **per
+practice language**, keyed by dialect code (`{ "pt-PT": "B1", "ja-JP": "A1" }`).
+It's per language because someone at B2 in Portuguese who starts Japanese is a
+beginner there, and switching back should find B2 waiting.
+`resolvePracticeLevel` (`config/examLevels.js`) reads it, and anything absent or
+unrecognised is `DEFAULT_PRACTICE_LEVEL` (A1).
+
+- **Set in Settings › practice language**, under the language dropdown. It's
+  saved on pick, and filed under the language **in the dropdown**, even one not
+  saved yet: a level set for a language the learner is about to switch to is
+  waiting when they press Save. A language still being typed under "Other" has
+  no code yet, so the picker is disabled until one is chosen.
+  - The whole map is written, never a dotted field path, the way favourites
+    write whole arrays.
+  - Like every profile field, it's on AppContext's load allow-list.
+- **Every level picker starts from it**, through `hooks/usePracticeLevel`:
+  the exam exercises, the full exam, the Tale Creator, grammar drills,
+  Practice Text, voice practice and the live tutor.
+  - A pick inside a feature is for that visit only. It never moves the default.
+  - `level` is derived (the page's own pick, otherwise the default), not copied
+    into state. So a profile that arrives after the page mounted still shows
+    through, and `setLevel(null)` goes back to following the default.
+  - Grammar drills used to remember their own level in `localStorage`. The
+    shared default replaced that, so one place decides where every feature
+    starts.
+- **`DefaultLevelLink` sits under every picker**: "Nível predefinido · B1 ·
+  Mudar", linking to `/settings#practiceLanguage`. It's in `ExerciseSidebar`
+  (which covers the exercises, the full exam, the Tale Creator and grammar
+  drills) and beside the pickers on Practice Text, voice practice and the live
+  tutor's stage. **Add it to any new level picker.**
 
 ## One voice for everything the app says aloud
 
@@ -252,7 +288,8 @@ scrolling past more of it. Closed cards are a table of contents.
 
 Six cards open themselves when the URL names them, and scroll there:
 `#appearance` (the spoken tutor's "change" link beside its voice),
-`#practiceLanguage` (the practice-language card and badge, and the challenge
+`#practiceLanguage` (the practice-language card and badge, every level
+picker's "default level · change" line, and the challenge
 theme picker's "choose your interests" — interests live inside that card, not
 in one of their own), `#profile` (the reminder card's "change it in your
 profile", since the timezone that decides when a reminder lands sits three

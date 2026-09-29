@@ -21,6 +21,7 @@ import WordBankSidebar from "./WordBankSidebar";
 import ExerciseSidebar from "./ExerciseSidebar";
 import DownloadPdfButton from "./DownloadPdfButton";
 import { FeaturePageShell, Card, ErrorBanner, LevelBadge } from "./ui";
+import { usePracticeLevel } from "../hooks/usePracticeLevel";
 
 /**
  * StoryReader
@@ -90,7 +91,7 @@ const StoryReader = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [level, setLevel] = useState("A1");
+  const { level, setLevel } = usePracticeLevel();
   const [theme, setTheme] = useState(DEFAULT_STORY_THEME);
   const [customTheme, setCustomTheme] = useState("");
   const [description, setDescription] = useState("");
