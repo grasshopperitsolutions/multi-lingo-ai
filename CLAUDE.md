@@ -893,6 +893,39 @@ for the viewer, or `isFeatureVisible(feature, tierId)` from
 pricing page). Adding a dashboard tile without that filter leaks hidden
 features. Toggle the flag in Admin > Features.
 
+**`beta: true` is a third field, and only a label.** It shows a small "Beta"
+badge (`components/ui/BetaBadge`) and changes no access and no listing: a beta
+feature is granted, sold and hidden exactly like any other. It is set in
+Admin › Features, on the edit form or with the one-click flask button beside
+"Hide". `utils/featureAccess.isFeatureBeta(featureRegistry, key)` reads it, and
+answers false before the registry loads.
+
+- **Where it shows:** the dashboard grid (`FeatureCard`, bottom-right corner),
+  the Today rail (hanging off the square's corner), the grammar, exam and
+  challenge hub menus, and the feature's pricing row. **A new tile or hub card
+  needs it too.**
+- **`saveFeature` rewrites every field it knows about**, so any save path that
+  omits `beta` clears it. Both one-click toggles in `AdminPage` pass every
+  field through; keep it that way.
+
+## The pricing cards sell what exists, one plan on top of the next
+
+Each card lists only what its plan includes **today**. Each paid card lists
+only what it **adds** to the plan below it, under "Tudo o que o {plan}
+inclui, e ainda:".
+
+- **Nothing locked, hidden or unreleased is listed.** No struck-through rows
+  and no "coming soon" rows. Hidden features are left off for **every** viewer,
+  VIP included: this is a sales page, and early access isn't on sale.
+- **"Most popular" is keyed on the tier id** (`MOST_POPULAR_TIER_ID`, Maestro),
+  not on display order. The home page's pricing teaser marks the same plan by
+  hand.
+- **Prices shown come from `config/pricing.js`** (USD, the Stripe account's
+  currency). What's charged is the Stripe price each plan maps to in the API's
+  `STRIPE_PRICE_*` env vars. Changing a price means all three: a new Price in
+  Stripe, the env var pointed at it, and this file. See the API's CLAUDE.md
+  before retiring an old price.
+
 ## The daily allowance shown is the server's count
 
 `/api/ask-ai` counts Explorer and Voyager calls in `aiCallsToday` with its

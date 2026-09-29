@@ -2,15 +2,15 @@ import PropTypes from 'prop-types';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useTierAccess } from '../hooks/useTierAccess';
-import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from '../utils/featureAccess';
+import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge, isFeatureBeta } from '../utils/featureAccess';
 import { Lock } from 'lucide-react';
 import { EXAM_EXERCISES as EXERCISES } from '../config/favouritableFeatures';
 import StatusBadge from './StatusBadge';
 import { reportLockedAttempt } from "../services/pulseReportService";
-import { Breadcrumb, FeatureHeader } from './ui';
+import { Breadcrumb, FeatureHeader, BetaBadge } from './ui';
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-const ExamCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel }) => (
+const ExamCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel, isBeta }) => (
   <button
     onClick={onClick}
     disabled={locked}
@@ -25,6 +25,7 @@ const ExamCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, 
     }`}
   >
     {badgeLabel && <StatusBadge label={badgeLabel} />}
+    {isBeta && <BetaBadge isDarkMode={isDarkMode} />}
     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-4 border-slate-900 flex items-center justify-center shrink-0 ${color}`}>
       <Icon size={20} className="text-slate-900" />
     </div>
@@ -47,13 +48,14 @@ ExamCard.propTypes = {
   isDarkMode:      PropTypes.bool.isRequired,
   locked:          PropTypes.bool,
   badgeLabel:      PropTypes.string,
+  isBeta:          PropTypes.bool,
 };
 
 // ── ExamTrainingMenu ──────────────────────────────────────────────────────────
 const ExamTrainingMenu = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { featureStatus, isReady } = useTierAccess();
+  const { featureStatus, isReady, featureRegistry } = useTierAccess();
 
   // Access comes from appConfig/config/tiersConfig (Admin > Tiers & Features),
   // so locking or releasing an exercise is a config change, not a code change.
@@ -65,6 +67,7 @@ const ExamTrainingMenu = ({ isDarkMode }) => {
           ...ex,
           status,
           badgeLabel: badge && t(badge.key, badge.fallback),
+          isBeta: isFeatureBeta(featureRegistry, ex.featureKey),
           locked:
             status !== FEATURE_STATUS.AVAILABLE && !PURCHASABLE_STATUSES.includes(status),
         };
@@ -109,6 +112,7 @@ const ExamTrainingMenu = ({ isDarkMode }) => {
             isDarkMode={isDarkMode}
             locked={ex.locked}
             badgeLabel={ex.badgeLabel}
+            isBeta={ex.isBeta}
           />
         ))}
       </div>

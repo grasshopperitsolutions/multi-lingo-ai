@@ -421,12 +421,9 @@ const HomePage = () => {
 
           {/* Voyager */}
           <div
-            className={`p-6 rounded-[2rem] border-4 flex flex-col items-center text-center md:scale-105 z-10
-            ${isDarkMode ? "bg-slate-800 border-yellow-400 shadow-[8px_8px_0px_0px_#ca8a04]" : "bg-white border-yellow-400 shadow-[8px_8px_0px_0px_#facc15]"}`}
+            className={`p-6 rounded-[2rem] border-4 flex flex-col items-center text-center
+            ${isDarkMode ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]" : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"}`}
           >
-            <div className="bg-yellow-400 text-slate-900 px-4 py-1 rounded-full border-2 border-slate-900 font-black uppercase text-xs tracking-widest mb-3">
-              {t("pricing.most_popular")}
-            </div>
             <h3 className={`text-2xl font-black uppercase mb-1 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
               Voyager
             </h3>
@@ -443,11 +440,15 @@ const HomePage = () => {
             </button>
           </div>
 
-          {/* Maestro */}
+          {/* Maestro — the "most popular" plan, as on the pricing page
+              (PricingPage's MOST_POPULAR_TIER_ID). */}
           <div
-            className={`p-6 rounded-[2rem] border-4 flex flex-col items-center text-center
-            ${isDarkMode ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]" : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"}`}
+            className={`p-6 rounded-[2rem] border-4 flex flex-col items-center text-center md:scale-105 z-10
+            ${isDarkMode ? "bg-slate-800 border-yellow-400 shadow-[8px_8px_0px_0px_#ca8a04]" : "bg-white border-yellow-400 shadow-[8px_8px_0px_0px_#facc15]"}`}
           >
+            <div className="bg-yellow-400 text-slate-900 px-4 py-1 rounded-full border-2 border-slate-900 font-black uppercase text-xs tracking-widest mb-3">
+              {t("pricing.most_popular")}
+            </div>
             <h3 className={`text-2xl font-black uppercase mb-1 ${isDarkMode ? "text-white" : "text-slate-900"}`}>
               Maestro
             </h3>

@@ -9,7 +9,8 @@ import { suggestedFeatureIds, TODAY_SUGGESTION_LIMIT } from "../../config/dashbo
 import { favouritableById } from "../../config/favouritableFeatures";
 import { useTierAccess } from "../../hooks/useTierAccess";
 import { reportLockedAttempt } from "../../services/pulseReportService";
-import { FEATURE_STATUS, PURCHASABLE_STATUSES } from "../../utils/featureAccess";
+import { FEATURE_STATUS, PURCHASABLE_STATUSES, isFeatureBeta } from "../../utils/featureAccess";
+import { BetaBadge } from "../../components/ui";
 
 // ── StatCard ────────────────────────────────────────────────────────────────
 // One design at every width, rather than a small mobile card and a large
@@ -85,7 +86,7 @@ const TodayPanel = ({ tiles }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { favouriteIds, toggle } = useFeatureFavourites();
-  const { featureStatus, isVisible } = useTierAccess();
+  const { featureStatus, isVisible, featureRegistry } = useTierAccess();
 
   // The strip scrolls, and overflow-x also clips vertically — a tooltip drawn
   // above a square was cut off by the scroller. So one tooltip is rendered
@@ -154,6 +155,7 @@ const TodayPanel = ({ tiles }) => {
       locked: status !== FEATURE_STATUS.AVAILABLE && !purchasable,
       unavailable: false,
       unavailableReason: "",
+      isBeta: isFeatureBeta(featureRegistry, entry.id),
     };
   };
 
@@ -282,6 +284,9 @@ const TodayPanel = ({ tiles }) => {
                   >
                     <tile.icon size={28} className={tile.color} />
                   </button>
+                  {/* Hangs off the bottom-right corner: a 64px square has no
+                      room inside, and the unpin button holds the top-right. */}
+                  {tile.isBeta && <BetaBadge isDarkMode={isDarkMode} placement="overhang" />}
 
                   {/* Unpin, without a trip to the feature's own page.
                       A sibling of the square rather than a child: the square is

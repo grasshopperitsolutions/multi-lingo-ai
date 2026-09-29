@@ -60,6 +60,7 @@ const DashboardFeatureGrid = ({ tiles, emptyMessage, gridClassName, showDescript
             disabled={tile.unavailable || tile.locked}
             showDescription={showDescriptions}
             compact
+            isBeta={tile.isBeta}
           />
         </div>
       ))}
@@ -82,6 +83,7 @@ DashboardFeatureGrid.propTypes = {
       unavailableReason: PropTypes.string,
       purchasable: PropTypes.bool,
       locked: PropTypes.bool,
+      isBeta: PropTypes.bool,
     }),
   ).isRequired,
   /** Shown instead of the grid when there is nothing to render. */

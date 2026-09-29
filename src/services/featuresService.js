@@ -22,10 +22,15 @@
  *                        // "dashboard.translator" — reuses wording the app
  *                        // already has translated
  *     order:    number,  // sort order in the admin list and pricing rows
- *     hidden:   boolean  // keep the feature out of the dashboard and pricing
+ *     hidden:   boolean, // keep the feature out of the dashboard and pricing
  *                        // for tiers below VIP — see
  *                        // utils/featureAccess.isFeatureVisible
+ *     beta:     boolean  // released, but labelled "Beta" on its tiles and
+ *                        // pricing rows — see utils/featureAccess.isFeatureBeta
  *   }
+ *
+ * `beta` is a label and nothing more. It changes no access and no listing:
+ * a beta feature is sold, granted and hidden exactly like any other.
  *
  * `hidden` is a launch switch, not a tier grant. A feature still under test is
  * marked hidden so it vanishes from the dashboard and the pricing table for
@@ -43,7 +48,7 @@ export const FEATURES_COLLECTION = 'appConfig/config/features';
  * Fetch the feature registry, sorted by `order`.
  *
  * @param {string} [token] - Optional pre-fetched Firebase ID token.
- * @returns {Promise<Array<{id: string, label: string, labelKey: string, order: number, hidden: boolean}>>}
+ * @returns {Promise<Array<{id: string, label: string, labelKey: string, order: number, hidden: boolean, beta: boolean}>>}
  */
 export async function getFeatures(token) {
   const authToken = token ?? (await getTokenOrAnonymous());
@@ -58,6 +63,9 @@ export async function getFeatures(token) {
       // Absent means visible: every feature that predates this field keeps
       // showing, so adding it changed nothing until an admin ticks a box.
       hidden: doc.hidden === true,
+      // A label, not a gate: the feature is released and shows a "Beta"
+      // badge on its tiles and pricing rows. Absent means not beta.
+      beta: doc.beta === true,
     }))
     .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
 }
@@ -67,7 +75,7 @@ export async function getFeatures(token) {
  *
  * @param {string} featureKey - Document id; structural, so never rename an
  *   existing one — components reference it by literal.
- * @param {{label: string, labelKey?: string, order?: number, hidden?: boolean}} data
+ * @param {{label: string, labelKey?: string, order?: number, hidden?: boolean, beta?: boolean}} data
  * @returns {Promise<object>}
  */
 export async function saveFeature(featureKey, data) {
@@ -78,6 +86,7 @@ export async function saveFeature(featureKey, data) {
       labelKey: data.labelKey ?? '',
       order: Number(data.order) || 0,
       hidden: data.hidden === true,
+      beta: data.beta === true,
       updatedAt: new Date().toISOString(),
     },
     featureKey,

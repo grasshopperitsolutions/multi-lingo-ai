@@ -5,13 +5,13 @@ import { useAppContext } from "../contexts/AppContext";
 import { GRAMMAR_SECTIONS as SECTIONS } from "../config/favouritableFeatures";
 import { isGrammarSupported, isGrammarSectionAvailable } from "../config/grammarSupport";
 import { useTierAccess } from "../hooks/useTierAccess";
-import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from "../utils/featureAccess";
+import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge, isFeatureBeta } from "../utils/featureAccess";
 import StatusBadge from "./StatusBadge";
-import { Breadcrumb, FeatureHeader } from "./ui";
+import { Breadcrumb, FeatureHeader, BetaBadge } from "./ui";
 import { reportLockedAttempt } from "../services/pulseReportService";
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-const GrammarCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel }) => (
+const GrammarCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel, isBeta }) => (
   <button
     onClick={onClick}
     disabled={locked}
@@ -26,6 +26,7 @@ const GrammarCard = ({ title, description, icon: Icon, color, onClick, isDarkMod
     }`}
   >
     {badgeLabel && <StatusBadge label={badgeLabel} isDarkMode={isDarkMode} />}
+    {isBeta && <BetaBadge isDarkMode={isDarkMode} />}
     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-4 border-slate-900 flex items-center justify-center shrink-0 ${color}`}>
       <Icon size={20} className="text-slate-900" />
     </div>
@@ -48,6 +49,7 @@ GrammarCard.propTypes = {
   isDarkMode:      PropTypes.bool.isRequired,
   locked:          PropTypes.bool,
   badgeLabel:      PropTypes.string,
+  isBeta:          PropTypes.bool,
 };
 
 // ── GrammarMenu ───────────────────────────────────────────────────────────────
@@ -55,7 +57,7 @@ const GrammarMenu = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, supportedLanguages } = useAppContext();
-  const { featureStatus, isReady, isAdmin } = useTierAccess();
+  const { featureStatus, isReady, isAdmin, featureRegistry } = useTierAccess();
 
   const dialect = user?.learningDialect;
   const supported = isGrammarSupported(dialect);
@@ -77,6 +79,7 @@ const GrammarMenu = ({ isDarkMode }) => {
           ...section,
           status,
           badgeLabel: badge && t(badge.key, badge.fallback),
+          isBeta: isFeatureBeta(featureRegistry, `grammar_${section.id}`),
           locked:
             status !== FEATURE_STATUS.AVAILABLE && !PURCHASABLE_STATUSES.includes(status),
         };
@@ -137,6 +140,7 @@ const GrammarMenu = ({ isDarkMode }) => {
               isDarkMode={isDarkMode}
               locked={section.locked}
               badgeLabel={section.badgeLabel}
+              isBeta={section.isBeta}
             />
           ))}
         </div>

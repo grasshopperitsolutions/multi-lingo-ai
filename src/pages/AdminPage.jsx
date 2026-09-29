@@ -324,12 +324,37 @@ const AdminPage = () => {
         labelKey: feature.labelKey,
         order: feature.order,
         hidden: !feature.hidden,
+        beta: feature.beta,
       });
       showAlert("success", feature.hidden ? `"${feature.id}" is visible again.` : `"${feature.id}" is now hidden.`);
       const updated = await getFeatures();
       setDocsBySection((prev) => ({ ...prev, features: updated }));
       // Refresh the live registry so the dashboard and pricing page drop or
       // restore the feature without a reload.
+      await refreshTiersConfig();
+    } catch (err) {
+      showAlert("error", `Could not update feature: ${err.message}`);
+    } finally {
+      setTogglingFeatureId(null);
+    }
+  }, [showAlert, refreshTiersConfig]);
+
+  // Flip `beta` straight from the list, the same way and for the same reason
+  // as `hidden` above: every other field goes back through untouched.
+  const handleToggleFeatureBeta = useCallback(async (feature) => {
+    setTogglingFeatureId(feature.id);
+    try {
+      await saveFeature(feature.id, {
+        label: feature.label,
+        labelKey: feature.labelKey,
+        order: feature.order,
+        hidden: feature.hidden,
+        beta: !feature.beta,
+      });
+      showAlert("success", feature.beta ? `"${feature.id}" is no longer marked beta.` : `"${feature.id}" is now marked beta.`);
+      const updated = await getFeatures();
+      setDocsBySection((prev) => ({ ...prev, features: updated }));
+      // The live registry drives the badges on tiles and pricing rows.
       await refreshTiersConfig();
     } catch (err) {
       showAlert("error", `Could not update feature: ${err.message}`);
@@ -508,6 +533,7 @@ const AdminPage = () => {
             onAddFeature={() => setFeatureModal({ feature: null })}
             onEditFeature={(feature) => setFeatureModal({ feature })}
             onToggleHidden={handleToggleFeatureHidden}
+            onToggleBeta={handleToggleFeatureBeta}
             togglingFeatureId={togglingFeatureId}
           />
         ) : isTiersSection ? (

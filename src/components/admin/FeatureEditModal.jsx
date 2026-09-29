@@ -34,6 +34,7 @@ const FeatureEditModal = ({ feature, isDarkMode, isSaving, onSave, onClose }) =>
   const [labelKey, setLabelKey] = useState(feature?.labelKey ?? "");
   const [order, setOrder] = useState(feature?.order != null ? String(feature.order) : "");
   const [hidden, setHidden] = useState(feature?.hidden === true);
+  const [beta, setBeta] = useState(feature?.beta === true);
   const [keyManuallyEdited, setKeyManuallyEdited] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [validationError, setValidationError] = useState(null);
@@ -66,6 +67,7 @@ const FeatureEditModal = ({ feature, isDarkMode, isSaving, onSave, onClose }) =>
       labelKey: labelKey.trim(),
       order: order.trim() ? Number(order) : 0,
       hidden,
+      beta,
     }, isNew);
   };
 
@@ -178,6 +180,27 @@ const FeatureEditModal = ({ feature, isDarkMode, isSaving, onSave, onClose }) =>
             </p>
           </div>
 
+          <div>
+            <label
+              htmlFor="feature-beta"
+              className={`flex items-start gap-3 cursor-pointer ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}
+            >
+              <input
+                id="feature-beta"
+                type="checkbox"
+                checked={beta}
+                onChange={(e) => setBeta(e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0"
+              />
+              <span className="text-sm font-bold">Beta</span>
+            </label>
+            <p className={`mt-1 text-xs font-semibold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              Shows a small &quot;Beta&quot; label on the feature&apos;s tiles (dashboard, Today,
+              hub menus) and on its pricing rows. A label only: who can use it and whether it is
+              listed are still decided by the tiers and &quot;Hidden&quot;.
+            </p>
+          </div>
+
           {validationError && <p className="font-bold text-rose-500 text-sm">{validationError}</p>}
 
           <div className="flex gap-3 justify-end">
@@ -218,6 +241,7 @@ FeatureEditModal.propTypes = {
     labelKey: PropTypes.string,
     order: PropTypes.number,
     hidden: PropTypes.bool,
+    beta: PropTypes.bool,
   }),
   isDarkMode: PropTypes.bool.isRequired,
   isSaving: PropTypes.bool,

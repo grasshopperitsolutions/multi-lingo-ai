@@ -903,6 +903,7 @@
     "per_year": "ano",
     "free_forever": "Grátis Para Sempre",
     "most_popular": "Mais Popular",
+    "everything_in_plus": "Tudo o que o {{tier}} inclui, e ainda:",
     "current_plan": "Plano Atual",
     "upgrade": "Mudar de plano",
     "get_started": "Começar",
@@ -1331,7 +1332,8 @@
     "coming_soon": "Brevemente",
     "incoming": "A caminho",
     "subscribe": "Subscrever",
-    "upgrade": "Atualizar plano"
+    "upgrade": "Atualizar plano",
+    "beta": "Beta"
   },
   "ai_confirm": {
     "title_low": "Resta(m) {{count}} chamada(s) de IA hoje",

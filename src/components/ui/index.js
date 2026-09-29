@@ -19,3 +19,4 @@ export { default as AiNotice } from './AiNotice';
 export { default as TtsControls } from './TtsControls';
 export { default as Pagination } from './Pagination';
 export { default as PracticeLanguage } from './PracticeLanguage';
+export { default as BetaBadge } from './BetaBadge';

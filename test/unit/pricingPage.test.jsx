@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render } from "@testing-library/react";
+import { render, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nextProvider } from "react-i18next";
 import { makeAppContext } from "../helpers/appContext";
@@ -98,5 +98,91 @@ describe("a signed-in Explorer", () => {
       .filter(Boolean);
     expect(disabled.length).toBe(1);
     expect(disabled[0].disabled).toBe(true);
+  });
+});
+
+describe("what each plan card lists", () => {
+  // Explorer < Voyager < Maestro. Grants are each tier's `features` list.
+  const plans = {
+    explorer: { ...tier("explorer", 1, true), features: ["translator", "secret"] },
+    voyager: { ...tier("voyager", 2, false), features: ["translator", "full_exam", "secret"] },
+    maestro: {
+      ...tier("maestro", 3, false),
+      features: ["translator", "full_exam", "priority_support", "voice_practice", "secret"],
+    },
+  };
+  const registry = [
+    { id: "translator", label: "Translator", order: 1 },
+    { id: "full_exam", label: "Full exam", order: 2 },
+    { id: "priority_support", label: "Priority support", order: 3 },
+    { id: "voice_practice", label: "Voice practice", order: 4, beta: true },
+    // Granted to nobody: "coming soon".
+    { id: "ai_tutor", label: "AI tutor", order: 5 },
+    // Granted to everyone, but hidden in Admin.
+    { id: "secret", label: "Secret feature", order: 6, hidden: true },
+  ];
+
+  const cardOf = (utils, name) => {
+    const heading = utils.getByRole("heading", { name });
+    // The card body: its heading, price, button and rows.
+    return within(heading.closest(".p-8"));
+  };
+
+  beforeEach(() => {
+    ctx.current = baseContext({ tiersConfig: plans, features: registry });
+  });
+
+  it("shows the free plan's own features and nothing it lacks", async () => {
+    const utils = await mount();
+    const explorer = cardOf(utils, "Explorer");
+
+    expect(explorer.getByText("Translator")).toBeTruthy();
+    // Not listed struck through any more: the plan above shows it.
+    expect(explorer.queryByText("Full exam")).toBeNull();
+    expect(explorer.queryByText(/Tudo o que o/)).toBeNull();
+  });
+
+  it("shows each paid plan as the plan below it, plus what it adds", async () => {
+    const utils = await mount();
+
+    const voyager = cardOf(utils, "Voyager");
+    expect(voyager.getByText("Tudo o que o Explorer inclui, e ainda:")).toBeTruthy();
+    expect(voyager.getByText("Full exam")).toBeTruthy();
+    expect(voyager.queryByText("Translator")).toBeNull();
+
+    const maestro = cardOf(utils, "Maestro");
+    expect(maestro.getByText("Tudo o que o Voyager inclui, e ainda:")).toBeTruthy();
+    expect(maestro.getByText("Priority support")).toBeTruthy();
+    expect(maestro.queryByText("Full exam")).toBeNull();
+  });
+
+  it("never lists a hidden or unreleased feature, even to a VIP", async () => {
+    // A VIP sees hidden features everywhere else in the app. This is a sales
+    // page, and early access is not on sale.
+    ctx.current = baseContext({
+      tiersConfig: plans,
+      features: registry,
+      user: { uid: "u1", subscriptionTier: "vip" },
+    });
+    const utils = await mount();
+
+    expect(utils.queryByText("Secret feature")).toBeNull();
+    expect(utils.queryByText("AI tutor")).toBeNull();
+    expect(utils.queryByText("Brevemente")).toBeNull();
+  });
+
+  it("labels a beta feature on its row", async () => {
+    const utils = await mount();
+    const maestro = cardOf(utils, "Maestro");
+
+    const row = maestro.getByText("Voice practice").parentElement;
+    expect(within(row).getByText("Beta")).toBeTruthy();
+    expect(within(maestro.getByText("Priority support").parentElement).queryByText("Beta")).toBeNull();
+  });
+
+  it("marks Maestro as the most popular plan", async () => {
+    const utils = await mount();
+    const badge = utils.getByText("Mais Popular");
+    expect(within(badge.closest(".rounded-\\[2rem\\]")).getByRole("heading", { name: "Maestro" })).toBeTruthy();
   });
 });

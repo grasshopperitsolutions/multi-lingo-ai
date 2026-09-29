@@ -1,6 +1,7 @@
 import PropTypes from "prop-types";
 import Tooltip from "./Tooltip";
 import StatusBadge from "./StatusBadge";
+import BetaBadge from "./ui/BetaBadge";
 
 import { Lock } from "lucide-react";
 
@@ -22,7 +23,7 @@ import { Lock } from "lucide-react";
  * container — a tooltip bubble drawn above the card gets cut off there, so the
  * description would only be readable by scrolling, if at all.
  */
-const FeatureCard = ({ icon: Icon, title, description, delay, color, isDarkMode, onClick, statusBadgeLabel, disabled, showDescription, compact }) => {
+const FeatureCard = ({ icon: Icon, title, description, delay, color, isDarkMode, onClick, statusBadgeLabel, disabled, showDescription, compact, isBeta }) => {
   const titleSize = compact ? "text-sm sm:text-xl" : "text-xl";
 
   return (
@@ -47,6 +48,8 @@ const FeatureCard = ({ icon: Icon, title, description, delay, color, isDarkMode,
             isDarkMode={isDarkMode}
           />
         )}
+        {/* Bottom-right: the status badge and the lock hold the top corners. */}
+        {isBeta && <BetaBadge isDarkMode={isDarkMode} />}
         {disabled && (
           <div className="absolute top-3 right-3 z-10">
             <Lock size={16} className={isDarkMode ? "text-slate-500" : "text-slate-400"} />
@@ -88,6 +91,8 @@ FeatureCard.propTypes = {
   showDescription: PropTypes.bool,
   /** Smaller title below the sm breakpoint, for two-across phone layouts. */
   compact: PropTypes.bool,
+  /** Marked beta in Admin › Features: a "Beta" label in the bottom-right corner. */
+  isBeta: PropTypes.bool,
 };
 
 FeatureCard.defaultProps = {
@@ -98,6 +103,7 @@ FeatureCard.defaultProps = {
   disabled: false,
   showDescription: false,
   compact: false,
+  isBeta: false,
 };
 
 export default FeatureCard;

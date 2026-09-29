@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "./useTierAccess";
 import { DASHBOARD_FEATURES } from "../config/dashboardFeatures";
-import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from "../utils/featureAccess";
+import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge, isFeatureBeta } from "../utils/featureAccess";
 
 /**
  * useDashboardFeatures
@@ -23,7 +23,7 @@ import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from "../utils/f
  */
 export function useDashboardFeatures() {
   const { user, supportedLanguages } = useAppContext();
-  const { featureStatus, isVisible, isReady } = useTierAccess();
+  const { featureStatus, isVisible, isReady, featureRegistry } = useTierAccess();
   const { t } = useTranslation();
 
   const tiles = useMemo(() => {
@@ -47,6 +47,7 @@ export function useDashboardFeatures() {
         unavailable,
         unavailableReason: feature.unavailableReasonKey ? t(feature.unavailableReasonKey) : "",
         statusBadgeLabel: unavailable ? undefined : badge && t(badge.key, badge.fallback),
+        isBeta: isFeatureBeta(featureRegistry, feature.id),
         // Purchasable tiles stay clickable so they can route to pricing;
         // unreleased ones are inert.
         purchasable: PURCHASABLE_STATUSES.includes(status),
@@ -56,7 +57,7 @@ export function useDashboardFeatures() {
           !PURCHASABLE_STATUSES.includes(status),
       };
     });
-  }, [isReady, isVisible, featureStatus, user, supportedLanguages, t]);
+  }, [isReady, isVisible, featureStatus, featureRegistry, user, supportedLanguages, t]);
 
   return { tiles, isReady };
 }

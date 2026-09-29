@@ -4,67 +4,42 @@ import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import { createCheckoutSession, openPlanChangePortal } from "../services/stripeService";
 import { PRICING, getYearlySavingsPercent } from "../config/pricing";
-import { FEATURE_STATUS, getFeatureStatus, isFeatureVisible } from "../utils/featureAccess";
+import { FEATURE_STATUS, getFeatureStatus } from "../utils/featureAccess";
+import { BetaBadge } from "../components/ui";
 import { auth } from "../firebase";
-import { CheckCircle, Lock, Clock, ArrowRight, ChevronDown } from "lucide-react";
+import { CheckCircle, ArrowRight, ChevronDown } from "lucide-react";
 import PropTypes from "prop-types";
 
 // ── Rows shown before the list collapses ──────────────────────────────────────
 const COLLAPSED_ROW_COUNT = 7;
 
-// The cheapest paid plan carries the "most popular" flag. Read from the tier's
-// own display order so renaming or reordering plans in the Admin page doesn't
-// need a code change here.
-const MOST_POPULAR_ORDER = 2;
+// The plan carrying the "most popular" flag. Keyed on the tier id, which is a
+// gate key and never renamed, rather than on display order, which an admin
+// can change. The home page's pricing teaser marks the same plan.
+const MOST_POPULAR_TIER_ID = "maestro";
 
 // ── FeatureRow ────────────────────────────────────────────────────────────────
-const FeatureRow = ({ label, status, isDarkMode, t }) => {
-  // Four states, not two. A feature that isn't built yet is neither included
-  // (it can't be used) nor withheld by the plan (nothing is being sold), so it
-  // gets its own icon and badge rather than being struck through like a
-  // genuinely locked one.
-  const included = status === FEATURE_STATUS.AVAILABLE;
-  const unreleased =
-    status === FEATURE_STATUS.COMING_SOON || status === FEATURE_STATUS.INCOMING;
-
-  return (
-    <div className="flex items-center gap-2 py-2">
-      {unreleased ? (
-        <Clock size={14} className="text-amber-500 shrink-0" />
-      ) : included ? (
-        <CheckCircle size={16} className="text-emerald-500 shrink-0" />
-      ) : (
-        <Lock size={14} className="text-slate-400 shrink-0" />
-      )}
-      <span
-        className={`text-xs font-bold uppercase tracking-wider ${
-          included
-            ? isDarkMode ? "text-slate-300" : "text-slate-700"
-            : isDarkMode ? "text-slate-500" : "text-slate-400"
-        } ${!included && !unreleased ? "line-through opacity-60" : ""}`}
-      >
-        {label}
+// Every row is something the plan includes today. Locked, hidden and
+// unreleased features are not listed at all: a plan card says what you get,
+// and the plan above it says what more you would get.
+const FeatureRow = ({ label, isBeta, isDarkMode }) => (
+  <div className="flex items-center gap-2 py-2">
+    <CheckCircle size={16} className="text-emerald-500 shrink-0" />
+    <span className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
+      {label}
+    </span>
+    {isBeta && (
+      <span className="ml-auto">
+        <BetaBadge isDarkMode={isDarkMode} placement="inline" />
       </span>
-      {unreleased && (
-        <span
-          className={`shrink-0 px-1.5 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-widest ${
-            isDarkMode ? "border-amber-600 text-amber-400" : "border-amber-400 text-amber-700"
-          }`}
-        >
-          {status === FEATURE_STATUS.INCOMING
-            ? t("features.incoming", "Incoming")
-            : t("pricing.badge_coming_soon")}
-        </span>
-      )}
-    </div>
-  );
-};
+    )}
+  </div>
+);
 
 FeatureRow.propTypes = {
   label: PropTypes.string.isRequired,
-  status: PropTypes.string.isRequired,
+  isBeta: PropTypes.bool,
   isDarkMode: PropTypes.bool.isRequired,
-  t: PropTypes.func.isRequired,
 };
 
 // ── AiCallsRow — the allowance, which is a limit rather than a feature ────────
@@ -90,6 +65,7 @@ AiCallsRow.propTypes = {
 const TierCard = ({
   tierKey,
   tierLabel,
+  previousTierLabel,
   price,
   rows,
   aiCallsPerDay,
@@ -254,15 +230,21 @@ const TierCard = ({
         {/* Feature List — every feature is listed, but the tail is collapsed so
             the cards stay comparable at a glance. */}
         <div className="flex-1 space-y-1">
+          {/* Each paid card lists only what it adds to the plan below it. */}
+          {previousTierLabel && (
+            <p className={`pb-1 text-xs font-black uppercase tracking-widest ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              {t("pricing.everything_in_plus", { tier: previousTierLabel })}
+            </p>
+          )}
+
           <AiCallsRow aiCallsPerDay={aiCallsPerDay} isDarkMode={isDarkMode} t={t} />
 
           {visibleRows.map((row) => (
             <FeatureRow
               key={row.id}
               label={row.label}
-              status={row.status}
+              isBeta={row.isBeta}
               isDarkMode={isDarkMode}
-              t={t}
             />
           ))}
 
@@ -290,6 +272,8 @@ const TierCard = ({
 TierCard.propTypes = {
   tierKey: PropTypes.string.isRequired,
   tierLabel: PropTypes.string.isRequired,
+  /** The plan below this one, for "everything in X, plus:". Null on the first. */
+  previousTierLabel: PropTypes.string,
   price: PropTypes.object,
   rows: PropTypes.array.isRequired,
   aiCallsPerDay: PropTypes.number.isRequired,
@@ -354,38 +338,46 @@ const PricingPage = () => {
   // and appConfig/config/features, so this page can't drift from what the app
   // actually grants. Hidden tiers (VIP, Admin) are excluded by definition.
   //
-  // Features flagged `hidden` are dropped from every plan's row list, so an
-  // untested feature is never advertised on a plan that is about to be sold.
-  // The filter keys off the *viewer's* tier: a VIP browsing pricing still sees
-  // what they have early access to, while a signed-out visitor — the common
-  // case here — is treated as Explorer and sees only the shipped surface.
+  // Each card lists only what its plan includes today, and each paid card
+  // only what it adds to the plan below it ("everything in Explorer, plus:").
+  // So the page sells what exists and nothing else:
+  //  - features flagged `hidden` are left off for every viewer, VIP included —
+  //    this is a sales page, and early access is not something on sale;
+  //  - features granted to nobody ("coming soon") are not listed, because they
+  //    are not part of any plan yet;
+  //  - features a plan does not include are not listed struck through; the
+  //    plan above shows them.
   const tiers = useMemo(() => {
     if (!tiersConfig || !featureRegistry) return [];
 
-    const viewerTier = user?.subscriptionTier ?? "explorer";
-    const sellableFeatures = featureRegistry.filter((feature) =>
-      isFeatureVisible(feature, viewerTier),
-    );
-
-    return Object.values(tiersConfig)
+    const sellableFeatures = featureRegistry.filter((feature) => !feature.hidden);
+    const plans = Object.values(tiersConfig)
       .filter((tier) => !tier.hidden)
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      .map((tier) => ({
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const includes = (featureId, tierId) =>
+      getFeatureStatus(featureId, tierId, tiersConfig) === FEATURE_STATUS.AVAILABLE;
+
+    return plans.map((tier, index) => {
+      const previous = index > 0 ? plans[index - 1] : null;
+      return {
         key: tier.id,
         label: tier.label,
+        previousLabel: previous?.label ?? null,
         price: PRICING[tier.id] ?? null,
         aiCallsPerDay: tier.aiCallsPerDay,
-        // Voyager is the recommended plan: the cheapest paid one.
-        isMostPopular: !tier.isFree && tier.order === MOST_POPULAR_ORDER,
-        rows: sellableFeatures.map((feature) => ({
-          id: feature.id,
-          // The user-facing name comes from the translation key stored on the
-          // feature; the admin label is the fallback when none is set.
-          label: feature.labelKey ? t(feature.labelKey, feature.label) : feature.label,
-          status: getFeatureStatus(feature.id, tier.id, tiersConfig),
-        })),
-      }));
-  }, [tiersConfig, featureRegistry, user?.subscriptionTier, t]);
+        isMostPopular: tier.id === MOST_POPULAR_TIER_ID,
+        rows: sellableFeatures
+          .filter((feature) => includes(feature.id, tier.id) && !(previous && includes(feature.id, previous.id)))
+          .map((feature) => ({
+            id: feature.id,
+            // The user-facing name comes from the translation key stored on the
+            // feature; the admin label is the fallback when none is set.
+            label: feature.labelKey ? t(feature.labelKey, feature.label) : feature.label,
+            isBeta: feature.beta === true,
+          })),
+      };
+    });
+  }, [tiersConfig, featureRegistry, t]);
 
   return (
     <>
@@ -417,6 +409,7 @@ const PricingPage = () => {
                 key={tier.key}
                 tierKey={tier.key}
                 tierLabel={tier.label}
+                previousTierLabel={tier.previousLabel}
                 price={tier.price}
                 rows={tier.rows}
                 aiCallsPerDay={tier.aiCallsPerDay}

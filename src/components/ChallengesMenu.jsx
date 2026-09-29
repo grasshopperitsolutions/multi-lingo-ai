@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { CHALLENGE_GAMES as GAMES } from "../config/favouritableFeatures";
-import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge } from "../utils/featureAccess";
+import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge, isFeatureBeta } from "../utils/featureAccess";
 import StatusBadge from "./StatusBadge";
-import { Breadcrumb, FeatureHeader } from "./ui";
+import { Breadcrumb, FeatureHeader, BetaBadge } from "./ui";
 import { reportLockedAttempt } from "../services/pulseReportService";
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-const GameCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel }) => (
+const GameCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, locked, badgeLabel, isBeta }) => (
   <button
     onClick={onClick}
     disabled={locked}
@@ -24,6 +24,7 @@ const GameCard = ({ title, description, icon: Icon, color, onClick, isDarkMode, 
     }`}
   >
     {badgeLabel && <StatusBadge label={badgeLabel} />}
+    {isBeta && <BetaBadge isDarkMode={isDarkMode} />}
     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-4 border-slate-900 flex items-center justify-center shrink-0 ${color}`}>
       <Icon size={20} className="text-slate-900" />
     </div>
@@ -46,13 +47,14 @@ GameCard.propTypes = {
   isDarkMode:      PropTypes.bool.isRequired,
   locked:          PropTypes.bool,
   badgeLabel:      PropTypes.string,
+  isBeta:          PropTypes.bool,
 };
 
 // ── ChallengesMenu (Challenge Hub) ────────────────────────────────────────────
 const ChallengesMenu = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { featureStatus, isReady } = useTierAccess();
+  const { featureStatus, isReady, featureRegistry } = useTierAccess();
 
   // Game ids double as feature keys; access is configured in
   // Admin > Tiers & Features. Games are never hidden — each carries a badge
@@ -65,6 +67,7 @@ const ChallengesMenu = ({ isDarkMode }) => {
           ...game,
           status,
           badgeLabel: badge && t(badge.key, badge.fallback),
+          isBeta: isFeatureBeta(featureRegistry, game.id),
           locked:
             status !== FEATURE_STATUS.AVAILABLE && !PURCHASABLE_STATUSES.includes(status),
         };
@@ -109,6 +112,7 @@ const ChallengesMenu = ({ isDarkMode }) => {
             isDarkMode={isDarkMode}
             locked={game.locked}
             badgeLabel={game.badgeLabel}
+            isBeta={game.isBeta}
           />
         ))}
       </div>

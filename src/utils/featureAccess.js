@@ -64,6 +64,22 @@ export function isFeatureVisible(feature, tierId) {
   return canSeeHiddenFeatures(tierId);
 }
 
+/**
+ * Whether a feature is marked beta in Admin › Features.
+ *
+ * Beta is a label, not a gate: the feature is released and usable, and the
+ * badge only says it may still change. It is independent of `hidden` and of
+ * the tier grants. Absent means not beta, and a registry that has not loaded
+ * (or a test that fakes `useTierAccess` without one) answers false.
+ *
+ * @param {Array<{id: string, beta?: boolean}> | null | undefined} featureRegistry
+ * @param {string} featureKey
+ * @returns {boolean}
+ */
+export function isFeatureBeta(featureRegistry, featureKey) {
+  return (featureRegistry ?? []).some((feature) => feature.id === featureKey && feature.beta === true);
+}
+
 /** The publicly purchasable plans — the ones a feature can be *sold* on. */
 function paidTiers(tiersConfig) {
   return Object.values(tiersConfig ?? {}).filter((t) => !t.isFree && !t.hidden);
