@@ -10,8 +10,8 @@
  */
 export const PRICING = {
   voyager: {
-    monthly: { amount: 14.99, interval: 'monthly' },
-    yearly: { amount: 149.99, interval: 'yearly' },
+    monthly: { amount: 17.99, interval: 'monthly' },
+    yearly: { amount: 179.99, interval: 'yearly' },
   },
   maestro: {
     monthly: { amount: 24.99, interval: 'monthly' },
