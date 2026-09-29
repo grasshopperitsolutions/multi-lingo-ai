@@ -1,6 +1,6 @@
 # Gemini 3.8 TTS: the transcript and the style go separately
 
-**Status:** queued, not started. Written 2026-09-28.
+**Status:** Phases 1 and 2 are written and tested locally (2026-09-29), not deployed. Still to do: deploy the API and send the preflight, deploy the frontend, edit `tts-build-prompt` in Admin, then Phase 3. Delete this file once Phase 3 is done. Written 2026-09-28.
 **Repos:** both. Most of the work is in the API (`lib/providers/gemini.ts`, `api/ask-ai.ts`, `lib/tts-cache.ts`, `lib/mp3.ts`). The frontend changes `src/services/getTtsService.js`.
 **Models:** `gemini-3.8-flash-tts` for everyone. Explorer gets `gemini-3.8-flash-lite-tts`, through `explorerModel` on the prompt document.
 

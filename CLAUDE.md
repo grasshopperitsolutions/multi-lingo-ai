@@ -184,7 +184,7 @@ matching speaker voice found`), which is what made it possible to test all
 thirty; the Live API does *not* refuse one — it quietly speaks in some default
 voice — so a typo would give a learner a different tutor voice from the one
 they picked. Spell new entries exactly as Google does. Testing the list also
-showed the TTS model (`gemini-3.1-flash-tts-preview`) has a tight **per-minute**
+showed the TTS model of the time (`gemini-3.1-flash-tts-preview`, since replaced by 3.8) had a tight **per-minute**
 limit: thirty calls back to back earned 429s that real users would have shared.
 Space any such check out.
 
@@ -1888,6 +1888,37 @@ European Portuguese, "es-MX" → Mexican Spanish), so a new language works the
 day it is seeded. Names resolve in **English** on purpose: the prompt around
 them is English, and `supportedLanguages.label` holds the language's name in
 its own tongue, which reads as an instruction to switch languages mid-sentence.
+
+**The transcript and the style go separately, because Gemini 3.8 TTS reads its
+text field verbatim.** The 2.5 and 3.1 models acted on instructions wrapped
+around the text; 3.8 speaks them aloud, so a template that said "read this in
+European Portuguese: {{text}}" made every clip recite its own directions.
+`_buildTtsRequest` returns `{ transcript, style, model, explorerModel,
+feature }`: the transcript is the text as the reader sees it and is the
+`askAI` prompt, and the style is the rendered `tts-build-prompt` template,
+sent as `providerParams.ttsStyle` and delivered to the model as
+`speech_metadata.style`. The style is what makes a clip European — there is no
+region setting, and the model detects the language from the transcript alone.
+
+- **`tts-build-prompt` is a style, never a wrapper.** No `{{text}}`; it stays in
+  English with the values as variables ("Read aloud in {{language}} with a
+  natural accent from {{region}}, at a {{speechPace}} pace…"). The text is
+  deliberately not passed to the renderer, and a template that still has
+  `{{text}}` warns. The `{{speechPace}}` warning is unchanged.
+- **The design is 3.8 only.** `GEMINI_TTS_MODEL` matches the API's
+  `DEFAULT_TTS_MODEL`; Explorer runs `gemini-3.8-flash-lite-tts` through
+  `explorerModel` on the prompt document. An older model set in Admin ignores
+  or refuses the style and loses the accent and the pace.
+- **`stripInlineTags` takes `<tags>` and `|backchannels|` out of the
+  transcript**, because 3.8 acts on them instead of speaking them. In code, not
+  in a prompt. It only opens a tag on `<` followed by a non-space, so "3 < 5"
+  is left alone.
+- **`isRawPcmMime` decides what gets a WAV header**, and checks `wav` first: 3.8
+  returns a WAV, and one labelled `codec=pcm` would otherwise be wrapped in a
+  second header. Same rule as `detectAudioKind` in the API's `lib/mp3.ts`.
+- The in-memory clip cache key is untouched (voice, language, pace, text): the
+  style is derived from language, pace and the template, and a template edit
+  reaches open tabs only after a reload, as it always has.
 
 ## Admin › Pulse — usage counts, never activity
 

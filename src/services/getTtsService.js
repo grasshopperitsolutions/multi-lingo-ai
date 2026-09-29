@@ -33,8 +33,12 @@ import { DEFAULT_AI_VOICE, resolveVoice } from '../config/aiVoices';
  * (multi-lingo-ai-api/lib/providers/gemini.ts) — that file's own comment notes
  * a differently-misnamed model "does NOT exist and should never be used", and
  * this constant had drifted to yet another wrong variant (word order swapped).
+ *
+ * The design is 3.8 only: that model reads the text as a verbatim transcript
+ * and takes its directions separately (see `_buildTtsRequest`). An older model
+ * set on the prompt in Admin would lose the accent and the pace.
  */
-const GEMINI_TTS_MODEL = 'gemini-3.1-flash-tts-preview';
+const GEMINI_TTS_MODEL = 'gemini-3.8-flash-tts';
 
 /**
  * Speech pace options.
@@ -420,23 +424,53 @@ export function stopSpeaking() {
 }
 
 // ---------------------------------------------------------------------------
-// TTS Prompt Builder
+// TTS request builder
 // ---------------------------------------------------------------------------
 
 /**
- * Build a dialect-aware instructional prompt for Gemini TTS.
+ * Take the inline markup out of a transcript.
  *
- * Instead of sending raw text (which causes Gemini to infer the dialect
- * from the content alone), this wraps the text with clear instructions
- * about language, regional origin, and tone — ensuring the correct accent
- * and pronunciation is used regardless of text content.
+ * Gemini 3.8 TTS speaks everything in the text field except inline `<tags>`
+ * and `|backchannels|`, which it acts on instead — a laugh, a breath, an
+ * "mm-hm". Learner text never contains them, but AI-written text could, and
+ * a tale that drifted into `<whisper>` would change how the reader is read
+ * rather than being read. Done in code, not asked of the model.
  *
- * @param {string} text - The text to be read aloud (not modified)
+ * A `<` must be followed by a non-space to open a tag, so "3 < 5 and 7 > 4"
+ * is left alone. A lone `|` is dropped too: an unmatched one is not a
+ * backchannel, but it is not something anyone means to have read out either.
+ *
+ * @param {string} text
+ * @returns {string}
+ */
+export function stripInlineTags(text) {
+  return String(text ?? '')
+    .replace(/<[^\s<>][^<>]*>/g, ' ')
+    .replace(/\|[^|]*\|/g, ' ')
+    .replace(/\|/g, ' ')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/[ \t]*\n[ \t]*/g, '\n')
+    .trim();
+}
+
+/**
+ * Build a Gemini TTS request: the transcript, and the style it is read in.
+ *
+ * Gemini 3.8 TTS treats the text field strictly as a verbatim transcript. The
+ * 2.5 and 3.1 models acted on instructions wrapped around the text; 3.8 speaks
+ * them aloud. So the two travel separately: the transcript is the text as the
+ * reader sees it, and the style — language, region, pace — is the rendered
+ * `tts-build-prompt` template, sent as `providerParams.ttsStyle` and delivered
+ * to the model as `speech_metadata.style`. The style is what makes a pt-PT
+ * clip sound European: there is no region setting, and the model detects the
+ * language from the transcript alone.
+ *
+ * @param {string} text - The text to be read aloud
  * @param {string} lang - BCP-47 locale, e.g. 'pt-PT', 'en-US'
  * @param {string} pace - One of SPEECH_PACE
- * @returns {Promise<{prompt: string, model: string}>} Instructional prompt + model to use for Gemini TTS
+ * @returns {Promise<{transcript: string, style: string, model: string, explorerModel: string|undefined, feature: string}>}
  */
-async function _buildTtsPrompt(text, lang, pace) {
+async function _buildTtsRequest(text, lang, pace) {
   const meta = _describeLocale(lang);
 
   const promptDoc = await getPrompt('tts-build-prompt');
@@ -453,15 +487,34 @@ async function _buildTtsPrompt(text, lang, pace) {
     );
   }
 
-  const prompt = renderTemplate(promptDoc.template, {
+  // The template is a style now, so a {{text}} left in it from the era when it
+  // wrapped the transcript would put the words into the direction. The text is
+  // deliberately not passed to the renderer, so the placeholder stays literal
+  // rather than duplicating the transcript into the style.
+  if (String(promptDoc.template).includes('{{text}}')) {
+    console.warn(
+      '[getTtsService] The "tts-build-prompt" template still contains {{text}}. ' +
+      'Gemini 3.8 TTS reads the text separately from its style, so the template ' +
+      'should describe how to read and never carry the text itself. Remove it in ' +
+      'Admin > Prompts, e.g. "Read aloud in {{language}} with a natural accent from ' +
+      '{{region}}, at a {{speechPace}} pace."',
+    );
+  }
+
+  const style = renderTemplate(promptDoc.template, {
     language: meta.language,
     region: meta.region,
-    text,
     speechPace: _paceConfig(pace).promptValue,
   });
   // Overriding the model here requires a TTS-capable Gemini model — picking a
   // plain text model would break audio generation entirely.
-  return { prompt, model: promptDoc.model || GEMINI_TTS_MODEL, explorerModel: promptDoc.explorerModel, feature: promptDoc.id };
+  return {
+    transcript: stripInlineTags(text),
+    style,
+    model: promptDoc.model || GEMINI_TTS_MODEL,
+    explorerModel: promptDoc.explorerModel,
+    feature: promptDoc.id,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -482,11 +535,16 @@ async function _speakWithGemini(token, text, lang, pace, cacheable, seq, onStart
     return _playAudioBase64(cached.audioData, cached.mimeType, seq, onStart, onEnd, onError);
   }
 
-  const { prompt: ttsPrompt, model, explorerModel, feature } = await _buildTtsPrompt(text, lang, pace);
+  const { transcript, style, model, explorerModel, feature } = await _buildTtsRequest(text, lang, pace);
+
+  // A transcript that was nothing but markup has nothing to synthesise, and an
+  // empty prompt would only earn a 400 from the API.
+  if (!transcript) return false;
+
   const result = await askAI(
     token,
-    ttsPrompt,
-    { provider: 'gemini', model, explorerModel, feature, tts: true, voice, language: lang, cacheable },
+    transcript,
+    { provider: 'gemini', model, explorerModel, feature, tts: true, ttsStyle: style, voice, language: lang, cacheable },
     // Playback isn't the user asking for new content, and clips are cached per
     // (voice, locale, text) — a prompt here would fire mid-exercise.
     { skipConfirm: true, timeout: TTS_TIMEOUT_MS },
@@ -622,12 +680,28 @@ function _writeStr(view, offset, str) {
   }
 }
 
-function _playAudioBase64(base64Data, mimeType, seq, onStart, onEnd, onError) {
-  // Gemini returns raw L16 PCM — browsers cannot play it without a WAV header.
-  // Detect by mimeType and wrap in a proper WAV container via blob: URL.
-  const isPcm = /L16|pcm/i.test(mimeType);
+/**
+ * True only for headerless PCM, the one shape browsers cannot play as it is.
+ *
+ * Gemini 3.1 and earlier returned raw L16; 3.8 returns a WAV, which browsers
+ * play directly. A WAV can still carry `codec=pcm` in its label, and a bare
+ * `/L16|pcm/` test would match it and wrap a second header around the first —
+ * so `wav` is checked first. Same rule as `detectAudioKind` in the API's
+ * lib/mp3.ts.
+ *
+ * @param {string} mimeType
+ * @returns {boolean}
+ */
+export function isRawPcmMime(mimeType) {
+  const label = String(mimeType ?? '');
+  if (/wav/i.test(label)) return false;
+  return /L16|pcm/i.test(label);
+}
 
-  if (isPcm) {
+function _playAudioBase64(base64Data, mimeType, seq, onStart, onEnd, onError) {
+  // Raw L16 PCM cannot be played without a WAV header, so wrap it in a proper
+  // WAV container via blob: URL. Everything else is played as it arrives.
+  if (isRawPcmMime(mimeType)) {
     const blobUrl = _pcmToWavBlobUrl(base64Data, mimeType);
     return _playAudioUrl(blobUrl, seq, onStart, onEnd, onError, blobUrl);
   }
