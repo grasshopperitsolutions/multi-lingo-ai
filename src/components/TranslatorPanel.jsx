@@ -168,7 +168,7 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
       {/* —— Output panel —— */}
       <div className={panelBase}>
         <div className="flex items-center px-3 pt-2 pb-1">
-          <TooltipButton tooltip={t('translator.learning_language_hint', 'Learning language — change in Settings')} isDarkMode={isDarkMode}>
+          <TooltipButton tooltip={t('translator.learning_language_hint', 'Practice language — change in Settings')} isDarkMode={isDarkMode}>
             <span className={langBadgeClass}>{targetLang}</span>
           </TooltipButton>
         </div>

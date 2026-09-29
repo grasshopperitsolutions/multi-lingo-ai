@@ -381,7 +381,7 @@
     },
     "success_message": "Definições guardadas com sucesso!",
     "language_learning": "Idioma que Praticas",
-    "learning_language": "Língua que estás a aprender",
+    "learning_language": "Língua que praticas",
     "interests": "Interesses",
     "interests_hint": "Escolhe os teus temas favoritos.",
     "practice_level": "Nível em que praticas",
@@ -395,7 +395,7 @@
       "category_announcements": "Novidades",
       "category_announcements_hint": "Novas funcionalidades e anúncios.",
       "category_reminders": "Lembretes de prática",
-      "category_reminders_hint": "Avisos para manteres a prática e continuares a aprender.",
+      "category_reminders_hint": "Avisos para manteres o ritmo da tua prática.",
       "transactional_note": "Emails sobre a tua conta, subscrição e pagamentos não podem ser desativados.",
       "enable_push": "Ativar notificações do navegador web",
       "push_enabled": "Notificações do navegador web ativas neste dispositivo",
@@ -423,7 +423,7 @@
     "keyboard_hint": "Dica: carrega em Ctrl+Enter (ou ⌘+Enter) para traduzir",
     "error_failed": "A tradução falhou. Tenta novamente.",
     "lookup_in_dictionary": "Procurar no Dicionário",
-    "learning_language_hint": "Língua que estás a aprender — muda nas Definições"
+    "learning_language_hint": "Língua que praticas — muda nas Definições"
   },
   "dashboard": {
     "books": {
@@ -464,7 +464,7 @@
     "back": "Voltar",
     "not_implemented": "Esta funcionalidade está quase a chegar — fica atento!",
     "coming_soon": "Brevemente...",
-    "learner": "Aprendiz",
+    "learner": "Praticante",
     "profile_alt": "Perfil",
     "exam_not_available_for_language": "A Preparação para Exames ainda não está disponível para a língua que praticas.",
     "translator": "Tradutor",

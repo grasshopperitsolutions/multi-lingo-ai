@@ -205,7 +205,7 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
       {/* Input panel */}
       <div className={panelBase}>
         <div className="flex items-center px-3 pt-2 pb-1 justify-between">
-          <TooltipButton tooltip={t('translator.learning_language_hint', 'Learning language — change in Settings')} isDarkMode={isDarkMode}>
+          <TooltipButton tooltip={t('translator.learning_language_hint', 'Practice language — change in Settings')} isDarkMode={isDarkMode}>
             <span className={langBadgeClass}>{learningLang}</span>
           </TooltipButton>
           <span className={`text-xs font-bold tabular-nums ${
