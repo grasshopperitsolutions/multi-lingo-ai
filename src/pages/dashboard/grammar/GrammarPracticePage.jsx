@@ -22,6 +22,7 @@ import ExerciseSidebar from "../../../components/ExerciseSidebar";
 import CustomRequestInput from "../../../components/CustomRequestInput";
 import { FeaturePageShell, Card, ErrorBanner, PrimaryButton, LevelBadge, AiNotice } from "../../../components/ui";
 import { usePracticeLevel } from "../../../hooks/usePracticeLevel";
+import { useAiErrorAlert } from "../../../hooks/useAiError";
 
 /**
  * GrammarPracticePage — Exercícios de Treino
@@ -47,6 +48,8 @@ function humanizeKey(key) {
 
 const GrammarPracticePage = () => {
   const { isDarkMode, user, setUser, interfaceLang, supportedLanguages, showAlert } = useAppContext();
+  // The daily limit gets the plans; anything else gets "Try again".
+  const alertAiError = useAiErrorAlert();
   const { featureStatus, isReady, canAccess, isAdmin } = useTierAccess();
   const { topics: interestTopics } = useInterestTopics();
   const { t } = useTranslation();
@@ -156,7 +159,7 @@ const GrammarPracticePage = () => {
       if (isAiDeclined(err)) return;
       const message = errorMessage(err);
       setError(message);
-      showAlert("error", message, { label: t("common.try_again", "Try Again"), onClick: handleStart });
+      alertAiError(err, { message, retry: handleStart });
     } finally {
       setIsLoading(false);
     }
@@ -180,7 +183,7 @@ const GrammarPracticePage = () => {
         answer,
       });
     } catch (err) {
-      if (!isAiDeclined(err)) showAlert("error", errorMessage(err));
+      if (!isAiDeclined(err)) alertAiError(err, { message: errorMessage(err) });
       return null;
     }
   };

@@ -581,3 +581,65 @@ describe("skip and show are the same control in both games", () => {
     }
   });
 });
+
+/**
+ * Out of AI calls, a game offers the plans instead of "Try again".
+ *
+ * A game only generates when the pool has nothing left for this player, so a
+ * retry asks the server for the same refused call. The error panel shows the
+ * way to more calls, and the alert is the limit alert with its Upgrade button.
+ */
+describe("games out of AI calls", () => {
+  const LIMIT_GAMES = [
+    // Word Link reports errors in its panel only, never with an alert.
+    ["HangmanGame", () => import("../../src/components/HangmanGame"), "getWordService", "getWord", true],
+    ["ScrambledWordGame", () => import("../../src/components/ScrambledWordGame"), "getWordService", "getWord", true],
+    ["WordSearchGame", () => import("../../src/components/WordSearchGame"), "getWordService", "getWord", true],
+    ["CrosswordGame", () => import("../../src/components/CrosswordGame"), "getWordService", "getWord", true],
+    ["WordLinkGame", () => import("../../src/components/WordLinkGame"), "wordLinkService", "fetchWordLinkPuzzle", false],
+  ];
+
+  beforeEach(() => {
+    ctx.current = signedIn();
+    globalThis.fetch = emptyEnvelope();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  it.each(LIMIT_GAMES)("%s offers the plans, not a retry", async (_name, loader, service, fn, alerts) => {
+    const { default: i18n } = await import("../../src/i18n");
+    const mod = await import(`../../src/services/${service}.js`);
+    const original = mod[fn].getMockImplementation();
+    const limit = Object.assign(new Error(i18n.t("ai_usage.limit_reached")), { code: "DAILY_LIMIT" });
+    mod[fn].mockImplementation(async () => { throw limit; });
+
+    try {
+      const { findByRole, queryByText } = await mount(loader);
+
+      const link = await findByRole("link", { name: i18n.t("ai_usage.see_plans") }, { timeout: 8000 });
+      expect(link.getAttribute("href")).toBe("/pricing");
+      expect(queryByText(i18n.t("challenges.try_again"))).toBeNull();
+      if (alerts) expect(ctx.current.showDailyLimitAlert).toHaveBeenCalled();
+      expect(ctx.current.showAlert).not.toHaveBeenCalledWith("error", expect.anything(), expect.anything());
+    } finally {
+      mod[fn].mockImplementation(original);
+    }
+  });
+
+  it("still offers a retry for any other failure", async () => {
+    const { default: i18n } = await import("../../src/i18n");
+    const { getWord } = await import("../../src/services/getWordService");
+    const original = getWord.getMockImplementation();
+    getWord.mockImplementation(async () => { throw new Error("Network down"); });
+
+    try {
+      const { findByText, queryByRole } = await mount(() => import("../../src/components/HangmanGame"));
+
+      expect(await findByText(i18n.t("challenges.try_again"), {}, { timeout: 8000 })).toBeTruthy();
+      expect(queryByRole("link", { name: i18n.t("ai_usage.see_plans") })).toBeNull();
+      expect(ctx.current.showDailyLimitAlert).not.toHaveBeenCalled();
+    } finally {
+      getWord.mockImplementation(original);
+    }
+  });
+});

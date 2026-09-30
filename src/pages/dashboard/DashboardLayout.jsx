@@ -186,7 +186,15 @@ const DashboardLayout = () => {
                 {limits.aiCallsPerDay === Infinity ? (
                   <span className="text-emerald-500">{t("ai_usage.unlimited")}</span>
                 ) : aiCallsRemaining === 0 ? (
-                  <span className="text-rose-500">{t("ai_usage.depleted")}</span>
+                  // Out of calls is the moment a plan with more matters, so
+                  // the count itself leads to the plans.
+                  <Link
+                    to="/pricing"
+                    title={t("ai_usage.limit_reached")}
+                    className="text-rose-500 underline decoration-2 underline-offset-4 hover:decoration-yellow-400"
+                  >
+                    {t("ai_usage.depleted")}
+                  </Link>
                 ) : (
                   <span className={aiCallsRemaining <= 3 ? "text-rose-500" : ""}>
                     {t("ai_usage.remaining", { count: aiCallsRemaining, total: limits.aiCallsPerDay })}

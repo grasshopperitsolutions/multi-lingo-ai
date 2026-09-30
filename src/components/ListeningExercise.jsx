@@ -32,10 +32,13 @@ import {
 import { markExerciseSeen, resetSeenExercises } from "../services/userService";
 import useGenerateConfirm from "../hooks/useGenerateConfirm";
 import { usePracticeLevel } from "../hooks/usePracticeLevel";
+import { useAiErrorAlert } from "../hooks/useAiError";
 
 const ListeningExercise = ({ isDarkMode }) => {
   const { t } = useTranslation();
-  const { user, setUser, showAlert } = useAppContext();
+  const { user, setUser } = useAppContext();
+  // The daily limit gets the plans; anything else gets "Try again".
+  const alertAiError = useAiErrorAlert();
 
   const targetLang = user?.learningDialect ?? "pt-PT";
 
@@ -122,10 +125,7 @@ const ListeningExercise = ({ isDarkMode }) => {
         err.message ??
         t("common.error", "Something went wrong. Please try again.");
       setError(errorMessage);
-      showAlert("error", errorMessage, {
-        label: t("common.try_again", "Try Again"),
-        onClick: handleGetExercise,
-      });
+      alertAiError(err, { message: errorMessage, retry: handleGetExercise });
     } finally {
       setLoading(false);
     }

@@ -6,6 +6,7 @@ import { auth } from "../../../firebase";
 import { useAppContext } from "../../../contexts/AppContext";
 import { analysePhoto } from "../../../services/photoCaptureService";
 import { isAiDeclined } from "../../../services/aiService";
+import { useAiErrorAlert } from "../../../hooks/useAiError";
 import PersonalWidgetCard from "../PersonalWidgetCard";
 import { AiNotice, GhostButton } from "../../ui";
 
@@ -32,6 +33,7 @@ import { AiNotice, GhostButton } from "../../ui";
 const PhotoCaptureWidget = ({ onAnalysed, isDarkMode }) => {
   const { t } = useTranslation();
   const { user, showAlert } = useAppContext();
+  const alertAiError = useAiErrorAlert();
 
   const inputRef = useRef(null);
   const [isBusy, setIsBusy] = useState(false);
@@ -60,7 +62,7 @@ const PhotoCaptureWidget = ({ onAnalysed, isDarkMode }) => {
       // Declining the spend prompt is an answer, not a failure — alerting on
       // it would tell someone their own decision went wrong.
       if (isAiDeclined(err)) return;
-      showAlert("error", err.message || t("personal.photo_failed"));
+      alertAiError(err, { message: err.message || t("personal.photo_failed") });
     } finally {
       setIsBusy(false);
     }

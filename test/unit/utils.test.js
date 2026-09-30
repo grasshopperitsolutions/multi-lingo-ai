@@ -4,7 +4,7 @@ import { BASE_KEYS, normalizeChar, resolveLetterKeys, letterKey } from "../../sr
 import { tokenizeWords } from "../../src/utils/tokenizeWords";
 import { normalizeCode } from "../../src/utils/languageCode";
 import { parseAIJSON } from "../../src/utils/parseAIJSON";
-import { sanitizeAIError, RateLimitError, authFetch } from "../../src/utils/errorUtils";
+import { sanitizeAIError, authFetch } from "../../src/utils/errorUtils";
 
 /**
  * Pure utilities. These carry real rules — the easy/hard accent rule, what
@@ -199,19 +199,6 @@ describe("sanitizeAIError", () => {
 
   it("matches provider names case-insensitively", () => {
     expect(sanitizeAIError("PERPLEXITY is down")).toBe("AI request failed. Please try again.");
-  });
-});
-
-describe("RateLimitError", () => {
-  it("is an Error with a distinguishable name", () => {
-    const err = new RateLimitError();
-    expect(err).toBeInstanceOf(Error);
-    expect(err.name).toBe("RateLimitError");
-    expect(err.message).toBe("Daily AI limit reached");
-  });
-
-  it("carries a custom message when given one", () => {
-    expect(new RateLimitError("nope").message).toBe("nope");
   });
 });
 

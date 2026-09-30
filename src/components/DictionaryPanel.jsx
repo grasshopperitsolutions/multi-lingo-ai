@@ -5,8 +5,9 @@ import { Copy, Trash2, Search } from 'lucide-react';
 import { useAppContext } from '../contexts/AppContext';
 import { lookupWord, WORD_TYPES, MAX_WORD_TYPES } from '../services/dictionaryService';
 import { useTts } from '../hooks/useTts';
+import { useAiErrorState } from '../hooks/useAiError';
 import TooltipButton from './TooltipButton';
-import { Breadcrumb, FeatureHeader, TtsControls } from './ui';
+import { Breadcrumb, FeatureHeader, TtsControls, PlansLink } from './ui';
 
 const MAX_CHARS = 1000;
 
@@ -71,7 +72,7 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
   const [entries,      setEntries]      = useState([]);
   const [wordTypes,    setWordTypes]    = useState([]);
   const [isLoading,    setIsLoading]    = useState(false);
-  const [error,        setError]        = useState(null);
+  const { error, isLimitError, setError, failWith } = useAiErrorState();
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [lookedUpWord, setLookedUpWord] = useState('');
 
@@ -127,7 +128,7 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
       });
       setEntries(result.entries);
     } catch (err) {
-      setError(err.message ?? t('dictionary.error_failed'));
+      failWith(err, err.message ?? t('dictionary.error_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -155,7 +156,7 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
           });
           setEntries(result.entries);
         } catch (err) {
-          setError(err.message ?? t('dictionary.error_failed'));
+          failWith(err, err.message ?? t('dictionary.error_failed'));
         } finally {
           setIsLoading(false);
         }
@@ -319,6 +320,7 @@ const DictionaryPanel = ({ isDarkMode, onBack, initialQuery }) => {
           {error && !isLoading && (
             <p className="text-sm font-bold text-rose-500">{error}</p>
           )}
+          {isLimitError && !isLoading && <PlansLink isDarkMode={isDarkMode} />}
           {hasResult && (
             <>
               <h3 className={`text-2xl font-black uppercase tracking-tighter ${

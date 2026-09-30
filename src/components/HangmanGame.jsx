@@ -14,10 +14,11 @@ import { getWord, getWordPoolCount } from "../services/getWordService";
 import { useInterestTopics } from "../hooks/useInterestTopics";
 import { useTts } from "../hooks/useTts";
 import { useChallengeTheme } from "../hooks/useChallengeTheme";
+import { useAiErrorState } from "../hooks/useAiError";
 import ChallengeSidebar from "./ChallengeSidebar";
 import ChallengeThemePicker from "./ChallengeThemePicker";
 import Loader from "./Loader";
-import { TtsControls, DifficultyToggle } from "./ui";
+import { TtsControls, DifficultyToggle, PlansLink } from "./ui";
 import TooltipButton from "./TooltipButton";
 import { sanitizeAIError } from "../utils/errorUtils";
 import { addSkippedConceptId, clearSkippedConceptIds } from "../utils/skippedConcepts";
@@ -71,7 +72,7 @@ HangmanScaffold.propTypes = {
 // ---------------------------------------------------------------------------
 const HangmanGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
-  const { user, showAlert, writingSystems } = useAppContext();
+  const { user, showAlert, showDailyLimitAlert, writingSystems } = useAppContext();
   const { topics, preferTopics } = useInterestTopics();
   const { ttsState, playTts, pauseTts, stopTts } = useTts();
   const challengeTheme = useChallengeTheme();
@@ -105,7 +106,7 @@ const HangmanGame = ({ isDarkMode }) => {
 
   // ── Loading / error ──
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const { error, isLimitError, setError, failWith } = useAiErrorState();
 
   // ── Sidebar / stats state ──
   const [progress,       setProgress]       = useState(null);
@@ -180,7 +181,7 @@ const HangmanGame = ({ isDarkMode }) => {
     setConceptId(null);
     setIsRevealed(false);
     hasMarkedRef.current = false;
-  }, []);
+  }, [setError]);
 
   // ── Fetch stats (progress + pool count + global seen count) ─────────────
   const fetchStats = useCallback(async () => {
@@ -271,21 +272,22 @@ const HangmanGame = ({ isDarkMode }) => {
         return;
       }
       const errorMessage = sanitizeAIError(err.message, t("challenges.word_fetch_error"));
-      setError(errorMessage);
+      failWith(err, errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [fetchWordData, t]);
+  }, [fetchWordData, t, failWith]);
 
-  // Show alert with retry action when error is set
+  // Show alert with retry action when error is set — or the plans, when
+  // the day's AI calls ran out and a retry would only be refused again.
   useEffect(() => {
-    if (error) {
-      showAlert("error", error, {
-        label: t("common.try_again", "Try Again"),
-        onClick: fetchWord
-      });
-    }
-  }, [error, fetchWord, t, showAlert]);
+    if (!error) return;
+    if (isLimitError) showDailyLimitAlert();
+    else showAlert("error", error, {
+      label: t("common.try_again", "Try Again"),
+      onClick: fetchWord
+    });
+  }, [error, isLimitError, fetchWord, t, showAlert, showDailyLimitAlert]);
 
   useEffect(() => {
     let cancelled = false;
@@ -311,12 +313,12 @@ const HangmanGame = ({ isDarkMode }) => {
             return;
           }
           const errorMessage = sanitizeAIError(err.message, t("challenges.word_fetch_error"));
-          setError(errorMessage);
+          failWith(err, errorMessage);
         }
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [fetchWordData, t]);
+  }, [fetchWordData, t, failWith]);
 
   // ── Record play + mark seen globally when game ends ──────────────────────
   useEffect(() => {
@@ -384,14 +386,18 @@ const HangmanGame = ({ isDarkMode }) => {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in gap-4">
         <p className="text-rose-500 font-semibold text-center px-4">{error}</p>
-        <button
-          onClick={() => { resetGame(); fetchWord(); }}
-          className={`px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${
-            isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
-          }`}
-        >
-          {t("challenges.try_again")}
-        </button>
+        {isLimitError ? (
+          <PlansLink variant="button" isDarkMode={isDarkMode} />
+        ) : (
+          <button
+            onClick={() => { resetGame(); fetchWord(); }}
+            className={`px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${
+              isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
+            }`}
+          >
+            {t("challenges.try_again")}
+          </button>
+        )}
       </div>
     );
   }

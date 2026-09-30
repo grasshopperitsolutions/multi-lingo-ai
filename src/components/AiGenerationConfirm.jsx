@@ -18,7 +18,8 @@ import ConfirmModal from "./ConfirmModal";
  * AppContext decides *whether* to show it; this component only renders. It
  * stays quiet for tiers with no cap, while there is still comfortable
  * allowance left, and once the user has silenced it for the day — see
- * AI_CONFIRM_WARN_AT_OR_BELOW there. Quick reflex tools (translator,
+ * AI_CONFIRM_WARN_AT_OR_BELOW there. With nothing left it never opens: the
+ * call fails as the limit, and the screen offers the plans. Quick reflex tools (translator,
  * dictionary, word lookup) and background work (TTS, translation back-fill)
  * opt out at the call site with `skipConfirm`.
  */
@@ -45,6 +46,19 @@ const AiGenerationConfirm = () => {
           "This will use one of your remaining calls for today. Your allowance resets tomorrow.",
         )}
       </span>
+
+      {/* The other answer to running low. A button rather than a link:
+          leaving has to decline this call first, or the screen that asked
+          would wait on it for ever. AppContext then navigates. */}
+      <button
+        type="button"
+        onClick={() => resolveAiConfirm(false, { toPlans: true })}
+        className={`self-start text-sm font-bold underline decoration-2 underline-offset-4 transition-colors hover:decoration-yellow-400 ${
+          isDarkMode ? "text-slate-200" : "text-slate-900"
+        }`}
+      >
+        {t("ai_usage.see_plans")}
+      </button>
 
       <label
         className={`flex items-center gap-2 text-sm font-bold cursor-pointer ${

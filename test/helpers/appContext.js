@@ -33,6 +33,7 @@ export function makeAppContext(overrides = {}) {
     setIsDarkMode: vi.fn(),
     alert: null,
     showAlert: vi.fn(),
+    showDailyLimitAlert: vi.fn(),
     closeAlert: vi.fn(),
 
     // ── reference data ──

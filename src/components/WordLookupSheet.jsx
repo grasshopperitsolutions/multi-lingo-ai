@@ -4,9 +4,10 @@ import { useTranslation } from "react-i18next";
 import { X, Loader2 } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { useTts } from "../hooks/useTts";
+import { useAiErrorState } from "../hooks/useAiError";
 import { useWordFavourites } from "../hooks/useWordFavourites";
 import { lookupWord } from "../services/dictionaryService";
-import { FavouriteButton, TtsControls } from "./ui";
+import { FavouriteButton, TtsControls, PlansLink } from "./ui";
 
 /**
  * WordLookupSheet
@@ -34,7 +35,7 @@ const WordLookupSheet = ({ word, sentence, targetLang, isDarkMode, onClose }) =>
   const [activeWord, setActiveWord] = useState(word);
   const [entries, setEntries] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const { error, isLimitError, setError, failWith } = useAiErrorState();
 
   // Looking up a synonym re-triggers this effect by changing activeWord,
   // without needing the caller to know a lookup happened inside the sheet.
@@ -64,11 +65,11 @@ const WordLookupSheet = ({ word, sentence, targetLang, isDarkMode, onClose }) =>
       sentence: activeWord === word ? sentence : undefined,
     })
       .then((data) => { if (!cancelled) setEntries(data.entries ?? []); })
-      .catch((err) => { if (!cancelled) setError(err.message); })
+      .catch((err) => { if (!cancelled) failWith(err); })
       .finally(() => { if (!cancelled) setIsLoading(false); });
 
     return () => { cancelled = true; };
-  }, [activeWord, word, sentence, user?.token, interfaceLang, targetLang]);
+  }, [activeWord, word, sentence, user?.token, interfaceLang, targetLang, failWith, setError]);
 
   if (!word) return null;
 
@@ -140,7 +141,10 @@ const WordLookupSheet = ({ word, sentence, targetLang, isDarkMode, onClose }) =>
           )}
 
           {!isLoading && error && (
-            <p className="text-sm font-semibold text-rose-500">{error}</p>
+            <div className="flex flex-col items-start gap-2">
+              <p className="text-sm font-semibold text-rose-500">{error}</p>
+              {isLimitError && <PlansLink isDarkMode={isDarkMode} />}
+            </div>
           )}
 
           {/* One block per sense, each labelled with its grammatical category —

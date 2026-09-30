@@ -27,3 +27,13 @@ export function callsTodayFor(user, today = todayUTC()) {
   if (!user || user.aiCallsDate !== today) return 0;
   return user.aiCallsToday ?? 0;
 }
+
+/**
+ * True when an error is the daily AI allowance being used up: the server's
+ * refusal, or AppContext's before sending (see `dailyLimitError` in
+ * aiService). Recognised by its code, not by a 429, which a provider's rate
+ * limit also returns.
+ */
+export function isDailyLimit(err) {
+  return err?.code === 'DAILY_LIMIT';
+}

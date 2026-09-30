@@ -24,6 +24,7 @@
 // ---------------------------------------------------------------------------
 
 import { askAI } from './aiService';
+import { isDailyLimit } from '../utils/aiUsage';
 import { getPrompt, renderTemplate } from './promptService';
 import { DEFAULT_AI_VOICE, resolveVoice } from '../config/aiVoices';
 
@@ -103,6 +104,19 @@ let _preferredVoice = DEFAULT_AI_VOICE;
  */
 export function setPreferredVoice(voice) {
   _preferredVoice = resolveVoice(voice);
+}
+
+/**
+ * Told when the daily allowance refuses a clip. The browser's own voice still
+ * reads it, so without a word the voice would simply change, or go quiet for
+ * a language the browser can't speak. AppContext registers the limit alert,
+ * the same way it sets the voice.
+ */
+let _onDailyLimit = null;
+
+/** @param {null|(() => void)} fn */
+export function registerTtsDailyLimitHandler(fn) {
+  _onDailyLimit = typeof fn === 'function' ? fn : null;
 }
 
 /**
@@ -369,6 +383,7 @@ export async function speak(
     } catch (err) {
       console.warn('[getTtsService] Gemini TTS failed, falling back to Web Speech API:', err.message);
       if (seq !== _playSeq) return false;
+      if (isDailyLimit(err)) _onDailyLimit?.();
       if (!preferFallback) return false;
     }
   }

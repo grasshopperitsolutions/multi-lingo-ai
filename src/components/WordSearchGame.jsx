@@ -15,12 +15,13 @@ import { normalizeChar } from "../utils/letterKeys";
 import { startWordBudget, shouldKeepFetching } from "../utils/wordBudget";
 import { useInterestTopics } from "../hooks/useInterestTopics";
 import { useChallengeTheme } from "../hooks/useChallengeTheme";
+import { useAiErrorState } from "../hooks/useAiError";
 import { useTts } from "../hooks/useTts";
 import { buildGrid, checkSelection } from "../utils/wordSearchUtils";
 import ChallengeSidebar from "./ChallengeSidebar";
 import ChallengeThemePicker from "./ChallengeThemePicker";
 import Loader from "./Loader";
-import { TtsControls } from "./ui";
+import { TtsControls, PlansLink } from "./ui";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -243,7 +244,7 @@ WordListPanel.propTypes = {
 
 const WordSearchGame = ({ isDarkMode }) => {
   const { t }    = useTranslation();
-  const { user, showAlert } = useAppContext();
+  const { user, showAlert, showDailyLimitAlert } = useAppContext();
   const { topics, preferTopics } = useInterestTopics();
   const challengeTheme = useChallengeTheme();
   const { ttsState, playTts, pauseTts, stopTts } = useTts();
@@ -275,7 +276,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
   // ── Loading / error ──────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
+  const { error, isLimitError, setError, failWith } = useAiErrorState();
 
   // ── Sidebar stats ────────────────────────────────────────────────────────
   const [progress,       setProgress]       = useState(null);
@@ -401,7 +402,7 @@ const WordSearchGame = ({ isDarkMode }) => {
     setGameWon(false);
     markedRef.current       = new Set();
     gameRecordedRef.current = false;
-  }, []);
+  }, [setError]);
 
   const fetchGame = useCallback(async () => {
     try {
@@ -414,21 +415,22 @@ const WordSearchGame = ({ isDarkMode }) => {
         return;
       }
       const errorMessage = err.message ?? t("challenges.word_fetch_error");
-      setError(errorMessage);
+      failWith(err, errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [fetchAllWords, applyWords, t]);
+  }, [fetchAllWords, applyWords, t, failWith]);
 
-  // Show alert with retry action when error is set
+  // Show alert with retry action when error is set — or the plans, when
+  // the day's AI calls ran out and a retry would only be refused again.
   useEffect(() => {
-    if (error) {
-      showAlert("error", error, {
-        label: t("common.try_again", "Try Again"),
-        onClick: fetchGame
-      });
-    }
-  }, [error, fetchGame, t, showAlert]);
+    if (!error) return;
+    if (isLimitError) showDailyLimitAlert();
+    else showAlert("error", error, {
+      label: t("common.try_again", "Try Again"),
+      onClick: fetchGame
+    });
+  }, [error, isLimitError, fetchGame, t, showAlert, showDailyLimitAlert]);
 
   // Initial load — also initialises stats (single fetch, no duplicate)
   useEffect(() => {
@@ -459,7 +461,7 @@ const WordSearchGame = ({ isDarkMode }) => {
           return;
         }
         const errorMessage = err.message ?? t("challenges.word_fetch_error");
-        setError(errorMessage);
+        failWith(err, errorMessage);
         setIsLoadingStats(false);
       } finally {
         if (!cancelled) setLoading(false);
@@ -468,7 +470,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
     init();
     return () => { cancelled = true; };
-  }, [fetchAllWords, applyWords, user, t]);
+  }, [fetchAllWords, applyWords, user, t, failWith]);
 
   // ── Reset seen words — global reset ──────────────────────────────────────
   const handleResetSeenWords = useCallback(async () => {
@@ -603,14 +605,18 @@ const WordSearchGame = ({ isDarkMode }) => {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in gap-4">
         <p className="text-rose-500 font-semibold text-center px-4">{error}</p>
-        <button
-          onClick={() => { resetGame(); fetchGame(); }}
-          className={`px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all ${
-            isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
-          }`}
-        >
-          {t("challenges.try_again")}
-        </button>
+        {isLimitError ? (
+          <PlansLink variant="button" isDarkMode={isDarkMode} />
+        ) : (
+          <button
+            onClick={() => { resetGame(); fetchGame(); }}
+            className={`px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all ${
+              isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
+            }`}
+          >
+            {t("challenges.try_again")}
+          </button>
+        )}
       </div>
     );
   }

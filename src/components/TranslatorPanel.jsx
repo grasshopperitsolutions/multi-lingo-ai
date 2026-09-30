@@ -5,8 +5,9 @@ import { ArrowLeftRight, Copy, Trash2, Languages, BookMarked } from 'lucide-reac
 import { useAppContext } from '../contexts/AppContext';
 import { translateText } from '../services/translatorService';
 import { useTts } from '../hooks/useTts';
+import { useAiErrorState } from '../hooks/useAiError';
 import TooltipButton from './TooltipButton';
-import { Breadcrumb, FeatureHeader, TtsControls } from './ui';
+import { Breadcrumb, FeatureHeader, TtsControls, PlansLink } from './ui';
 
 const MAX_CHARS = 1000;
 
@@ -52,7 +53,7 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
   const [inputText,    setInputText]    = useState('');
   const [outputText,   setOutputText]   = useState('');
   const [isLoading,    setIsLoading]    = useState(false);
-  const [error,        setError]        = useState(null);
+  const { error, isLimitError, setError, failWith } = useAiErrorState();
   const [copyFeedback, setCopyFeedback] = useState(false);
 
   const handleSwap = () => {
@@ -95,7 +96,7 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
       });
       setOutputText(translation);
     } catch (err) {
-      setError(err.message ?? t('translator.error_failed'));
+      failWith(err, err.message ?? t('translator.error_failed'));
     } finally {
       setIsLoading(false);
     }
@@ -188,7 +189,10 @@ const TranslatorPanel = ({ isDarkMode, onBack, onLookupInDictionary }) => {
               }`}>{t('translator.translating')}</span>
             </div>
           ) : error ? (
-            <p className="text-sm font-bold text-rose-500">{error}</p>
+            <div className="flex flex-col items-start gap-2">
+              <p className="text-sm font-bold text-rose-500">{error}</p>
+              {isLimitError && <PlansLink isDarkMode={isDarkMode} />}
+            </div>
           ) : outputText ? (
             <p className="whitespace-pre-wrap">{outputText}</p>
           ) : (

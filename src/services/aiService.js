@@ -33,6 +33,7 @@
  */
 
 import i18next from 'i18next';
+import { isDailyLimit } from '../utils/aiUsage';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -59,7 +60,10 @@ let _confirmHandler = null;
 /**
  * Register the confirmation prompt shown before a billable AI call.
  *
- * @param {null|(() => Promise<boolean>)} fn - Resolves true to proceed.
+ * @param {null|(() => Promise<boolean>)} fn - Resolves true to proceed. May
+ *   reject instead: AppContext rejects with `dailyLimitError()` when the
+ *   allowance is already spent, so the call fails exactly as the server's
+ *   refusal would, without the round trip.
  */
 export function registerAiConfirmHandler(fn) {
   _confirmHandler = typeof fn === 'function' ? fn : null;
@@ -101,9 +105,23 @@ function _reportUsage(usage) {
   }
 }
 
-/** True when an error is the daily AI allowance being used up. */
-export function isDailyLimit(err) {
-  return err?.code === 'DAILY_LIMIT';
+// Kept in utils/aiUsage, which tests never mock, and re-exported here for the
+// callers that already import it from this service.
+export { isDailyLimit };
+
+/**
+ * The error for a spent daily allowance, whoever notices first: the server's
+ * refusal, or the confirm handler before anything is sent. One builder, so
+ * both carry the same code and the same message in the reader's language.
+ *
+ * @param {string} [fallback] - Used only before translations load.
+ */
+export function dailyLimitError(fallback) {
+  const err = new Error(
+    i18next.t('ai_usage.limit_reached', { defaultValue: fallback || 'Daily AI limit reached.' })
+  );
+  err.code = 'DAILY_LIMIT';
+  return err;
 }
 
 /** Thrown when the user declines the generation prompt. */
@@ -137,6 +155,8 @@ export class AiGenerationDeclined extends Error {
  *   recording for the model to listen to. Same terms as `images`.
  * @returns {Promise<object>} The `data` field from the API response envelope
  * @throws {AiGenerationDeclined} If the user declines the generation prompt.
+ * @throws {Error} With `code: 'DAILY_LIMIT'` (see `isDailyLimit`) when the
+ *   day's allowance is spent.
  */
 export async function askAI(token, prompt, providerParams, options = {}) {
   const { timeout = DEFAULT_TIMEOUT, signal, retries = 0, skipConfirm = false, images, audio } = options;
@@ -185,11 +205,7 @@ export async function askAI(token, prompt, providerParams, options = {}) {
         // English text is only the fallback before translations load.
         if (json?.code === 'DAILY_LIMIT') {
           _reportUsage(json.usage);
-          const limitError = new Error(
-            i18next.t('ai_usage.limit_reached', { defaultValue: json?.error || 'Daily AI limit reached.' })
-          );
-          limitError.code = 'DAILY_LIMIT';
-          throw limitError;
+          throw dailyLimitError(json?.error);
         }
         throw new Error(
           json?.error || json?.message || `AI request failed (${response.status})`

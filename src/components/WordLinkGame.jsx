@@ -12,6 +12,8 @@ import {
 import { fetchWordLinkPuzzle, getWordLinkPoolCount } from "../services/wordLinkService";
 import { useInterestTopics } from "../hooks/useInterestTopics";
 import { useChallengeTheme } from "../hooks/useChallengeTheme";
+import { useAiErrorState } from "../hooks/useAiError";
+import PlansLink from "./ui/PlansLink";
 import ChallengeSidebar from "./ChallengeSidebar";
 import ChallengeThemePicker from "./ChallengeThemePicker";
 import Loader from "./Loader";
@@ -164,7 +166,7 @@ const WordLinkGame = ({ isDarkMode }) => {
 
   // ── Loading / error ──────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
+  const { error, isLimitError, setError, failWith } = useAiErrorState();
 
   // ── Sidebar / stats ──────────────────────────────────────────────────────
   const [progress,       setProgress]       = useState(null);
@@ -234,12 +236,12 @@ const WordLinkGame = ({ isDarkMode }) => {
         window.location.reload();
         return;
       }
-      setError(sanitizeAIError(err.message, t("challenges.word_fetch_error")));
+      failWith(err, sanitizeAIError(err.message, t("challenges.word_fetch_error")));
     } finally {
       setLoading(false);
       setIsLoadingStats(false);
     }
-  }, [user, interfaceLang, learningDialect, t, topics, challengeTheme.theme]);
+  }, [user, interfaceLang, learningDialect, t, topics, challengeTheme.theme, failWith, setError]);
 
   useEffect(() => {
     loadPuzzle();
@@ -304,14 +306,18 @@ const WordLinkGame = ({ isDarkMode }) => {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto gap-4 animate-in fade-in">
         <p className="text-rose-500 font-semibold text-center px-4">{error}</p>
-        <button
-          onClick={loadPuzzle}
-          className={`px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${
-            isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
-          }`}
-        >
-          {t("challenges.try_again")}
-        </button>
+        {isLimitError ? (
+          <PlansLink variant="button" isDarkMode={isDarkMode} />
+        ) : (
+          <button
+            onClick={loadPuzzle}
+            className={`px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${
+              isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
+            }`}
+          >
+            {t("challenges.try_again")}
+          </button>
+        )}
       </div>
     );
   }

@@ -13,11 +13,12 @@ import {
 import { getWord, getWordPoolCount } from "../services/getWordService";
 import { useInterestTopics } from "../hooks/useInterestTopics";
 import { useChallengeTheme } from "../hooks/useChallengeTheme";
+import { useAiErrorState } from "../hooks/useAiError";
 import { useTts } from "../hooks/useTts";
 import ChallengeSidebar from "./ChallengeSidebar";
 import ChallengeThemePicker from "./ChallengeThemePicker";
 import TooltipButton from "./TooltipButton";
-import { TtsControls, DifficultyToggle } from "./ui";
+import { TtsControls, DifficultyToggle, PlansLink } from "./ui";
 import Loader from "./Loader";
 import { sanitizeAIError } from "../utils/errorUtils";
 import { addSkippedConceptId } from "../utils/skippedConcepts";
@@ -146,7 +147,7 @@ LetterTile.propTypes = {
 // ---------------------------------------------------------------------------
 const ScrambledWordGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
-  const { user, showAlert } = useAppContext();
+  const { user, showAlert, showDailyLimitAlert } = useAppContext();
   const { topics, preferTopics } = useInterestTopics();
   const challengeTheme = useChallengeTheme();
   const { ttsState, playTts, pauseTts, stopTts } = useTts();
@@ -174,7 +175,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
 
   // ── Loading / error ──────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const { error, isLimitError, setError, failWith } = useAiErrorState();
 
   // ── Sidebar / stats ──────────────────────────────────────────────────────
   const [progress,       setProgress]       = useState(null);
@@ -305,7 +306,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     setGameStatus("playing");
     setShowResult(false);
     hasMarkedRef.current = false;
-  }, []);
+  }, [setError]);
 
   const fetchWord = useCallback(async () => {
     try {
@@ -318,21 +319,22 @@ const ScrambledWordGame = ({ isDarkMode }) => {
         return;
       }
       const errorMessage = sanitizeAIError(err.message, t("challenges.word_fetch_error"));
-      setError(errorMessage);
+      failWith(err, errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [fetchWordData, applyWordData, t]);
+  }, [fetchWordData, applyWordData, t, failWith]);
 
-  // Show alert with retry action when error is set
+  // Show alert with retry action when error is set — or the plans, when
+  // the day's AI calls ran out and a retry would only be refused again.
   useEffect(() => {
-    if (error) {
-      showAlert("error", error, {
-        label: t("common.try_again", "Try Again"),
-        onClick: fetchWord
-      });
-    }
-  }, [error, fetchWord, t, showAlert]);
+    if (!error) return;
+    if (isLimitError) showDailyLimitAlert();
+    else showAlert("error", error, {
+      label: t("common.try_again", "Try Again"),
+      onClick: fetchWord
+    });
+  }, [error, isLimitError, fetchWord, t, showAlert, showDailyLimitAlert]);
 
   useEffect(() => {
     let cancelled = false;
@@ -350,12 +352,12 @@ const ScrambledWordGame = ({ isDarkMode }) => {
             return;
           }
           const errorMessage = sanitizeAIError(err.message, t("challenges.word_fetch_error"));
-          setError(errorMessage);
+          failWith(err, errorMessage);
         }
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [fetchWordData, applyWordData, t]);
+  }, [fetchWordData, applyWordData, t, failWith]);
 
   // ── Reset seen words handler — global reset ──────────────────────────────
   const handleResetSeenWords = useCallback(async () => {
@@ -693,14 +695,18 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     return (
       <div className="flex flex-col items-center w-full max-w-2xl mx-auto animate-in fade-in gap-4">
         <p className="text-rose-500 font-semibold text-center px-4">{error}</p>
-        <button
-          onClick={() => { resetGame(); fetchWord(); }}
-          className={`px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${
-            isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
-          }`}
-        >
-          {t("challenges.try_again")}
-        </button>
+        {isLimitError ? (
+          <PlansLink variant="button" isDarkMode={isDarkMode} />
+        ) : (
+          <button
+            onClick={() => { resetGame(); fetchWord(); }}
+            className={`px-8 py-3 rounded-xl border-4 font-black uppercase tracking-wider transition-all hover-neo-light active-neo ${
+              isDarkMode ? "bg-slate-800 border-slate-700 text-white" : "bg-white border-slate-900 text-slate-900"
+            }`}
+          >
+            {t("challenges.try_again")}
+          </button>
+        )}
       </div>
     );
   }

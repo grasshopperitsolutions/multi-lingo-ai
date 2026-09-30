@@ -957,7 +957,8 @@
     "unlimited": "Ilimitadas",
     "depleted": "Sem chamadas",
     "remaining": "Restam {{count}} / {{total}}",
-    "limit_reached": "Já usaste todas as tuas chamadas de IA por hoje. Atualiza o plano para teres mais."
+    "limit_reached": "Já usaste todas as tuas chamadas de IA por hoje. Atualiza o plano para teres mais.",
+    "see_plans": "Ver planos com mais chamadas"
   },
   "grammar": {
     "structures": "Estruturas",

@@ -13,9 +13,9 @@ import { getCategories } from "../services/categoriesService";
 import { getTiersConfig } from "../services/tiersConfigService";
 import { getFeatures } from "../services/featuresService";
 import { ALL_FAVOURITE_FIELDS } from "../services/favouritesService";
-import { registerAiConfirmHandler, registerAiUsageHandler } from "../services/aiService";
+import { registerAiConfirmHandler, registerAiUsageHandler, dailyLimitError } from "../services/aiService";
 import { callsTodayFor } from "../utils/aiUsage";
-import { setPreferredVoice } from "../services/getTtsService";
+import { setPreferredVoice, registerTtsDailyLimitHandler } from "../services/getTtsService";
 import { normalizeCode } from "../utils/languageCode";
 import { auth } from "../firebase";
 import PropTypes from "prop-types";
@@ -195,6 +195,24 @@ export const AppProvider = ({ children }) => {
   const showAlert = useCallback((type, message, action = null) => {
     setAlert({ show: true, type, message, action });
   }, []);
+
+  // The limit alert's button navigates, and screens keep the alert in effect
+  // dependencies, while `navigate` changes identity on every route change. A
+  // ref keeps the alert stable.
+  const navigateRef = useRef(navigate);
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
+
+  // Out of AI calls for the day, said the same way everywhere, with the way
+  // to more calls one tap away. `message` lets a screen say what the limit
+  // cost it (a shorter exam, an unmarked answer) and keep the button.
+  const showDailyLimitAlert = useCallback((message) => {
+    showAlert("warning", message || i18n.t("ai_usage.limit_reached"), {
+      label: i18n.t("pricing.upgrade"),
+      onClick: () => navigateRef.current("/pricing"),
+    });
+  }, [showAlert]);
 
   const closeAlert = useCallback(() => {
     setAlert((prev) => ({ ...prev, show: false, action: null }));
@@ -461,6 +479,11 @@ export const AppProvider = ({ children }) => {
 
       // Nothing to ration — Maestro, VIP and Admin are never interrupted.
       if (unlimited) return Promise.resolve(true);
+      // Nothing left. Fail as the server's refusal would, without sending, so
+      // the screen that asked shows the limit and the way to more calls. A
+      // warning reading "0 calls left" with a Continue button only led there
+      // the long way round.
+      if (remaining <= 0) return Promise.reject(dailyLimitError());
       // Plenty of allowance left; the header counter is signal enough.
       if (remaining > AI_CONFIRM_WARN_AT_OR_BELOW) return Promise.resolve(true);
       // The user asked not to be warned again today.
@@ -488,7 +511,16 @@ export const AppProvider = ({ children }) => {
     setPreferredVoice(preferredVoice);
   }, [preferredVoice]);
 
-  const resolveAiConfirm = useCallback((proceed, { muteToday = false } = {}) => {
+  // A clip the allowance refused is read in the browser's own voice, or not
+  // at all. Say why, from every speaker at once.
+  useEffect(() => {
+    registerTtsDailyLimitHandler(() => showDailyLimitAlert());
+    return () => registerTtsDailyLimitHandler(null);
+  }, [showDailyLimitAlert]);
+
+  // `toPlans`: the warning's "see the plans" link. A no to this call, then
+  // the pricing page.
+  const resolveAiConfirm = useCallback((proceed, { muteToday = false, toPlans = false } = {}) => {
     const resolve = aiConfirmResolver.current;
     aiConfirmResolver.current = null;
     setAiConfirm(null);
@@ -499,6 +531,7 @@ export const AppProvider = ({ children }) => {
     // window still open so the next action asks again.
     aiConfirmGraceUntil.current = proceed ? Date.now() + AI_CONFIRM_GRACE_MS : 0;
     resolve?.(proceed);
+    if (toPlans) navigateRef.current("/pricing");
   }, []);
 
   // Register the fillMissingTranslations function with i18next so it
@@ -891,6 +924,7 @@ export const AppProvider = ({ children }) => {
         changeLanguage,
         alert,
         showAlert,
+        showDailyLimitAlert,
         closeAlert,
         user,
         setUser,

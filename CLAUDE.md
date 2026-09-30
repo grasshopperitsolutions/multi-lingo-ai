@@ -978,6 +978,42 @@ The count itself is checked and incremented in one transaction on the API
 side, so calls fired at once cannot all slip under the limit; see the API's
 CLAUDE.md.
 
+## Out of calls, every screen points to the plans
+
+Running out is the one AI failure a retry cannot fix, so wherever it shows,
+the way to more calls replaces "Try again":
+
+- **The header's "Sem chamadas"** is a link to `/pricing`.
+- **Alerts** go through AppContext's `showDailyLimitAlert(message?)`: a
+  warning with the "Mudar de plano" button. The optional message lets a screen
+  say what the limit cost it (a shorter full exam, an unmarked text) and keep
+  the button.
+- **A call with nothing left fails before it is sent.** The confirm handler
+  rejects with `dailyLimitError()`, the same error the server's refusal
+  becomes, so the screen that asked handles both the same way. It used to open
+  the warning reading "0 calls left" with a Continue button, and then the server
+  refused. This is safe while limits are paused: the API writes no counter then,
+  so the count shown never reaches the limit.
+- **The warning at one or two calls left** has "Ver planos com mais chamadas",
+  which declines the pending call before leaving (`resolveAiConfirm(false,
+  { toPlans: true })`), or the screen waiting on it would wait for ever.
+- **Screens catch it with `hooks/useAiError`.** `useAiErrorState` (games,
+  dictionary, translator, lookup sheet) keeps whether the error was the limit,
+  so the panel shows `ui/PlansLink` instead of "Try again". `useAiErrorAlert`
+  (exam exercises, grammar drills, photo capture) picks the limit alert or the
+  retry alert. **A new AI screen should use one of the two.**
+- **Speakers** fall back to the browser's own voice when the allowance refuses
+  a clip. `getTtsService` calls the handler AppContext registers, so the change
+  of voice, or the silence for a language the browser can't speak, is
+  explained from every speaker at once.
+- **The pages that check `canUseAI` before calling** (Tale Creator, culture,
+  Practice Text, Ask, Tips, voice practice, the professional tools) already
+  showed the same alert and are unchanged.
+
+`isDailyLimit` lives in `utils/aiUsage` and is re-exported by `aiService`.
+Import it from utils in components: many suites mock `aiService` with only
+`askAI`, and a missing export there throws only on the error path.
+
 ## PDF export reaches exactly as far as the font does
 
 Stories and history/culture pieces export through `utils/readingPdf` — one

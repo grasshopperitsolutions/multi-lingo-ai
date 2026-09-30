@@ -33,10 +33,13 @@ import {
 } from "./exercises";
 import useGenerateConfirm from "../hooks/useGenerateConfirm";
 import { usePracticeLevel } from "../hooks/usePracticeLevel";
+import { useAiErrorAlert } from "../hooks/useAiError";
 
 const ReadingExercise = ({ isDarkMode }) => {
   const { t } = useTranslation();
-  const { user, setUser, showAlert } = useAppContext();
+  const { user, setUser } = useAppContext();
+  // The daily limit gets the plans; anything else gets "Try again".
+  const alertAiError = useAiErrorAlert();
 
   const { level, setLevel } = usePracticeLevel();
   const [questionType, setQuestionType] = useState("random");
@@ -134,10 +137,7 @@ const ReadingExercise = ({ isDarkMode }) => {
         err.message ??
         t("common.error", "Something went wrong. Please try again.");
       setError(errorMessage);
-      showAlert("error", errorMessage, {
-        label: t("common.try_again", "Try Again"),
-        onClick: handleGetExercise,
-      });
+      alertAiError(err, { message: errorMessage, retry: handleGetExercise });
     } finally {
       setLoading(false);
     }

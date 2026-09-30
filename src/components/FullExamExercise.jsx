@@ -42,6 +42,7 @@ import { getScoreColor } from "../services/examUtils";
 import { markExercisesSeen } from "../services/userService";
 import { getWritingSpec } from "../config/examLevels";
 import { isAiDeclined } from "../services/aiService";
+import { isDailyLimit } from "../utils/aiUsage";
 import { usePracticeLevel } from "../hooks/usePracticeLevel";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -880,7 +881,7 @@ ExamResultsPanel.propTypes = {
 // ═══════════════════════════════════════════════════════════════════════════════
 const FullExamExercise = ({ isDarkMode, onBack }) => {
   const { t } = useTranslation();
-  const { user, setUser, examSession, setExamSession, updateExamSection, showAlert } = useAppContext();
+  const { user, setUser, examSession, setExamSession, updateExamSection, showAlert, showDailyLimitAlert } = useAppContext();
 
   const [genSteps, setGenSteps] = useState(
     GENERATION_STEPS.map((s) => ({ ...s, status: "pending" }))
@@ -925,6 +926,10 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
     // Set when the user declines the generation prompt — the remaining slots
     // are skipped rather than each reporting itself as a failure.
     let declined = false;
+    // Set when a slot failed because the day's AI calls ran out. Later slots
+    // are still tried — the pool serves some without a call — and the alert
+    // at the end carries the way to more calls.
+    let limitHit = false;
 
     /**
      * Fetch one slot. Each generated exercise carries the slot that requested
@@ -961,6 +966,7 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
           return null;
         }
         console.warn(`[FullExam] Failed to generate ${type}/${slot?.type}:`, err?.message);
+        if (isDailyLimit(err)) limitHit = true;
         failedSlots.push(slot?.type ?? type);
         return null;
       }
@@ -1006,18 +1012,23 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
       if (declined) return;
 
       if (!sections.listening.exercises.length && !sections.reading.exercises.length && !sections.writing.exercise) {
-        showAlert("error", t("exam.full.generate_failed", "Could not generate the exam. Please try again."));
+        // "Try again" would be wrong when the allowance is what failed.
+        if (limitHit) showDailyLimitAlert();
+        else showAlert("error", t("exam.full.generate_failed", "Could not generate the exam. Please try again."));
         return;
       }
 
       // Tell the student what is missing rather than silently handing them a
-      // shorter exam scored against a smaller total.
+      // shorter exam scored against a smaller total — with the way to more
+      // calls when that is why.
       if (failedSlots.length) {
-        showAlert("warning", t(
+        const partial = t(
           "exam.full.partial_generation",
           "{{count}} exercise(s) could not be generated and were left out of this exam.",
           { count: failedSlots.length },
-        ));
+        );
+        if (limitHit) showDailyLimitAlert(partial);
+        else showAlert("warning", partial);
       }
 
       // Persist the seen list in one write, and mirror it into context so a
@@ -1054,7 +1065,7 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
     } finally {
       setGenerating(false);
     }
-  }, [user, setUser, level, setExamSession, updateStep, showAlert, t]);
+  }, [user, setUser, level, setExamSession, updateStep, showAlert, showDailyLimitAlert, t]);
 
   // ── Section navigation ──────────────────────────────────────────────────────
   const getSectionExercises = (sectionName) => {
@@ -1216,10 +1227,12 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
           updateExamSection("writing", { evaluation: evalResult });
         } catch (err) {
           console.warn("[FullExam] Writing evaluation failed:", err?.message);
-          showAlert("warning", t(
+          const unmarked = t(
             "exam.full.writing_eval_failed",
             "Your writing could not be marked automatically. The rest of your exam has been scored.",
-          ));
+          );
+          if (isDailyLimit(err)) showDailyLimitAlert(unmarked);
+          else showAlert("warning", unmarked);
         }
       }
 
