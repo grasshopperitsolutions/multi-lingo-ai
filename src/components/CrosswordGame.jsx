@@ -261,8 +261,13 @@ LetterCell.propTypes = {
  * actually read, which is what lets the cells stay small — the same division of
  * labour WordSearchGame uses with its word list.
  */
-/** How tall the clue list gets when open; collapse animates this down to zero. */
-const CLUE_LIST_OPEN = "max-h-[min(45vh,26rem)]";
+/**
+ * How tall the clue list gets when open; collapse animates this down to zero.
+ * Capped on a phone, where the list sits above the board; natural height on
+ * desktop, where it is a column beside it and a scrolling box only hid clues.
+ * (Opening there snaps rather than slides: there is no transition to `none`.)
+ */
+const CLUE_LIST_OPEN = "max-h-[min(45vh,26rem)] lg:max-h-none";
 
 const CluePanel = ({ entries, icons, solvedIds, activeEntryId, onSelect, isDarkMode, t, isOpen, isLocked, onToggle, tts }) => (
   <div className={`rounded-2xl border-4 flex flex-col overflow-hidden ${

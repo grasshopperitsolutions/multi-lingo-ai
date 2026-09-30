@@ -114,6 +114,10 @@ export async function getFactPoolStatus({ token, targetLang, seenFactIds = [] })
  * @param {Array<{id: string, label: string}>} [params.interests]
  * @param {string[]} [params.seenFactIds]
  * @param {string} [params.description] - custom subject; skips the cache when set
+ * @param {{id: string, label: string}|null} [params.interest] - one of the
+ *   reader's interests, chosen as the subject. A custom request like
+ *   `description`: skips the cache and reaches the prompt's `{{subject}}` on
+ *   its own. A description, if both are sent, still wins.
  * @returns {Promise<{ factId: string, title: string, paragraphs: string[], locale: string, source: 'db'|'ai' }>}
  */
 export async function getFact({
@@ -123,6 +127,7 @@ export async function getFact({
   interests = [],
   seenFactIds = [],
   description = '',
+  interest = null,
 }) {
   if (!token) throw new Error('[historyCultureService] token is required');
   if (!targetLang) throw new Error('[historyCultureService] targetLang is required');
@@ -131,8 +136,13 @@ export async function getFact({
   const pool = await _fetchReadyFacts(token, targetLang);
   const existingTitles = pool.map((f) => f.title);
 
-  if (description.trim()) {
-    return _generateFact({ token, targetLang, locale, interests, existingTitles, description: description.trim() });
+  if (description.trim() || interest) {
+    return _generateFact({
+      token, targetLang, locale,
+      interests: interest ? [interest] : interests,
+      existingTitles,
+      description: description.trim(),
+    });
   }
 
   const seenSet = new Set(seenFactIds);

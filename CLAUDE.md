@@ -569,6 +569,43 @@ wording until an admin force resync, because `fillMissingTranslations` only
 fills *missing* keys. And `config/seoStrings.js` still says "stories" on
 purpose: it is crawler-facing, and "story" is the word someone searches for.
 
+## Tales and culture pieces: what you have read, and about which interest
+
+Both pages have a left sidebar, like the challenges: the Tale Creator's is
+`ExerciseSidebar`, and the culture page has one of its own.
+
+- **`SeenProgressCard`** shows how much of the pool the page draws from the
+  reader has seen (a level and a language for tales, a language for culture
+  pieces), from the pool-status calls the pages already made for the
+  custom-request gate. Its reset clears **every** seen id of that kind
+  (`resetSeenStories`, `resetSeenHistoryFacts`), so it stays enabled while
+  anything has been read, not only while the bar shows something.
+- **`InterestPicker`** writes the next one about one of the reader's saved
+  interests. **Choosing one is a custom request**: gated by `custom_requests`
+  or an exhausted pool, like `CustomRequestInput`, and locked rather than
+  hidden. It always generates: pooled pieces were themed on several interests
+  at once, so none is about this one alone.
+- **No prompt changed.** The chosen interest goes into the slot the full
+  interest list already filled: `{{interests}}` in `story-generate-prompt`,
+  `{{subject}}` in `history-culture-generate-prompt`. It is tagged as the
+  piece's only `topicIds` entry.
+- **An interest and a written request are one at a time**, as in the
+  challenges: choosing an interest clears the request box and closes it
+  (`interest_picker.description_blocked`). The service still lets a
+  description win if both arrive.
+- **The chosen interest is derived, like the tale theme.** A lock that returns
+  (after a reset makes the pool unseen again, say) drops it instead of sending
+  it.
+
+## Challenge word lists take their natural height beside the board
+
+Word Search's word list and the crossword's clue list used to scroll inside
+`min(45vh, 26rem)` everywhere. The cap exists for phones, where the list sits
+above the board and would bury it. On desktop the list is a column beside the
+board, so it takes its natural height: Word Search caps only its collapsible
+phone copy, and the crossword's `CLUE_LIST_OPEN` adds `lg:max-h-none` (opening
+the list there snaps rather than slides, since nothing transitions to `none`).
+
 ## Tale themes are a bounded list so the pool still works
 
 `config/storyThemes.js` is the world a tale is set in — fantasy, underwater,
@@ -1676,8 +1713,9 @@ worth unifying.
 
 **It is opt-in per page, via `showPracticeLanguage` on `FeaturePageShell` /
 `FeatureHeader`.** Currently on: the story reader, history & culture, the
-dictionary, all four exam exercises, the three grammar pages, and all three
-professional tools (one line in `ProToolShell`, which they share).
+dictionary, all four exam exercises, the three grammar pages, all three
+professional tools (one line in `ProToolShell`, which they share), and the six
+challenges.
 
 **The professional tools are the strongest case, not an exception.** All three
 take `targetLang = user.learningDialect` (`CvToolPage.jsx:47` and its two
@@ -1698,11 +1736,10 @@ On the personal dashboard it sits above the grid rather than being a registry
 widget: it is context rather than content, so it is not hideable in Settings
 alongside the nine that are.
 
-`ChallengeSidebar` already showed the dialect and keeps showing the raw code;
-it gained the same tooltip, so the two surfaces explain themselves the same
-way. Its label comes from the **progress record's** dialect, which is not
-necessarily the one currently selected — a stored run keeps the language it was
-played in.
+`ChallengeSidebar` used to show the dialect as a stat row. Since 2026-09-30 the
+challenges carry the badge in their title instead, as every other feature page
+does, and the row is gone. The row read the **progress record's** dialect,
+which was not necessarily the one the next word would come in.
 
 Copy note: "praticar", never "aprender", per the app's voice — matching
 `settings.language_learning` ("Idioma que Praticas").

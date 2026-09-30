@@ -15,6 +15,7 @@ const CrosswordsPage = () => {
   return (
     <FeaturePageShell
       isDarkMode={isDarkMode}
+      showPracticeLanguage
       accentColor="rose"
       title={t("challenges.crosswords")}
       reportContext="CrosswordsPage"

@@ -15,6 +15,7 @@ const WordLinkPage = () => {
   return (
     <FeaturePageShell
       isDarkMode={isDarkMode}
+      showPracticeLanguage
       accentColor="rose"
       title={t("challenges.word_link")}
       reportContext="WordLinkPage"

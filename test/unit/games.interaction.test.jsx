@@ -643,3 +643,79 @@ describe("games out of AI calls", () => {
     }
   });
 });
+
+/**
+ * The practice language is the badge beside each challenge's title, as on
+ * every other feature page, not a row in the sidebar.
+ */
+describe("the practice language on the challenges", () => {
+  beforeEach(() => {
+    ctx.current = signedIn();
+    globalThis.fetch = emptyEnvelope();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  it.each([
+    ["HangmanPage"], ["ScrambledWordPage"], ["WordSearchPage"],
+    ["CrosswordsPage"], ["WordLinkPage"], ["WordLadderPage"],
+  ])("%s carries the badge in its title", async (page) => {
+    const { default: i18n } = await import("../../src/i18n");
+    const { default: Page } = await import(`../../src/pages/dashboard/games/${page}.jsx`);
+    const { findAllByText } = render(
+      <I18nextProvider i18n={i18n}>
+        <MemoryRouter>
+          <Page />
+        </MemoryRouter>
+      </I18nextProvider>,
+    );
+
+    expect((await findAllByText("pt-PT")).length).toBeGreaterThan(0);
+  });
+
+  it("is no longer a row in the challenge sidebar", async () => {
+    const { default: i18n } = await import("../../src/i18n");
+    const { default: ChallengeSidebar } = await import("../../src/components/ChallengeSidebar");
+    const { queryByText } = render(
+      <I18nextProvider i18n={i18n}>
+        <ChallengeSidebar
+          isDarkMode={false}
+          progress={{ totalPlayed: 3, lastPlayedAt: null, learningDialect: "pt-PT" }}
+          isLoadingStats={false}
+          onReset={vi.fn()}
+          resetTitle="t"
+          resetMessage="m"
+          resetConfirmLabel="c"
+          title="Stats"
+        />
+      </I18nextProvider>,
+    );
+
+    expect(queryByText("pt-PT")).toBeNull();
+  });
+});
+
+/**
+ * Word Search's word list takes its natural height beside the grid on
+ * desktop; only the phone copy, which sits above the grid, is capped.
+ */
+describe("the word search word list", () => {
+  beforeEach(() => {
+    ctx.current = signedIn();
+    globalThis.fetch = emptyEnvelope();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  it("caps its height on a phone only", async () => {
+    const { container } = await mount(() => import("../../src/components/WordSearchGame"));
+    await settled(container);
+
+    await waitFor(() => {
+      const capped = container.querySelectorAll('[style*="max-height"]');
+      expect(capped.length).toBe(1);
+      // The phone copy is the collapsible one: its heading is a toggle.
+      expect(capped[0].parentElement.querySelector("button[aria-expanded]")).toBeTruthy();
+    }, { timeout: 8000 });
+  });
+});

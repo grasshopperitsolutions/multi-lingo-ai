@@ -752,7 +752,6 @@
       "words_seen": "Palavras Vistas",
       "played": "Jogadas",
       "last_played": "Última Jogada",
-      "dialect": "Dialeto",
       "reset_btn": "Reiniciar Progresso",
       "reset_title": "Reiniciar Progresso",
       "reset_message": "Isto apaga todas as palavras que já viste, permitindo-te voltar a ver palavras que já tinham saído.",
@@ -1091,7 +1090,13 @@
     "show_translation": "Ver tradução",
     "hide_translation": "Ocultar tradução",
     "show_all_translations": "Ver todas as traduções",
-    "hide_all_translations": "Ocultar todas as traduções"
+    "hide_all_translations": "Ocultar todas as traduções",
+    "seen_title": "Contos Vistos",
+    "reset_seen_btn": "Reiniciar Contos Vistos",
+    "reset_seen_title": "Reiniciar Contos Vistos",
+    "reset_seen_message": "Isto esquece todos os contos que já leste, em todos os níveis e línguas, para os poderes voltar a receber.",
+    "reset_seen_warning": "⚠ Isto não pode ser anulado.",
+    "reset_seen_confirm": "Sim, reiniciar contos"
   },
   "personal": {
     "intro": "O teu espaço. Nada aqui é gerado — é o que tu escreves.",
@@ -1317,7 +1322,25 @@
     "discover": "Descobrir algo",
     "discover_another": "Descobrir outra coisa",
     "loading": "À procura de algo interessante...",
-    "description_placeholder": "Ou pergunta sobre algo específico (ex.: o fado, o terramoto de 1755)..."
+    "description_placeholder": "Ou pergunta sobre algo específico (ex.: o fado, o terramoto de 1755)...",
+    "seen_title": "Curiosidades Vistas",
+    "reset_seen_btn": "Reiniciar Curiosidades Vistas",
+    "reset_seen_title": "Reiniciar Curiosidades Vistas",
+    "reset_seen_message": "Isto esquece todas as curiosidades que já leste, em todas as línguas, para as poderes voltar a receber.",
+    "reset_seen_warning": "⚠ Isto não pode ser anulado.",
+    "reset_seen_confirm": "Sim, reiniciar curiosidades"
+  },
+  "interest_picker": {
+    "label": "Sobre um dos teus interesses",
+    "none": "Nenhum em especial",
+    "locked": "Escolher um interesse é um pedido personalizado. Toca para veres os planos.",
+    "no_interests_prefix": "Escolhe os teus interesses nas",
+    "settings_link": "definições",
+    "no_interests_suffix": " para pedires textos sobre eles.",
+    "description_blocked": "Retira o interesse escolhido para pedires outra coisa"
+  },
+  "seen_progress": {
+    "count": "{{seen}} de {{total}}"
   },
   "custom_request": {
     "locked": "Queres pedir algo específico? Atualiza o plano para pedires os teus próprios temas.",

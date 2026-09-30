@@ -15,6 +15,7 @@ const HangmanPage = () => {
   return (
     <FeaturePageShell
       isDarkMode={isDarkMode}
+      showPracticeLanguage
       accentColor="rose"
       title={t("challenges.hangman")}
       reportContext="HangmanPage"

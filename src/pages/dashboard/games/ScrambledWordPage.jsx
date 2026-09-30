@@ -15,6 +15,7 @@ const ScrambledWordPage = () => {
   return (
     <FeaturePageShell
       isDarkMode={isDarkMode}
+      showPracticeLanguage
       accentColor="rose"
       title={t("challenges.scrambled_word")}
       reportContext="ScrambledWordPage"

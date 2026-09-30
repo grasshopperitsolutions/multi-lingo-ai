@@ -114,11 +114,12 @@ GridCell.propTypes = {
 };
 
 /**
- * The list grows with WORD_COUNT, and at twenty words it pushed the grid off
- * screen on desktop and buried it on mobile. Capping the height and scrolling
- * the list keeps the board the thing you see first. An inline style rather than
- * a Tailwind class because arbitrary viewport heights were not being applied
- * reliably here.
+ * The phone copy sits above the grid, and at twenty words it buried the board;
+ * capping its height and scrolling the list keeps the board the thing you see
+ * first. The desktop copy is a column beside the grid, so it takes its natural
+ * height: a scrolling box there only hid words with the space to show them.
+ * An inline style rather than a Tailwind class because arbitrary viewport
+ * heights were not being applied reliably here.
  */
 const LIST_MAX_HEIGHT = "min(45vh, 26rem)";
 
@@ -173,7 +174,7 @@ const WordListPanel = ({ words, foundWords, isDarkMode, t, collapsible = false, 
           className={`flex flex-col gap-3 overflow-y-auto overflow-x-hidden pr-1 neo-scrollbar ${
             isDarkMode ? "neo-scrollbar-dark" : ""
           }`}
-          style={{ maxHeight: LIST_MAX_HEIGHT }}
+          style={collapsible ? { maxHeight: LIST_MAX_HEIGHT } : undefined}
         >
           {words.map(({ word, hint, conceptId }) => {
             const found = foundWords.has(conceptId);

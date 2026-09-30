@@ -15,6 +15,7 @@ const WordLadderPage = () => {
   return (
     <FeaturePageShell
       isDarkMode={isDarkMode}
+      showPracticeLanguage
       accentColor="rose"
       title={t("challenges.word_ladder")}
       reportContext="WordLadderPage"

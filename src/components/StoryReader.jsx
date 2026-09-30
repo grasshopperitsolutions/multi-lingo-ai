@@ -10,13 +10,15 @@ import { useTts } from "../hooks/useTts";
 import { useWordFavourites } from "../hooks/useWordFavourites";
 import { useWordLookup } from "../hooks/useWordLookup";
 import { getStory, getStoryTranslation, getStoryPoolStatus } from "../services/storyService";
-import { markStorySeen } from "../services/userService";
+import { markStorySeen, resetSeenStories } from "../services/userService";
 import { STORY_THEMES, DEFAULT_STORY_THEME, CUSTOM_STORY_THEME } from "../config/storyThemes";
 import Loader from "./Loader";
 import CustomRequestInput from "./CustomRequestInput";
 import WordLookupSheet from "./WordLookupSheet";
 import TappableParagraph from "./TappableParagraph";
 import WordBankSidebar from "./WordBankSidebar";
+import InterestPicker from "./InterestPicker";
+import SeenProgressCard from "./SeenProgressCard";
 import ExerciseSidebar from "./ExerciseSidebar";
 import DownloadPdfButton from "./DownloadPdfButton";
 import { FeaturePageShell, Card, ErrorBanner, LevelBadge } from "./ui";
@@ -57,7 +59,12 @@ const StoryReader = ({ isDarkMode }) => {
   const [theme, setTheme] = useState(DEFAULT_STORY_THEME);
   const [customTheme, setCustomTheme] = useState("");
   const [description, setDescription] = useState("");
-  const [cacheExhausted, setCacheExhausted] = useState(false);
+  // One of the reader's interests as the subject, or null for none in particular.
+  const [interestId, setInterestId] = useState(null);
+  // What the pool holds for this level and language, and how much of it the
+  // reader has read: drives the "tales seen" card and the custom-request gate.
+  const [poolStatus, setPoolStatus] = useState(null);
+  const [isLoadingPool, setIsLoadingPool] = useState(false);
   const [story, setStory] = useState(null);
   const [translation, setTranslation] = useState(null);
   const [isLoadingStory, setIsLoadingStory] = useState(false);
@@ -78,6 +85,7 @@ const StoryReader = ({ isDarkMode }) => {
   const targetLanguageLabel =
     supportedLanguages?.find((lang) => lang.code === targetLang)?.label ?? targetLang ?? "";
   const showBilingual = !!story && interfaceLang !== story.targetLang;
+  const cacheExhausted = poolStatus?.exhausted ?? false;
 
   // Same rule the custom-description box uses: anything that forces a fresh
   // generation unlocks together with it, rather than opening a second route to
@@ -100,12 +108,27 @@ const StoryReader = ({ isDarkMode }) => {
   // effect, so there is no frame where the two disagree.
   const activeTheme = theme === CUSTOM_STORY_THEME && !canCustomise ? DEFAULT_STORY_THEME : theme;
 
-  // Cheap, AI-free read: tells CustomRequestInput whether this reader has run
-  // out of cached stories, which is what unlocks the box for limited tiers.
-  // Re-runs on level change because the pool is per level.
+  // Choosing an interest is a custom request too, so it follows the same
+  // gate — and, derived like the theme, a lock that returns (after a reset of
+  // seen tales, say) quietly drops it rather than sending it anyway.
+  const activeInterest = canCustomise ? topics.find((topic) => topic.id === interestId) ?? null : null;
+
+  // An interest and a written description are both "what the tale is about",
+  // so only one at a time, as in the challenges: choosing an interest clears
+  // the description, and the box stays shut until it is unchosen.
+  const handleSelectInterest = (id) => {
+    setInterestId(id);
+    if (id) setDescription("");
+  };
+
+  // Cheap, AI-free read: how much of this level's pool the reader has seen,
+  // for the card, and whether that is all of it, which unlocks custom
+  // requests for limited tiers. Re-runs on level change because the pool is
+  // per level, and on the profile because reading or resetting moves it.
   useEffect(() => {
     if (!user?.token || !targetLang) return;
     let cancelled = false;
+    setIsLoadingPool(true);
 
     getStoryPoolStatus({
       token: user.token,
@@ -113,11 +136,23 @@ const StoryReader = ({ isDarkMode }) => {
       targetLang,
       seenStoryIds: user?.seenStoryIds ?? [],
     })
-      .then((status) => { if (!cancelled) setCacheExhausted(status.exhausted); })
-      .catch(() => { /* leaving the box locked on failure is the safe default */ });
+      .then((status) => { if (!cancelled) setPoolStatus(status); })
+      .catch(() => { /* leaving the box locked on failure is the safe default */ })
+      .finally(() => { if (!cancelled) setIsLoadingPool(false); });
 
     return () => { cancelled = true; };
   }, [user, targetLang, level]);
+
+  // Forgets every tale the reader has been shown, at every level. The effect
+  // above re-reads the pool off the profile, so the card and the gate follow.
+  const handleResetSeen = async () => {
+    try {
+      await resetSeenStories(user.token, user.uid);
+      setUser((prev) => ({ ...prev, seenStoryIds: [] }));
+    } catch (err) {
+      showAlert("error", err.message || t("settings.errors.save_failed"));
+    }
+  };
 
   // A word removed from the bank must not stay queued for the next story.
   //
@@ -236,6 +271,7 @@ const StoryReader = ({ isDarkMode }) => {
         token: user.token, level, targetLang, interests: topics, seenStoryIds, description, requiredWords,
         theme: activeTheme,
         customTheme: activeTheme === CUSTOM_STORY_THEME ? customTheme : "",
+        interest: activeInterest,
       });
       setStory(result);
       // Spent — leaving them selected would make the next "new story" press
@@ -284,20 +320,31 @@ const StoryReader = ({ isDarkMode }) => {
           typeOptions={themeOptions}
           typeLabel={t("story.theme_label")}
           extraControls={
-            // Same component as the description box, because it is the same
-            // bargain: arbitrary words can never be served from the shared
-            // pool, so this always spends a generation. Only reachable once
-            // "Other" is in the picker, which is already the unlocked case.
-            activeTheme === CUSTOM_STORY_THEME ? (
-              <CustomRequestInput
-                value={customTheme}
-                onChange={setCustomTheme}
-                placeholder={t("story.theme_other_placeholder")}
+            <>
+              {/* Same component as the description box, because it is the
+                  same bargain: arbitrary words can never be served from the
+                  shared pool, so this always spends a generation. Only
+                  reachable once "Other" is in the picker, which is already
+                  the unlocked case. */}
+              {activeTheme === CUSTOM_STORY_THEME ? (
+                <CustomRequestInput
+                  value={customTheme}
+                  onChange={setCustomTheme}
+                  placeholder={t("story.theme_other_placeholder")}
+                  cacheExhausted={cacheExhausted}
+                  disabled={isLoadingStory}
+                  isDarkMode={isDarkMode}
+                />
+              ) : null}
+              <InterestPicker
+                interests={topics}
+                value={activeInterest?.id ?? null}
+                onChange={handleSelectInterest}
                 cacheExhausted={cacheExhausted}
                 disabled={isLoadingStory}
                 isDarkMode={isDarkMode}
               />
-            ) : null
+            </>
           }
           generateLabel={story ? t("story.new_story") : t("story.get_story")}
           onGenerate={handleGetStory}
@@ -307,16 +354,34 @@ const StoryReader = ({ isDarkMode }) => {
           showTimer={false}
           mobileFirst
           footer={
-            <WordBankSidebar
-              embedded
-              words={bankedWords}
-              selected={selectedWords}
-              onToggleSelect={handleToggleSelect}
-              onRemove={removeBanked}
-              maxSelected={MAX_SELECTED_WORDS}
-              canSelect={canCustomise}
-              isDarkMode={isDarkMode}
-            />
+            <>
+              {/* The pool this level draws from; the reset forgets every
+                  level, so it stays on while anything has been read. */}
+              <SeenProgressCard
+                title={t("story.seen_title")}
+                seenCount={poolStatus ? poolStatus.total - poolStatus.unseen : 0}
+                totalCount={poolStatus?.total ?? 0}
+                isLoading={isLoadingPool && !poolStatus}
+                onReset={handleResetSeen}
+                resetDisabled={(user?.seenStoryIds?.length ?? 0) === 0}
+                resetLabel={t("story.reset_seen_btn")}
+                resetTitle={t("story.reset_seen_title")}
+                resetMessage={t("story.reset_seen_message")}
+                resetWarning={t("story.reset_seen_warning")}
+                resetConfirmLabel={t("story.reset_seen_confirm")}
+                isDarkMode={isDarkMode}
+              />
+              <WordBankSidebar
+                embedded
+                words={bankedWords}
+                selected={selectedWords}
+                onToggleSelect={handleToggleSelect}
+                onRemove={removeBanked}
+                maxSelected={MAX_SELECTED_WORDS}
+                canSelect={canCustomise}
+                isDarkMode={isDarkMode}
+              />
+            </>
           }
         />
 
@@ -325,9 +390,9 @@ const StoryReader = ({ isDarkMode }) => {
             <CustomRequestInput
               value={description}
               onChange={setDescription}
-              placeholder={t("story.description_placeholder")}
+              placeholder={activeInterest ? t("interest_picker.description_blocked") : t("story.description_placeholder")}
               cacheExhausted={cacheExhausted}
-              disabled={isLoadingStory}
+              disabled={isLoadingStory || !!activeInterest}
               isDarkMode={isDarkMode}
             />
           </div>

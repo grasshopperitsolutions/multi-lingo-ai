@@ -138,12 +138,17 @@ export async function getStoryPoolStatus({ token, level, targetLang, seenStoryId
  *   written under it. 'any' (the default) filters nothing.
  * @param {string} [params.customTheme] - the reader's own theme, when `theme` is
  *   'other'; skips the cache, since no preset pool can match arbitrary words
+ * @param {{id: string, label: string}|null} [params.interest] - one of the
+ *   reader's interests, chosen as the subject. A custom request like
+ *   `description`: skips the cache (no pooled tale was written about it
+ *   alone) and reaches the prompt in place of the full interest list.
  * @returns {Promise<{ storyId: string, level: string, targetLang: string, title: string, paragraphs: string[], source: 'db'|'ai' }>}
  */
 export async function getStory({
   token, level, targetLang, interests = [], seenStoryIds = [],
   description = '', requiredWords = [],
   theme = DEFAULT_STORY_THEME, customTheme = '',
+  interest = null,
 }) {
   if (!token) throw new Error('[storyService] token is required');
   if (!level) throw new Error('[storyService] level is required');
@@ -168,9 +173,10 @@ export async function getStory({
   // go straight to generation. No cached story can be guaranteed to contain
   // the reader's own words, so the pool cannot serve this at all. The result
   // still lands in the shared pool, so it isn't wasted on one reader.
-  if (description.trim() || requiredWords.length > 0 || isCustomTheme) {
+  if (description.trim() || requiredWords.length > 0 || isCustomTheme || interest) {
     return _generateStory({
-      token, level, targetLang, interests,
+      token, level, targetLang,
+      interests: interest ? [interest] : interests,
       existingTitles: pool.map((s) => s.title),
       description: description.trim(),
       requiredWords,

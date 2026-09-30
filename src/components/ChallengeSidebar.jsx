@@ -1,10 +1,9 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { RotateCcw, Loader2, Trophy, Clock, Hash } from "lucide-react";
+import { RotateCcw, Loader2, Trophy, Clock } from "lucide-react";
 import ConfirmModal from "./ConfirmModal";
-import Tooltip from "./Tooltip";
-import { useAppContext } from "../contexts/AppContext";
+import { seenPercent } from "../utils/seenPercent";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -21,12 +20,6 @@ function _relativeTime(isoString, t) {
   if (mins  < 60) return t("challenges.sidebar.minutes_ago", { count: mins });
   if (hours < 24) return t("challenges.sidebar.hours_ago",   { count: hours });
   return t("challenges.sidebar.days_ago", { count: days });
-}
-
-/** Compute seen-words percentage, capped at 99. */
-function _seenPercent(seenCount, totalCount) {
-  if (!totalCount || totalCount === 0) return 0;
-  return Math.min(99, Math.round((seenCount / totalCount) * 100));
 }
 
 // ---------------------------------------------------------------------------
@@ -101,19 +94,13 @@ const ChallengeSidebar = ({
   themePicker,
 }) => {
   const { t } = useTranslation();
-  const { supportedLanguages } = useAppContext();
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
-  const pct         = _seenPercent(seenCount, totalWords);
+  const pct         = seenPercent(seenCount, totalWords);
   const totalPlayed = progress?.totalPlayed ?? 0;
   const lastPlayed  = _relativeTime(progress?.lastPlayedAt, t);
-
-  // The dialect on the *progress record*, which is not necessarily the one
-  // currently selected — a stored run keeps the language it was played in.
-  const dialectLabel =
-    supportedLanguages?.find((lang) => lang.code === progress?.learningDialect)?.label ?? "";
 
   const handleResetConfirm = async () => {
     setIsResetting(true);
@@ -218,17 +205,8 @@ const ChallengeSidebar = ({
             value={lastPlayed}
             isDarkMode={isDarkMode}
           />
-          {/* The code stays the value \u2014 pt-PT and pt-BR are different practice
-              languages and read almost identically as names. The long form is
-              one hover away rather than crowding a stat row. */}
-          <Tooltip text={dialectLabel} isDarkMode={isDarkMode}>
-            <StatRow
-              icon={<Hash size={14} />}
-              label={t("challenges.sidebar.dialect")}
-              value={progress?.learningDialect ?? "\u2014"}
-              isDarkMode={isDarkMode}
-            />
-          </Tooltip>
+          {/* No language row: the practice-language badge beside the page
+              title says it, as on every other feature page. */}
           {divider}
         </div>
 

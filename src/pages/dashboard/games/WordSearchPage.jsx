@@ -15,6 +15,7 @@ const WordSearchPage = () => {
   return (
     <FeaturePageShell
       isDarkMode={isDarkMode}
+      showPracticeLanguage
       accentColor="rose"
       title={t("challenges.word_search")}
       reportContext="WordSearchPage"

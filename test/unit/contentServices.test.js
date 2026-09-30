@@ -42,7 +42,8 @@ const seedPrompts = () =>
   setCollection("prompts", [
     // Carries {{requiredWords}} because the live template does: the word
     // bank reaches the model through that placeholder and nothing else.
-    { id: "story-generate-prompt", template: "Write a story at {{level}}. Use: {{requiredWords}}" },
+    { id: "story-generate-prompt", template: "Write a story at {{level}} about {{interests}}. Use: {{requiredWords}}" },
+    { id: "history-culture-generate-prompt", template: "A piece about {{subject}} in {{explanationLang}}" },
     { id: "story-translate-prompt", template: "Translate {{title}}" },
     { id: "grammar-topics-prompt", template: "Topics for {{lang}}" },
     { id: "grammar-tip-prompt", template: "A tip about {{category}}" },
@@ -358,6 +359,33 @@ describe("storyService", () => {
     expect(askAI).toHaveBeenCalled();
   });
 
+  it("writes about a chosen interest, and that interest alone, instead of serving the pool", async () => {
+    setCollection("stories", [
+      { id: "s1", level: "B1", targetLang: "pt-PT", status: "ready", title: "A Casa" },
+    ]);
+    getDocument.mockResolvedValue(asDocument({ title: "A Casa", paragraphs: ["Era uma vez."] }));
+    askAI.mockResolvedValue(
+      aiText(JSON.stringify({ title: "Nova", paragraphs: ["Texto."], level: "B1" })),
+    );
+
+    const { getStory } = await import("../../src/services/storyService");
+    const food = { id: "food", label: "Comida" };
+    const story = await getStory({
+      token: "tok", level: "B1", targetLang: "pt-PT", seenStoryIds: [],
+      interests: [food, { id: "sport", label: "Desporto" }],
+      interest: food,
+    });
+
+    // An unseen tale is waiting, and it is still the wrong answer: nothing
+    // in the pool was written about this interest alone.
+    expect(story.source).toBe("ai");
+    const prompt = askAI.mock.calls[0][1];
+    expect(prompt).toContain("Comida");
+    expect(prompt).not.toContain("Desporto");
+    const [, root] = createDocument.mock.calls[0];
+    expect(root.topicIds).toEqual(["food"]);
+  });
+
   it("reports pool status without generating anything", async () => {
     setCollection("stories", [{ id: "s1" }, { id: "s2" }]);
 
@@ -383,6 +411,29 @@ describe("historyCultureService", () => {
 
     expect(status).toBeTruthy();
     expect(askAI).not.toHaveBeenCalled();
+  });
+
+  it("writes about a chosen interest, and that interest alone, instead of serving the pool", async () => {
+    setCollection("historyFacts", [
+      { id: "f1", targetLang: "pt-PT", status: "ready", title: "O Fado", sourceLocale: "pt-PT" },
+    ]);
+    getDocument.mockResolvedValue(asDocument({ title: "O Fado", paragraphs: ["Canta-se."] }));
+    askAI.mockResolvedValue(aiText(JSON.stringify({ title: "Pastéis", paragraphs: ["a", "b", "c"] })));
+
+    const { getFact } = await import("../../src/services/historyCultureService");
+    const food = { id: "food", label: "Comida" };
+    const fact = await getFact({
+      token: "tok", targetLang: "pt-PT", locale: "pt-PT", seenFactIds: [],
+      interests: [food, { id: "sport", label: "Desporto" }],
+      interest: food,
+    });
+
+    expect(fact.source).toBe("ai");
+    const prompt = askAI.mock.calls[0][1];
+    expect(prompt).toContain("Comida");
+    expect(prompt).not.toContain("Desporto");
+    const [, root] = createDocument.mock.calls[0];
+    expect(root.topicIds).toEqual(["food"]);
   });
 });
 
