@@ -27,6 +27,7 @@
 import { askAI } from './aiService';
 import { getPrompt, renderTemplate } from './promptService';
 import { parseAIJSON } from '../utils/parseAIJSON';
+import { translateTitleAndParagraphs } from './storyService';
 
 const GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
@@ -143,4 +144,29 @@ export async function generatePracticeText({
     level,
     targetLang,
   };
+}
+
+/**
+ * Translate a Practice Text into the reader's language, on demand.
+ *
+ * The text is never stored, so neither is its translation: it lives in the
+ * page for as long as the text does, and is fetched only the first time the
+ * reader opens one — the Tale Creator's rule, minus the Firestore cache,
+ * because there is no second reader of the same text to share it with.
+ *
+ * Reuses the tale's `story-translate-prompt` (see storyService), labelled
+ * separately for Pulse.
+ *
+ * @param {object} params
+ * @param {string} params.token
+ * @param {string} params.sourceLang - the practice dialect the text is in
+ * @param {string} params.locale     - the reader's interface language
+ * @param {string} params.title
+ * @param {string[]} params.paragraphs
+ * @returns {Promise<{ title: string, paragraphs: string[] }>}
+ */
+export function translatePracticeText({ token, sourceLang, locale, title, paragraphs }) {
+  return translateTitleAndParagraphs({
+    token, sourceLang, locale, title, paragraphs, feature: 'grammar-text-translate',
+  });
 }

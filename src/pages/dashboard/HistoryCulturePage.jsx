@@ -11,6 +11,9 @@ import { getFact, getFactContent, getFactPoolStatus } from "../../services/histo
 import { markHistoryFactSeen } from "../../services/userService";
 import CustomRequestInput from "../../components/CustomRequestInput";
 import DownloadPdfButton from "../../components/DownloadPdfButton";
+import TappableParagraph from "../../components/TappableParagraph";
+import WordLookupSheet from "../../components/WordLookupSheet";
+import { useWordLookup } from "../../hooks/useWordLookup";
 import Loader from "../../components/Loader";
 import { FeaturePageShell, Card, ErrorBanner, PrimaryButton, TtsControls } from "../../components/ui";
 
@@ -47,6 +50,9 @@ const HistoryCulturePage = () => {
   const practiceRequestRef = useRef(null);
 
   const targetLang = user?.learningDialect;
+  // Tap a word to look it up, hold it to bank it — on practice-language text
+  // only, since looking up words in your own language teaches nothing.
+  const { activeWord, activeSentence, lookup, close: closeLookup, bank } = useWordLookup();
 
   useEffect(() => {
     if (!user?.token || !targetLang) return;
@@ -287,21 +293,40 @@ const HistoryCulturePage = () => {
                   practiceParagraph ? "grid gap-3 grid-cols-1 sm:grid-cols-2" : ""
                 }`}
               >
-                <p className={`leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>
-                  {paragraph}
-                </p>
+                {/* When the piece is already in the practice language (read
+                    in it, or its translation fell back to it), its own words
+                    are the ones worth looking up. */}
+                {fact.locale === targetLang ? (
+                  <TappableParagraph
+                    text={paragraph}
+                    lang={fact.locale}
+                    onLookup={lookup}
+                    onBank={bank}
+                    isDarkMode={isDarkMode}
+                    className={`leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}
+                  />
+                ) : (
+                  <p
+                    lang={fact.locale}
+                    className={`leading-relaxed text-justify hyphens-auto ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}
+                  >
+                    {paragraph}
+                  </p>
+                )}
 
                 {practiceParagraph && (
-                  <p
+                  <TappableParagraph
+                    text={practiceParagraph}
                     lang={targetLang}
+                    onLookup={lookup}
+                    onBank={bank}
+                    isDarkMode={isDarkMode}
                     className={`leading-relaxed rounded-xl border-2 px-3 py-2 ${
                       isDarkMode
                         ? "border-slate-700 bg-slate-900/40 text-slate-200"
                         : "border-slate-200 bg-slate-50 text-slate-800"
                     }`}
-                  >
-                    {practiceParagraph}
-                  </p>
+                  />
                 )}
               </div>
             );
@@ -319,6 +344,14 @@ const HistoryCulturePage = () => {
           )}
         </Card>
       )}
+
+      <WordLookupSheet
+        word={activeWord}
+        sentence={activeSentence ?? undefined}
+        targetLang={targetLang}
+        isDarkMode={isDarkMode}
+        onClose={closeLookup}
+      />
     </FeaturePageShell>
   );
 };

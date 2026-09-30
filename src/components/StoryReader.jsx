@@ -8,15 +8,14 @@ import { useTierAccess } from "../hooks/useTierAccess";
 import { useInterestTopics } from "../hooks/useInterestTopics";
 import { useTts } from "../hooks/useTts";
 import { useWordFavourites } from "../hooks/useWordFavourites";
-import { useLongPress } from "../hooks/useLongPress";
+import { useWordLookup } from "../hooks/useWordLookup";
 import { getStory, getStoryTranslation, getStoryPoolStatus } from "../services/storyService";
 import { markStorySeen } from "../services/userService";
-import { tokenizeWords } from "../utils/tokenizeWords";
-import { sentenceAt } from "../utils/sentenceAt";
 import { STORY_THEMES, DEFAULT_STORY_THEME, CUSTOM_STORY_THEME } from "../config/storyThemes";
 import Loader from "./Loader";
 import CustomRequestInput from "./CustomRequestInput";
 import WordLookupSheet from "./WordLookupSheet";
+import TappableParagraph from "./TappableParagraph";
 import WordBankSidebar from "./WordBankSidebar";
 import ExerciseSidebar from "./ExerciseSidebar";
 import DownloadPdfButton from "./DownloadPdfButton";
@@ -43,51 +42,14 @@ import { usePracticeLevel } from "../hooks/usePracticeLevel";
 /** How many banked words can be pushed into one generation. See WordBankSidebar. */
 const MAX_SELECTED_WORDS = 5;
 
-/**
- * One tappable word in a paragraph.
- *
- * Its own component because the tap/hold gesture needs a hook, and hooks
- * cannot be called from inside the token map.
- */
-const StoryWord = ({ text, word, onLookup, onBank, isDarkMode }) => {
-  const handlers = useLongPress({
-    onClick: () => onLookup(word),
-    onLongPress: () => onBank(word),
-  });
-
-  return (
-    // A tab stop per word would make a paragraph unusable for keyboard users —
-    // tabIndex={-1} keeps it clickable/tappable and reachable by a screen
-    // reader's virtual cursor without adding to the tab order.
-    // select-none is what stops a hold raising the text-selection UI over the
-    // word being held on touch devices.
-    <span
-      role="button"
-      tabIndex={-1}
-      {...handlers}
-      className={`rounded transition-colors cursor-pointer select-none ${
-        isDarkMode ? "hover:bg-slate-700" : "hover:bg-amber-100"
-      }`}
-    >
-      {text}
-    </span>
-  );
-};
-
-StoryWord.propTypes = {
-  text: PropTypes.string.isRequired,
-  word: PropTypes.string.isRequired,
-  onLookup: PropTypes.func.isRequired,
-  onBank: PropTypes.func.isRequired,
-  isDarkMode: PropTypes.bool.isRequired,
-};
-
 const StoryReader = ({ isDarkMode }) => {
   const { user, setUser, interfaceLang, showAlert, supportedLanguages } = useAppContext();
   const { canUseAI, canAccess } = useTierAccess();
   const { topics } = useInterestTopics();
   const { ttsState, playTts, stopTts } = useTts();
-  const { words: bankedWords, isFavourite: isBanked, toggle: toggleBanked, remove: removeBanked } = useWordFavourites();
+  const { words: bankedWords, remove: removeBanked } = useWordFavourites();
+  // Tap a word to look it up, hold it to bank it (components/TappableParagraph).
+  const { activeWord, activeSentence, lookup, close: closeLookup, bank: handleBankWord } = useWordLookup();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -102,10 +64,6 @@ const StoryReader = ({ isDarkMode }) => {
   const [isLoadingTranslation, setIsLoadingTranslation] = useState(false);
   const [error, setError] = useState(null);
   const [translationError, setTranslationError] = useState(null);
-  const [activeWord, setActiveWord] = useState(null);
-  // The sentence the word was tapped in, so the lookup can describe the sense
-  // the reader actually met rather than the word's commonest one.
-  const [activeSentence, setActiveSentence] = useState(null);
   const [selectedWords, setSelectedWords] = useState([]);
   // Indices whose translation the reader has opened. Reset with each story so
   // a new one starts closed like the last one did.
@@ -176,17 +134,6 @@ const StoryReader = ({ isDarkMode }) => {
       return next.length === prev.length ? prev : next;
     });
   }, [bankedKey]);
-
-  const handleBankWord = (word) => {
-    const alreadyBanked = isBanked(word);
-    toggleBanked(word);
-    // A hold has no visible result of its own — without this the reader can't
-    // tell whether they held long enough.
-    showAlert(
-      "success",
-      alreadyBanked ? t("word_bank.removed", { word }) : t("word_bank.added", { word }),
-    );
-  };
 
   const handleToggleSelect = (word) => {
     setSelectedWords((prev) =>
@@ -534,30 +481,22 @@ const StoryReader = ({ isDarkMode }) => {
                           )}
                         </div>
 
-                        <p className={`leading-relaxed ${isDarkMode ? "text-white" : "text-slate-900"}`}>
-                          {tokenizeWords(paragraph).map((token, i) =>
-                            token.word ? (
-                              <StoryWord
-                                key={i}
-                                text={token.text}
-                                word={token.word}
-                                onLookup={(tapped) => {
-                                  setActiveWord(tapped);
-                                  setActiveSentence(sentenceAt(paragraph, token.start, targetLang));
-                                }}
-                                onBank={handleBankWord}
-                                isDarkMode={isDarkMode}
-                              />
-                            ) : (
-                              <span key={i}>{token.text}</span>
-                            )
-                          )}
-                        </p>
+                        <TappableParagraph
+                          text={paragraph}
+                          lang={story.targetLang}
+                          onLookup={lookup}
+                          onBank={handleBankWord}
+                          isDarkMode={isDarkMode}
+                          className={`leading-relaxed ${isDarkMode ? "text-white" : "text-slate-900"}`}
+                        />
                       </Card>
 
                       {translatedParagraph && isRevealed && (
                         <Card isDarkMode={isDarkMode} className="!p-4">
-                          <p className={`leading-relaxed ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
+                          <p
+                            lang={interfaceLang}
+                            className={`leading-relaxed text-justify hyphens-auto ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}
+                          >
                             {translatedParagraph}
                           </p>
                         </Card>
@@ -576,10 +515,7 @@ const StoryReader = ({ isDarkMode }) => {
         sentence={activeSentence ?? undefined}
         targetLang={targetLang}
         isDarkMode={isDarkMode}
-        onClose={() => {
-          setActiveWord(null);
-          setActiveSentence(null);
-        }}
+        onClose={closeLookup}
       />
     </FeaturePageShell>
   );

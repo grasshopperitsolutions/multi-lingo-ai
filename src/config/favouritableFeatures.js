@@ -177,6 +177,10 @@ export const GRAMMAR_SECTIONS = [
     color: "bg-sky-400",
     titleKey: "grammar.ask",
     descKey: "grammar.ask_desc",
+    // Answers the learner's own question with AI, like the dictionary and the
+    // translator, which already work in every language. Nothing seeded to be
+    // missing.
+    needsLibrary: false,
   },
   {
     id: "practice",

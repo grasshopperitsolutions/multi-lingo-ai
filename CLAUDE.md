@@ -636,8 +636,24 @@ one wrongly marked as needing it is merely absent.
 Consequences worth knowing. The dashboard Grammar tile **no longer carries
 `isUnavailable`** — leaving it disabled off-pt-PT would have made the one
 section that works everywhere reachable only by URL. The hub renders whatever
-survives the filter and shows the "library is pt-PT only" banner *above* those
-cards rather than instead of them. And `grammar_text` has no document in
+survives the filter, with a notice *above* those cards rather than instead of
+them.
+
+**Since 2026-09-29, where each section stands on languages:**
+- **Ask** is `needsLibrary: false` and works in every language. It answers the
+  learner's own question with AI, like the dictionary and translator, and its
+  page no longer carries its own pt-PT gate.
+- **Practice Text** works in every language, as before.
+- **The drills** follow the per-language "tested" switch (`examSupported`).
+- **Structures and Tips** are to be hidden in Admin, pending
+  `plans/grammar-structures-and-tips-review.md`.
+
+The hub also changed:
+- **It honours `hidden`.** It used to skip that check, so a hidden grammar
+  section stayed on show there alone.
+- **It carries the practice-language badge.**
+- **The notice shows only when a *visible* section is missing** for the
+  language. Its wording no longer blames a pt-PT library. And `grammar_text` has no document in
 `appConfig/config/features` yet, so it resolves to `COMING_SOON` and renders
 badged and locked for everyone but admin until it is granted in Admin › Tiers
 & Features — which is the right default for something unreleased.
@@ -718,6 +734,14 @@ Two things that had to move with it. The reveal buttons were gated on the
 translation *existing*, which with a lazy fetch means they never render — they
 are gated on `showBilingual` now. And a reveal **awaits** the fetch rather than
 opening optimistically, so an open paragraph always has something under it.
+
+**Practice Text has the same on-demand translation, held in memory.** Its
+texts are never stored, so neither is the translation. It's fetched on the
+first reveal, and cleared when a new text is generated. It reuses the tale's
+`story-translate-prompt` through `storyService.translateTitleAndParagraphs`,
+the tale's own call without the Firestore caching, labelled
+`grammar-text-translate` for Pulse. One prompt for one job. Split it out only
+if the tale's wording ever needs to differ.
 
 **History & Culture works the other way round and keeps doing so.** It is read
 in the reader's own language — that is the feature — and the practice-language
@@ -1631,7 +1655,8 @@ language, and already renders both codes as badges. A third badge claiming a
 language the picker contradicts is worse than none.
 
 Also **not** on the coming-soon pages (AI tutor, voice practice) — nothing
-there generates anything yet — nor on the menus.
+there generates anything yet — nor on the menus, **except the grammar hub**
+(since 2026-09-29), whose sections now differ by language.
 
 On the personal dashboard it sits above the grid rather than being a registry
 widget: it is context rather than content, so it is not hideable in Settings
@@ -1892,7 +1917,24 @@ knows whether the hold already fired — and suppresses `contextmenu`, which
 otherwise raises the selection UI over the word being held on touch. The word
 spans carry `select-none` for the same reason.
 
-**A tapped word is looked up with the sentence it sits in.** The story reader
+**Tap and hold work on every practice-language text, not only tales.**
+`components/TappableParagraph` and `hooks/useWordLookup` are shared by:
+- the Tale Creator;
+- Practice Text;
+- culture pieces, on the practice-language version, and on the main text when
+  it's already in the practice language. Words in the reader's own language
+  aren't worth looking up.
+
+Render `WordLookupSheet` beside the text.
+
+**Long generated text is justified and hyphenated in its own language.**
+`TappableParagraph` sets `lang` and `text-justify hyphens-auto`, and so do the
+translation paragraphs beside it. Without `lang` the browser can't hyphenate,
+and a justified column on a phone opens wide gaps. Exam passages and the
+voice-practice passage aren't justified yet: several exam types put inputs
+inside the text.
+
+**A tapped word is looked up with the sentence it sits in.** The reader
 finds it with `utils/sentenceAt` — `Intl.Segmenter`, so sentence breaks follow
 the language (Japanese 。, abbreviations) rather than a split on full stops —
 from each token's `start` in `tokenizeWords`. It reaches

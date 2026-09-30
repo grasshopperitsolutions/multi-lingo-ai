@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import { GRAMMAR_SECTIONS as SECTIONS } from "../config/favouritableFeatures";
-import { isGrammarSupported, isGrammarSectionAvailable } from "../config/grammarSupport";
+import { isGrammarSectionAvailable } from "../config/grammarSupport";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { FEATURE_STATUS, PURCHASABLE_STATUSES, getStatusBadge, isFeatureBeta } from "../utils/featureAccess";
 import StatusBadge from "./StatusBadge";
@@ -57,22 +57,27 @@ const GrammarMenu = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, supportedLanguages } = useAppContext();
-  const { featureStatus, isReady, isAdmin, featureRegistry } = useTierAccess();
+  const { featureStatus, isReady, isAdmin, isVisible, featureRegistry } = useTierAccess();
 
   const dialect = user?.learningDialect;
-  const supported = isGrammarSupported(dialect);
 
   // Section ids are namespaced as grammar_* feature keys (see
   // appConfig/config/features); access is configured on the Admin page.
-  // Sections are never hidden — each carries a badge explaining why it isn't
-  // usable yet, and a purchasable one routes to pricing.
   //
-  // The language filter is separate from that and runs first: a section whose
-  // content is the hand-written pt-PT library has nothing to show in another
-  // language, so it is left out entirely rather than shown locked. One that
-  // writes from scratch is always in.
-  const sectionCards = isReady
-    ? SECTIONS.filter((section) => isGrammarSectionAvailable(section, dialect, supportedLanguages, { isAdmin })).map((section) => {
+  // Two filters run before anything is drawn:
+  //  - **Hidden in Admin › Features** leaves a section out, as it does
+  //    everywhere else that lists features. This hub used to skip that check,
+  //    so a hidden grammar section stayed on show here alone.
+  //  - **The language**: a section that can't serve the practice language is
+  //    left out rather than shown locked (see config/grammarSupport).
+  // What survives either filter carries a badge explaining why it isn't usable
+  // yet, and a purchasable one routes to pricing.
+  const visibleSections = isReady
+    ? SECTIONS.filter((section) => isVisible(`grammar_${section.id}`))
+    : [];
+  const sectionCards = visibleSections
+    .filter((section) => isGrammarSectionAvailable(section, dialect, supportedLanguages, { isAdmin }))
+    .map((section) => {
         const status = featureStatus(`grammar_${section.id}`);
         const badge = getStatusBadge(status);
         return {
@@ -83,8 +88,11 @@ const GrammarMenu = ({ isDarkMode }) => {
           locked:
             status !== FEATURE_STATUS.AVAILABLE && !PURCHASABLE_STATUSES.includes(status),
         };
-      })
-    : [];
+      });
+  // Only say a section is missing for this language when one actually is:
+  // hidden sections don't count, and neither does a hub where everything left
+  // works in every language.
+  const someMissingForLanguage = sectionCards.length < visibleSections.length;
 
   const handleSectionSelect = (section) => {
     if (PURCHASABLE_STATUSES.includes(section.status)) {
@@ -110,12 +118,13 @@ const GrammarMenu = ({ isDarkMode }) => {
         accentColor="amber"
         favouriteId="grammar"
         reportContext="GrammarMenu"
+        showPracticeLanguage
       />
 
       {/* Shown above whatever sections did survive the language filter, rather
           than instead of them: the hub is no longer all-or-nothing, so this
           explains a short list rather than an empty page. */}
-      {!supported && (
+      {someMissingForLanguage && (
         <div className={`rounded-xl border-4 p-4 ${
           isDarkMode
             ? "bg-slate-900 border-amber-700 text-amber-300"

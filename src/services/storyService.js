@@ -234,13 +234,52 @@ export async function getStoryTranslation({ token, storyId, sourceLang, sourceTi
     return { title: existing.title, paragraphs: existing.paragraphs, locale, source: 'db' };
   }
 
-  const paragraphCount = sourceParagraphs.length;
+  const { title, paragraphs } = await translateTitleAndParagraphs({
+    token, sourceLang, locale, title: sourceTitle, paragraphs: sourceParagraphs,
+  });
+
+  const now = new Date().toISOString();
+  const translated = {
+    locale,
+    title,
+    paragraphs,
+    source: 'ai',
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await createDocument(collection, translated, locale, token);
+
+  return { title: translated.title, paragraphs: translated.paragraphs, locale, source: 'ai' };
+}
+
+/**
+ * Translate a title and its paragraphs, keeping them aligned one to one.
+ * Nothing is read or written: caching is the caller's business.
+ *
+ * The tale's own `story-translate-prompt` does the work, for tales and for
+ * any other title-plus-paragraphs text shown with an on-demand translation —
+ * Practice Text uses it, and stores nothing. One prompt to maintain for one
+ * job. `feature` labels the call separately for the Pulse counters when the
+ * caller isn't a tale.
+ *
+ * @param {object} params
+ * @param {string} params.token
+ * @param {string} params.sourceLang - the language the text is in
+ * @param {string} params.locale     - the language to translate it into
+ * @param {string} params.title
+ * @param {string[]} params.paragraphs
+ * @param {string} [params.feature]  - Pulse label; defaults to the prompt id
+ * @returns {Promise<{ title: string, paragraphs: string[] }>}
+ */
+export async function translateTitleAndParagraphs({ token, sourceLang, locale, title, paragraphs, feature }) {
+  const paragraphCount = paragraphs.length;
   const promptDoc = await getPrompt('story-translate-prompt');
   const prompt = renderTemplate(promptDoc.template, {
     sourceLang,
     targetLocale: locale,
-    title: sourceTitle,
-    paragraphsJson: JSON.stringify(sourceParagraphs),
+    title,
+    paragraphsJson: JSON.stringify(paragraphs),
     paragraphCount,
   });
 
@@ -249,7 +288,7 @@ export async function getStoryTranslation({ token, storyId, sourceLang, sourceTi
     model: promptDoc.model || GEMINI_MODEL,
     explorerModel: promptDoc.explorerModel,
     // Which prompt this is, for the Pulse counters. A label only.
-    feature: promptDoc.id,
+    feature: feature ?? promptDoc.id,
     temperature: 0.3,
     jsonMode: true,
     responseSchema: _storySchema(paragraphCount),
@@ -261,20 +300,7 @@ export async function getStoryTranslation({ token, storyId, sourceLang, sourceTi
   if (!parsed?.title || !Array.isArray(parsed?.paragraphs) || parsed.paragraphs.length !== paragraphCount) {
     throw new Error('[storyService] Translation did not match the expected paragraph count');
   }
-
-  const now = new Date().toISOString();
-  const translated = {
-    locale,
-    title: String(parsed.title),
-    paragraphs: parsed.paragraphs.map(String),
-    source: 'ai',
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  await createDocument(collection, translated, locale, token);
-
-  return { title: translated.title, paragraphs: translated.paragraphs, locale, source: 'ai' };
+  return { title: String(parsed.title), paragraphs: parsed.paragraphs.map(String) };
 }
 
 // ---------------------------------------------------------------------------

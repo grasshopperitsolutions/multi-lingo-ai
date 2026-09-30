@@ -9,6 +9,7 @@ A queue of plans agreed but not yet built. One file per plan.
 ## Queued
 
 - [Food of the country you practise](recipes-from-the-country.md): turn the `food` coming-soon stub into a hub. It opens with PDF sharing for tales and culture pieces. Phase 1 is country recipes: a pooled list, "Get me a recipe", a layered duplicate check by name and by ingredients and technique, the country's ingredient and technique list (built when a practice language is added, generated on first use otherwise), favourites, and a leave-out and favourite-foods sidebar kept in the browser. Phase 2 is creating a recipe from the country's typical ingredients and techniques, downloaded or shared, never stored. Phase 3, optional, is where to eat through Google Maps. Written 2026-09-28.
+- [Grammar Structures and Tips: review, then remove or rework](grammar-structures-and-tips-review.md): both hidden in the meantime. A review with you, then either removal or one guide built on the drills' topics that works in every language. Written 2026-09-29.
 
 ## Dropped
 

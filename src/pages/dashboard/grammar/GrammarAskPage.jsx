@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { Send, FileUp, X } from "lucide-react";
 import { useAppContext } from "../../../contexts/AppContext";
 import { useTierAccess } from "../../../hooks/useTierAccess";
-import { isGrammarSupported } from "../../../config/grammarSupport";
 import { getTopics, askGrammar } from "../../../services/grammarService";
 import { extractPdfText, MAX_PDF_CHARS } from "../../../utils/pdfText";
 import GrammarExampleList from "../../../components/GrammarExampleList";
@@ -39,13 +38,15 @@ const GrammarAskPage = () => {
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Available in every practice language: the answer is written by AI from
+  // the learner's own question, like the dictionary and the translator.
   const targetLang = user?.learningDialect;
-  const supported = isGrammarSupported(targetLang);
 
   // Topic keys are passed to the prompt so the answer can cross-link into the
-  // library. Failing to load them is not fatal — the answer just has no links.
+  // library. Failing to load them is not fatal — the answer just has no links,
+  // which is also what a language with no library topics gets.
   useEffect(() => {
-    if (!user?.token || !supported) return;
+    if (!user?.token || !targetLang) return;
     let cancelled = false;
 
     getTopics({ token: user.token, targetLang })
@@ -53,7 +54,7 @@ const GrammarAskPage = () => {
       .catch(() => { /* cross-links are optional */ });
 
     return () => { cancelled = true; };
-  }, [user, targetLang, supported]);
+  }, [user, targetLang]);
 
   const handlePdfSelect = async (event) => {
     const file = event.target.files?.[0];
@@ -120,18 +121,6 @@ const GrammarAskPage = () => {
     { label: t("dashboard.grammar"), onClick: () => navigate("/dashboard/grammar") },
     { label: t("grammar.ask") },
   ];
-
-  if (!supported) {
-    return (
-      <FeaturePageShell showPracticeLanguage isDarkMode={isDarkMode} accentColor="amber" breadcrumbItems={breadcrumbItems} title={t("grammar.ask")} reportContext="GrammarAskPage">
-        <Card isDarkMode={isDarkMode}>
-          <p className={`font-bold ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
-            {t("grammar.not_available_for_language")}
-          </p>
-        </Card>
-      </FeaturePageShell>
-    );
-  }
 
   const inputClasses = `w-full px-4 py-3 rounded-xl border-4 font-semibold outline-none transition-colors resize-y ${
     isDarkMode
