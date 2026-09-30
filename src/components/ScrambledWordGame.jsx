@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
-import { RotateCcw, Check, EggFried, Eye, SkipForward } from "lucide-react";
+import { RotateCcw, Check, Puzzle, Eye, SkipForward } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import {
   getUserGameProgress,
@@ -58,25 +58,32 @@ const shuffleLetters = (letters) => {
 };
 
 // ---------------------------------------------------------------------------
-// AttemptsDisplay (egg pips / tries)
+// AttemptsDisplay (puzzle-piece pips / tries)
 // ---------------------------------------------------------------------------
-const AttemptsDisplay = ({ attemptsLeft }) => (
-  <div className="flex gap-1.5 items-center mb-4">
+// One puzzle piece per try, spent from the right. An icon rather than the
+// 🧩 emoji: emoji are drawn differently on every system, and these are the
+// page's main picture, so they should look the same everywhere.
+const AttemptsDisplay = ({ attemptsLeft, label }) => (
+  // One labelled image rather than three anonymous icons, so a screen reader
+  // hears how many tries are left instead of nothing.
+  <div className="flex gap-3 items-center mb-6" role="img" aria-label={label}>
     {Array.from({ length: MAX_ATTEMPTS }).map((_, i) => (
-      <span
+      <Puzzle
         key={i}
-        className={`text-2xl transition-all ${
+        size={44}
+        strokeWidth={2.5}
+        aria-hidden="true"
+        className={`text-yellow-500 transition-all ${
           i < attemptsLeft ? "opacity-100" : "opacity-20"
         }`}
-      >
-        🥚
-      </span>
+      />
     ))}
   </div>
 );
 
 AttemptsDisplay.propTypes = {
   attemptsLeft: PropTypes.number.isRequired,
+  label: PropTypes.string.isRequired,
 };
 
 // ---------------------------------------------------------------------------
@@ -777,19 +784,14 @@ const ScrambledWordGame = ({ isDarkMode }) => {
           </div>
         )}
 
-        {/* Scrambled Egg illustration */}
-        <div className={`w-36 h-36 mb-6 rounded-2xl border-4 flex items-center justify-center ${
-          isDarkMode ? "bg-slate-800 border-slate-700" : "bg-yellow-100 border-slate-900"
-        }`}>
-          <EggFried
-            size={80}
-            className={isDarkMode ? "text-yellow-400" : "text-yellow-500"}
-            strokeWidth={2.5}
+        {/* The tries, as puzzle pieces. They are the page's one picture now:
+            the large piece that stood above them repeated the same idea. */}
+        {!isOver && (
+          <AttemptsDisplay
+            attemptsLeft={attemptsLeft}
+            label={t("challenges.attempts_left", { count: attemptsLeft })}
           />
-        </div>
-
-        {/* Attempts pips */}
-        {!isOver && <AttemptsDisplay attemptsLeft={attemptsLeft} />}
+        )}
 
         {/* ── Answer row ── */}
         <div ref={answerRowRef} className="flex flex-wrap justify-center gap-2 mb-6 px-4 w-full">
@@ -890,7 +892,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
               ) : isRevealed ? (
                 <Eye size={36} strokeWidth={3} />
               ) : (
-                <span className="text-3xl">🍳</span>
+                <Puzzle size={36} strokeWidth={3} />
               )}
               <span className="text-2xl sm:text-3xl font-black uppercase tracking-tighter">
                 {isWon

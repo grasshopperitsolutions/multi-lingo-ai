@@ -23,11 +23,11 @@
  */
 
 import {
-  BrainCircuit,
+  Lasso,
   Swords,
   NotebookPen,
   Search,
-  EggFried,
+  Puzzle,
   Link2,
   Footprints,
   Headphones,
@@ -48,7 +48,8 @@ export const CHALLENGE_GAMES = [
   {
     id: "hangman",
     route: "/dashboard/challenges/hangman",
-    icon: Swords,
+    // A rope. lucide has no plain one, and a lasso is a coiled rope.
+    icon: Lasso,
     color: "bg-rose-400",
     titleKey: "challenges.hangman",
     descKey: "challenges.hangman_desc",
@@ -56,7 +57,9 @@ export const CHALLENGE_GAMES = [
   {
     id: "scrambled_word",
     route: "/dashboard/challenges/scrambled-word",
-    icon: EggFried,
+    // A puzzle piece, not the scrambled egg it used to be: that pun only
+    // works in English, and the app is read in many languages.
+    icon: Puzzle,
     color: "bg-yellow-400",
     titleKey: "challenges.scrambled_word",
     descKey: "challenges.scrambled_word_desc",
@@ -99,7 +102,8 @@ export const CHALLENGE_GAMES = [
   {
     id: "crosswords",
     route: "/dashboard/challenges/crosswords",
-    icon: BrainCircuit,
+    // Crossed swords: a cross-word duel.
+    icon: Swords,
     color: "bg-blue-400",
     titleKey: "challenges.crosswords",
     descKey: "challenges.crosswords_desc",
