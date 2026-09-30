@@ -438,14 +438,18 @@
     "groups": {
       "today": "Hoje",
       "today_desc": "A tua sequência, uma coisa para fazer a seguir e as funcionalidades que mais usas.",
-      "practice": "Praticar",
-      "practice_desc": "Jogos, treinos, professores e preparação para exames. Onde pões a língua a trabalhar.",
-      "look_it_up": "Consultar",
-      "look_it_up_desc": "Respostas rápidas: traduz uma frase, confirma uma palavra, tira uma dúvida de gramática.",
-      "watch_listen": "Ler, Ver e Ouvir",
-      "watch_listen_desc": "Contos, rádio, TV, comida e cultura do próprio país.",
-      "get_it_done": "Pôr Mãos à Obra",
-      "get_it_done_desc": "Tarefas a sério na tua nova língua: viagens para planear e documentos para escrever."
+      "have_fun": "Toca a Divertir",
+      "have_fun_desc": "Jogos de palavras para treinares a brincar — e nem dás por isso.",
+      "tune_your_ear": "Afina o Ouvido",
+      "tune_your_ear_desc": "Lê em voz alta e conversa com a IA até a língua te soar natural.",
+      "grow_vocabulary": "Engorda o Vocabulário",
+      "grow_vocabulary_desc": "Traduz o que te apetecer e lê contos ao teu nível. Cada palavra nova é mais uma para o saco.",
+      "tough_practice": "Treino Puxado",
+      "tough_practice_desc": "Dicionário, gramática e exames a sério. É aqui que se sua a camisola.",
+      "need_help": "Preciso de uma Mãozinha",
+      "need_help_desc": "Um tutor de carne e osso, o teu cantinho pessoal e ajuda com CV e emails.",
+      "know_the_country": "Conhece o País",
+      "know_the_country_desc": "Viagens, comida, rádio, TV e cultura — a língua lá onde ela se fala."
     },
     "today": {
       "your_features": "Funcionalidades",

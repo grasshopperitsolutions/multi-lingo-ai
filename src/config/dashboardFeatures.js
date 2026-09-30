@@ -47,19 +47,76 @@ import { DASHBOARD_GROUP_IDS, FALLBACK_GROUP_ID, isGroupId } from "./dashboardGr
  * badge, because "upgrade" would be the wrong thing to tell that user.
  */
 export const DASHBOARD_FEATURES = [
-  // ── Practice ──────────────────────────────────────────────────────────────
+  // ── Have fun ───────────────────────────────────────────────────────────────
   {
     id: "challenges",
-    group: DASHBOARD_GROUP_IDS.PRACTICE,
+    group: DASHBOARD_GROUP_IDS.HAVE_FUN,
     route: "/dashboard/challenges",
     icon: Gamepad2,
     color: "text-yellow-500",
     titleKey: "dashboard.challenges",
     descKey: "dashboard.challenges_desc",
   },
+
+  // ── Tune your ear ──────────────────────────────────────────────────────────
+  {
+    id: "voice_practice",
+    group: DASHBOARD_GROUP_IDS.TUNE_YOUR_EAR,
+    route: "/dashboard/voice-practice",
+    icon: Mic,
+    color: "text-purple-500",
+    titleKey: "dashboard.voice_practice",
+    descKey: "dashboard.voice_practice_desc",
+    // Earns an instruction line: recording yourself is a three-step flow, and
+    // one of the steps is a promise about what happens to the recording.
+    instructionsKey: "dashboard.voice_practice_how",
+  },
+  {
+    id: "ai_tutor",
+    group: DASHBOARD_GROUP_IDS.TUNE_YOUR_EAR,
+    route: "/dashboard/ai-tutor",
+    icon: BotMessageSquare,
+    color: "text-blue-500",
+    titleKey: "dashboard.ai_tutor",
+    descKey: "dashboard.ai_tutor_desc",
+    // Two things a first-timer will not guess: that interrupting is allowed
+    // and expected, and what happens to what they say.
+    instructionsKey: "dashboard.ai_tutor_how",
+  },
+
+  // ── Grow your vocabulary ───────────────────────────────────────────────────
+  {
+    id: "translator",
+    group: DASHBOARD_GROUP_IDS.GROW_VOCABULARY,
+    route: "/dashboard/translator",
+    icon: Languages,
+    color: "text-sky-500",
+    titleKey: "dashboard.translator",
+    descKey: "dashboard.translator_desc",
+  },
+  {
+    id: "story_generator",
+    group: DASHBOARD_GROUP_IDS.GROW_VOCABULARY,
+    route: "/dashboard/story-generator",
+    icon: BookOpen,
+    color: "text-rose-500",
+    titleKey: "dashboard.story_generator",
+    descKey: "dashboard.story_generator_desc",
+  },
+
+  // ── Tough practice ─────────────────────────────────────────────────────────
+  {
+    id: "dictionary",
+    group: DASHBOARD_GROUP_IDS.TOUGH_PRACTICE,
+    route: "/dashboard/dictionary",
+    icon: BookMarked,
+    color: "text-violet-500",
+    titleKey: "dashboard.dictionary",
+    descKey: "dashboard.dictionary_desc",
+  },
   {
     id: "exam_training",
-    group: DASHBOARD_GROUP_IDS.PRACTICE,
+    group: DASHBOARD_GROUP_IDS.TOUGH_PRACTICE,
     route: "/dashboard/exam-training",
     icon: GraduationCap,
     color: "text-teal-500",
@@ -73,61 +130,8 @@ export const DASHBOARD_FEATURES = [
     unavailableReasonKey: "dashboard.exam_not_available_for_language",
   },
   {
-    id: "ai_tutor",
-    group: DASHBOARD_GROUP_IDS.PRACTICE,
-    route: "/dashboard/ai-tutor",
-    icon: BotMessageSquare,
-    color: "text-blue-500",
-    titleKey: "dashboard.ai_tutor",
-    descKey: "dashboard.ai_tutor_desc",
-    // Two things a first-timer will not guess: that interrupting is allowed
-    // and expected, and what happens to what they say.
-    instructionsKey: "dashboard.ai_tutor_how",
-  },
-  {
-    id: "voice_practice",
-    group: DASHBOARD_GROUP_IDS.PRACTICE,
-    route: "/dashboard/voice-practice",
-    icon: Mic,
-    color: "text-purple-500",
-    titleKey: "dashboard.voice_practice",
-    descKey: "dashboard.voice_practice_desc",
-    // Earns an instruction line: recording yourself is a three-step flow, and
-    // one of the steps is a promise about what happens to the recording.
-    instructionsKey: "dashboard.voice_practice_how",
-  },
-  {
-    id: "real_person_tutor",
-    group: DASHBOARD_GROUP_IDS.PRACTICE,
-    route: "/dashboard/real-person-tutor",
-    icon: UserRound,
-    color: "text-emerald-500",
-    titleKey: "dashboard.real_person_tutor",
-    descKey: "dashboard.real_person_tutor_desc",
-  },
-
-  // ── Look It Up ────────────────────────────────────────────────────────────
-  {
-    id: "translator",
-    group: DASHBOARD_GROUP_IDS.LOOK_IT_UP,
-    route: "/dashboard/translator",
-    icon: Languages,
-    color: "text-sky-500",
-    titleKey: "dashboard.translator",
-    descKey: "dashboard.translator_desc",
-  },
-  {
-    id: "dictionary",
-    group: DASHBOARD_GROUP_IDS.LOOK_IT_UP,
-    route: "/dashboard/dictionary",
-    icon: BookMarked,
-    color: "text-violet-500",
-    titleKey: "dashboard.dictionary",
-    descKey: "dashboard.dictionary_desc",
-  },
-  {
     id: "grammar",
-    group: DASHBOARD_GROUP_IDS.LOOK_IT_UP,
+    group: DASHBOARD_GROUP_IDS.TOUGH_PRACTICE,
     route: "/dashboard/grammar",
     icon: PenLine,
     color: "text-amber-500",
@@ -140,19 +144,57 @@ export const DASHBOARD_FEATURES = [
     // per section and says what is missing — see GrammarMenu.
   },
 
-  // ── Read, Watch & Listen ──────────────────────────────────────────────────
+  // ── I need help ────────────────────────────────────────────────────────────
   {
-    id: "story_generator",
-    group: DASHBOARD_GROUP_IDS.WATCH_LISTEN,
-    route: "/dashboard/story-generator",
-    icon: BookOpen,
-    color: "text-rose-500",
-    titleKey: "dashboard.story_generator",
-    descKey: "dashboard.story_generator_desc",
+    id: "personal_tools",
+    group: DASHBOARD_GROUP_IDS.NEED_HELP,
+    route: "/dashboard/personal",
+    icon: BookUser,
+    color: "text-fuchsia-500",
+    titleKey: "dashboard.personal_tools",
+    descKey: "dashboard.personal_tools_desc",
+  },
+  {
+    id: "real_person_tutor",
+    group: DASHBOARD_GROUP_IDS.NEED_HELP,
+    route: "/dashboard/real-person-tutor",
+    icon: UserRound,
+    color: "text-emerald-500",
+    titleKey: "dashboard.real_person_tutor",
+    descKey: "dashboard.real_person_tutor_desc",
+  },
+  {
+    id: "professional_tools",
+    group: DASHBOARD_GROUP_IDS.NEED_HELP,
+    route: "/dashboard/professional-tools",
+    icon: Briefcase,
+    color: "text-indigo-500",
+    titleKey: "dashboard.professional_tools",
+    descKey: "dashboard.professional_tools_desc",
+  },
+
+  // ── Know the country ───────────────────────────────────────────────────────
+  {
+    id: "plan_trip",
+    group: DASHBOARD_GROUP_IDS.KNOW_THE_COUNTRY,
+    route: "/dashboard/plan-trip",
+    icon: Plane,
+    color: "text-pink-500",
+    titleKey: "dashboard.plan_trip",
+    descKey: "dashboard.plan_trip_desc",
+  },
+  {
+    id: "food",
+    group: DASHBOARD_GROUP_IDS.KNOW_THE_COUNTRY,
+    route: "/dashboard/food",
+    icon: UtensilsCrossed,
+    color: "text-lime-500",
+    titleKey: "dashboard.food",
+    descKey: "dashboard.food_desc",
   },
   {
     id: "radio_tv",
-    group: DASHBOARD_GROUP_IDS.WATCH_LISTEN,
+    group: DASHBOARD_GROUP_IDS.KNOW_THE_COUNTRY,
     route: "/dashboard/radio-tv",
     icon: RadioTower,
     color: "text-cyan-500",
@@ -161,50 +203,12 @@ export const DASHBOARD_FEATURES = [
   },
   {
     id: "history_culture",
-    group: DASHBOARD_GROUP_IDS.WATCH_LISTEN,
+    group: DASHBOARD_GROUP_IDS.KNOW_THE_COUNTRY,
     route: "/dashboard/history-culture",
     icon: Landmark,
     color: "text-orange-500",
     titleKey: "dashboard.history_culture",
     descKey: "dashboard.history_culture_desc",
-  },
-  {
-    id: "food",
-    group: DASHBOARD_GROUP_IDS.WATCH_LISTEN,
-    route: "/dashboard/food",
-    icon: UtensilsCrossed,
-    color: "text-lime-500",
-    titleKey: "dashboard.food",
-    descKey: "dashboard.food_desc",
-  },
-
-  // ── Get It Done ───────────────────────────────────────────────────────────
-  {
-    id: "plan_trip",
-    group: DASHBOARD_GROUP_IDS.GET_IT_DONE,
-    route: "/dashboard/plan-trip",
-    icon: Plane,
-    color: "text-pink-500",
-    titleKey: "dashboard.plan_trip",
-    descKey: "dashboard.plan_trip_desc",
-  },
-  {
-    id: "personal_tools",
-    group: DASHBOARD_GROUP_IDS.PRACTICE,
-    route: "/dashboard/personal",
-    icon: BookUser,
-    color: "text-fuchsia-500",
-    titleKey: "dashboard.personal_tools",
-    descKey: "dashboard.personal_tools_desc",
-  },
-  {
-    id: "professional_tools",
-    group: DASHBOARD_GROUP_IDS.GET_IT_DONE,
-    route: "/dashboard/professional-tools",
-    icon: Briefcase,
-    color: "text-indigo-500",
-    titleKey: "dashboard.professional_tools",
-    descKey: "dashboard.professional_tools_desc",
   },
 ];
 

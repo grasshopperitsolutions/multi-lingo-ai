@@ -22,29 +22,41 @@ import { DASHBOARD_GROUP_IDS } from "./dashboardGroups";
  * closed book its neo-brutalist weight.
  */
 export const BOOK_SKINS = {
-  [DASHBOARD_GROUP_IDS.PRACTICE]: {
+  [DASHBOARD_GROUP_IDS.HAVE_FUN]: {
     cover: "bg-yellow-400",
     spine: "bg-yellow-500",
     ink: "text-slate-900",
     edge: "#a16207",
   },
-  [DASHBOARD_GROUP_IDS.LOOK_IT_UP]: {
+  [DASHBOARD_GROUP_IDS.TUNE_YOUR_EAR]: {
+    cover: "bg-purple-400",
+    spine: "bg-purple-500",
+    ink: "text-slate-900",
+    edge: "#6b21a8",
+  },
+  [DASHBOARD_GROUP_IDS.GROW_VOCABULARY]: {
     cover: "bg-sky-400",
     spine: "bg-sky-500",
     ink: "text-slate-900",
     edge: "#0369a1",
   },
-  [DASHBOARD_GROUP_IDS.WATCH_LISTEN]: {
-    cover: "bg-rose-400",
-    spine: "bg-rose-500",
+  [DASHBOARD_GROUP_IDS.TOUGH_PRACTICE]: {
+    cover: "bg-teal-400",
+    spine: "bg-teal-500",
     ink: "text-slate-900",
-    edge: "#9f1239",
+    edge: "#115e59",
   },
-  [DASHBOARD_GROUP_IDS.GET_IT_DONE]: {
+  [DASHBOARD_GROUP_IDS.NEED_HELP]: {
     cover: "bg-indigo-400",
     spine: "bg-indigo-500",
     ink: "text-slate-900",
     edge: "#3730a3",
+  },
+  [DASHBOARD_GROUP_IDS.KNOW_THE_COUNTRY]: {
+    cover: "bg-rose-400",
+    spine: "bg-rose-500",
+    ink: "text-slate-900",
+    edge: "#9f1239",
   },
 };
 
