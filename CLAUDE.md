@@ -2193,7 +2193,7 @@ stored anywhere, and a guessed table would go stale silently.
 
 `plans/` is a queue of agreed but unbuilt work, one file per plan, indexed in `plans/README.md`. Read it before proposing something large, since it may already be planned, or dropped for a recorded reason. When a plan is built, delete its file and its index line. When one is dropped, move its line to "Dropped" with the date and reason.
 
-Nothing is queued now. App Current Pulse was built (see "Admin › Pulse" above); two ideas from it are under "Dropped" with their reasons.
+`plans/README.md` is the list of what is queued. App Current Pulse was built (see "Admin › Pulse" above); two ideas from it are under "Dropped" with their reasons.
 
 ## Do not assume
 
