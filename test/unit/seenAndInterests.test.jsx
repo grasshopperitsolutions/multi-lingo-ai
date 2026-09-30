@@ -41,6 +41,17 @@ vi.mock("../../src/services/historyCultureService", () => ({
   getFactPoolStatus: vi.fn(async () => ({ total: 2, unseen: 1, exhausted: false })),
 }));
 
+const lookupWord = vi.fn(async () => ({ entries: [] }));
+vi.mock("../../src/services/dictionaryService", async (importOriginal) => ({
+  ...(await importOriginal()),
+  lookupWord: (...a) => lookupWord(...a),
+}));
+
+vi.mock("../../src/services/grammarTextService", () => ({
+  generatePracticeText: vi.fn(async () => null),
+  translatePracticeText: vi.fn(async () => null),
+}));
+
 const resetSeenStories = vi.fn(async () => {});
 const resetSeenHistoryFacts = vi.fn(async () => {});
 vi.mock("../../src/services/userService", async (importOriginal) => ({
@@ -64,12 +75,13 @@ const withCustomRequests = (tierFeatures) =>
       interests: ["food", "sport"],
       seenStoryIds: ["a", "b", "c"],
       seenHistoryFactsIds: ["x"],
+      favWordIds: ["saudade"],
     },
     interfaceLang: "pt-PT",
     tiersConfig: {
       voyager: {
         id: "voyager", label: "Voyager", order: 2, isFree: false, aiCallsPerDay: 20,
-        features: ["story_generator", "history_culture", ...tierFeatures],
+        features: ["story_generator", "history_culture", "grammar_text", ...tierFeatures],
       },
     },
     features: [],
@@ -226,5 +238,55 @@ describe("a culture piece in the language being practised", () => {
     // Hidden again with the rest of the practice version.
     fireEvent.click(screen.getByRole("button", { name: i18n.t("history_culture.hide_practice", { locale: "pt-PT" }) }));
     expect([...document.querySelectorAll('p[lang="pt-PT"]')].some((p) => p.textContent === "O fado")).toBe(false);
+  });
+});
+
+describe("the culture page's words", () => {
+  it("keeps the word bank to look words up again, not to pick them", async () => {
+    const { i18n } = await mount(CULTURE);
+
+    const chip = await first("ByRole", "button", { name: "saudade" });
+    // A lookup, not a toggle: a piece in the reader's own language has
+    // nowhere to put a practice-language word.
+    expect(chip.getAttribute("aria-pressed")).toBeNull();
+    expect((await first("ByText", i18n.t("word_bank.lookup_hint")))).toBeTruthy();
+
+    fireEvent.click(chip);
+    await waitFor(() => expect(lookupWord).toHaveBeenCalled());
+    expect(lookupWord.mock.calls[0][0].word).toBe("saudade");
+  });
+
+  it("explains tap and hold only while practice-language text is on screen", async () => {
+    // Written in English; the pt-PT version is behind the toggle.
+    getFact.mockResolvedValueOnce({
+      factId: "f6", title: "Fado", paragraphs: ["It is sung."], locale: "en-US", sourceLocale: "en-US", source: "ai",
+    });
+    const { getFactContent } = await import("../../src/services/historyCultureService");
+    getFactContent.mockResolvedValueOnce({ title: "O fado", paragraphs: ["Canta-se."], locale: "pt-PT" });
+    const { i18n } = await mount(CULTURE);
+
+    fireEvent.click(await screen.findByRole("button", { name: new RegExp(i18n.t("history_culture.discover"), "i") }));
+    await screen.findByRole("heading", { name: "Fado" });
+    expect(screen.queryByText(i18n.t("story.tap_word_hint"))).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("history_culture.show_practice", { locale: "pt-PT" }) }));
+    expect(await screen.findByText(i18n.t("story.tap_word_hint"))).toBeTruthy();
+  });
+});
+
+describe("Practice Text's sidebar", () => {
+  it("holds the level, the button that writes, and the word bank", async () => {
+    const { i18n } = await mount(() => import("../../src/pages/dashboard/grammar/GrammarTextPage"));
+
+    const aside = await waitFor(() => {
+      const found = document.querySelector("aside");
+      expect(found).toBeTruthy();
+      return found;
+    });
+    const inSidebar = within(aside);
+    expect(inSidebar.getByText(i18n.t("exam.sidebar.level"))).toBeTruthy();
+    expect(inSidebar.getByRole("button", { name: new RegExp(i18n.t("grammar.text_generate"), "i") })).toBeTruthy();
+    // Twice: the embedded bank's phone toggle carries its title as well.
+    expect(inSidebar.getAllByText(i18n.t("word_bank.title")).length).toBeGreaterThan(0);
   });
 });

@@ -1998,7 +1998,18 @@ spans carry `select-none` for the same reason.
   it's already in the practice language. Words in the reader's own language
   aren't worth looking up.
 
-Render `WordLookupSheet` beside the text.
+Render `WordLookupSheet` beside the text, and `TapWordHint` above it: nothing
+about a paragraph looks tappable. On culture pieces the hint shows only while
+practice-language text is on screen.
+
+**The word bank sits in the left sidebar of all three**, under the controls
+(`WordBankSidebar embedded`). Practice Text uses `ExerciseSidebar` like the
+Tale Creator: level and the button that writes in the sidebar, the focus box
+in the main column. On tales and Practice Text a banked word can be picked for
+the next text. **On culture pieces it can't** (`onLookup` mode: a chip looks
+the word up, the × still removes). A piece is written in the reader's own
+language and translated afterwards, so a practice-language word has nowhere
+to go in it.
 
 **Long generated text is justified and hyphenated in its own language.**
 `TappableParagraph` sets `lang` and `text-justify hyphens-auto`, and so do the

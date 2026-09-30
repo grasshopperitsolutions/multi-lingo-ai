@@ -16,6 +16,9 @@ import DownloadPdfButton from "../../components/DownloadPdfButton";
 import TappableParagraph from "../../components/TappableParagraph";
 import WordLookupSheet from "../../components/WordLookupSheet";
 import { useWordLookup } from "../../hooks/useWordLookup";
+import { useWordFavourites } from "../../hooks/useWordFavourites";
+import WordBankSidebar from "../../components/WordBankSidebar";
+import TapWordHint from "../../components/TapWordHint";
 import Loader from "../../components/Loader";
 import { FeaturePageShell, Card, ErrorBanner, PrimaryButton, TtsControls } from "../../components/ui";
 
@@ -61,6 +64,7 @@ const HistoryCulturePage = () => {
   // Tap a word to look it up, hold it to bank it — on practice-language text
   // only, since looking up words in your own language teaches nothing.
   const { activeWord, activeSentence, lookup, close: closeLookup, bank } = useWordLookup();
+  const { words: bankedWords, remove: removeBanked } = useWordFavourites();
 
   const cacheExhausted = poolStatus?.exhausted ?? false;
   // A chosen interest is a custom request, gated like the description box.
@@ -263,6 +267,20 @@ const HistoryCulturePage = () => {
             resetConfirmLabel={t("history_culture.reset_seen_confirm")}
             isDarkMode={isDarkMode}
           />
+
+          {/* The reader's words, to look up again or let go. Not to pick for
+              the next piece, as tales and Practice Text do: a piece is
+              written in the reader's own language, so practice-language
+              words would have nowhere to go. Words arrive by holding them in
+              the practice-language version. */}
+          <WordBankSidebar
+            embedded
+            words={bankedWords}
+            onRemove={removeBanked}
+            onLookup={(word) => lookup(word, null)}
+            emptyKey="word_bank.empty_state_text"
+            isDarkMode={isDarkMode}
+          />
         </aside>
 
         <div className="flex-1 min-w-0 flex flex-col gap-4">
@@ -278,6 +296,12 @@ const HistoryCulturePage = () => {
           {isLoading && <Loader message={t("history_culture.loading")} isDarkMode={isDarkMode} />}
 
           {!isLoading && error && <ErrorBanner error={error} isDarkMode={isDarkMode} />}
+
+          {/* Only while practice-language text is on screen: that is the only
+              text here that taps and holds. */}
+          {!isLoading && fact && (showPractice || fact.locale === targetLang) && (
+            <TapWordHint isDarkMode={isDarkMode} />
+          )}
 
           {!isLoading && fact && (
             <Card isDarkMode={isDarkMode}>

@@ -1252,6 +1252,8 @@
   "word_bank": {
     "title": "Banco de palavras",
     "empty_state": "Mantém premida uma palavra num conto para a guardares aqui.",
+    "empty_state_text": "Mantém premida uma palavra de um texto na língua que praticas para a guardares aqui.",
+    "lookup_hint": "Toca numa palavra para a consultares.",
     "select_hint": "Escolhe até {{count}} palavras para entrarem no próximo conto.",
     "select_hint_practice": "Escolhe até {{count}} palavras para entrarem no próximo texto.",
     "select_locked": "Escolher palavras para o próximo conto faz parte dos pedidos personalizados.",

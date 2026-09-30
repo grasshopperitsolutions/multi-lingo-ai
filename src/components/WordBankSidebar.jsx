@@ -22,6 +22,11 @@ import { X, BookMarked, ChevronDown } from "lucide-react";
  * Layout follows ExerciseSidebar: a fixed left column on lg+, a strip below
  * the content on smaller screens. It renders in both places from one call.
  *
+ * `onLookup` turns the chips into lookups instead of selections, for a page
+ * whose generation cannot take the words (culture pieces are written in the
+ * reader's own language, so practice-language words have nowhere to go).
+ * The corner X still removes.
+ *
  * `embedded` renders one panel instead, for pages that put it under
  * ExerciseSidebar via its `footer`. There it collapses on small screens,
  * closed by default: the bank is secondary to the controls above it, and a
@@ -29,12 +34,14 @@ import { X, BookMarked, ChevronDown } from "lucide-react";
  */
 const WordBankSidebar = ({
   words,
-  selected,
-  onToggleSelect,
+  selected = [],
+  onToggleSelect = () => {},
   onRemove,
-  maxSelected,
-  canSelect,
+  maxSelected = 0,
+  canSelect = false,
+  onLookup = null,
   hintKey = "word_bank.select_hint",
+  emptyKey = "word_bank.empty_state",
   embedded = false,
   isDarkMode,
 }) => {
@@ -58,7 +65,7 @@ const WordBankSidebar = ({
           <BookMarked size={13} />
           {t("word_bank.title")}
         </span>
-        {words.length > 0 && canSelect && (
+        {words.length > 0 && canSelect && !onLookup && (
           <span className={`text-[11px] font-black tabular-nums ${
             atLimit
               ? isDarkMode ? "text-yellow-400" : "text-blue-600"
@@ -71,22 +78,22 @@ const WordBankSidebar = ({
 
       {words.length === 0 ? (
         <p className={`text-xs font-bold leading-relaxed ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
-          {t("word_bank.empty_state")}
+          {t(emptyKey)}
         </p>
       ) : (
         <>
           <div className="flex flex-wrap gap-2">
             {words.map((word) => {
-              const isSelected = selected.includes(word);
-              const isDisabled = !canSelect || (!isSelected && atLimit);
+              const isSelected = !onLookup && selected.includes(word);
+              const isDisabled = !onLookup && (!canSelect || (!isSelected && atLimit));
 
               return (
                 <span key={word} className="relative inline-flex">
                   <button
                     type="button"
-                    onClick={() => onToggleSelect(word)}
+                    onClick={() => (onLookup ? onLookup(word) : onToggleSelect(word))}
                     disabled={isDisabled}
-                    aria-pressed={isSelected}
+                    aria-pressed={onLookup ? undefined : isSelected}
                     className={`pl-3 pr-6 py-1.5 rounded-full border-2 font-bold text-sm transition-all active:scale-95 ${
                       isSelected
                         ? isDarkMode
@@ -119,7 +126,9 @@ const WordBankSidebar = ({
           <p className={`text-[11px] font-bold leading-relaxed ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>
             {/* Removing a word always works; feeding words to the generator is
                 the part that needs the tier, because it forces a fresh story. */}
-            {canSelect ? t(hintKey, { count: maxSelected }) : t("word_bank.select_locked")}
+            {onLookup
+              ? t("word_bank.lookup_hint")
+              : canSelect ? t(hintKey, { count: maxSelected }) : t("word_bank.select_locked")}
           </p>
         </>
       )}
@@ -163,13 +172,17 @@ WordBankSidebar.propTypes = {
   /** Every banked word, already normalised by useWordFavourites. */
   words: PropTypes.arrayOf(PropTypes.string).isRequired,
   /** The subset picked for the next generation. */
-  selected: PropTypes.arrayOf(PropTypes.string).isRequired,
-  onToggleSelect: PropTypes.func.isRequired,
+  selected: PropTypes.arrayOf(PropTypes.string),
+  onToggleSelect: PropTypes.func,
   onRemove: PropTypes.func.isRequired,
-  maxSelected: PropTypes.number.isRequired,
+  maxSelected: PropTypes.number,
   /** False when this reader's tier can't trigger a generation — chips become
    *  read-only, but the X still removes. */
-  canSelect: PropTypes.bool.isRequired,
+  canSelect: PropTypes.bool,
+  /** Chips look the word up instead of selecting it. See the header. */
+  onLookup: PropTypes.func,
+  /** What to say when the bank is empty, i.e. where words come from. */
+  emptyKey: PropTypes.string,
   /** Which "what happens to the words you pick" line to show — the sidebar is
    *  shared by the Tale Creator and Practice Text, and each produces a
    *  different thing. Locked copy is the same for both. */

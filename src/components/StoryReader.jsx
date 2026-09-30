@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Volume2, Square, MousePointerClick, Loader2, Eye, EyeOff } from "lucide-react";
+import { Volume2, Square, Loader2, Eye, EyeOff } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "../hooks/useTierAccess";
 import { useInterestTopics } from "../hooks/useInterestTopics";
@@ -16,6 +16,7 @@ import Loader from "./Loader";
 import CustomRequestInput from "./CustomRequestInput";
 import WordLookupSheet from "./WordLookupSheet";
 import TappableParagraph from "./TappableParagraph";
+import TapWordHint from "./TapWordHint";
 import WordBankSidebar from "./WordBankSidebar";
 import InterestPicker from "./InterestPicker";
 import SeenProgressCard from "./SeenProgressCard";
@@ -419,25 +420,7 @@ const StoryReader = ({ isDarkMode }) => {
                 )}
               </div>
 
-              {/* Tapping a word for a definition is the feature readers are least
-                  likely to discover on their own — nothing about the paragraph
-                  looks interactive until you happen to click it. */}
-              <div className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2 ${
-                isDarkMode
-                  ? "border-slate-700 bg-slate-800/60 text-slate-400"
-                  : "border-slate-200 bg-slate-50 text-slate-500"
-              }`}>
-                <MousePointerClick size={14} className="shrink-0" />
-                {/* Two keys, not one edited sentence: a fill only ever adds
-                    keys that are missing, so rewording an existing string
-                    would never reach the locales that already have it. */}
-                <p className="text-xs font-bold">
-                  {t("story.tap_word_hint")}{" "}
-                  <span className={isDarkMode ? "text-slate-500" : "text-slate-400"}>
-                    {t("story.hold_word_hint")}
-                  </span>
-                </p>
-              </div>
+              <TapWordHint isDarkMode={isDarkMode} />
 
               {showBilingual && isLoadingTranslation && !translation && (
                 <p className={`text-xs font-bold uppercase tracking-widest ${isDarkMode ? "text-slate-500" : "text-slate-400"}`}>

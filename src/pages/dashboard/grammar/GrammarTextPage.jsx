@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { FileText, Sparkles, Eye, EyeOff, Loader2 } from "lucide-react";
+import { FileText, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAppContext } from "../../../contexts/AppContext";
 import { useTierAccess } from "../../../hooks/useTierAccess";
 import { useTts } from "../../../hooks/useTts";
@@ -9,20 +9,18 @@ import { useWordFavourites } from "../../../hooks/useWordFavourites";
 import { isAiDeclined } from "../../../services/aiService";
 import { generatePracticeText, translatePracticeText } from "../../../services/grammarTextService";
 import { useWordLookup } from "../../../hooks/useWordLookup";
-import { getCefrLevelOptions } from "../../../config/examLevels";
 import { usePracticeLevel } from "../../../hooks/usePracticeLevel";
-import DefaultLevelLink from "../../../components/DefaultLevelLink";
 import Loader from "../../../components/Loader";
-import NeoDropdown from "../../../components/NeoDropdown";
 import WordBankSidebar from "../../../components/WordBankSidebar";
+import ExerciseSidebar from "../../../components/ExerciseSidebar";
 import DownloadPdfButton from "../../../components/DownloadPdfButton";
 import TappableParagraph from "../../../components/TappableParagraph";
+import TapWordHint from "../../../components/TapWordHint";
 import WordLookupSheet from "../../../components/WordLookupSheet";
 import {
   FeaturePageShell,
   Card,
   ErrorBanner,
-  PrimaryButton,
   LevelBadge,
   TtsControls,
   AiNotice,
@@ -79,7 +77,6 @@ const GrammarTextPage = () => {
   const translationRequestRef = useRef(null);
 
   const targetLang = user?.learningDialect;
-  const cefrLevelOptions = getCefrLevelOptions(t);
 
   const handleToggleSelect = (word) => {
     setSelectedWords((prev) => {
@@ -217,19 +214,39 @@ const GrammarTextPage = () => {
       ]}
     >
       <div className="flex flex-col lg:flex-row gap-5">
-        <WordBankSidebar
-          words={bankedWords}
-          selected={selectedWords}
-          onToggleSelect={handleToggleSelect}
-          onRemove={removeBanked}
-          maxSelected={MAX_SELECTED_WORDS}
-          // Always selectable, unlike the Tale Creator's. There, picking words
-          // forces a generation that would otherwise have come free from the
-          // pool, so it is gated with the custom-request box. Here every press
-          // generates whatever you do, so there is nothing to gate.
-          canSelect
-          hintKey="word_bank.select_hint_practice"
+        {/* The Tale Creator's sidebar: the level and the button that writes,
+            with the word bank under them. The focus box stays in the main
+            column, where the text it asks for appears. */}
+        <ExerciseSidebar
+          exerciseType="grammar"
+          level={level}
+          onLevelChange={setLevel}
+          generateLabel={text ? t("grammar.text_generate_another") : t("grammar.text_generate")}
+          onGenerate={handleGenerate}
+          loading={isLoading}
           isDarkMode={isDarkMode}
+          showReset={false}
+          showTimer={false}
+          mobileFirst
+          footer={
+            <WordBankSidebar
+              embedded
+              words={bankedWords}
+              selected={selectedWords}
+              onToggleSelect={handleToggleSelect}
+              onRemove={removeBanked}
+              maxSelected={MAX_SELECTED_WORDS}
+              // Always selectable, unlike the Tale Creator's. There, picking
+              // words forces a generation that would otherwise have come free
+              // from the pool, so it is gated with the custom-request box.
+              // Here every press generates whatever you do, so there is
+              // nothing to gate.
+              canSelect
+              hintKey="word_bank.select_hint_practice"
+              emptyKey="word_bank.empty_state_text"
+              isDarkMode={isDarkMode}
+            />
+          }
         />
 
         <div className="flex-1 min-w-0 flex flex-col gap-4">
@@ -255,28 +272,6 @@ const GrammarTextPage = () => {
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-              <NeoDropdown
-                options={cefrLevelOptions}
-                value={level}
-                onChange={setLevel}
-                isDarkMode={isDarkMode}
-                label={t("exam.sidebar.level", "Level")}
-                className="flex-1"
-              />
-              <PrimaryButton
-                onClick={handleGenerate}
-                disabled={isLoading}
-                loading={isLoading}
-                isDarkMode={isDarkMode}
-                color="amber"
-              >
-                <Sparkles size={16} />
-                {text ? t("grammar.text_generate_another") : t("grammar.text_generate")}
-              </PrimaryButton>
-            </div>
-            <DefaultLevelLink isDarkMode={isDarkMode} />
-
             {/* Before anything is generated, per Terms §3.3. */}
             <AiNotice isDarkMode={isDarkMode} variant="input" />
           </div>
@@ -292,6 +287,8 @@ const GrammarTextPage = () => {
               </p>
             </Card>
           )}
+
+          {!isLoading && text && <TapWordHint isDarkMode={isDarkMode} />}
 
           {!isLoading && text && (
             <Card isDarkMode={isDarkMode}>
