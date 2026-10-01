@@ -68,7 +68,9 @@
     "title": "Algo correu mal",
     "message": "Esta parte da aplicação deixou de responder. O teu progresso guardado está seguro.",
     "retry": "Tentar novamente",
-    "reload": "Recarregar a página"
+    "reload": "Recarregar a página",
+    "updating_title": "A atualizar",
+    "updating_message": "Há uma versão nova da aplicação. Só um momento enquanto a carregamos."
   },
   "home": {
     "badge": "Criado por um poliglota mochileiro",

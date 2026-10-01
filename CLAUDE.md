@@ -63,6 +63,22 @@ Coverage is uneven on purpose: `src/utils` is ~92%, `src/services` ~54%, `src/co
 - `src/sentry.js` initializes Sentry. Errors only, and deliberately so: no Session Replay, no tracing, no session tracking, `sendDefaultPii: false`. Two SDK defaults are filtered out in `initSentry()` — `browserSessionIntegration` (it emits a session event per route change, which is per-page-view telemetry the privacy policy rules out) and console breadcrumbs. **Do not add Replay, tracing, or analytics without changing the privacy policy first** — sections 2.7 and 3.4 make specific promises, and section 4 lists Sentry as a subprocessor on the basis that it only does fault-fixing.
 - `ErrorBoundary` reports from `componentDidCatch`, because React swallows an error once a boundary handles it and it would otherwise never reach Sentry.
 - Inert without `VITE_SENTRY_DSN`, which is why CI passes an empty value and local dev reports nothing.
+- **An app older than the site reloads itself once** (`utils/staleDeploy.js`).
+  - **The problem:** every deploy replaces the whole site on GitHub Pages, and
+    every lazy page has a hashed file name. An app loaded before a deploy asks
+    for files that no longer exist ("Failed to fetch dynamically imported
+    module"). The installed phone app, open for days, hit this after nearly
+    every deploy and showed "Algo correu mal". "Tentar novamente" can't help,
+    since React keeps the failed import; only a reload fetches the new
+    `index.html`.
+  - **The fix:**
+    - `main.jsx` listens for Vite's `vite:preloadError` and reloads once.
+    - `ErrorBoundary` shows "A atualizar" while that reload is pending, and
+      doesn't report it to Sentry: a stale tab isn't a crash.
+  - **Never twice in a row:** a reload within 10 seconds of the last one is
+    refused, because a file still missing after a reload means the deploy
+    itself is broken. That case shows the error screen with the reload button
+    only, and is reported.
 
 ## Notifications
 

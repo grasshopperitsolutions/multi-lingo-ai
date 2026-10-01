@@ -34,6 +34,14 @@ vi.mock("../../src/sentry", () => ({
   setSentryUser: vi.fn(),
 }));
 
+// The boundary's reload for a new version: controlled here, so a test never
+// tries to navigate jsdom. Everything else in the module is the real thing.
+const reloadForNewVersion = vi.fn(() => false);
+vi.mock("../../src/utils/staleDeploy", async (importOriginal) => ({
+  ...(await importOriginal()),
+  reloadForNewVersion: (...a) => reloadForNewVersion(...a),
+}));
+
 const emptyEnvelope = () =>
   vi.fn(async () => ({
     ok: true,
@@ -200,6 +208,40 @@ describe("ErrorBoundary", () => {
     );
 
     expect(screen.getByText("recovered")).toBeInTheDocument();
+  });
+
+  // An app loaded before a deploy, asking for a page file the deploy removed.
+  const StaleChunk = () => {
+    throw new TypeError("Failed to fetch dynamically imported module: https://multi-lingo.online/assets/ChallengesMenu-ESWg3ffF.js");
+  };
+
+  it("says it is updating, and reports nothing, when an old copy of the app reloads", async () => {
+    reloadForNewVersion.mockReturnValueOnce(true);
+    captureException.mockClear();
+    await renderBoundary({}, <StaleChunk />);
+
+    expect(await screen.findByText("A atualizar")).toBeInTheDocument();
+    expect(screen.queryByText("Algo correu mal")).toBeNull();
+    // A stale tab is not a crash.
+    expect(captureException).not.toHaveBeenCalled();
+  });
+
+  it("shows the error, reload only, when the file is still missing after a reload", async () => {
+    reloadForNewVersion.mockReturnValueOnce(false);
+    captureException.mockClear();
+    await renderBoundary({}, <StaleChunk />);
+
+    expect(await screen.findByText("Algo correu mal")).toBeInTheDocument();
+    // Retrying the render can't fetch a missing file; only a reload can.
+    expect(screen.queryByText("Tentar novamente")).toBeNull();
+    expect(screen.getByText("Recarregar a página")).toBeInTheDocument();
+    // This one is real: the deploy itself is broken.
+    await waitFor(() => expect(captureException).toHaveBeenCalled());
+  });
+
+  it("keeps the retry for every other error", async () => {
+    await renderBoundary({}, <Boom />);
+    expect(await screen.findByText("Tentar novamente")).toBeInTheDocument();
   });
 
   it("stays in the fallback while resetKey is unchanged", async () => {

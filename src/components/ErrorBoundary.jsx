@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { AlertTriangle, RefreshCw, RotateCcw } from "lucide-react";
 import i18n from "../i18n";
 import { Sentry } from "../sentry";
+import { isChunkLoadError, isReloadPending, reloadForNewVersion } from "../utils/staleDeploy";
 
 /**
  * Catches render-time exceptions so one broken component can't blank the
@@ -43,7 +44,9 @@ const safeT = (key, fallback) => {
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { error: null, resetKey: props.resetKey };
+    // `updating`: the error is an old copy of the app asking for a file a newer
+    // deploy removed, and a reload for the new version is under way.
+    this.state = { error: null, updating: false, resetKey: props.resetKey };
   }
 
   static getDerivedStateFromError(error) {
@@ -58,10 +61,21 @@ class ErrorBoundary extends Component {
    */
   static getDerivedStateFromProps(props, state) {
     if (props.resetKey === state.resetKey) return null;
-    return { error: null, resetKey: props.resetKey };
+    return { error: null, updating: false, resetKey: props.resetKey };
   }
 
   componentDidCatch(error, info) {
+    // A stale copy of the app, not a crash: reload once for the new version
+    // (utils/staleDeploy). Either main.jsx already started that reload and
+    // React tripped over the import it cancelled, or this is the first sign
+    // of it. Nothing to report to Sentry either way. If the reload is refused
+    // because it was just tried, the deploy itself is broken, and that falls
+    // through to the normal screen and the report below.
+    if (isReloadPending() || (isChunkLoadError(error) && reloadForNewVersion())) {
+      this.setState({ updating: true });
+      return;
+    }
+
     console.error("[ErrorBoundary] Uncaught render error:", error, info?.componentStack);
 
     // React swallows the error once a boundary handles it, so without this
@@ -79,12 +93,42 @@ class ErrorBoundary extends Component {
   handleReload = () => window.location.reload();
 
   render() {
-    const { error } = this.state;
+    const { error, updating } = this.state;
     const { children, isDarkMode } = this.props;
 
     if (!error) return children;
 
     const isDark = isDarkMode ?? savedThemeIsDark();
+
+    if (updating) {
+      return (
+        <div
+          className={`min-h-screen flex flex-col items-center justify-center px-4
+            ${isDark ? "bg-slate-900 text-slate-100" : "bg-blue-50 text-slate-900"}`}
+          role="status"
+        >
+          <div
+            className={`p-8 rounded-[2rem] border-4 max-w-md w-full text-center space-y-4
+              ${isDark
+                ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
+                : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
+              }`}
+          >
+            <RefreshCw size={40} className={`mx-auto motion-safe:animate-spin ${isDark ? "text-yellow-400" : "text-blue-600"}`} />
+            <h1 className={`text-2xl font-black uppercase tracking-tighter ${isDark ? "text-white" : "text-slate-900"}`}>
+              {safeT("error_boundary.updating_title", "A atualizar")}
+            </h1>
+            <p className={`font-bold ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+              {safeT("error_boundary.updating_message", "Há uma versão nova da aplicação. Só um momento enquanto a carregamos.")}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // A file that is still missing after a reload: trying the render again
+    // can't fetch it (React keeps the failed import), only a reload can.
+    const canRetry = !isChunkLoadError(error);
 
     const buttonClasses = `inline-flex items-center justify-center gap-3 px-6 py-4 rounded-2xl border-4
       font-black uppercase tracking-widest text-sm transition-all active:scale-95 hover:-translate-y-1`;
@@ -125,18 +169,20 @@ class ErrorBoundary extends Component {
           </p>
 
           <div className="flex flex-col gap-3">
-            <button
-              type="button"
-              onClick={this.handleRetry}
-              className={`${buttonClasses}
-                ${isDark
-                  ? "bg-yellow-400 border-yellow-400 text-slate-900 shadow-[6px_6px_0px_0px_#854d0e]"
-                  : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
-                }`}
-            >
-              <RotateCcw size={18} />
-              {safeT("error_boundary.retry", "Tentar novamente")}
-            </button>
+            {canRetry && (
+              <button
+                type="button"
+                onClick={this.handleRetry}
+                className={`${buttonClasses}
+                  ${isDark
+                    ? "bg-yellow-400 border-yellow-400 text-slate-900 shadow-[6px_6px_0px_0px_#854d0e]"
+                    : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
+                  }`}
+              >
+                <RotateCcw size={18} />
+                {safeT("error_boundary.retry", "Tentar novamente")}
+              </button>
+            )}
 
             <button
               type="button"
