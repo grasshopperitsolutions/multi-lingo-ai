@@ -20,6 +20,34 @@ export const PRICING = {
 };
 
 /**
+ * What a plan includes that isn't a feature in Admin › Features: an
+ * entitlement enforced somewhere else, with nothing in the registry to grant
+ * or gate. Shown first on the plan's card, right under the AI calls, since
+ * they're promises about the plan rather than tools in it.
+ *
+ * Listed once, on the plan that adds it: the cards build on each other
+ * ("everything in Voyager, plus"), so a perk here is not repeated on the
+ * plans above.
+ */
+export const PLAN_PERKS = {
+  voyager: [
+    // True while prompts carry an `explorerModel` (Admin › Prompts): Explorer
+    // runs those on the cheaper model, and every paid plan on the prompt's
+    // main one. Read-aloud is the clearest case (3.8 Flash Lite TTS for
+    // Explorer). If every explorerModel is ever cleared, this line stops
+    // being true and should go.
+    { id: 'advanced_models', labelKey: 'pricing.features.advanced_models' },
+  ],
+  maestro: [
+    // Enforced by tutorService.TUTOR_TIERS here and by the API's writeTiers on
+    // `tutors`. pricingPage.test pins that Maestro is among them.
+    { id: 'tutor_listing', labelKey: 'pricing.features.tutor_listing' },
+    // A promise kept by hand: nothing in the app orders support by plan.
+    { id: 'priority_support', labelKey: 'pricing.features.priority_support' },
+  ],
+};
+
+/**
  * Calculate yearly savings percentage.
  * @param {number} monthlyAmount
  * @param {number} yearlyAmount

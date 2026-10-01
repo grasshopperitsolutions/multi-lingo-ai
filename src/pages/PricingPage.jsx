@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import { createCheckoutSession, openPlanChangePortal } from "../services/stripeService";
-import { PRICING, getYearlySavingsPercent } from "../config/pricing";
+import { PRICING, PLAN_PERKS, getYearlySavingsPercent } from "../config/pricing";
 import { FEATURE_STATUS, getFeatureStatus } from "../utils/featureAccess";
 import { BetaBadge } from "../components/ui";
 import { auth } from "../firebase";
@@ -372,15 +372,24 @@ const PricingPage = () => {
         price: PRICING[tier.id] ?? null,
         aiCallsPerDay: tier.aiCallsPerDay,
         isMostPopular: tier.id === MOST_POPULAR_TIER_ID,
-        rows: sellableFeatures
-          .filter((feature) => includes(feature.id, tier.id) && !(previous && includes(feature.id, previous.id)))
-          .map((feature) => ({
-            id: feature.id,
-            // The user-facing name comes from the translation key stored on the
-            // feature; the admin label is the fallback when none is set.
-            label: feature.labelKey ? t(feature.labelKey, feature.label) : feature.label,
-            isBeta: feature.beta === true,
+        rows: [
+          // Perks first: promises about the plan, which are what tells its card
+          // apart, rather than tools in it. See PLAN_PERKS.
+          ...(PLAN_PERKS[tier.id] ?? []).map((perk) => ({
+            id: `perk:${perk.id}`,
+            label: t(perk.labelKey),
+            isBeta: false,
           })),
+          ...sellableFeatures
+            .filter((feature) => includes(feature.id, tier.id) && !(previous && includes(feature.id, previous.id)))
+            .map((feature) => ({
+              id: feature.id,
+              // The user-facing name comes from the translation key stored on the
+              // feature; the admin label is the fallback when none is set.
+              label: feature.labelKey ? t(feature.labelKey, feature.label) : feature.label,
+              isBeta: feature.beta === true,
+            })),
+        ],
       };
     });
   }, [tiersConfig, featureRegistry, t]);

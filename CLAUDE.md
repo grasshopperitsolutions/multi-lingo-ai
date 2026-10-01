@@ -1010,6 +1010,14 @@ inclui, e ainda:".
   VIP included: this is a sales page, and early access isn't on sale.
 - **A feature unticked for the pricing page is left off too**
   (`showInPricing: false`), though plans still grant it.
+- **Perks that aren't features are in code**: `PLAN_PERKS` in
+  `config/pricing.js`, listed first on the plan that adds them (Voyager: more
+  advanced AI models, which Maestro inherits; Maestro: tutor listing and
+  priority support). The models line holds only while prompts carry an
+  `explorerModel` for Explorer to run on. They count toward the card's five visible
+  rows. The tutor perk is enforced by `TUTOR_TIERS` and the API's `writeTiers`, and a test pins that they agree. Priority
+  support is a promise kept by hand; nothing in the app orders support by
+  plan.
 - **"Most popular" is keyed on the tier id** (`MOST_POPULAR_TIER_ID`, Maestro),
   not on display order. The home page's pricing teaser marks the same plan by
   hand.

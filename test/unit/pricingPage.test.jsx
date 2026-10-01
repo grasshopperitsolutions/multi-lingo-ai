@@ -122,6 +122,8 @@ describe("what each plan card lists", () => {
     { id: "secret", label: "Secret feature", order: 6, hidden: true },
   ];
 
+  const heading = (utils, name) => utils.getByRole("heading", { name });
+
   const cardOf = (utils, name) => {
     const heading = utils.getByRole("heading", { name });
     // The card body: its heading, price, button and rows.
@@ -194,22 +196,68 @@ describe("what each plan card lists", () => {
     expect(within(maestro.getByText("Priority support").parentElement).queryByText("Beta")).toBeNull();
   });
 
-  it("shows five features, and the rest behind \"show all\"", async () => {
+  it("shows five rows, and the rest behind \"show all\"", async () => {
     const many = Array.from({ length: 7 }, (_, i) => ({ id: `f${i + 1}`, label: `Feature ${i + 1}`, order: i + 1 }));
     ctx.current = baseContext({
       tiersConfig: { explorer: { ...tier("explorer", 1, true), features: many.map((f) => f.id) } },
       features: many,
     });
     const { default: i18n } = await import("../../src/i18n");
+    const { PLAN_PERKS } = await import("../../src/config/pricing");
     const utils = await mount();
     const explorer = cardOf(utils, "Explorer");
 
-    expect(explorer.getByText("Feature 5")).toBeTruthy();
-    expect(explorer.queryByText("Feature 6")).toBeNull();
+    // The free plan's perks lead and count toward the five.
+    const perks = (PLAN_PERKS.explorer ?? []).length;
+    const lastShown = 5 - perks;
+    expect(explorer.getByText(`Feature ${lastShown}`)).toBeTruthy();
+    expect(explorer.queryByText(`Feature ${lastShown + 1}`)).toBeNull();
 
     const { fireEvent } = await import("@testing-library/react");
-    fireEvent.click(explorer.getByText(i18n.t("pricing.show_all_features", { count: 7 })));
+    fireEvent.click(explorer.getByText(i18n.t("pricing.show_all_features", { count: 7 + perks })));
     expect(explorer.getByText("Feature 7")).toBeTruthy();
+  });
+
+  it("leads Maestro's card with its perks, and lists them on no other plan", async () => {
+    const { default: i18n } = await import("../../src/i18n");
+    const utils = await mount();
+    const tutor = i18n.t("pricing.features.tutor_listing");
+    const support = i18n.t("pricing.features.priority_support");
+
+    const maestro = cardOf(utils, "Maestro");
+    expect(maestro.getByText(tutor)).toBeTruthy();
+    expect(maestro.getByText(support)).toBeTruthy();
+    // Before the features: the perks are what tells the card apart.
+    const text = heading(utils, "Maestro").closest(".p-8").textContent;
+    expect(text.indexOf(support)).toBeLessThan(text.indexOf("Priority support"));
+
+    for (const plan of ["Explorer", "Voyager"]) {
+      expect(cardOf(utils, plan).queryByText(tutor)).toBeNull();
+      expect(cardOf(utils, plan).queryByText(support)).toBeNull();
+    }
+  });
+
+  it("leads Voyager with the more advanced models, which Maestro inherits", async () => {
+    const { default: i18n } = await import("../../src/i18n");
+    const utils = await mount();
+    const models = i18n.t("pricing.features.advanced_models");
+
+    expect(cardOf(utils, "Voyager").getByText(models)).toBeTruthy();
+    // Not on the free plan, and not repeated on Maestro: its card says
+    // "everything in Voyager, plus".
+    expect(cardOf(utils, "Explorer").queryByText(models)).toBeNull();
+    expect(cardOf(utils, "Maestro").queryByText(models)).toBeNull();
+  });
+
+  it("sells tutor listing only on a plan that may actually publish a profile", async () => {
+    const { PLAN_PERKS } = await import("../../src/config/pricing");
+    const { TUTOR_TIERS } = await import("../../src/services/tutorService");
+    const plans = Object.entries(PLAN_PERKS)
+      .filter(([, perks]) => perks.some((perk) => perk.id === "tutor_listing"))
+      .map(([plan]) => plan);
+
+    expect(plans.length).toBeGreaterThan(0);
+    for (const plan of plans) expect(TUTOR_TIERS).toContain(plan);
   });
 
   it("marks Maestro as the most popular plan", async () => {
