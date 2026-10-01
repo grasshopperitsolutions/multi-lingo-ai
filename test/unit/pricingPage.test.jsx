@@ -218,21 +218,17 @@ describe("what each plan card lists", () => {
     expect(explorer.getByText("Feature 7")).toBeTruthy();
   });
 
-  it("leads Maestro's card with its perks, and lists them on no other plan", async () => {
+  it("leads Maestro's card with its perk, and lists it on no other plan", async () => {
     const { default: i18n } = await import("../../src/i18n");
     const utils = await mount();
-    const tutor = i18n.t("pricing.features.tutor_listing");
     const support = i18n.t("pricing.features.priority_support");
 
-    const maestro = cardOf(utils, "Maestro");
-    expect(maestro.getByText(tutor)).toBeTruthy();
-    expect(maestro.getByText(support)).toBeTruthy();
+    expect(cardOf(utils, "Maestro").getByText(support)).toBeTruthy();
     // Before the features: the perks are what tells the card apart.
     const text = heading(utils, "Maestro").closest(".p-8").textContent;
     expect(text.indexOf(support)).toBeLessThan(text.indexOf("Priority support"));
 
     for (const plan of ["Explorer", "Voyager"]) {
-      expect(cardOf(utils, plan).queryByText(tutor)).toBeNull();
       expect(cardOf(utils, plan).queryByText(support)).toBeNull();
     }
   });
@@ -247,17 +243,6 @@ describe("what each plan card lists", () => {
     // "everything in Voyager, plus".
     expect(cardOf(utils, "Explorer").queryByText(models)).toBeNull();
     expect(cardOf(utils, "Maestro").queryByText(models)).toBeNull();
-  });
-
-  it("sells tutor listing only on a plan that may actually publish a profile", async () => {
-    const { PLAN_PERKS } = await import("../../src/config/pricing");
-    const { TUTOR_TIERS } = await import("../../src/services/tutorService");
-    const plans = Object.entries(PLAN_PERKS)
-      .filter(([, perks]) => perks.some((perk) => perk.id === "tutor_listing"))
-      .map(([plan]) => plan);
-
-    expect(plans.length).toBeGreaterThan(0);
-    for (const plan of plans) expect(TUTOR_TIERS).toContain(plan);
   });
 
   it("marks Maestro as the most popular plan", async () => {

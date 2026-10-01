@@ -39,9 +39,6 @@ export const PLAN_PERKS = {
     { id: 'advanced_models', labelKey: 'pricing.features.advanced_models' },
   ],
   maestro: [
-    // Enforced by tutorService.TUTOR_TIERS here and by the API's writeTiers on
-    // `tutors`. pricingPage.test pins that Maestro is among them.
-    { id: 'tutor_listing', labelKey: 'pricing.features.tutor_listing' },
     // A promise kept by hand: nothing in the app orders support by plan.
     { id: 'priority_support', labelKey: 'pricing.features.priority_support' },
   ],

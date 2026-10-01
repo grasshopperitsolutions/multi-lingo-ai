@@ -1012,12 +1012,10 @@ inclui, e ainda:".
   (`showInPricing: false`), though plans still grant it.
 - **Perks that aren't features are in code**: `PLAN_PERKS` in
   `config/pricing.js`, listed first on the plan that adds them (Voyager: more
-  advanced AI models, which Maestro inherits; Maestro: tutor listing and
-  priority support). The models line holds only while prompts carry an
-  `explorerModel` for Explorer to run on. They count toward the card's five visible
-  rows. The tutor perk is enforced by `TUTOR_TIERS` and the API's `writeTiers`, and a test pins that they agree. Priority
-  support is a promise kept by hand; nothing in the app orders support by
-  plan.
+  advanced AI models, which Maestro inherits; Maestro: priority support). They
+  count toward the card's five visible rows. The models line holds only while
+  prompts carry an `explorerModel` for Explorer to run on. Priority support is
+  a promise kept by hand; nothing in the app orders support by plan.
 - **"Most popular" is keyed on the tier id** (`MOST_POPULAR_TIER_ID`, Maestro),
   not on display order. The home page's pricing teaser marks the same plan by
   hand.
@@ -1288,11 +1286,12 @@ list carrying on into the page behind it. Row text is `break-words`, never
 cue that there is more; that is deliberate, but it is the thing to revisit if
 anyone reports missing content.
 
-## Fala com a IA — the one feature that bypasses the proxy
+## Conversar com a IA — the one feature that bypasses the proxy
 
 `/dashboard/ai-tutor` is a spoken conversation with a tutor that corrects as
-you go. It fills in the `ai_tutor` stub; the tile was renamed from "Tutor de IA"
-in copy only, ids and route untouched.
+you go. It fills in the `ai_tutor` stub. The tile was renamed in copy only,
+from "Tutor de IA" to "Fala com a IA" and, since 2026-10-01, "Conversar com a
+IA"; ids and route untouched.
 
 **It is the single AI feature that does not go through `/api/ask-ai`, and the
 reason is structural.** The Live API is a stateful WebSocket and a Vercel
@@ -1418,7 +1417,7 @@ returns 503.
 Recorded here because it shapes decisions before it is built, and because a
 note in a conversation is a note that is lost.
 
-The live tutor ("Fala com a IA") is meant to become **local to a place**: the
+The live tutor ("Conversar com a IA") is meant to become **local to a place**: the
 learner types a city or region, the model is asked a plain true/false — does
 this place exist in the country where the practice language is spoken — and if
 so the tutor teaches that area's speech as accurately as it can. Vocabulary,
