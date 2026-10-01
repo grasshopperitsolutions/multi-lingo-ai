@@ -563,11 +563,19 @@ next to "História e Cultura" is the same word twice, because *história* is
 both a story and history. English hid the collision; pt-PT is the language the
 app is actually written in, so the collision was the product.
 
-They are now **"Criador de Contos"** (a *conto* is a tale and nothing else) and
+They became **"Criador de Contos"** (a *conto* is a tale and nothing else) and
 **"Cultura e História do País"** (the country is what it is about, and naming
 it moves "história" out of first position). Every reference in the pt bundle
 moved with them — the pricing rows, the landing page, the word-bank copy that
 says where to collect words.
+
+**Since 2026-10-01 they are "Criador de Contos e Histórias" and "Cultura e
+Factos Históricos do País"**, the owner's own wording. The collision stays
+fixed by a different word: the culture page no longer says *História* at all
+but *Factos Históricos* (historical facts), so "Histórias" appears only in the
+tale creator's name, after "Contos", where it can only mean stories. **What
+must not come back is a bare "História" in the culture page's name**: that is
+the original collision.
 
 **Only the copy changed. Not one id, key or route.** `story_generator` and
 `history_culture` are *gate keys*: they name documents in
@@ -647,7 +655,8 @@ option in the list.
 The theme ids are written onto every story document, so they can be added and
 retired but **never renamed** — a rename orphans every tale already stored
 under it. There is no "history" theme, and `storyThemes.test.js` asserts there
-never is: putting *história* back in that list undoes the rename above.
+never is: a history theme would have the Tale Creator doing the culture
+page's job, and blur the line the names above draw between the two.
 
 ## Practice Text — the grammar hub stops being pt-PT-only
 
