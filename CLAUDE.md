@@ -969,6 +969,14 @@ answers false before the registry loads.
   omits `beta` clears it. Both one-click toggles in `AdminPage` pass every
   field through; keep it that way.
 
+**`showInPricing: false` is a fourth, narrower than `hidden`.** It takes a
+feature off the pricing page's plan cards and nowhere else: it stays on the
+dashboard, granted and usable. It's for features that are true but not worth a
+line in a sales list. Set on the feature form ("Show on the pricing page");
+the list shows a "Not on pricing" chip unless the feature is also hidden.
+**Absent means shown**, and `saveFeature` writes `true` unless told `false`, so
+a save path that doesn't know the field can't drop a pricing row.
+
 ## The pricing cards sell what exists, one plan on top of the next
 
 Each card lists only what its plan includes **today**. Each paid card lists
@@ -978,6 +986,8 @@ inclui, e ainda:".
 - **Nothing locked, hidden or unreleased is listed.** No struck-through rows
   and no "coming soon" rows. Hidden features are left off for **every** viewer,
   VIP included: this is a sales page, and early access isn't on sale.
+- **A feature unticked for the pricing page is left off too**
+  (`showInPricing: false`), though plans still grant it.
 - **"Most popular" is keyed on the tier id** (`MOST_POPULAR_TIER_ID`, Maestro),
   not on display order. The home page's pricing teaser marks the same plan by
   hand.

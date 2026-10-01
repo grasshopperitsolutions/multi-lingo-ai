@@ -171,6 +171,20 @@ describe("what each plan card lists", () => {
     expect(utils.queryByText("Brevemente")).toBeNull();
   });
 
+  it("leaves off a feature unticked for the pricing page, though plans grant it", async () => {
+    ctx.current = baseContext({
+      tiersConfig: plans,
+      features: registry.map((feature) =>
+        feature.id === "priority_support" ? { ...feature, showInPricing: false } : feature,
+      ),
+    });
+    const utils = await mount();
+    const maestro = cardOf(utils, "Maestro");
+
+    expect(maestro.queryByText("Priority support")).toBeNull();
+    expect(maestro.getByText("Voice practice")).toBeTruthy();
+  });
+
   it("labels a beta feature on its row", async () => {
     const utils = await mount();
     const maestro = cardOf(utils, "Maestro");
@@ -178,6 +192,24 @@ describe("what each plan card lists", () => {
     const row = maestro.getByText("Voice practice").parentElement;
     expect(within(row).getByText("Beta")).toBeTruthy();
     expect(within(maestro.getByText("Priority support").parentElement).queryByText("Beta")).toBeNull();
+  });
+
+  it("shows five features, and the rest behind \"show all\"", async () => {
+    const many = Array.from({ length: 7 }, (_, i) => ({ id: `f${i + 1}`, label: `Feature ${i + 1}`, order: i + 1 }));
+    ctx.current = baseContext({
+      tiersConfig: { explorer: { ...tier("explorer", 1, true), features: many.map((f) => f.id) } },
+      features: many,
+    });
+    const { default: i18n } = await import("../../src/i18n");
+    const utils = await mount();
+    const explorer = cardOf(utils, "Explorer");
+
+    expect(explorer.getByText("Feature 5")).toBeTruthy();
+    expect(explorer.queryByText("Feature 6")).toBeNull();
+
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.click(explorer.getByText(i18n.t("pricing.show_all_features", { count: 7 })));
+    expect(explorer.getByText("Feature 7")).toBeTruthy();
   });
 
   it("marks Maestro as the most popular plan", async () => {

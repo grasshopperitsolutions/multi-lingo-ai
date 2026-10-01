@@ -25,12 +25,19 @@
  *     hidden:   boolean, // keep the feature out of the dashboard and pricing
  *                        // for tiers below VIP — see
  *                        // utils/featureAccess.isFeatureVisible
- *     beta:     boolean  // released, but labelled "Beta" on its tiles and
+ *     beta:     boolean, // released, but labelled "Beta" on its tiles and
  *                        // pricing rows — see utils/featureAccess.isFeatureBeta
+ *     showInPricing: boolean // listed on the pricing page; false keeps it off
+ *                        // the plan cards while it stays granted and used
  *   }
  *
  * `beta` is a label and nothing more. It changes no access and no listing:
  * a beta feature is sold, granted and hidden exactly like any other.
+ *
+ * `showInPricing` is narrower than `hidden`: it only takes a feature off the
+ * pricing page's plan cards. It stays on the dashboard, granted and usable.
+ * For features that are true but not worth a line in a sales list (a hub
+ * whose sections are already listed, a small convenience).
  *
  * `hidden` is a launch switch, not a tier grant. A feature still under test is
  * marked hidden so it vanishes from the dashboard and the pricing table for
@@ -48,7 +55,7 @@ export const FEATURES_COLLECTION = 'appConfig/config/features';
  * Fetch the feature registry, sorted by `order`.
  *
  * @param {string} [token] - Optional pre-fetched Firebase ID token.
- * @returns {Promise<Array<{id: string, label: string, labelKey: string, order: number, hidden: boolean, beta: boolean}>>}
+ * @returns {Promise<Array<{id: string, label: string, labelKey: string, order: number, hidden: boolean, beta: boolean, showInPricing: boolean}>>}
  */
 export async function getFeatures(token) {
   const authToken = token ?? (await getTokenOrAnonymous());
@@ -66,6 +73,9 @@ export async function getFeatures(token) {
       // A label, not a gate: the feature is released and shows a "Beta"
       // badge on its tiles and pricing rows. Absent means not beta.
       beta: doc.beta === true,
+      // Absent means listed, like `hidden` absent means visible: every
+      // feature that predates the field keeps its pricing row.
+      showInPricing: doc.showInPricing !== false,
     }))
     .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
 }
@@ -75,7 +85,7 @@ export async function getFeatures(token) {
  *
  * @param {string} featureKey - Document id; structural, so never rename an
  *   existing one — components reference it by literal.
- * @param {{label: string, labelKey?: string, order?: number, hidden?: boolean, beta?: boolean}} data
+ * @param {{label: string, labelKey?: string, order?: number, hidden?: boolean, beta?: boolean, showInPricing?: boolean}} data
  * @returns {Promise<object>}
  */
 export async function saveFeature(featureKey, data) {
@@ -87,6 +97,7 @@ export async function saveFeature(featureKey, data) {
       order: Number(data.order) || 0,
       hidden: data.hidden === true,
       beta: data.beta === true,
+      showInPricing: data.showInPricing !== false,
       updatedAt: new Date().toISOString(),
     },
     featureKey,

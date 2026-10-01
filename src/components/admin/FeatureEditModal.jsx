@@ -35,6 +35,7 @@ const FeatureEditModal = ({ feature, isDarkMode, isSaving, onSave, onClose }) =>
   const [order, setOrder] = useState(feature?.order != null ? String(feature.order) : "");
   const [hidden, setHidden] = useState(feature?.hidden === true);
   const [beta, setBeta] = useState(feature?.beta === true);
+  const [showInPricing, setShowInPricing] = useState(feature?.showInPricing !== false);
   const [keyManuallyEdited, setKeyManuallyEdited] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [validationError, setValidationError] = useState(null);
@@ -68,6 +69,7 @@ const FeatureEditModal = ({ feature, isDarkMode, isSaving, onSave, onClose }) =>
       order: order.trim() ? Number(order) : 0,
       hidden,
       beta,
+      showInPricing,
     }, isNew);
   };
 
@@ -201,6 +203,27 @@ const FeatureEditModal = ({ feature, isDarkMode, isSaving, onSave, onClose }) =>
             </p>
           </div>
 
+          <div>
+            <label
+              htmlFor="feature-show-in-pricing"
+              className={`flex items-start gap-3 cursor-pointer ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}
+            >
+              <input
+                id="feature-show-in-pricing"
+                type="checkbox"
+                checked={showInPricing}
+                onChange={(e) => setShowInPricing(e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0"
+              />
+              <span className="text-sm font-bold">Show on the pricing page</span>
+            </label>
+            <p className={`mt-1 text-xs font-semibold ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
+              Lists the feature on the plan cards of the plans that include it. Untick to keep it
+              off the pricing page only: it stays on the dashboard, granted and usable. To take it
+              out of the app as well, use &quot;Hidden&quot;.
+            </p>
+          </div>
+
           {validationError && <p className="font-bold text-rose-500 text-sm">{validationError}</p>}
 
           <div className="flex gap-3 justify-end">
@@ -242,6 +265,7 @@ FeatureEditModal.propTypes = {
     order: PropTypes.number,
     hidden: PropTypes.bool,
     beta: PropTypes.bool,
+    showInPricing: PropTypes.bool,
   }),
   isDarkMode: PropTypes.bool.isRequired,
   isSaving: PropTypes.bool,

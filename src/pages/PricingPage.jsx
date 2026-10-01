@@ -11,7 +11,9 @@ import { CheckCircle, ArrowRight, ChevronDown } from "lucide-react";
 import PropTypes from "prop-types";
 
 // ── Rows shown before the list collapses ──────────────────────────────────────
-const COLLAPSED_ROW_COUNT = 7;
+// Feature rows only; the AI-calls line above them always shows. Five keeps the
+// three cards short enough to compare side by side, and "view all" has the rest.
+const COLLAPSED_ROW_COUNT = 5;
 
 // The plan carrying the "most popular" flag. Keyed on the tier id, which is a
 // gate key and never renamed, rather than on display order, which an admin
@@ -343,6 +345,8 @@ const PricingPage = () => {
   // So the page sells what exists and nothing else:
   //  - features flagged `hidden` are left off for every viewer, VIP included —
   //    this is a sales page, and early access is not something on sale;
+  //  - features with "Show on the pricing page" unticked are left off too,
+  //    though they stay in the app;
   //  - features granted to nobody ("coming soon") are not listed, because they
   //    are not part of any plan yet;
   //  - features a plan does not include are not listed struck through; the
@@ -350,7 +354,9 @@ const PricingPage = () => {
   const tiers = useMemo(() => {
     if (!tiersConfig || !featureRegistry) return [];
 
-    const sellableFeatures = featureRegistry.filter((feature) => !feature.hidden);
+    const sellableFeatures = featureRegistry.filter(
+      (feature) => !feature.hidden && feature.showInPricing !== false,
+    );
     const plans = Object.values(tiersConfig)
       .filter((tier) => !tier.hidden)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));

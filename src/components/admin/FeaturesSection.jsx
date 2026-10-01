@@ -6,7 +6,11 @@ import { GhostButton, PrimaryButton, SearchBar } from "../ui";
 
 function matchesSearch(feature, term) {
   if (!term) return true;
-  const haystack = [feature.label, feature.id, feature.labelKey, feature.hidden ? "hidden" : "", feature.beta ? "beta" : ""]
+  const haystack = [
+    feature.label, feature.id, feature.labelKey,
+    feature.hidden ? "hidden" : "", feature.beta ? "beta" : "",
+    feature.showInPricing === false ? "not on pricing" : "",
+  ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -96,6 +100,15 @@ const FeaturesSection = ({ features, isDarkMode, isLoadingDocs, error, onAddFeat
                     isDarkMode ? "border-violet-600 text-violet-300" : "border-violet-300 text-violet-700"
                   }`}>
                     Beta
+                  </span>
+                )}
+                {/* Only worth a chip when it differs from hidden, which already
+                    keeps a feature off the pricing page. */}
+                {feature.showInPricing === false && !feature.hidden && (
+                  <span className={`shrink-0 px-2 py-0.5 rounded-full border-2 text-[10px] font-black uppercase tracking-widest ${
+                    isDarkMode ? "border-amber-600 text-amber-300" : "border-amber-300 text-amber-700"
+                  }`}>
+                    Not on pricing
                   </span>
                 )}
               </div>

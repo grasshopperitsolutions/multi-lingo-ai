@@ -325,6 +325,8 @@ const AdminPage = () => {
         order: feature.order,
         hidden: !feature.hidden,
         beta: feature.beta,
+        // saveFeature rewrites every field, so a toggle passes the rest through.
+        showInPricing: feature.showInPricing,
       });
       showAlert("success", feature.hidden ? `"${feature.id}" is visible again.` : `"${feature.id}" is now hidden.`);
       const updated = await getFeatures();
@@ -350,6 +352,7 @@ const AdminPage = () => {
         order: feature.order,
         hidden: feature.hidden,
         beta: !feature.beta,
+        showInPricing: feature.showInPricing,
       });
       showAlert("success", feature.beta ? `"${feature.id}" is no longer marked beta.` : `"${feature.id}" is now marked beta.`);
       const updated = await getFeatures();
