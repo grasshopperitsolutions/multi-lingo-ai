@@ -365,6 +365,19 @@ every sibling stayed shut. All of them default to closed now.
 - Applications (`appConfig/config/tutorApplications`) mirror the reports pattern exactly. There is **no approved flag** — approval is granting the applicant the `vip` tier in Admin → Users, which is what the server actually checks.
 - `queryCollection` resolves to `{ documents, ... }` and `getDocument` to `{ id, data, collection }`. Neither is a bare array or a bare document; forgetting that is how the first version of the directory threw `docs.map is not a function`.
 
+## Modals never grow past the screen
+
+Every modal panel carries `.modal-panel` (in `index.css`): never taller than the
+visible screen less the overlay's `p-4`, measured in `dvh` so a phone's
+toolbars don't push it off the bottom. The panel adds `overflow-y-auto
+overscroll-contain` and scrolls inside. A modal whose header and buttons should
+stay put scrolls an inner body instead, as `PhotoReviewModal` does.
+
+Five panels had no cap at all until 2026-10-01: the feature and category
+editors, `ConfirmModal`, `ReportModal` and `WordLookupSheet`. A long form or a
+phone on its side ran them off the screen, with the save button out of reach.
+**A new modal takes the class too.**
+
 ## NeoDropdown searches itself past eight options
 
 `components/NeoDropdown.jsx` is the app's one value picker, and it had grown

@@ -59,7 +59,7 @@ const ConfirmModal = ({
 
       {/* Panel */}
       <div
-        className={`relative z-10 w-full max-w-md p-8 rounded-[2rem] border-4 ${shadow} ${
+        className={`relative z-10 w-full max-w-md modal-panel overflow-y-auto overscroll-contain p-8 rounded-[2rem] border-4 ${shadow} ${
           isDarkMode
             ? `bg-slate-800 ${border}`
             : `bg-white ${border}`

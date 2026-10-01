@@ -83,7 +83,7 @@ const WordLookupSheet = ({ word, sentence, targetLang, isDarkMode, onClose }) =>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       <div
-        className={`relative w-full sm:max-w-sm rounded-2xl border-4 p-5 ${
+        className={`relative w-full sm:max-w-sm modal-panel overflow-y-auto overscroll-contain rounded-2xl border-4 p-5 ${
           isDarkMode
             ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
             : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"

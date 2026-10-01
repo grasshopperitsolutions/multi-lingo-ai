@@ -44,7 +44,7 @@ const GenericDocEditModal = ({ doc, isDarkMode, isSaving, onSave, onClose }) => 
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={isSaving ? undefined : onClose} />
 
       <div
-        className={`relative z-10 w-full max-w-2xl max-h-[85vh] overflow-y-auto p-8 rounded-[2rem] border-4 shadow-[8px_8px_0px_0px_#1d4ed8] ${
+        className={`relative z-10 w-full max-w-2xl modal-panel overflow-y-auto overscroll-contain p-8 rounded-[2rem] border-4 shadow-[8px_8px_0px_0px_#1d4ed8] ${
           isDarkMode ? "bg-slate-800 border-blue-500" : "bg-white border-blue-600"
         }`}
       >

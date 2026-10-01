@@ -103,6 +103,18 @@
 .book-scene-mobile { perspective: 1100px; }
 
 .preserve-3d { transform-style: preserve-3d; }
+
+/* Every modal panel: never taller than the screen, scrolling inside instead.
+   It stops 2rem short, the overlay's p-4 on each side. dvh follows a phone's
+   toolbars as they collapse, where vh is the tallest the screen could be and
+   so runs off the bottom. The vh line is a fallback for browsers without dvh;
+   the build drops it while every browser the app targets has dvh.
+   Pair with `overflow-y-auto overscroll-contain` on the panel, or on an inner
+   body when the header and buttons should stay put (PhotoReviewModal). */
+.modal-panel {
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+}
 .backface-hidden { backface-visibility: hidden; }
 
 /* Spine lettering: bottom-to-top, the way it reads on a shelf.

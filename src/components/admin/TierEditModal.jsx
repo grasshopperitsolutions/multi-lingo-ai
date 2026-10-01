@@ -84,7 +84,7 @@ const TierEditModal = ({ tier, allFeatures, isDarkMode, isSaving, onSave, onClos
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={isSaving ? undefined : onClose} />
 
       <div
-        className={`relative z-10 w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 rounded-[2rem] border-4 shadow-[8px_8px_0px_0px_#1d4ed8] ${
+        className={`relative z-10 w-full max-w-2xl modal-panel overflow-y-auto overscroll-contain p-8 rounded-[2rem] border-4 shadow-[8px_8px_0px_0px_#1d4ed8] ${
           isDarkMode ? "bg-slate-800 border-slate-700" : "bg-white border-slate-900"
         }`}
       >

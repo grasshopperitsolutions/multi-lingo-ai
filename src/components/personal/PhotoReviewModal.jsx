@@ -104,7 +104,7 @@ const PhotoReviewModal = ({ summary = "", proposals, onApply, onClose, isDarkMod
       />
 
       <div
-        className={`relative z-10 w-full max-w-2xl max-h-[90vh] flex flex-col rounded-[2rem] border-4 shadow-[8px_8px_0px_0px_#6d28d9] ${panelClasses}`}
+        className={`relative z-10 w-full max-w-2xl modal-panel flex flex-col rounded-[2rem] border-4 shadow-[8px_8px_0px_0px_#6d28d9] ${panelClasses}`}
       >
         <div className="p-6 sm:p-8 pb-4 shrink-0">
           <button
