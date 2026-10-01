@@ -19,7 +19,7 @@
     "home_title": "Multi Lingo AI | Pratica qualquer língua, para a vida real",
     "home_description": "O teu companheiro de prática de línguas, não apenas mais um curso. Exercícios de exame estilo europeu (CEFR), desafios, gramática e histórias que vais mesmo usar — a par do teu professor, aula ou aplicação.",
     "pricing_title": "Preços | Multi Lingo AI",
-    "pricing_description": "Compara os planos do Multi Lingo AI. Todos os planos têm as mesmas ferramentas de prática — o que muda é quanto podes praticar por dia. Há um plano gratuito.",
+    "pricing_description": "Compara os planos do Multi Lingo AI. Começa grátis: cada plano junta mais ferramentas de prática ao anterior, e mais chamadas de IA por dia.",
     "contact_title": "Contacto | Multi Lingo AI",
     "contact_description": "Dúvidas, sugestões ou apoio para o Multi Lingo AI — o companheiro de prática de línguas criado por um poliglota mochileiro.",
     "terms_title": "Termos de Serviço | Multi Lingo AI",
@@ -898,7 +898,7 @@
   },
   "pricing": {
     "title": "Escolhe o Teu Plano",
-    "subtitle": "Todos os planos têm as mesmas funcionalidades. O que muda é quanto podes praticar por dia. Começa grátis e muda de plano quando precisares de mais.",
+    "subtitle": "Começa grátis com o essencial. Cada plano junta mais ferramentas ao anterior, e mais chamadas de IA por dia. Muda de plano quando quiseres.",
     "badge_coming_soon": "Brevemente",
     "plans_heading": "Planos",
     "monthly": "Mensal",

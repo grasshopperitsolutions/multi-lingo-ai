@@ -24,7 +24,7 @@ export const SEO_STRINGS = {
   home_title: "Multi Lingo AI | Practice any language, for real life",
   home_description: "A language practice companion, not another course. Slang, grammar and stories you'll actually use — alongside your teacher, class or app. Deepest support for Portuguese, English and Spanish.",
   pricing_title: "Pricing | Multi Lingo AI",
-  pricing_description: "Compare Multi Lingo AI plans. Every plan has the same practice tools — what changes is how much you can practice each day. Free tier available.",
+  pricing_description: "Compare Multi Lingo AI plans. Start free: each plan adds more practice tools to the one before, and more AI calls a day.",
   contact_title: "Contact | Multi Lingo AI",
   contact_description: "Questions, feedback or support for Multi Lingo AI — the language practice companion built by a working tutor.",
   terms_title: "Terms of Service | Multi Lingo AI",
