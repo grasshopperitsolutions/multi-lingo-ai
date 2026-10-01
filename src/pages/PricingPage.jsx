@@ -1,13 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import { createCheckoutSession, openPlanChangePortal } from "../services/stripeService";
 import { PRICING, PLAN_PERKS, getYearlySavingsPercent } from "../config/pricing";
 import { FEATURE_STATUS, getFeatureStatus } from "../utils/featureAccess";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import { BetaBadge } from "../components/ui";
 import { auth } from "../firebase";
-import { CheckCircle, ArrowRight, ChevronDown } from "lucide-react";
+import { CheckCircle, ArrowRight, ChevronDown, Minus } from "lucide-react";
 import PropTypes from "prop-types";
 
 // ── Rows shown before the list collapses ──────────────────────────────────────
@@ -77,6 +78,7 @@ const TierCard = ({
   onSelect,
   loadingPlan,
   t,
+  className = "",
 }) => {
   const [isYearly, setIsYearly] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -88,7 +90,7 @@ const TierCard = ({
 
   return (
     <div
-      className={`relative flex flex-col rounded-[2rem] border-4 transition-all duration-300 ${
+      className={`relative flex flex-col rounded-[2rem] border-4 transition-all duration-300 ${className} ${
         isMostPopular
           ? "md:scale-105 z-10 shadow-[12px_12px_0px_0px_#facc15]"
           : "shadow-[6px_6px_0px_0px_#0f172a]"
@@ -285,6 +287,179 @@ TierCard.propTypes = {
   onSelect: PropTypes.func.isRequired,
   loadingPlan: PropTypes.string,
   t: PropTypes.func.isRequired,
+  /** Extra classes on the card, e.g. to fill a swipe row's height. */
+  className: PropTypes.string,
+};
+
+/** A plan's monthly price as the pills and the table show it: "$0", "$17.99/mês". */
+const shortPrice = (price, t) =>
+  price ? `$${price.monthly.amount}/${t("pricing.per_month")}` : "$0";
+
+// ── PlanPills — where you are among the swipe cards, and a way to jump ────────
+// Phones only. The cards scroll sideways there, one at a time, so these are the
+// one place all three plans and their prices are on screen together.
+const PlanPills = ({ tiers, activeIndex, onPick, isDarkMode, t }) => (
+  <div role="group" aria-label={t("pricing.plans_heading")} className="md:hidden flex gap-2 justify-center mb-2">
+    {tiers.map((tier, index) => {
+      const isActive = index === activeIndex;
+      return (
+        <button
+          key={tier.key}
+          type="button"
+          onClick={() => onPick(index)}
+          aria-pressed={isActive}
+          className={`flex-1 min-w-0 min-h-[44px] px-2 py-1.5 rounded-xl border-2 font-black uppercase tracking-wider text-[11px] leading-tight transition-all active:scale-95 ${
+            isActive
+              ? "bg-yellow-400 border-slate-900 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
+              : isDarkMode
+                ? "bg-slate-800 border-slate-700 text-slate-300"
+                : "bg-white border-slate-300 text-slate-600"
+          }`}
+        >
+          <span className="block truncate">{tier.label}</span>
+          <span className={`block truncate normal-case tracking-normal font-bold ${isActive ? "" : "opacity-80"}`}>
+            {shortPrice(tier.price, t)}
+          </span>
+        </button>
+      );
+    })}
+  </div>
+);
+
+PlanPills.propTypes = {
+  tiers: PropTypes.array.isRequired,
+  activeIndex: PropTypes.number.isRequired,
+  onPick: PropTypes.func.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+  t: PropTypes.func.isRequired,
+};
+
+// ── PlanComparison — every feature against every plan ────────────────────────
+// The cards sell: each lists five rows and only what it adds to the plan below.
+// That makes "does Voyager have the dictionary?" hard to answer, so this table
+// answers it in one look. Rows climb from what the free plan has to what only
+// Maestro adds. Open on desktop; on a phone it is a long scroll, so it waits
+// behind a button.
+const PlanComparison = ({ comparison, isDarkMode, t }) => {
+  const [open, setOpen] = useState(false);
+  if (!comparison) return null;
+  const { plans, rows } = comparison;
+
+  const muted = isDarkMode ? "text-slate-400" : "text-slate-500";
+  const rowLabel = `text-xs font-bold uppercase tracking-wider ${isDarkMode ? "text-slate-300" : "text-slate-700"}`;
+
+  return (
+    <section className="max-w-6xl mx-auto px-4 mt-16">
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+        aria-controls="plan-comparison"
+        className={`md:hidden w-full flex items-center justify-center gap-2 py-4 rounded-2xl border-4 font-black uppercase tracking-widest text-sm transition-all active:scale-95 ${
+          isDarkMode
+            ? "bg-slate-800 border-slate-700 text-white shadow-[4px_4px_0px_0px_#1e293b]"
+            : "bg-white border-slate-900 text-slate-900 shadow-[4px_4px_0px_0px_#0f172a]"
+        }`}
+      >
+        {t("pricing.compare_title")}
+        <ChevronDown size={16} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      <h2
+        className={`hidden md:block text-3xl font-black uppercase tracking-tighter text-center mb-8 ${
+          isDarkMode ? "text-white" : "text-slate-900"
+        }`}
+      >
+        {t("pricing.compare_title")}
+      </h2>
+
+      <div id="plan-comparison" className={`${open ? "block" : "hidden"} md:block mt-6 md:mt-0`}>
+        <div
+          className={`overflow-x-auto rounded-[2rem] border-4 ${
+            isDarkMode
+              ? "bg-slate-800 border-slate-700 shadow-[6px_6px_0px_0px_#1e293b]"
+              : "bg-white border-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
+          }`}
+        >
+          <table className="w-full table-fixed text-left">
+            <caption className="sr-only">{t("pricing.compare_title")}</caption>
+            <colgroup>
+              <col className="w-[40%] md:w-[46%]" />
+              {plans.map((plan) => <col key={plan.key} />)}
+            </colgroup>
+            <thead>
+              <tr className={`border-b-4 ${isDarkMode ? "border-slate-700" : "border-slate-900"}`}>
+                <th scope="col" className={`px-3 md:px-6 py-4 text-[11px] font-black uppercase tracking-widest ${muted}`}>
+                  {t("pricing.compare_feature")}
+                </th>
+                {plans.map((plan) => (
+                  <th key={plan.key} scope="col" className="px-1 py-4 text-center">
+                    <span className={`block text-[11px] md:text-sm font-black uppercase tracking-normal md:tracking-wider ${
+                      plan.isMostPopular ? "text-yellow-500" : isDarkMode ? "text-white" : "text-slate-900"
+                    }`}>
+                      {plan.label}
+                    </span>
+                    <span className={`block text-[11px] md:text-xs font-bold ${muted}`}>{shortPrice(plan.price, t)}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr className={`border-b-2 ${isDarkMode ? "border-slate-700" : "border-slate-100"}`}>
+                <th scope="row" className={`px-3 md:px-6 py-3 ${rowLabel}`}>{t("pricing.compare_ai_calls")}</th>
+                {plans.map((plan) => (
+                  <td key={plan.key} className={`py-3 text-center text-xs md:text-sm font-black ${isDarkMode ? "text-white" : "text-slate-900"}`}>
+                    {plan.aiCallsPerDay === Infinity ? t("pricing.unlimited", "Unlimited") : plan.aiCallsPerDay}
+                  </td>
+                ))}
+              </tr>
+              {rows.map((row) => (
+                <tr key={row.id} className={`border-b-2 last:border-b-0 ${isDarkMode ? "border-slate-700" : "border-slate-100"}`}>
+                  <th scope="row" className={`px-3 md:px-6 py-3 ${rowLabel}`}>
+                    <span className="inline-flex flex-wrap items-center gap-2">
+                      {row.label}
+                      {row.isBeta && <BetaBadge isDarkMode={isDarkMode} placement="inline" />}
+                    </span>
+                  </th>
+                  {row.cells.map((included, index) => (
+                    <IncludedCell key={plans[index].key} included={included} isDarkMode={isDarkMode} t={t} />
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/** A tick or a dash, with words for a screen reader. */
+const IncludedCell = ({ included, isDarkMode, t }) => (
+  <td className="py-3 text-center">
+    {included ? (
+      <CheckCircle size={18} className="inline text-emerald-500" aria-hidden="true" />
+    ) : (
+      <Minus size={18} className={`inline ${isDarkMode ? "text-slate-600" : "text-slate-300"}`} aria-hidden="true" />
+    )}
+    <span className="sr-only">
+      {included ? t("pricing.compare_included") : t("pricing.compare_not_included")}
+    </span>
+  </td>
+);
+
+IncludedCell.propTypes = {
+  included: PropTypes.bool.isRequired,
+  isDarkMode: PropTypes.bool.isRequired,
+  t: PropTypes.func.isRequired,
+};
+
+PlanComparison.propTypes = {
+  comparison: PropTypes.shape({
+    plans: PropTypes.array.isRequired,
+    rows: PropTypes.array.isRequired,
+  }),
+  isDarkMode: PropTypes.bool.isRequired,
+  t: PropTypes.func.isRequired,
 };
 
 // ── PricingPage ───────────────────────────────────────────────────────────────
@@ -351,8 +526,11 @@ const PricingPage = () => {
   //    are not part of any plan yet;
   //  - features a plan does not include are not listed struck through; the
   //    plan above shows them.
-  const tiers = useMemo(() => {
-    if (!tiersConfig || !featureRegistry) return [];
+  //
+  // The comparison table below the cards is built in the same pass, from the
+  // same filtered features, so the two can never disagree about a plan.
+  const { tiers, comparison } = useMemo(() => {
+    if (!tiersConfig || !featureRegistry) return { tiers: [], comparison: null };
 
     const sellableFeatures = featureRegistry.filter(
       (feature) => !feature.hidden && feature.showInPricing !== false,
@@ -362,8 +540,10 @@ const PricingPage = () => {
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const includes = (featureId, tierId) =>
       getFeatureStatus(featureId, tierId, tiersConfig) === FEATURE_STATUS.AVAILABLE;
+    const featureLabel = (feature) =>
+      feature.labelKey ? t(feature.labelKey, feature.label) : feature.label;
 
-    return plans.map((tier, index) => {
+    const cards = plans.map((tier, index) => {
       const previous = index > 0 ? plans[index - 1] : null;
       return {
         key: tier.id,
@@ -386,13 +566,84 @@ const PricingPage = () => {
               id: feature.id,
               // The user-facing name comes from the translation key stored on the
               // feature; the admin label is the fallback when none is set.
-              label: feature.labelKey ? t(feature.labelKey, feature.label) : feature.label,
+              label: featureLabel(feature),
               isBeta: feature.beta === true,
             })),
         ],
       };
     });
+
+    // Rows for the table: a perk is in its plan and every plan above (they
+    // build on each other); a feature is wherever its grants say. Ordered by
+    // the lowest plan that has it, perks first within a plan, so the table
+    // climbs the way the cards do.
+    const perkRows = plans.flatMap((tier, index) =>
+      (PLAN_PERKS[tier.id] ?? []).map((perk) => ({
+        id: `perk:${perk.id}`,
+        label: t(perk.labelKey),
+        isBeta: false,
+        cells: plans.map((_, column) => column >= index),
+        from: index,
+        isPerk: true,
+      })),
+    );
+    const featureRows = sellableFeatures
+      .map((feature) => ({
+        id: feature.id,
+        label: featureLabel(feature),
+        isBeta: feature.beta === true,
+        cells: plans.map((tier) => includes(feature.id, tier.id)),
+      }))
+      // Granted to no listed plan: "coming soon", not part of any plan yet.
+      .filter((row) => row.cells.some(Boolean))
+      .map((row) => ({ ...row, from: row.cells.indexOf(true), isPerk: false }));
+    const rows = [...perkRows, ...featureRows].sort(
+      (a, b) => a.from - b.from || Number(b.isPerk) - Number(a.isPerk),
+    );
+
+    return {
+      tiers: cards,
+      comparison: cards.length > 0 ? { plans: cards, rows } : null,
+    };
   }, [tiersConfig, featureRegistry, t]);
+
+  // ── Phones: the cards swipe sideways ─────────────────────────────────────
+  // Stacked, each card was most of a screen, so the plans were never seen
+  // together. Below md they sit in a snap-scrolling row, the next one peeking
+  // in, and the pills above say which one is in view. From md up it is the
+  // same three cards side by side as before.
+  const scrollerRef = useRef(null);
+  const cardRefs = useRef([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    // No observer in the test environment, and none needed on a desktop grid
+    // where every card is in view: the pills are hidden there anyway.
+    if (!scroller || typeof IntersectionObserver === "undefined") return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) setActiveIndex(Number(entry.target.dataset.index));
+        }
+      },
+      { root: scroller, threshold: 0.6 },
+    );
+    cardRefs.current.forEach((card) => card && observer.observe(card));
+    return () => observer.disconnect();
+  }, [tiers.length]);
+
+  const scrollToPlan = (index) => {
+    setActiveIndex(index);
+    const scroller = scrollerRef.current;
+    const card = cardRefs.current[index];
+    if (!scroller || !card || typeof scroller.scrollTo !== "function") return;
+    scroller.scrollTo({
+      left: card.offsetLeft - (scroller.clientWidth - card.clientWidth) / 2,
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+    });
+  };
 
   return (
     <>
@@ -418,26 +669,60 @@ const PricingPage = () => {
         {/* Tier Cards */}
         <section className="max-w-6xl mx-auto px-4">
           <h2 className="sr-only">{t("pricing.plans_heading")}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-            {tiers.map((tier) => (
-              <TierCard
+
+          <PlanPills
+            tiers={tiers}
+            activeIndex={activeIndex}
+            onPick={scrollToPlan}
+            isDarkMode={isDarkMode}
+            t={t}
+          />
+
+          {/* Phones: a row that bleeds to the screen edges (-mx-4), snaps a
+              card to the middle, and lets the next one peek in from the side.
+              The top padding is room for the "most popular" badge and the
+              bottom for the hard shadow, both of which a scroll container
+              would otherwise clip. From md up: the old three-column grid. */}
+          <div
+            ref={scrollerRef}
+            className="relative -mx-4 pl-[10vw] pt-6 pb-8 flex gap-3 overflow-x-auto overscroll-x-contain snap-x snap-mandatory scrollbar-hidden md:mx-0 md:p-0 md:grid md:grid-cols-3 md:gap-8 md:items-start md:overflow-visible md:snap-none"
+          >
+            {tiers.map((tier, index) => (
+              <div
                 key={tier.key}
-                tierKey={tier.key}
-                tierLabel={tier.label}
-                previousTierLabel={tier.previousLabel}
-                price={tier.price}
-                rows={tier.rows}
-                aiCallsPerDay={tier.aiCallsPerDay}
-                isDarkMode={isDarkMode}
-                isCurrentTier={currentTier === tier.key}
-                isMostPopular={tier.isMostPopular}
-                onSelect={handleSelect}
-                loadingPlan={loadingPlan}
-                t={t}
-              />
+                ref={(element) => { cardRefs.current[index] = element; }}
+                data-index={index}
+                // A column so the card can fill it: on a phone every card in the
+                // row is as tall as the tallest, so a swipe never lands on a
+                // short one with a gap under it. The desktop grid keeps each
+                // card its own height (md:items-start).
+                className="shrink-0 w-[80vw] max-w-[24rem] snap-center flex flex-col md:block md:w-auto md:max-w-none"
+              >
+                <TierCard
+                  className="flex-1"
+                  tierKey={tier.key}
+                  tierLabel={tier.label}
+                  previousTierLabel={tier.previousLabel}
+                  price={tier.price}
+                  rows={tier.rows}
+                  aiCallsPerDay={tier.aiCallsPerDay}
+                  isDarkMode={isDarkMode}
+                  isCurrentTier={currentTier === tier.key}
+                  isMostPopular={tier.isMostPopular}
+                  onSelect={handleSelect}
+                  loadingPlan={loadingPlan}
+                  t={t}
+                />
+              </div>
             ))}
+            {/* End padding as an element: some browsers ignore a scroll
+                container's right padding, and then the last card can't come
+                to the middle. Minus the gap the flex row adds before it. */}
+            <div aria-hidden="true" className="shrink-0 w-[calc(10vw-0.75rem)] md:hidden" />
           </div>
         </section>
+
+        <PlanComparison comparison={comparison} isDarkMode={isDarkMode} t={t} />
       </main>
     </>
   );

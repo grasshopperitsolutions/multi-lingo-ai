@@ -930,6 +930,11 @@
     },
     "show_all_features": "Ver tudo",
     "show_less": "Ver menos",
+    "compare_title": "Comparar todas as funcionalidades",
+    "compare_feature": "Funcionalidade",
+    "compare_ai_calls": "Chamadas de IA por dia",
+    "compare_included": "Incluído",
+    "compare_not_included": "Não incluído",
     "unlimited": "Ilimitadas",
     "per_day_suffix": "/dia"
   },

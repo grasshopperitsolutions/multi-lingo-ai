@@ -1016,6 +1016,20 @@ inclui, e ainda:".
   count toward the card's five visible rows. The models line holds only while
   prompts carry an `explorerModel` for Explorer to run on. Priority support is
   a promise kept by hand; nothing in the app orders support by plan.
+- **On phones the cards swipe sideways** (below `md`). Stacked, each was most
+  of a screen, so the plans were never seen together. They sit in a
+  snap-scrolling row, each card 80% of the screen with the next one peeking in.
+  Pills above show all three plans with prices, follow the card in view, and
+  jump to one when tapped. The cards fill the row's height, so a swipe never
+  lands on a short one. From `md` up it's the three-column grid it always was.
+  - The row's top and bottom padding is room for the "most popular" badge and
+    the hard shadow, which a scroll container would clip.
+  - Its end padding is a spacer element, because some browsers ignore a
+    scroll container's right padding.
+- **"Comparar todas as funcionalidades"** sits under the cards: every listed
+  feature and perk against every plan, climbing from the free plan's rows to
+  Maestro's. It's built in the same pass as the cards, so the two can't
+  disagree. Always open on desktop; behind a button on phones.
 - **"Most popular" is keyed on the tier id** (`MOST_POPULAR_TIER_ID`, Maestro),
   not on display order. The home page's pricing teaser marks the same plan by
   hand.

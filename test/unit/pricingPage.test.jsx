@@ -245,6 +245,51 @@ describe("what each plan card lists", () => {
     expect(cardOf(utils, "Maestro").queryByText(models)).toBeNull();
   });
 
+  it("names every plan and its price in the phone pills, and marks the one picked", async () => {
+    const utils = await mount();
+    const pills = within(utils.getByRole("group", { name: "Planos" })).getAllByRole("button");
+
+    expect(pills.map((pill) => pill.textContent)).toEqual([
+      "Explorer$0",
+      "Voyager$17.99/mês",
+      "Maestro$24.99/mês",
+    ]);
+    expect(pills[0].getAttribute("aria-pressed")).toBe("true");
+
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.click(pills[2]);
+    expect(pills[2].getAttribute("aria-pressed")).toBe("true");
+    expect(pills[0].getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("compares every listed feature against every plan, behind a toggle on phones", async () => {
+    const { default: i18n } = await import("../../src/i18n");
+    const { fireEvent } = await import("@testing-library/react");
+    const utils = await mount();
+
+    const toggle = utils.getByRole("button", { name: i18n.t("pricing.compare_title") });
+    const panel = utils.container.querySelector("#plan-comparison");
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(panel.className).toMatch(/(^|\s)hidden(\s|$)/);
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(panel.className).toMatch(/(^|\s)block(\s|$)/);
+
+    const table = within(panel);
+    const ticks = (label) =>
+      within(table.getByRole("rowheader", { name: new RegExp(label) }).closest("tr"))
+        .getAllByRole("cell")
+        .map((cell) => (cell.textContent === i18n.t("pricing.compare_included") ? "Y" : "-"));
+
+    expect(ticks("Full exam")).toEqual(["-", "Y", "Y"]);
+    expect(ticks("Translator")).toEqual(["Y", "Y", "Y"]);
+    // A perk is in its plan and every plan above.
+    expect(ticks(i18n.t("pricing.features.advanced_models"))).toEqual(["-", "Y", "Y"]);
+    // Hidden and granted-to-nobody features stay out of the table too.
+    expect(table.queryByText("Secret feature")).toBeNull();
+    expect(table.queryByText("AI tutor")).toBeNull();
+  });
+
   it("marks Maestro as the most popular plan", async () => {
     const utils = await mount();
     const badge = utils.getByText("Mais Popular");
