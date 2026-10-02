@@ -22,6 +22,26 @@ import { parseTutorUrl, matchKnownPlatform } from "../config/tutorPlatforms";
  * since we are affiliated with no platform.
  */
 
+/**
+ * The fallback model for a prompt document that names none, the same constant
+ * every other service keeps. Gemini is the only AI provider the API serves.
+ */
+const GEMINI_MODEL = "gemini-3.5-flash-lite";
+
+/**
+ * The verdict's shape, enforced by the API's JSON mode. Only `ok` is required:
+ * a refusal that forgets its reason is still a refusal.
+ */
+const VERDICT_SCHEMA = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    platform: { type: "string" },
+    reason: { type: "string" },
+  },
+  required: ["ok"],
+};
+
 export const VALIDATED_BY = {
   KNOWN_PLATFORM: "known-platform",
   AI: "ai",
@@ -142,12 +162,14 @@ export async function validateUrlWithAi(token, url) {
       token,
       prompt,
       {
-        provider: "openai",
-        // Both blank in the seeded document, so this keeps the provider
-        // default until an admin pins one — and `explorerModel` makes the
-        // check cheaper for the free tier the moment anyone wants that.
-        model: promptDoc.model || undefined,
+        provider: "gemini",
+        // Both blank in the seeded document, so this keeps the fallback until
+        // an admin pins one — and `explorerModel` makes the check cheaper for
+        // the free tier the moment anyone wants that.
+        model: promptDoc.model || GEMINI_MODEL,
         explorerModel: promptDoc.explorerModel,
+        jsonMode: true,
+        responseSchema: VERDICT_SCHEMA,
         // Which prompt this is, for the Pulse counters. A label only.
         feature: promptDoc.id,
       },

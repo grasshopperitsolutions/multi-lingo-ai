@@ -85,19 +85,29 @@ describe("the prompt comes from Firestore", () => {
     const [, , providerParams] = askAI.mock.calls[0];
     // The server picks between them; this only has to carry both.
     expect(providerParams).toMatchObject({
-      provider: "openai",
+      provider: "gemini",
       model: "big-model",
       explorerModel: "small-model",
     });
   });
 
-  it("sends no model at all when the document pins none", async () => {
+  it("falls back to the Gemini default when the document pins no model", async () => {
     const { validateUrlWithAi } = await import("../../src/services/tutorUrlValidation");
     await validateUrlWithAi("tok", URL_UNDER_TEST);
 
-    // An empty string is not a model id — it would be a 400 from the
-    // provider rather than a fallback to its default.
-    expect(askAI.mock.calls[0][2].model).toBeUndefined();
+    // An empty string is not a model id: it would be a 400 from the provider
+    // rather than a fallback, so the service supplies its own default.
+    expect(askAI.mock.calls[0][2].model).toBe("gemini-3.5-flash-lite");
+  });
+
+  it("asks for a schema-bound JSON verdict, which replaced OpenAI's JSON mode", async () => {
+    const { validateUrlWithAi } = await import("../../src/services/tutorUrlValidation");
+    await validateUrlWithAi("tok", URL_UNDER_TEST);
+
+    const params = askAI.mock.calls[0][2];
+    expect(params.jsonMode).toBe(true);
+    expect(params.responseSchema.required).toEqual(["ok"]);
+    expect(Object.keys(params.responseSchema.properties)).toEqual(["ok", "platform", "reason"]);
   });
 
   it("reports an unreachable prompt document as an un-validated link", async () => {

@@ -38,7 +38,7 @@ export async function authFetch(url, options, onTokenExpired) {
 
 /**
  * Replaces any error message that leaks an AI provider name
- * (Gemini, OpenAI, Perplexity, Anthropic, etc.) with a generic
+ * (Gemini, OpenAI, Anthropic, etc.) with a generic
  * user-friendly message.
  *
  * @param {string|null|undefined} message - Raw error message from the API
