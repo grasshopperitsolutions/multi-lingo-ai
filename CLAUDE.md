@@ -33,7 +33,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-**1,562 tests across 85 files, blocking in CI** (line coverage was ~57% when last measured). It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
+**1,556 tests across 85 files, blocking in CI** (line coverage was ~57% when last measured). It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
 
 - `test/canaries/` — one assertion per library behaviour no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing, every literal `t()` key resolving in the pt-PT bundle.
 - `test/smoke/pages.test.jsx` — 37 pages mount, paint, stay out of the error boundary, and render no raw translation keys. **Feature pages assert the route shell only**: each is a Suspense wrapper, so the assertion passes while the lazy chunk is still loading. The heavy components are covered directly instead.
@@ -766,16 +766,15 @@ design had an admin "Picture common words" button; it was dropped, and so was th
 admin's exemption from the daily cap that existed only for it. Do not add one back
 without asking.
 
-### Temporary piece, to remove once it has been run
+### The four prompts
 
-**`src/services/promptSeedService.js`** creates the four prompts
-(`concept-picturable-prompt`, `concept-picture-prompt`, `picture-scene-prompt`,
-`picture-describe-feedback-prompt`) from Admin › Prompts. It is marked `TEMPORARY`
-and bracketed so removal is mechanical: press it once, then ask for it to go.
-**Read the templates in that file before pressing it**, and **check the model ids
-against Google's list**: a wrong id fails the call and nothing will be drawn until
-it is fixed in Admin. Removal: delete the file, the button in
-`PromptsSection.jsx`, and the handler and import in `AdminPage.jsx`.
+`concept-picturable-prompt`, `concept-picture-prompt`, `picture-scene-prompt` and
+`picture-describe-feedback-prompt` live in `appConfig/config/prompts` and are
+edited in Admin › Prompts like every other. The first three are read by the API,
+which refuses to draw with a template that has lost its `{{sourceWord}}` or
+`{{sourceWords}}`. A wrong model id fails the call (and releases the claim: it
+never marks a word failed), so a typo is fixed in Admin and the next play tries
+again.
 
 ## Practice days, not a day streak
 

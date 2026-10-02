@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 /**
  * The smaller seams of the picture games: the album and seen-scene calls in
- * userService, the translation read the games depend on, and the TEMPORARY
- * prompt seeder.
+ * userService, and the translation read the games depend on.
  */
 
 const okJson = (data = {}) => ({ ok: true, status: 200, json: async () => ({ success: true, data }) });
@@ -175,100 +174,5 @@ describe("getConceptTranslations", () => {
     const { getConceptTranslations } = await load();
     await getConceptTranslations(["c1", "c1", "c1"], "pt-PT", "tok");
     expect(fetchMock).toHaveBeenCalledTimes(1);
-  });
-});
-
-// ── TEMPORARY prompt seeder ──────────────────────────────────────────────────
-
-describe("the prompt seeder (TEMPORARY)", () => {
-  const createDocument = vi.fn(async () => ({ id: "x" }));
-  const getPrompts = vi.fn();
-
-  beforeEach(() => {
-    createDocument.mockClear();
-    getPrompts.mockReset();
-  });
-
-  const seeder = async () => {
-    vi.resetModules();
-    vi.doMock("../../src/services/firestoreService", () => ({
-      createDocument: (...a) => createDocument(...a),
-      queryCollection: vi.fn(async () => ({ documents: [] })),
-      updateDocument: vi.fn(),
-    }));
-    vi.doMock("../../src/services/promptService", () => ({
-      PROMPTS_COLLECTION: "appConfig/config/prompts",
-      getPrompts: (...a) => getPrompts(...a),
-      clearPromptsCache: vi.fn(),
-    }));
-    return import("../../src/services/promptSeedService");
-  };
-
-  it("carries the four prompts of the picture games, in English, each with the placeholder it is about", async () => {
-    const { PROMPT_SEEDS } = await seeder();
-    expect(PROMPT_SEEDS.map((p) => p.id)).toEqual([
-      "concept-picturable-prompt",
-      "concept-picture-prompt",
-      "picture-scene-prompt",
-      "picture-describe-feedback-prompt",
-    ]);
-
-    const byId = Object.fromEntries(PROMPT_SEEDS.map((p) => [p.id, p]));
-    // The API refuses to draw a template without these, because a picture is paid once and kept for ever.
-    expect(byId["concept-picturable-prompt"].template).toContain("{{sourceWord}}");
-    expect(byId["concept-picture-prompt"].template).toContain("{{sourceWord}}");
-    expect(byId["picture-scene-prompt"].template).toContain("{{sourceWords}}");
-
-    // Every variable a seed declares is one its template uses, and the other way round.
-    for (const seed of PROMPT_SEEDS) {
-      const used = [...seed.template.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]);
-      expect([...new Set(used)].sort(), seed.id).toEqual(seed.variables.map((v) => v.name).sort());
-    }
-  });
-
-  it("keeps the picture prompts free of text, letters, numbers, logos, real people and brands", async () => {
-    const { PROMPT_SEEDS } = await seeder();
-    for (const id of ["concept-picture-prompt", "picture-scene-prompt"]) {
-      const template = PROMPT_SEEDS.find((p) => p.id === id).template;
-      for (const never of ["text", "letters", "numbers", "logos", "real people", "brands"]) {
-        expect(template, `${id} mentions ${never}`).toContain(never);
-      }
-    }
-  });
-
-  it("names every model, and uses the image models the plan chose", async () => {
-    const { PROMPT_SEEDS } = await seeder();
-    const byId = Object.fromEntries(PROMPT_SEEDS.map((p) => [p.id, p.model]));
-    expect(byId["concept-picture-prompt"]).toBe("gemini-3.1-flash-lite-image");
-    expect(byId["picture-scene-prompt"]).toBe("gemini-3.1-flash-image");
-    expect(Object.values(byId).every(Boolean)).toBe(true);
-  });
-
-  it("puts no age wording in a prompt", async () => {
-    const { PROMPT_SEEDS } = await seeder();
-    for (const seed of PROMPT_SEEDS) {
-      expect(seed.template.toLowerCase(), seed.id).not.toMatch(/\b(kid|kids|child|children|toddler|baby)\b/);
-    }
-  });
-
-  it("creates the missing ones and never overwrites an existing one", async () => {
-    getPrompts.mockResolvedValue([{ id: "concept-picture-prompt" }]);
-    const { seedPrompts } = await seeder();
-
-    const outcome = await seedPrompts("tok");
-
-    expect(outcome.skipped).toEqual(["concept-picture-prompt"]);
-    expect(outcome.created).toHaveLength(3);
-    expect(createDocument.mock.calls.map((c) => c[2]).sort()).toEqual(outcome.created.sort());
-    expect(createDocument.mock.calls.every((c) => c[0] === "appConfig/config/prompts" && c[3] === "tok")).toBe(true);
-  });
-
-  it("is harmless to press twice", async () => {
-    getPrompts.mockResolvedValue(
-      ["concept-picturable-prompt", "concept-picture-prompt", "picture-scene-prompt", "picture-describe-feedback-prompt"].map((id) => ({ id })),
-    );
-    const { seedPrompts } = await seeder();
-    expect((await seedPrompts("tok")).created).toEqual([]);
-    expect(createDocument).not.toHaveBeenCalled();
   });
 });
