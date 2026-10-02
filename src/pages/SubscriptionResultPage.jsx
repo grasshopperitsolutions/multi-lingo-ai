@@ -1,3 +1,4 @@
+import { playOnNextTap } from "../services/soundService";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -41,6 +42,15 @@ const SubscriptionResultPage = () => {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A new paid plan earns the celebration. The page loads from Stripe's
+  // redirect, so it waits for the first tap rather than playing on load.
+  const celebrate = !isRefreshing && !!user
+    && (user.subscriptionTier === "voyager" || user.subscriptionTier === "maestro")
+    && !user.cancelAtPeriodEnd;
+  useEffect(() => {
+    if (celebrate) playOnNextTap("celebrate");
+  }, [celebrate]);
 
   if (isLoadingUser || isRefreshing) {
     return <Loader fullScreen message={t("common.loading")} isDarkMode={isDarkMode} />;

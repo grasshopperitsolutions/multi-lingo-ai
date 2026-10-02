@@ -1,3 +1,4 @@
+import { usePlayWhenSet } from "../../hooks/useSound";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { isAiDeclined } from "../../services/aiService";
 import { useNavigate } from "react-router-dom";
@@ -49,6 +50,7 @@ const HistoryCulturePage = () => {
   const [poolStatus, setPoolStatus] = useState(null);
   const [isLoadingPool, setIsLoadingPool] = useState(false);
   const [fact, setFact] = useState(null);
+  usePlayWhenSet(fact, "ai_ready");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 

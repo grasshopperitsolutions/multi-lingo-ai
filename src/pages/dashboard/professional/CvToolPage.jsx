@@ -1,3 +1,4 @@
+import { usePlayWhenSet } from "../../../hooks/useSound";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -42,6 +43,7 @@ const CvToolPage = () => {
   const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState(null);
   const [review, setReview] = useState(null);
+  usePlayWhenSet(review, "ai_ready");
   const [translation, setTranslation] = useState(null);
 
   const targetLang = user?.learningDialect;

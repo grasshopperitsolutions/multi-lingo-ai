@@ -1,3 +1,5 @@
+import { useGameOutcomeSound } from "../hooks/useSound";
+import { play } from "../services/soundService";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
@@ -166,6 +168,7 @@ const HangmanGame = ({ isDarkMode }) => {
   }, [letters, guessed, hardMode]);
 
   const isLoser = useMemo(() => wrongCount >= maxWrong, [wrongCount]);
+  useGameOutcomeSound({ won: isWinner, lost: isLoser, revealed: isRevealed });
 
   const resetGame = useCallback(() => {
     setLoading(true);
@@ -346,6 +349,7 @@ const HangmanGame = ({ isDarkMode }) => {
   // Remembered in this browser only, never on the profile: the word stays in
   // the pool for when the learner can read it. See utils/skippedConcepts.
   const handleSkipWord = useCallback(() => {
+    play("skip");
     addSkippedConceptId(conceptId, learningDialect);
     resetGame();
     fetchWord();
@@ -356,6 +360,7 @@ const HangmanGame = ({ isDarkMode }) => {
     if (isLoser || isWinner || isRevealed || guessed.has(char) || letters.length === 0) return;
     const next = new Set(guessed).add(char);
     setGuessed(next);
+    play(wordKeySet.has(char) ? "letter_right" : "letter_wrong");
     if (!wordKeySet.has(char)) setWrongCount((p) => p + 1);
   };
 

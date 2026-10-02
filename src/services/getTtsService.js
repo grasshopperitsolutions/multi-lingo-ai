@@ -1,3 +1,4 @@
+import { setDucked } from './soundService';
 /**
  * getTtsService.js
  *
@@ -288,6 +289,7 @@ function _cacheSet(key, value) {
 
 /** Release the current audio element and any blob URL backing it. */
 function _teardownAudio() {
+  setDucked(false);
   if (_currentAudio) {
     _currentAudio.pause();
     _currentAudio.onended = null;
@@ -608,7 +610,11 @@ function _playAudioUrl(url, seq, onStart, onEnd, onError, blobUrl = null) {
       else if (blobUrl) URL.revokeObjectURL(blobUrl);
     };
 
-    audio.onplaying = () => onStart?.();
+    audio.onplaying = () => {
+      // UI sounds drop to 30% so the voice stays on top.
+      setDucked(true);
+      onStart?.();
+    };
     audio.onended = () => {
       releaseIfCurrent();
       onEnd?.();
@@ -743,9 +749,10 @@ function _speakWithWebSpeech(text, lang, pace, onStart, onEnd, onError) {
   // at the requested rate rather than stretching a recording, so there are no
   // artifacts and no need for a separate generation.
   utterance.rate     = _paceConfig(pace).webSpeechRate;
-  utterance.onstart  = () => onStart?.();
-  utterance.onend    = () => onEnd?.();
+  utterance.onstart  = () => { setDucked(true); onStart?.(); };
+  utterance.onend    = () => { setDucked(false); onEnd?.(); };
   utterance.onerror  = (e) => {
+    setDucked(false);
     if (e?.error === 'interrupted' || e?.error === 'canceled') return;
     onError?.(e);
   };

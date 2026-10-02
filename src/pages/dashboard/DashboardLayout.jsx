@@ -8,6 +8,7 @@ import PushOptInPrompt from "../../components/PushOptInPrompt";
 import TooltipButton from "../../components/TooltipButton";
 import MobileMenuDrawer from "../../components/MobileMenuDrawer";
 import LanguageFlagIcon from "../../components/LanguageFlagIcon";
+import SoundToggle from "../../components/SoundToggle";
 import { auth } from "../../firebase";
 import { updateUserProfile } from "../../services/userService";
 import { reportFeatureOpen } from "../../services/pulseReportService";
@@ -31,6 +32,7 @@ const DashboardLayout = () => {
   const {
     isDarkMode,
     setIsDarkMode,
+    sound,
     interfaceLang,
     changeLanguage,
     interfaceLanguageOptions,
@@ -227,6 +229,16 @@ const DashboardLayout = () => {
                   ? <Sun size={20} className="text-yellow-400" />
                   : <Moon size={20} className="text-slate-900" />}
               </button>
+            </TooltipButton>
+          </div>
+
+          {/* ── Sound — desktop only, beside the theme ── */}
+          <div className="hidden md:block">
+            <TooltipButton
+              tooltip={sound?.muted ? t("nav.sound_on") : t("nav.sound_off")}
+              isDarkMode={isDarkMode}
+            >
+              <SoundToggle isDarkMode={isDarkMode} />
             </TooltipButton>
           </div>
 

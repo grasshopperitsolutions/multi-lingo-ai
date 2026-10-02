@@ -1,3 +1,4 @@
+import { usePlayWhenSet, useScoreSound } from "../hooks/useSound";
 import { useState, useRef, useEffect } from "react";
 import { isAiDeclined } from "../services/aiService";
 import PropTypes from "prop-types";
@@ -108,6 +109,12 @@ const WritingExercise = ({ isDarkMode }) => {
   const [maxWords, setMaxWords] = useState(() => getWritingSpec(level).maxWords);
   const [userText, setUserText] = useState("");
   const [evaluation, setEval] = useState(null);
+  usePlayWhenSet(exercise, "ai_ready");
+  useScoreSound(
+    evaluation && evaluation.maxScore > 0
+      ? Math.round((evaluation.totalScore / evaluation.maxScore) * 100)
+      : undefined,
+  );
   const [loading, setLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState(null);

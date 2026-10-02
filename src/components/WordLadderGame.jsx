@@ -1,3 +1,5 @@
+import { useGameOutcomeSound } from "../hooks/useSound";
+import { play } from "../services/soundService";
 import { useState, useCallback, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
@@ -281,11 +283,13 @@ const WordLadderGame = ({ isDarkMode }) => {
           setGameStatus("won");
           markSeenAndRecord();
         } else {
+          play("answer_correct");
           setCurrentStep(nextStep);
           setTimeout(() => inputRef.current?.focus(), 50);
         }
       } else {
         // Wrong
+        if (strikesLeft - 1 > 0) play("strike");
         triggerShake();
         setGuess("");
         const newStrikes = strikesLeft - 1;
@@ -319,6 +323,9 @@ const WordLadderGame = ({ isDarkMode }) => {
   }, [solvedSteps, currentStep, gameStatus]);
 
   // ── Loading ───────────────────────────────────────────────────────────────
+  // Before the early returns below: hooks must run on every render.
+  useGameOutcomeSound({ won: gameStatus === "won", lost: gameStatus === "lost" });
+
   if (loading) {
     return <Loader isDarkMode={isDarkMode} message={t("challenges.loading_word")} />;
   }

@@ -31,6 +31,8 @@ export function makeAppContext(overrides = {}) {
 
     // ── presentation ──
     isDarkMode: false,
+    sound: { muted: false, volume: 0.8, uiClicks: true },
+    setSoundPreference: vi.fn(),
     // Header and DashboardLayout call this from the theme toggle. It was
     // missing here until the AppProvider test compared the two objects.
     setIsDarkMode: vi.fn(),

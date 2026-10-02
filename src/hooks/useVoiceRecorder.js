@@ -1,3 +1,6 @@
+import { hold, play, release } from "../services/soundService";
+
+const RECORDING_HOLD = "recording";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
@@ -126,6 +129,11 @@ export function useVoiceRecorder() {
     }
     reset();
 
+    // The beep goes before the microphone opens, then every sound is held for
+    // the take: a sound in the recording would be judged as the reader's speech.
+    play("record_start");
+    hold(RECORDING_HOLD);
+
     let stream;
     try {
       // Asked for per take rather than held open, so the browser's recording
@@ -134,6 +142,7 @@ export function useVoiceRecorder() {
     } catch {
       // Denied, dismissed, or no device — indistinguishable in practice and
       // the remedy is the same, so they share one message.
+      release(RECORDING_HOLD);
       setError("permission");
       return;
     }
@@ -149,6 +158,7 @@ export function useVoiceRecorder() {
         : new MediaRecorder(stream);
     } catch {
       releaseStream();
+      release(RECORDING_HOLD);
       setError("unsupported");
       return;
     }
@@ -161,6 +171,9 @@ export function useVoiceRecorder() {
       clearTimers();
       releaseStream();
       setIsRecording(false);
+      // After the microphone has closed.
+      release(RECORDING_HOLD);
+      play("record_stop");
 
       // The recorder's own type is authoritative — the browser may have
       // ignored the requested one.
@@ -231,6 +244,7 @@ export function useVoiceRecorder() {
       if (recorderRef.current?.state === "recording") recorderRef.current.stop();
       streamRef.current?.getTracks().forEach((track) => track.stop());
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+      release(RECORDING_HOLD);
     },
     [clearTimers]
   );

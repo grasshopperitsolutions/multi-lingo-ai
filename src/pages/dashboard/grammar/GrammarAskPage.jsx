@@ -1,3 +1,4 @@
+import { usePlayWhenSet } from "../../../hooks/useSound";
 import { useState, useEffect, useRef } from "react";
 import { isAiDeclined } from "../../../services/aiService";
 import { useNavigate } from "react-router-dom";
@@ -33,6 +34,7 @@ const GrammarAskPage = () => {
   const [pdfName, setPdfName] = useState(null);
   const [isParsingPdf, setIsParsingPdf] = useState(false);
   const [answer, setAnswer] = useState(null);
+  usePlayWhenSet(answer, "ai_ready");
   const [topicKeys, setTopicKeys] = useState([]);
   const [isAsking, setIsAsking] = useState(false);
   const [error, setError] = useState(null);

@@ -1,3 +1,4 @@
+import { play } from "../services/soundService";
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
@@ -79,10 +80,12 @@ export function useWordFavourites() {
       if (!user?.token || !user?.uid || !id) return;
 
       const currentIds = getFavouriteIds(user, FAVOURITE_KINDS.WORD);
-      const nextIds = currentIds.includes(id)
+      const banked = currentIds.includes(id);
+      const nextIds = banked
         ? currentIds.filter((existing) => existing !== id)
         : [...currentIds, id];
 
+      play(banked ? "word_unbanked" : "word_banked");
       write(id, nextIds);
     },
     [user, write],
@@ -112,6 +115,7 @@ export function useWordFavourites() {
       }
       if (ids.length === 0) return;
 
+      play("word_banked");
       const field = favouriteFieldFor(FAVOURITE_KINDS.WORD);
       const nextIds = [...currentIds, ...ids];
       setUser((prev) => (prev ? { ...prev, [field]: nextIds } : prev));
@@ -138,6 +142,7 @@ export function useWordFavourites() {
       const currentIds = getFavouriteIds(user, FAVOURITE_KINDS.WORD);
       if (!currentIds.includes(id)) return;
 
+      play("word_unbanked");
       write(id, currentIds.filter((existing) => existing !== id));
     },
     [user, write],

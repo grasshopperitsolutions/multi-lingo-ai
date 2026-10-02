@@ -1,3 +1,4 @@
+import { usePlayWhenSet, useScoreSound } from "../hooks/useSound";
 import { useState, useRef } from "react";
 import { isAiDeclined } from "../services/aiService";
 import PropTypes from "prop-types";
@@ -48,6 +49,8 @@ const ListeningExercise = ({ isDarkMode }) => {
   const [exerciseId, setExerciseId] = useState(null);
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState(null);
+  usePlayWhenSet(exercise, "ai_ready");
+  useScoreSound(result?.percentage);
   const [loading, setLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [error, setError] = useState(null);

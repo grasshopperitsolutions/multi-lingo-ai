@@ -7,6 +7,7 @@ import { useState } from "react";
 import BarcelosRooster from "./BarcelosRooster";
 import MobileMenuDrawer from "./MobileMenuDrawer";
 import LanguageFlagIcon from "./LanguageFlagIcon";
+import SoundToggle from "./SoundToggle";
 
 const Header = () => {
   const {
@@ -65,6 +66,9 @@ const Header = () => {
               <Moon size={20} className="text-slate-900" />
             )}
           </button>
+
+          {/* Sound — beside the theme, saved the same way */}
+          <SoundToggle isDarkMode={isDarkMode} />
 
           {/* Language Selector */}
           <div className="relative">

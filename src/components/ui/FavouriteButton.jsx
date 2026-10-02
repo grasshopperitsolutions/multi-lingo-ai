@@ -1,3 +1,4 @@
+import { play } from '../../services/soundService';
 import PropTypes from 'prop-types';
 import { Heart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +25,7 @@ import { useTranslation } from 'react-i18next';
  *     isDarkMode={isDarkMode}
  *   />
  */
-const FavouriteButton = ({ isFavourite, onToggle, isDarkMode, disabled = false, size = 16 }) => {
+const FavouriteButton = ({ isFavourite, onToggle, isDarkMode, disabled = false, size = 16, sound = true }) => {
   const { t } = useTranslation();
 
   const label = isFavourite
@@ -34,7 +35,12 @@ const FavouriteButton = ({ isFavourite, onToggle, isDarkMode, disabled = false, 
   return (
     <button
       type="button"
-      onClick={onToggle}
+      onClick={(e) => {
+        // `sound={false}` where something else already sounds for the same
+        // tap: a word's heart is the word bank, which plays the coin.
+        if (sound) play(isFavourite ? 'favourite_off' : 'favourite_on');
+        onToggle(e);
+      }}
       disabled={disabled}
       aria-label={label}
       title={label}
@@ -55,6 +61,8 @@ const FavouriteButton = ({ isFavourite, onToggle, isDarkMode, disabled = false, 
 };
 
 FavouriteButton.propTypes = {
+  /** False when the caller's own action already makes a sound for this tap. */
+  sound: PropTypes.bool,
   isFavourite: PropTypes.bool.isRequired,
   onToggle:    PropTypes.func.isRequired,
   isDarkMode:  PropTypes.bool.isRequired,

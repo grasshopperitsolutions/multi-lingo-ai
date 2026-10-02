@@ -1,3 +1,5 @@
+import { useGameOutcomeSound, usePlayOnIncrease } from "../hooks/useSound";
+import { play } from "../services/soundService";
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
@@ -272,6 +274,8 @@ const WordSearchGame = ({ isDarkMode }) => {
   const [flashCells,    setFlashCells]    = useState(new Set());
 
   const [gameWon, setGameWon] = useState(false);
+  usePlayOnIncrease(foundWords.size, "word_found");
+  useGameOutcomeSound({ won: gameWon });
 
   // ── Loading / error ──────────────────────────────────────────────────────
   const [loading, setLoading] = useState(true);
@@ -490,6 +494,7 @@ const WordSearchGame = ({ isDarkMode }) => {
   // ── Cell tap handler ──────────────────────────────────────────────────────
   const handleCellTap = useCallback((row, col) => {
     if (gameWon) return;
+    play("tile_pick");
 
     // A cell that belongs to an already-found word must still be tappable
     // so that crossing words that share that letter can be selected.

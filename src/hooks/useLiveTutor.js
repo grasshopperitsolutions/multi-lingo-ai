@@ -1,3 +1,6 @@
+import { hold, play, release } from "../services/soundService";
+
+const LIVE_HOLD = "live-tutor";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { startPcmCapture, createPcmPlayer } from "../utils/pcmAudio";
 import {
@@ -102,6 +105,8 @@ export function useLiveTutor({ user, targetLang, explanationLang, level, voice }
   // token and never sees the conversation, so only the browser knows how long
   // it lasted. Zero while nothing is live, so a failed connect reports nothing.
   const liveSinceRef = useRef(0);
+  // Whether this session took the sound hold, so `stop` knows to release it.
+  const soundHeldRef = useRef(false);
 
   const stop = useCallback(async (reason) => {
     // Guarded because this is also an onClick handler somewhere, and a click
@@ -121,6 +126,13 @@ export function useLiveTutor({ user, targetLang, explanationLang, level, voice }
 
     await playerRef.current?.close().catch(() => {});
     playerRef.current = null;
+
+    // The microphone is closed: sounds may play again, starting with the
+    // hang-up, but only for a conversation that actually went live.
+    const wasLive = soundHeldRef.current;
+    release(LIVE_HOLD);
+    soundHeldRef.current = false;
+    if (wasLive) play("call_end");
 
     if (liveSinceRef.current) {
       reportLiveSeconds((Date.now() - liveSinceRef.current) / 1000);
@@ -220,6 +232,12 @@ export function useLiveTutor({ user, targetLang, explanationLang, level, voice }
         },
       });
       sessionRef.current = session;
+
+      // Connected: the tone goes before the microphone streams, and nothing
+      // else sounds until the conversation ends (the tutor would hear it).
+      play("call_start");
+      hold(LIVE_HOLD);
+      soundHeldRef.current = true;
 
       captureRef.current = await startPcmCapture({
         onChunk: (base64) => {

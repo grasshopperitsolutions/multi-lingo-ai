@@ -24,6 +24,8 @@ import i18n, { loadRemoteTranslations, registerMissingKeyHandler, BASE_LOCALE } 
 import Loader from "../components/Loader";
 import { setSentryUser } from "../sentry";
 import { reportActive } from "../services/pulseReportService";
+import { initSounds, playOnNextTap, setSoundPreferences as applySoundPreferences } from "../services/soundService";
+import { getSavedSound, normalizeSound, saveSoundToLocalStorage } from "../utils/soundPreferences";
 
 const AppContext = createContext();
 
@@ -127,6 +129,8 @@ const getSavedLanguage = () => {
 export const AppProvider = ({ children }) => {
   const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(getSavedTheme());
+  const [sound, setSound] = useState(getSavedSound);
+  const soundRef = useRef(sound);
   const [interfaceLang, setInterfaceLang] = useState(getSavedLanguage());
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isLoadingTranslations, setIsLoadingTranslations] = useState(true);
@@ -198,8 +202,8 @@ export const AppProvider = ({ children }) => {
     };
   }, [user, tiersConfig]);
 
-  const showAlert = useCallback((type, message, action = null) => {
-    setAlert({ show: true, type, message, action });
+  const showAlert = useCallback((type, message, action = null, sound = null) => {
+    setAlert({ show: true, type, message, action, sound });
   }, []);
 
   // The limit alert's button navigates, and screens keep the alert in effect
@@ -217,7 +221,7 @@ export const AppProvider = ({ children }) => {
     showAlert("warning", message || i18n.t("ai_usage.limit_reached"), {
       label: i18n.t("pricing.upgrade"),
       onClick: () => navigateRef.current("/pricing"),
-    });
+    }, "limit_reached");
   }, [showAlert]);
 
   const closeAlert = useCallback(() => {
@@ -612,6 +616,39 @@ export const AppProvider = ({ children }) => {
     }
   }, [loadTranslationsForLang, showAlert]);
 
+  // The sound service follows the preferences, and arms its first-tap unlock.
+  useEffect(() => {
+    initSounds();
+  }, []);
+  useEffect(() => {
+    soundRef.current = sound;
+    applySoundPreferences(sound);
+  }, [sound]);
+
+  /**
+   * Change mute, volume or interface clicks. Applied and kept on the device at
+   * once, like the theme; written to the profile for a signed-in user, and put
+   * back if that write fails, so the switch never disagrees with what is stored.
+   */
+  const setSoundPreference = useCallback(async (patch) => {
+    const previous = soundRef.current;
+    const next = normalizeSound({ ...previous, ...patch });
+    setSound(next);
+    saveSoundToLocalStorage(next);
+
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser || firebaseUser.isAnonymous) return;
+    try {
+      const token = await firebaseUser.getIdToken();
+      await updateUserProfile(token, firebaseUser.uid, { sound: next });
+      setUser((prev) => (prev ? { ...prev, sound: next } : prev));
+    } catch {
+      setSound(previous);
+      saveSoundToLocalStorage(previous);
+      showAlert("error", i18n.t("settings.errors.save_failed"));
+    }
+  }, [showAlert]);
+
   // Safe theme setter that persists to localStorage
   const setIsDarkModeWithPersist = (isDark) => {
     setIsDarkMode(isDark);
@@ -646,6 +683,14 @@ export const AppProvider = ({ children }) => {
         saveThemeToLocalStorage(profile.theme === "dark");
       }
 
+      // Sound — the profile carries it across devices; the device copy is what
+      // the first tap used before the profile arrived.
+      if (profile?.sound) {
+        const stored = normalizeSound(profile.sound);
+        setSound(stored);
+        saveSoundToLocalStorage(stored);
+      }
+
       // Language — Firestore → localStorage → default
       const lang =
         profile?.interfaceLang || localStorage.getItem("interfaceLang") || "en-US";
@@ -659,6 +704,11 @@ export const AppProvider = ({ children }) => {
       // Practice days — opening the app is a practice day (no-op if today is
       // already recorded). Returns the current values either way.
       const practice = await recordPracticeDay(authUser.token, authUser.uid, profile);
+      // A new practice day was just counted. Sounds only follow a tap, so the
+      // chime waits for the first one rather than playing on load.
+      if (practice.lastPracticeDate && practice.lastPracticeDate !== profile?.lastPracticeDate) {
+        playOnNextTap("practice_day");
+      }
 
       // Timezone — captured once, on the first load that finds it missing.
       //
@@ -758,6 +808,9 @@ export const AppProvider = ({ children }) => {
         // The compass cursor. Only an explicit false turns it off; absent is
         // on, which is every user until they change it.
         customCursor: profile?.customCursor ?? null,
+        // Mute, volume and interface clicks. Applied above; kept here too so
+        // the allow-list carries it and it does not vanish on the next load.
+        sound: profile?.sound ?? null,
         // IANA zone, chosen in Settings and captured from the browser on the
         // first load that finds it missing. The reminder job treats "not set"
         // as its own case and skips the user rather than assuming UTC, which
@@ -962,6 +1015,8 @@ export const AppProvider = ({ children }) => {
       value={{
         isDarkMode,
         setIsDarkMode: setIsDarkModeWithPersist,
+        sound,
+        setSoundPreference,
         interfaceLang,
         changeLanguage,
         alert,

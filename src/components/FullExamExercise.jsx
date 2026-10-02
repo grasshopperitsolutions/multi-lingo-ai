@@ -1,3 +1,4 @@
+import { playScore } from "../services/soundService";
 /**
  * FullExamExercise.jsx
  *
@@ -1238,6 +1239,7 @@ const FullExamExercise = ({ isDarkMode, onBack }) => {
 
       const totalScore = listeningScore.score + readingScore.score + writingScore.score;
       const totalMax = listeningScore.maxScore + readingScore.maxScore + writingScore.maxScore;
+      if (totalMax > 0) playScore(Math.round((totalScore / totalMax) * 100));
 
       setExamSession((prev) => ({
         ...prev,

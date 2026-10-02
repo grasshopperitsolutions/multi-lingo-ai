@@ -5,6 +5,8 @@ import { useAppContext } from "../contexts/AppContext";
 import { useTierAccess } from "../hooks/useTierAccess";
 import Avatar from "./Avatar";
 import LanguageFlagIcon from "./LanguageFlagIcon";
+import SoundToggle from "./SoundToggle";
+import { useOpenCloseSound } from "../hooks/useSound";
 import PropTypes from "prop-types";
 
 /**
@@ -26,6 +28,7 @@ const MobileMenuDrawer = ({ onThemeToggle, onClose }) => {
   const { isAdmin } = useTierAccess();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  useOpenCloseSound();
 
   const handleDashboard = () => {
     navigate("/dashboard");
@@ -102,6 +105,9 @@ const MobileMenuDrawer = ({ onThemeToggle, onClose }) => {
             : <Moon size={18} className="text-slate-900" />}
         </div>
       </button>
+
+      {/* ── Sound row, under the theme, the same way ─────────────────── */}
+      <SoundToggle variant="row" isDarkMode={isDarkMode} onAfterToggle={onClose} />
 
       {/* ── Language section ────────────────────────────────────────── */}
       <div className={`border-b-2 ${divider}`}>

@@ -1,3 +1,5 @@
+import { useGameOutcomeSound, usePlayOnIncrease } from "../hooks/useSound";
+import { play } from "../services/soundService";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
@@ -465,6 +467,8 @@ const CrosswordGame = ({ isDarkMode }) => {
   // ── Lifecycle ────────────────────────────────────────────────────────────
   const [gameWon, setGameWon] = useState(false);
   const [loading, setLoading] = useState(true);
+  usePlayOnIncrease(solvedIds.size, "word_found");
+  useGameOutcomeSound({ won: gameWon });
   const { error, isLimitError, setError, failWith } = useAiErrorState();
 
   // ── Sidebar stats ────────────────────────────────────────────────────────
@@ -706,6 +710,7 @@ const CrosswordGame = ({ isDarkMode }) => {
       const cell = puzzle.cells[row]?.[col];
       if (!cell || cell.kind !== CELL.LETTER) return;
       if (solvedCells.has(cellKey(row, col))) return;
+      play("key");
 
       const next = new Map(letters);
       next.set(cellKey(row, col), letter);

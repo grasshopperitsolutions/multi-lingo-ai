@@ -1,3 +1,4 @@
+import { play } from "../services/soundService";
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
@@ -91,7 +92,7 @@ const WordBankSidebar = ({
                 <span key={word} className="relative inline-flex">
                   <button
                     type="button"
-                    onClick={() => (onLookup ? onLookup(word) : onToggleSelect(word))}
+                    onClick={() => { play("select"); if (onLookup) onLookup(word); else onToggleSelect(word); }}
                     disabled={isDisabled}
                     aria-pressed={onLookup ? undefined : isSelected}
                     className={`pl-3 pr-6 py-1.5 rounded-full border-2 font-bold text-sm transition-all active:scale-95 ${

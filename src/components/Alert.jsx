@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { AlertTriangle, CheckCircle, Info, X } from "lucide-react";
 import PropTypes from "prop-types";
+import { play } from "../services/soundService";
 
 const AlertMessage = ({ alert, onClose }) => {
   // Auto-dismiss after 10s in all cases
@@ -10,6 +11,12 @@ const AlertMessage = ({ alert, onClose }) => {
       return () => clearTimeout(timer);
     }
   }, [alert.show, onClose]);
+
+  // One sound per alert shown, matched to its kind. An alert can name its own
+  // (the daily limit plays `limit_reached`, not the plain warning).
+  useEffect(() => {
+    if (alert.show) play(alert.sound || alert.type || "info");
+  }, [alert.show, alert.message, alert.type, alert.sound]);
 
   if (!alert.show) return null;
 
@@ -72,6 +79,8 @@ AlertMessage.propTypes = {
   alert: PropTypes.shape({
     show: PropTypes.bool.isRequired,
     type: PropTypes.string,
+    /** A sound id from config/sounds.js, when not the one named by `type`. */
+    sound: PropTypes.string,
     message: PropTypes.string,
     action: PropTypes.shape({
       label: PropTypes.string.isRequired,

@@ -1,3 +1,5 @@
+import { useGameOutcomeSound } from "../hooks/useSound";
+import { play } from "../services/soundService";
 import { useState, useCallback, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
@@ -275,6 +277,9 @@ const WordLinkGame = ({ isDarkMode }) => {
           setGameStatus("lost");
           markSeenAndRecord();
         } else {
+          // A wrong guess costs a life and turns over the next clue.
+          play("strike");
+          setTimeout(() => play("hint"), 280);
           setRevealedCount(nextRevealed);
           setTimeout(() => inputRef.current?.focus(), 50);
         }
@@ -290,6 +295,9 @@ const WordLinkGame = ({ isDarkMode }) => {
   }, [user, fetchStats]);
 
   // ── Loading ───────────────────────────────────────────────────────────────
+  // Before the early returns below: hooks must run on every render.
+  useGameOutcomeSound({ won: gameStatus === "won", lost: gameStatus === "lost" });
+
   if (loading) {
     return <Loader isDarkMode={isDarkMode} message={t("challenges.loading_word")} />;
   }

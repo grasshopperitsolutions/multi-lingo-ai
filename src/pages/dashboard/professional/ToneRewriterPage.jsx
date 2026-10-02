@@ -1,3 +1,4 @@
+import { usePlayWhenSet } from "../../../hooks/useSound";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -30,6 +31,7 @@ const ToneRewriterPage = () => {
   const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  usePlayWhenSet(result, "ai_ready");
   const [copied, setCopied] = useState(false);
 
   const targetLang = user?.learningDialect;

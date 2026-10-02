@@ -1,3 +1,5 @@
+import { play } from "../../../services/soundService";
+import { usePlayWhenSet } from "../../../hooks/useSound";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -72,6 +74,7 @@ const GrammarPracticePage = () => {
   const [knownTopics, setKnownTopics] = useState([]);
 
   const [practice, setPractice] = useState(null); // result of getPracticeExercise
+  usePlayWhenSet(practice, "ai_ready");
   const [index, setIndex] = useState(0);
   const [results, setResults] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -343,7 +346,11 @@ const GrammarPracticePage = () => {
                 dialect={dialect}
                 isDarkMode={isDarkMode}
                 result={results[current.id]}
-                onResult={(result) => setResults((prev) => ({ ...prev, [current.id]: result }))}
+                onResult={(result) => {
+                  // An accent slip is still the right word: it sounds right.
+                  play(result?.verdict === VERDICT.WRONG ? "answer_wrong" : "answer_correct");
+                  setResults((prev) => ({ ...prev, [current.id]: result }));
+                }}
                 onAskAI={canOpenAnswer ? handleAskAI : undefined}
               />
 

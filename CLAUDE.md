@@ -577,6 +577,50 @@ game away. It dated from before the token was kept fresh.
 `isSessionExpiredError` now lives in `utils/errorUtils.js`. Any other screen
 can use the hook the same way; none does yet.
 
+## Sounds: one service, synthesised, silent while listening
+
+Short, chunky, 8-bit-leaning sounds on the moments that matter: right, wrong,
+found, won, saved. **Every sound is synthesised in the browser**; there are no
+audio files. `config/sounds.js` is the registry (each sound's category, its
+parts, and its brief as a comment), `services/soundService.js` plays them, and
+`hooks/useSound.js` holds the small hooks call sites use. Admin › Sounds plays
+every one by name, with ×10 to hear fatigue, which is how the set gets tuned.
+
+- **ZzFX is vendored, not imported** (`src/lib/zzfx.js`, MIT notice kept).
+  The npm package creates an `AudioContext` at import, which breaks jsdom and
+  makes browsers warn about autoplay on every load. Only its pure
+  `buildSamples` is used; arrays from the ZzFX designer paste straight into
+  the registry. Keep `randomness` (index 1) at 0, since buffers are cached;
+  `vary: true` adds ±3% pitch at play time instead.
+- **The rules live in the service, so call sites cannot forget them:** nothing
+  before the first tap (the context is created inside that gesture), the same
+  id never twice within 60 ms, nothing in a hidden tab, `audioSession` set to
+  ambient where supported. It never throws.
+- **`hold(reason)` / `release(reason)` while the microphone is open.**
+  `useVoiceRecorder` takes `"recording"` before `getUserMedia` and releases it
+  after the track stops; `useLiveTutor` takes `"live-tutor"` once connected.
+  Reasons nest. A sound in a take would be judged as the reader's speech, and
+  `voiceRecorder.test.jsx` pins the order. **Any new microphone feature takes
+  a hold.**
+- **Read-aloud ducks everything to 30%** (`setDucked` in `getTtsService`).
+- **Preferences** are `users/{uid}.sound = { muted, volume, uiClicks }`
+  (on the hydration allow-list) and `soundMuted` / `soundVolume` /
+  `soundUiClicks` in localStorage, read at boot so the first tap obeys them.
+  On by default for everyone. The mute button sits beside the theme toggle in
+  both headers and the mobile drawer; Settings › Appearance adds the volume and
+  an "interface clicks" switch that silences only the UI category.
+- **Wired at shared places first:** `Alert` (by type; an alert may name its
+  own sound, as the daily limit does), `ConfirmModal`, `WordLookupSheet`, the
+  mobile drawer (`useOpenCloseSound`), `PrimaryButton` (`sound={false}` to opt
+  out), `NeoDropdown`, word-bank chips, `FavouriteButton` (`sound={false}` when
+  the caller sounds itself, like a word's heart), `useWordFavourites`,
+  `DownloadPdfButton`. Then per page: the six games (`useGameOutcomeSound`,
+  `usePlayOnIncrease`), drills (right/wrong), exams (`useScoreSound`,
+  `playScore`: ticks, then win, success or a neutral chime, never `lose`),
+  `ai_ready` where each generator's result lands (`usePlayWhenSet`), the
+  practice day and a new plan (`playOnNextTap`, since both arrive on load).
+- **Never the only signal.** Every sound repeats something on screen.
+
 ## Practice days, not a day streak
 
 The streak reset to zero on the first missed day, which contradicts what the

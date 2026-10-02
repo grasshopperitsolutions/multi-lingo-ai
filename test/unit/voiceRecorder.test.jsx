@@ -187,3 +187,37 @@ describe("when it cannot record", () => {
     expect(result.current.recording).toBeNull();
   });
 });
+
+describe("sounds during a take", () => {
+  it("holds every sound from before the microphone opens until after it closes", async () => {
+    const sounds = await import("../../src/services/soundService");
+    sounds.__resetSoundsForTests();
+
+    let heldWhenMicOpened = null;
+    navigator.mediaDevices.getUserMedia = vi.fn(async () => {
+      heldWhenMicOpened = sounds.isHeld();
+      return { getTracks: () => [{ stop: stopTrack }] };
+    });
+
+    const { result } = mount();
+    await act(async () => { await result.current.start(); });
+    // A sound in the take would be judged as the reader's own speech.
+    expect(heldWhenMicOpened).toBe(true);
+    expect(sounds.isHeld()).toBe(true);
+
+    await act(async () => { result.current.stop(); });
+    expect(stopTrack).toHaveBeenCalled();
+    expect(sounds.isHeld()).toBe(false);
+  });
+
+  it("lets go of the hold when the microphone is refused", async () => {
+    const sounds = await import("../../src/services/soundService");
+    sounds.__resetSoundsForTests();
+    navigator.mediaDevices.getUserMedia = vi.fn(async () => { throw new Error("denied"); });
+
+    const { result } = mount();
+    await act(async () => { await result.current.start(); });
+    expect(result.current.error).toBe("permission");
+    expect(sounds.isHeld()).toBe(false);
+  });
+});

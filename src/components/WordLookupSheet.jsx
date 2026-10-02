@@ -6,6 +6,7 @@ import { useAppContext } from "../contexts/AppContext";
 import { useTts } from "../hooks/useTts";
 import { useAiErrorState } from "../hooks/useAiError";
 import { useWordFavourites } from "../hooks/useWordFavourites";
+import { useOpenCloseSound } from "../hooks/useSound";
 import { lookupWord } from "../services/dictionaryService";
 import { FavouriteButton, TtsControls, PlansLink } from "./ui";
 
@@ -31,6 +32,7 @@ const WordLookupSheet = ({ word, sentence, targetLang, isDarkMode, onClose }) =>
   const { user, interfaceLang } = useAppContext();
   const { ttsState, playTts, pauseTts, stopTts } = useTts();
   const { isFavourite, toggle } = useWordFavourites();
+  useOpenCloseSound(!!word);
 
   const [activeWord, setActiveWord] = useState(word);
   const [entries, setEntries] = useState([]);
@@ -129,6 +131,7 @@ const WordLookupSheet = ({ word, sentence, targetLang, isDarkMode, onClose }) =>
             isFavourite={isFavourite(activeWord)}
             onToggle={() => toggle(activeWord)}
             isDarkMode={isDarkMode}
+            sound={false}
           />
         </div>
 

@@ -1,3 +1,4 @@
+import { play } from "../../../services/soundService";
 import { useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
@@ -57,6 +58,7 @@ const PhotoCaptureWidget = ({ onAnalysed, isDarkMode }) => {
         showAlert("info", t("personal.photo_nothing_found"));
         return;
       }
+      play("ai_ready");
       onAnalysed(result);
     } catch (err) {
       // Declining the spend prompt is an answer, not a failure — alerting on

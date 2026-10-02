@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import { useScrollToHash } from "../hooks/useScrollToHash";
+import SoundSettings from "../components/SoundSettings";
 import NeoDropdown from "../components/NeoDropdown";
 import Avatar from "../components/Avatar";
 import Loader from "../components/Loader";
@@ -353,6 +354,9 @@ const SettingsForm = ({
               {t("settings.custom_cursor_hint")}
             </p>
           </div>
+          {/* Sound: on/off, volume, interface clicks. Saved on pick, like the
+              theme and the cursor above. */}
+          <SoundSettings isDarkMode={isDarkMode} labelClasses={labelClasses} />
           {/* Saves on pick, like the theme, not with the Save button. The
               spoken tutor links straight here to change it, and a choice that
               only stuck after scrolling to Save would be lost on the way back

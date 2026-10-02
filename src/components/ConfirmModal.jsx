@@ -1,6 +1,7 @@
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, Loader2, X } from "lucide-react";
+import { useOpenCloseSound } from "../hooks/useSound";
 
 /**
  * ConfirmModal — reusable confirmation dialog.
@@ -36,6 +37,7 @@ const ConfirmModal = ({
   onCancel,
 }) => {
   const { t } = useTranslation();
+  useOpenCloseSound();
   const isRose   = confirmColor === "rose";
   const iconBg   = isRose ? "bg-rose-500" : "bg-yellow-400";
   const iconText = isRose ? "text-white"  : "text-slate-900";

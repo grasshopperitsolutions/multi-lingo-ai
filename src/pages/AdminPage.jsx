@@ -42,6 +42,7 @@ import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
 // Lazy so its charts and pool reads add nothing to the main bundle or to
 // opening any other Admin section.
 const PulseSection = lazy(() => import("../components/admin/pulse/PulseSection"));
+const SoundBoardSection = lazy(() => import("../components/admin/SoundBoardSection"));
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
 // Viewer/editor for the appConfig/config/* Firestore subcollections.
@@ -89,6 +90,7 @@ const AdminPage = () => {
   const isTutorApplicationsSection = activeSectionId === "tutorApplications";
   const isReportsSection = activeSectionId === "reports";
   const isPulseSection = activeSectionId === "pulse";
+  const isSoundsSection = activeSectionId === "sounds";
   const [reportBusyId, setReportBusyId] = useState(null);
   const [applicationBusyId, setApplicationBusyId] = useState(null);
 
@@ -113,7 +115,7 @@ const AdminPage = () => {
             // The template editor loads the one locale document it needs
             // itself; the generic loader would pull down every locale.
             // Pulse loads its own data the same way, and only when opened.
-            : section.id === "emailTemplates" || section.id === "pulse"
+            : section.id === "emailTemplates" || section.id === "pulse" || section.id === "sounds"
               ? []
               : await getConfigSectionDocs(section.collection);
       setDocsBySection((prev) => ({ ...prev, [section.id]: docs }));
@@ -495,7 +497,11 @@ const AdminPage = () => {
           </span>
         </div>
 
-        {isPulseSection ? (
+        {isSoundsSection ? (
+          <Suspense fallback={<Loader message="Loading..." isDarkMode={isDarkMode} />}>
+            <SoundBoardSection isDarkMode={isDarkMode} />
+          </Suspense>
+        ) : isPulseSection ? (
           <Suspense fallback={<Loader message="Loading..." isDarkMode={isDarkMode} />}>
             <PulseSection isDarkMode={isDarkMode} onOpenReports={() => setActiveSectionId("reports")} />
           </Suspense>

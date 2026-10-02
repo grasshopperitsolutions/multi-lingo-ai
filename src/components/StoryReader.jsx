@@ -1,3 +1,4 @@
+import { usePlayWhenSet } from "../hooks/useSound";
 import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useNavigate } from "react-router-dom";
@@ -67,6 +68,7 @@ const StoryReader = ({ isDarkMode }) => {
   const [poolStatus, setPoolStatus] = useState(null);
   const [isLoadingPool, setIsLoadingPool] = useState(false);
   const [story, setStory] = useState(null);
+  usePlayWhenSet(story, "ai_ready");
   const [translation, setTranslation] = useState(null);
   const [isLoadingStory, setIsLoadingStory] = useState(false);
   const [isLoadingTranslation, setIsLoadingTranslation] = useState(false);

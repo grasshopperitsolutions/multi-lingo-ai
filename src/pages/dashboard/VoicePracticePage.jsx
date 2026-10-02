@@ -1,3 +1,4 @@
+import { usePlayWhenSet } from "../../hooks/useSound";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -59,6 +60,8 @@ const VoicePracticePage = () => {
   const { level, setLevel } = usePracticeLevel();
   const [passage, setPassage] = useState(null);
   const [feedback, setFeedback] = useState(null);
+  usePlayWhenSet(passage, "ai_ready");
+  usePlayWhenSet(feedback, "ai_ready");
   const [isLoadingPassage, setIsLoadingPassage] = useState(false);
   const [isGrading, setIsGrading] = useState(false);
   const [error, setError] = useState(null);

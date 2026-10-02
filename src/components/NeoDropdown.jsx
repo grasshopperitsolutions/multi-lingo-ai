@@ -1,3 +1,4 @@
+import { play } from "../services/soundService";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { ChevronDown, Search, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -111,6 +112,7 @@ const NeoDropdown = ({
   }, [isOpen, showSearch]);
 
   const handlePick = (optionValue) => {
+    play("select");
     if (multiple) {
       // Toggling, and the panel stays open. Picking five languages should be
       // five taps, not five open-pick-reopen cycles — which is what the

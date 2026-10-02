@@ -1,3 +1,4 @@
+import { play } from "../services/soundService";
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Link, useNavigate } from "react-router-dom";
@@ -267,6 +268,7 @@ const OnboardingPage = () => {
       });
       changeLanguage(interfaceLang);
       await refreshUser();
+      play("celebrate");
       navigate("/dashboard", { replace: true });
     } catch (err) {
       showAlert("error", err.message || "Failed to save profile.");

@@ -1,3 +1,4 @@
+import { play } from "../services/soundService";
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
@@ -34,6 +35,7 @@ const DownloadPdfButton = ({ title, paragraphs, level, languageLabel, isDarkMode
     setIsBusy(true);
     try {
       await exportReadingPdf({ title, paragraphs, level, languageLabel });
+      play("download");
     } catch (err) {
       console.error("[DownloadPdfButton] PDF export failed:", err.message);
       showAlert(

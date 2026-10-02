@@ -1,3 +1,5 @@
+import { useGameOutcomeSound } from "../hooks/useSound";
+import { play } from "../services/soundService";
 import { useState, useEffect, useCallback, useRef } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
@@ -395,6 +397,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   // ── Re-shuffle same word (reshuffle button during play) ─────────────────
   const handleReshuffle = useCallback(() => {
     if (gameStatus !== "playing") return;
+    play("shuffle");
     const { newPool, answerTemplate } = buildPoolAndAnswer(word.split(""));
     setPool(newPool);
     setAnswer(answerTemplate);
@@ -421,6 +424,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
    * the whole of why that difference matters. Hangman does the same thing.
    */
   const handleSkipWord = useCallback(() => {
+    play("skip");
     addSkippedConceptId(conceptId, learningDialect);
     resetGame();
     fetchWord();
@@ -496,6 +500,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       const occupant = answer[slotIndex];
       if (occupant?.isSpace) return;
 
+      play("tile_drop");
       setAnswer((prev) => {
         const next = [...prev];
         next[slotIndex] = { id: tileId, letter: tile.letter };
@@ -534,6 +539,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       if (gameStatus !== "playing") return;
       const slot = answer[slotIndex];
       if (!slot || slot.isSpace) return;
+      play("tile_pick");
       setAnswer((prev) => {
         const next = [...prev];
         next[slotIndex] = null;
@@ -652,6 +658,7 @@ const ScrambledWordGame = ({ isDarkMode }) => {
         .catch((err) => console.warn("[ScrambledWordGame] markConceptSeenGlobal failed:", err));
     } else {
       const remaining = attemptsLeft - 1;
+      play("strike");
       setAttemptsLeft(remaining);
       setShowResult(true);
       setTimeout(() => {
@@ -682,6 +689,9 @@ const ScrambledWordGame = ({ isDarkMode }) => {
   }, [answer, checkAnswer]);
 
   // ── Loading ───────────────────────────────────────────────────────────────
+  // Before the early returns below: hooks must run on every render.
+  useGameOutcomeSound({ won: gameStatus === "won", lost: gameStatus === "lost", revealed: gameStatus === "revealed" });
+
   if (loading) {
     return <Loader isDarkMode={isDarkMode} message={t("challenges.loading_word")} />;
   }

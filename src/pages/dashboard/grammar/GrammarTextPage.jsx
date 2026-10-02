@@ -1,3 +1,4 @@
+import { usePlayWhenSet } from "../../../hooks/useSound";
 import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -60,6 +61,7 @@ const GrammarTextPage = () => {
   const [focus, setFocus] = useState("");
   const [selectedWords, setSelectedWords] = useState([]);
   const [text, setText] = useState(null);
+  usePlayWhenSet(text, "ai_ready");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
