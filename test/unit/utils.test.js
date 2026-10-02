@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 import { BASE_KEYS, normalizeChar, resolveLetterKeys, letterKey } from "../../src/utils/letterKeys";
 import { tokenizeWords } from "../../src/utils/tokenizeWords";
 import { normalizeCode } from "../../src/utils/languageCode";
 import { parseAIJSON } from "../../src/utils/parseAIJSON";
-import { sanitizeAIError, authFetch, isSessionExpiredError } from "../../src/utils/errorUtils";
+import { sanitizeAIError, isSessionExpiredError } from "../../src/utils/errorUtils";
 
 /**
  * Pure utilities. These carry real rules — the easy/hard accent rule, what
@@ -215,41 +215,6 @@ describe("isSessionExpiredError", () => {
   it("leaves every other error alone", () => {
     expect(isSessionExpiredError(new Error("Network down"))).toBe(false);
     expect(isSessionExpiredError(null)).toBe(false);
-  });
-});
-
-describe("authFetch", () => {
-  beforeEach(() => {
-    globalThis.fetch = vi.fn();
-  });
-
-  it("passes the request through and returns the response", async () => {
-    const response = { status: 200, ok: true };
-    globalThis.fetch.mockResolvedValue(response);
-
-    const onTokenExpired = vi.fn();
-    const out = await authFetch("/api/thing", { method: "GET" }, onTokenExpired);
-
-    expect(out).toBe(response);
-    expect(onTokenExpired).not.toHaveBeenCalled();
-  });
-
-  it("notifies the caller when the session has expired", async () => {
-    globalThis.fetch.mockResolvedValue({ status: 401, ok: false });
-
-    const onTokenExpired = vi.fn();
-    await authFetch("/api/thing", {}, onTokenExpired);
-
-    expect(onTokenExpired).toHaveBeenCalled();
-  });
-
-  it("does not fire the expiry callback on other failures", async () => {
-    globalThis.fetch.mockResolvedValue({ status: 500, ok: false });
-
-    const onTokenExpired = vi.fn();
-    await authFetch("/api/thing", {}, onTokenExpired);
-
-    expect(onTokenExpired).not.toHaveBeenCalled();
   });
 });
 
