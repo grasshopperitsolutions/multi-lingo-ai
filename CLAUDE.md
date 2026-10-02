@@ -555,10 +555,27 @@ renewal (offline for a moment) raised a permanent "session expired" banner.
 Verified end to end by expiring the stored token with the page open: Firebase
 renewed it, and every request on the next page carried the new one.
 
-Still open: the six games each carry a private `isSessionExpiredError` that
-answers a 401 with a browser `alert()` and a reload. With the token kept fresh
-it should almost never fire, but it is the one remaining place a session
-problem looks like a crash.
+**A 401 that still gets through is renewed on demand** (`renewSession`). The
+narrow case left is a phone waking up, with a request out before the
+visibility check finished. `hooks/useSessionRecovery` is what a screen calls
+from its catch: `if (await recoverSession(err)) return;`.
+
+- **"renewed":** the new token lands on `user.token`, and every load built on
+  it (the games' fetches all depend on `user`) runs again by itself. The
+  screen shows nothing.
+- **"signed-out":** the session is over, and the auth listener says so as
+  above.
+- **"failed":** the screen shows its usual error. `sanitizeAIError` turns the
+  raw English "Invalid or expired token" into the screen's own message.
+- **No loop:** requests refused together share one renewal, and another forced
+  renewal is refused for 30 seconds (`FORCED_RENEW_COOLDOWN_MS`). A request
+  still refused straight after a renewal is not a stale token.
+
+This replaced a private `isSessionExpiredError` in each of the six games,
+which answered a 401 with a browser `alert()` and a page reload, throwing the
+game away. It dated from before the token was kept fresh.
+`isSessionExpiredError` now lives in `utils/errorUtils.js`. Any other screen
+can use the hook the same way; none does yet.
 
 ## Practice days, not a day streak
 

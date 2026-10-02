@@ -645,6 +645,72 @@ describe("games out of AI calls", () => {
 });
 
 /**
+ * A request refused for a stale sign-in token (a phone waking up, with the
+ * request out before the app renewed it). It used to be a browser alert() and
+ * a page reload, which threw the game away; now the token is renewed and the
+ * game loads again by itself.
+ */
+describe("games whose sign-in token went stale", () => {
+  const STALE_GAMES = [
+    ["HangmanGame", () => import("../../src/components/HangmanGame"), "getWordService", "getWord"],
+    ["ScrambledWordGame", () => import("../../src/components/ScrambledWordGame"), "getWordService", "getWord"],
+    ["WordSearchGame", () => import("../../src/components/WordSearchGame"), "getWordService", "getWord"],
+    ["CrosswordGame", () => import("../../src/components/CrosswordGame"), "getWordService", "getWord"],
+    ["WordLinkGame", () => import("../../src/components/WordLinkGame"), "wordLinkService", "fetchWordLinkPuzzle"],
+    ["WordLadderGame", () => import("../../src/components/WordLadderGame"), "wordLadderService", "fetchWordLadderPuzzle"],
+  ];
+
+  beforeEach(() => {
+    ctx.current = signedIn();
+    globalThis.fetch = emptyEnvelope();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  it.each(STALE_GAMES)("%s renews the token instead of alerting and reloading", async (_name, loader, service, fn) => {
+    const mod = await import(`../../src/services/${service}.js`);
+    const original = mod[fn].getMockImplementation();
+    mod[fn].mockImplementation(async () => { throw new Error("Invalid or expired token"); });
+    ctx.current.renewSession = vi.fn(async () => "renewed");
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    try {
+      await mount(loader);
+
+      await waitFor(() => expect(ctx.current.renewSession).toHaveBeenCalled(), { timeout: 8000 });
+      expect(alertSpy).not.toHaveBeenCalled();
+      // The new token reloads the game; there is nothing to report.
+      expect(ctx.current.showAlert).not.toHaveBeenCalledWith("error", expect.anything(), expect.anything());
+    } finally {
+      mod[fn].mockImplementation(original);
+      alertSpy.mockRestore();
+    }
+  });
+
+  it("shows its own error, in the player's language, when the token cannot be renewed", async () => {
+    const { default: i18n } = await import("../../src/i18n");
+    const { getWord } = await import("../../src/services/getWordService");
+    const original = getWord.getMockImplementation();
+    getWord.mockImplementation(async () => { throw new Error("Invalid or expired token"); });
+    ctx.current.renewSession = vi.fn(async () => "failed");
+
+    try {
+      await mount(() => import("../../src/components/HangmanGame"));
+
+      await waitFor(
+        () => expect(ctx.current.showAlert).toHaveBeenCalledWith(
+          "error", i18n.t("challenges.word_fetch_error"), expect.anything(),
+        ),
+        { timeout: 8000 },
+      );
+      expect(ctx.current.showAlert).not.toHaveBeenCalledWith("error", "Invalid or expired token", expect.anything());
+    } finally {
+      getWord.mockImplementation(original);
+    }
+  });
+});
+
+/**
  * The practice language is the badge beside each challenge's title, as on
  * every other feature page, not a row in the sidebar.
  */

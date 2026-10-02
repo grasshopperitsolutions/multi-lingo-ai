@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
+import { useSessionRecovery } from "../hooks/useSessionRecovery";
 import {
   getUserGameProgress,
   recordPlay,
@@ -19,11 +20,6 @@ import { sanitizeAIError } from "../utils/errorUtils";
 // Constants
 // ---------------------------------------------------------------------------
 const GAME_ID = "word_ladder";
-
-const isSessionExpiredError = (err) => {
-  const msg = (err?.message ?? "").toLowerCase();
-  return msg.includes("expired token") || msg.includes("invalid or expired");
-};
 
 // ---------------------------------------------------------------------------
 // LetterTiles — displays a word as individual letter boxes
@@ -148,6 +144,7 @@ StrikeIndicator.propTypes = {
 const WordLadderGame = ({ isDarkMode }) => {
   const { t }    = useTranslation();
   const { user } = useAppContext();
+  const recoverSession = useSessionRecovery();
 
   const learningDialect = user?.learningDialect ?? "pt-PT";
   const interfaceLang   = user?.interfaceLang   ?? "en-US";
@@ -229,17 +226,13 @@ const WordLadderGame = ({ isDarkMode }) => {
       setProgress(prog);
       setSeenCount(seenIds.length);
     } catch (err) {
-      if (isSessionExpiredError(err)) {
-        alert(t("challenges.session_expired"));
-        window.location.reload();
-        return;
-      }
+      if (await recoverSession(err)) return;
       setError(sanitizeAIError(err.message, t("challenges.word_fetch_error")));
     } finally {
       setLoading(false);
       setIsLoadingStats(false);
     }
-  }, [user, interfaceLang, learningDialect, t]);
+  }, [user, interfaceLang, learningDialect, t, recoverSession]);
 
   useEffect(() => {
     loadPuzzle();

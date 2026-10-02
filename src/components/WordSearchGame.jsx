@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Trophy, RotateCcw, ChevronDown } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
+import { useSessionRecovery } from "../hooks/useSessionRecovery";
 import {
   getUserGameProgress,
   markConceptSeenGlobal,
@@ -17,6 +18,7 @@ import { useInterestTopics } from "../hooks/useInterestTopics";
 import { useChallengeTheme } from "../hooks/useChallengeTheme";
 import { useAiErrorState } from "../hooks/useAiError";
 import { useTts } from "../hooks/useTts";
+import { sanitizeAIError } from "../utils/errorUtils";
 import { buildGrid, checkSelection } from "../utils/wordSearchUtils";
 import ChallengeSidebar from "./ChallengeSidebar";
 import ChallengeThemePicker from "./ChallengeThemePicker";
@@ -38,11 +40,6 @@ const MAX_LENGTH = GRID_ROWS;
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const isSessionExpiredError = (err) => {
-  const msg = (err?.message ?? "").toLowerCase();
-  return msg.includes("expired token") || msg.includes("invalid or expired");
-};
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -246,6 +243,7 @@ WordListPanel.propTypes = {
 const WordSearchGame = ({ isDarkMode }) => {
   const { t }    = useTranslation();
   const { user, showAlert, showDailyLimitAlert } = useAppContext();
+  const recoverSession = useSessionRecovery();
   const { topics, preferTopics } = useInterestTopics();
   const challengeTheme = useChallengeTheme();
   const { ttsState, playTts, pauseTts, stopTts } = useTts();
@@ -410,17 +408,13 @@ const WordSearchGame = ({ isDarkMode }) => {
       const { results, progress: prog } = await fetchAllWords();
       applyWords(results, prog);
     } catch (err) {
-      if (isSessionExpiredError(err)) {
-        alert(t("challenges.session_expired"));
-        window.location.reload();
-        return;
-      }
-      const errorMessage = err.message ?? t("challenges.word_fetch_error");
+      if (await recoverSession(err)) return;
+      const errorMessage = sanitizeAIError(err.message, t("challenges.word_fetch_error"));
       failWith(err, errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [fetchAllWords, applyWords, t, failWith]);
+  }, [fetchAllWords, applyWords, t, failWith, recoverSession]);
 
   // Show alert with retry action when error is set — or the plans, when
   // the day's AI calls ran out and a retry would only be refused again.
@@ -456,12 +450,8 @@ const WordSearchGame = ({ isDarkMode }) => {
         setIsLoadingStats(false);
       } catch (err) {
         if (cancelled) return;
-        if (isSessionExpiredError(err)) {
-          alert(t("challenges.session_expired"));
-          window.location.reload();
-          return;
-        }
-        const errorMessage = err.message ?? t("challenges.word_fetch_error");
+        if (await recoverSession(err)) return;
+        const errorMessage = sanitizeAIError(err.message, t("challenges.word_fetch_error"));
         failWith(err, errorMessage);
         setIsLoadingStats(false);
       } finally {
@@ -471,7 +461,7 @@ const WordSearchGame = ({ isDarkMode }) => {
 
     init();
     return () => { cancelled = true; };
-  }, [fetchAllWords, applyWords, user, t, failWith]);
+  }, [fetchAllWords, applyWords, user, t, failWith, recoverSession]);
 
   // ── Reset seen words — global reset ──────────────────────────────────────
   const handleResetSeenWords = useCallback(async () => {

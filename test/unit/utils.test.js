@@ -4,7 +4,7 @@ import { BASE_KEYS, normalizeChar, resolveLetterKeys, letterKey } from "../../sr
 import { tokenizeWords } from "../../src/utils/tokenizeWords";
 import { normalizeCode } from "../../src/utils/languageCode";
 import { parseAIJSON } from "../../src/utils/parseAIJSON";
-import { sanitizeAIError, authFetch } from "../../src/utils/errorUtils";
+import { sanitizeAIError, authFetch, isSessionExpiredError } from "../../src/utils/errorUtils";
 
 /**
  * Pure utilities. These carry real rules — the easy/hard accent rule, what
@@ -199,6 +199,22 @@ describe("sanitizeAIError", () => {
 
   it("matches provider names case-insensitively", () => {
     expect(sanitizeAIError("PERPLEXITY is down")).toBe("AI request failed. Please try again.");
+  });
+
+  it("uses the fallback for a refused sign-in token, which means nothing to the user", () => {
+    expect(sanitizeAIError("Invalid or expired token", "Não foi possível carregar.")).toBe("Não foi possível carregar.");
+  });
+});
+
+describe("isSessionExpiredError", () => {
+  it("recognises the API refusing a sign-in token", () => {
+    expect(isSessionExpiredError(new Error("Invalid or expired token"))).toBe(true);
+    expect(isSessionExpiredError(new Error("Firebase: expired token"))).toBe(true);
+  });
+
+  it("leaves every other error alone", () => {
+    expect(isSessionExpiredError(new Error("Network down"))).toBe(false);
+    expect(isSessionExpiredError(null)).toBe(false);
   });
 });
 

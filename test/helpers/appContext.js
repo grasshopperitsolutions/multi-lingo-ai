@@ -18,6 +18,9 @@ export function makeAppContext(overrides = {}) {
     token: "test-token",
     isLoadingUser: false,
     refreshUser: vi.fn(async () => {}),
+    // "failed" by default, so a page under test shows its own error rather
+    // than waiting on a token that never arrives.
+    renewSession: vi.fn(async () => "failed"),
 
     // ── auth actions ──
     loginGoogle: vi.fn(),

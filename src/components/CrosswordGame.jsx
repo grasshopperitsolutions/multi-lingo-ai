@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Trophy, RotateCcw, Eraser, ChevronDown, Lock } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
+import { useSessionRecovery } from "../hooks/useSessionRecovery";
 import {
   getUserGameProgress,
   markConceptSeenGlobal,
@@ -16,6 +17,7 @@ import { useInterestTopics } from "../hooks/useInterestTopics";
 import { useChallengeTheme } from "../hooks/useChallengeTheme";
 import { useAiErrorState } from "../hooks/useAiError";
 import { useTts } from "../hooks/useTts";
+import { sanitizeAIError } from "../utils/errorUtils";
 import { buildCrossword, checkEntry, CELL } from "../utils/crosswordUtils";
 import { resolveLetterKeys, letterKey, normalizeChar } from "../utils/letterKeys";
 import { startWordBudget, shouldKeepFetching } from "../utils/wordBudget";
@@ -85,11 +87,6 @@ const ARROW_STEPS = {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const isSessionExpiredError = (err) => {
-  const msg = (err?.message ?? "").toLowerCase();
-  return msg.includes("expired token") || msg.includes("invalid or expired");
-};
 
 const cellKey = (row, col) => `${row}-${col}`;
 
@@ -438,6 +435,7 @@ RackKey.propTypes = {
 const CrosswordGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const { user, showAlert, showDailyLimitAlert, writingSystems } = useAppContext();
+  const recoverSession = useSessionRecovery();
   const { topics, preferTopics } = useInterestTopics();
   const challengeTheme = useChallengeTheme();
   const { ttsState, playTts, pauseTts, stopTts } = useTts();
@@ -629,16 +627,12 @@ const CrosswordGame = ({ isDarkMode }) => {
       const { results, progress: prog } = await fetchAllWords();
       applyWords(results, prog);
     } catch (err) {
-      if (isSessionExpiredError(err)) {
-        alert(t("challenges.session_expired"));
-        window.location.reload();
-        return;
-      }
-      failWith(err, err.message ?? t("challenges.word_fetch_error"));
+      if (await recoverSession(err)) return;
+      failWith(err, sanitizeAIError(err.message, t("challenges.word_fetch_error")));
     } finally {
       setLoading(false);
     }
-  }, [fetchAllWords, applyWords, t, failWith]);
+  }, [fetchAllWords, applyWords, t, failWith, recoverSession]);
 
   // Out of AI calls: the plans, not a retry the server would refuse.
   useEffect(() => {
@@ -667,12 +661,8 @@ const CrosswordGame = ({ isDarkMode }) => {
         setIsLoadingStats(false);
       } catch (err) {
         if (cancelled) return;
-        if (isSessionExpiredError(err)) {
-          alert(t("challenges.session_expired"));
-          window.location.reload();
-          return;
-        }
-        failWith(err, err.message ?? t("challenges.word_fetch_error"));
+        if (await recoverSession(err)) return;
+        failWith(err, sanitizeAIError(err.message, t("challenges.word_fetch_error")));
         setIsLoadingStats(false);
       } finally {
         if (!cancelled) setLoading(false);
@@ -681,7 +671,7 @@ const CrosswordGame = ({ isDarkMode }) => {
 
     init();
     return () => { cancelled = true; };
-  }, [fetchAllWords, applyWords, user, t, failWith]);
+  }, [fetchAllWords, applyWords, user, t, failWith, recoverSession]);
 
   // ── Icons — strictly after the puzzle is playable ────────────────────────
   useEffect(() => {

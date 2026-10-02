@@ -77,6 +77,10 @@ const TOKEN_RENEW_LEAD_MS = 5 * 60 * 1000;
 // After a renewal that failed for a reason that may pass — offline, rate
 // limited — try again this much later.
 const TOKEN_RETRY_MS = 60 * 1000;
+// After a renewal forced by a refused request (renewSession), refuse another
+// for this long: a request still refused straight after one is not a stale
+// token, and renewing again would loop.
+const FORCED_RENEW_COOLDOWN_MS = 30 * 1000;
 // Renewal failures that mean the session is over rather than unreachable: the
 // account was disabled or deleted, or its refresh token revoked (a password
 // change, "sign out everywhere"). Firebase signs the user out by itself for
@@ -132,6 +136,8 @@ export const AppProvider = ({ children }) => {
   // a session that ended on its own from one the user ended: whether a real
   // user was signed in, and whether they asked to leave.
   const tokenTimerRef = useRef(null);
+  // The token renewal effect's "renew now", for renewSession.
+  const renewNowRef = useRef(null);
   const hadUserRef = useRef(false);
   const signingOutRef = useRef(false);
 
@@ -351,13 +357,15 @@ export const AppProvider = ({ children }) => {
     if (!auth) return;
     let disposed = false;
 
+    // Resolves to what happened, for renewSession's callers: "renewed",
+    // "signed-out", or "failed". The timer and the listeners ignore it.
     const renew = async (force) => {
       clearTimeout(tokenTimerRef.current);
       const firebaseUser = auth.currentUser;
-      if (disposed || !firebaseUser || firebaseUser.isAnonymous) return;
+      if (disposed || !firebaseUser || firebaseUser.isAnonymous) return "failed";
       try {
         const { token, expirationTime } = await firebaseUser.getIdTokenResult(force);
-        if (disposed || auth.currentUser !== firebaseUser) return;
+        if (disposed || auth.currentUser !== firebaseUser) return "failed";
         setUser((prev) =>
           prev && prev.uid === firebaseUser.uid && prev.token !== token ? { ...prev, token } : prev,
         );
@@ -367,8 +375,9 @@ export const AppProvider = ({ children }) => {
         // finishing first must not leave its timer behind.
         clearTimeout(tokenTimerRef.current);
         tokenTimerRef.current = setTimeout(() => renew(true), wait);
+        return "renewed";
       } catch (err) {
-        if (disposed) return;
+        if (disposed) return "failed";
         if (SESSION_OVER_CODES.has(err?.code)) {
           // The session cannot be renewed. Sign out properly so the app
           // treats it like any other sign-out — the auth listener tells
@@ -376,11 +385,29 @@ export const AppProvider = ({ children }) => {
           // already done this for some of these codes; doing it again is
           // harmless.
           auth.signOut().catch(() => {});
-          return;
+          return "signed-out";
         }
         clearTimeout(tokenTimerRef.current);
         tokenTimerRef.current = setTimeout(() => renew(true), TOKEN_RETRY_MS);
+        return "failed";
       }
+    };
+
+    // A request the API refused for its token, renewed on the spot rather
+    // than at the next timer — see renewSession below. Requests failing
+    // together share one renewal. One still refused this soon after a forced
+    // renewal is not a stale token, so it is not renewed again: that would
+    // loop.
+    let forcedAt = 0;
+    let forced = null;
+    renewNowRef.current = () => {
+      if (forced) return forced;
+      if (Date.now() - forcedAt < FORCED_RENEW_COOLDOWN_MS) return Promise.resolve("failed");
+      forcedAt = Date.now();
+      forced = renew(true).finally(() => {
+        forced = null;
+      });
+      return forced;
     };
 
     // Fires on sign-in, sign-out and every renewal. A renewal lands here and
@@ -400,12 +427,25 @@ export const AppProvider = ({ children }) => {
 
     return () => {
       disposed = true;
+      renewNowRef.current = null;
       clearTimeout(tokenTimerRef.current);
       unsubscribe();
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", onOnline);
     };
   }, []);
+
+  // For a request refused with 401 "Invalid or expired token": the token went
+  // stale before the timer renewed it — a phone waking up, with a request out
+  // before the visibility check finished. Renews now, and resolves to:
+  //   "renewed"    — a new token is on the user, and everything loaded from
+  //                  `user.token` reloads by itself;
+  //   "signed-out" — the session is over, and the auth listener says so;
+  //   "failed"     — it could not be renewed, so the caller shows its error.
+  const renewSession = useCallback(
+    () => renewNowRef.current?.() ?? Promise.resolve("failed"),
+    [],
+  );
 
   // ── Load translations for the current interface language ───────────────
   const loadTranslationsForLang = useCallback(async (lang, token) => {
@@ -938,6 +978,7 @@ export const AppProvider = ({ children }) => {
         loginTwitter,
         logoutUser,
         refreshUser,
+        renewSession,
         // Supported languages & writing systems
         supportedLanguages,
         interfaceLanguageOptions,

@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { RotateCcw, Check, Puzzle, Eye, SkipForward } from "lucide-react";
 import { useAppContext } from "../contexts/AppContext";
+import { useSessionRecovery } from "../hooks/useSessionRecovery";
 import {
   getUserGameProgress,
   markConceptSeenGlobal,
@@ -31,11 +32,6 @@ const MAX_ATTEMPTS = 3;
 
 const normalizeChar = (c) =>
   c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-
-const isSessionExpiredError = (err) => {
-  const msg = (err?.message ?? "").toLowerCase();
-  return msg.includes("expired token") || msg.includes("invalid or expired");
-};
 
 /**
  * Fisher-Yates shuffle — guarantees the result differs from the source order.
@@ -155,6 +151,7 @@ LetterTile.propTypes = {
 const ScrambledWordGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
   const { user, showAlert, showDailyLimitAlert } = useAppContext();
+  const recoverSession = useSessionRecovery();
   const { topics, preferTopics } = useInterestTopics();
   const challengeTheme = useChallengeTheme();
   const { ttsState, playTts, pauseTts, stopTts } = useTts();
@@ -320,17 +317,13 @@ const ScrambledWordGame = ({ isDarkMode }) => {
       const data = await fetchWordData();
       applyWordData(data);
     } catch (err) {
-      if (isSessionExpiredError(err)) {
-        alert(t("challenges.session_expired"));
-        window.location.reload();
-        return;
-      }
+      if (await recoverSession(err)) return;
       const errorMessage = sanitizeAIError(err.message, t("challenges.word_fetch_error"));
       failWith(err, errorMessage);
     } finally {
       setLoading(false);
     }
-  }, [fetchWordData, applyWordData, t, failWith]);
+  }, [fetchWordData, applyWordData, t, failWith, recoverSession]);
 
   // Show alert with retry action when error is set — or the plans, when
   // the day's AI calls ran out and a retry would only be refused again.
@@ -351,20 +344,16 @@ const ScrambledWordGame = ({ isDarkMode }) => {
     setLoading(true);
     fetchWordData()
       .then((data) => { if (!cancelled) applyWordData(data); })
-      .catch((err) => {
-        if (!cancelled) {
-          if (isSessionExpiredError(err)) {
-            alert(t("challenges.session_expired"));
-            window.location.reload();
-            return;
-          }
-          const errorMessage = sanitizeAIError(err.message, t("challenges.word_fetch_error"));
-          failWith(err, errorMessage);
-        }
+      .catch(async (err) => {
+        if (cancelled) return;
+        if (await recoverSession(err)) return;
+        if (cancelled) return;
+        const errorMessage = sanitizeAIError(err.message, t("challenges.word_fetch_error"));
+        failWith(err, errorMessage);
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [fetchWordData, applyWordData, t, failWith]);
+  }, [fetchWordData, applyWordData, t, failWith, recoverSession]);
 
   // ── Reset seen words handler — global reset ──────────────────────────────
   const handleResetSeenWords = useCallback(async () => {

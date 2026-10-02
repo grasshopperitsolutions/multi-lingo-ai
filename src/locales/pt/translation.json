@@ -716,7 +716,6 @@
     "hangman_azulejo_desc": "Uma ilustração em azulejo tradicional, muitas vezes a azul e branco.",
     "easy": "Fácil",
     "hard": "Difícil",
-    "session_expired": "A sessão expirou. A página vai recarregar.",
     "hangman_drawing_alt": "Desenho da forca: {{wrongCount}} tentativas erradas",
     "word_quiz": "Questionário de Palavras",
     "word_quiz_desc": "Perguntas rápidas de vocabulário para afinares a pontaria.",

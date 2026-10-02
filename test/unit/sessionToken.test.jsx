@@ -227,6 +227,80 @@ describe("keeping the sign-in token current", () => {
   });
 });
 
+describe("renewing on demand, for a request refused with 401", () => {
+  it("renews at once, and puts the new token on the user", async () => {
+    await boot();
+    const user = makeUser();
+    await signIn(user);
+
+    let outcome;
+    await act(async () => {
+      outcome = await ctx.renewSession();
+    });
+    expect(outcome).toBe("renewed");
+    expect(user.getIdTokenResult).toHaveBeenCalledWith(true);
+    expect(screen.getByText("token:tok-2")).toBeInTheDocument();
+  });
+
+  it("shares one renewal between requests refused together", async () => {
+    await boot();
+    const user = makeUser();
+    await signIn(user);
+    user.getIdTokenResult.mockClear();
+
+    let outcomes;
+    await act(async () => {
+      outcomes = await Promise.all([ctx.renewSession(), ctx.renewSession()]);
+    });
+    expect(outcomes).toEqual(["renewed", "renewed"]);
+    expect(user.getIdTokenResult.mock.calls.filter(([force]) => force)).toHaveLength(1);
+  });
+
+  it("does not renew again straight after, so a refused request cannot loop", async () => {
+    await boot();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    const user = makeUser();
+    await signIn(user);
+
+    let outcome;
+    await act(async () => { outcome = await ctx.renewSession(); });
+    expect(outcome).toBe("renewed");
+
+    // Still refused with a token minted a moment ago: not a stale token.
+    await act(async () => { outcome = await ctx.renewSession(); });
+    expect(outcome).toBe("failed");
+    expect(screen.getByText("token:tok-2")).toBeInTheDocument();
+
+    // Half a minute later it may renew again.
+    await act(async () => vi.advanceTimersByTime(30 * 1000));
+    await act(async () => { outcome = await ctx.renewSession(); });
+    expect(outcome).toBe("renewed");
+    expect(screen.getByText("token:tok-3")).toBeInTheDocument();
+  });
+
+  it("says the session is over when it cannot be renewed", async () => {
+    await boot();
+    const revoked = Object.assign(new Error("revoked"), { code: "auth/invalid-refresh-token" });
+    await signIn(makeUser({ refreshError: revoked }));
+
+    let outcome;
+    await act(async () => { outcome = await ctx.renewSession(); });
+    expect(outcome).toBe("signed-out");
+    expect(fakeAuth.signOut).toHaveBeenCalled();
+  });
+
+  it("reports a renewal that failed for a passing reason, and keeps the session", async () => {
+    await boot();
+    const offline = Object.assign(new Error("offline"), { code: "auth/network-request-failed" });
+    await signIn(makeUser({ refreshError: offline }));
+
+    let outcome;
+    await act(async () => { outcome = await ctx.renewSession(); });
+    expect(outcome).toBe("failed");
+    expect(fakeAuth.signOut).not.toHaveBeenCalled();
+  });
+});
+
 describe("telling the user a session ended", () => {
   it("says so, as information rather than an error, when nobody asked to leave", async () => {
     await boot();
