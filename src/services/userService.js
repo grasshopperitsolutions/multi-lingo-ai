@@ -413,6 +413,52 @@ export const resetSeenHistoryFacts = async (token, uid) => {
 };
 
 // ---------------------------------------------------------------------------
+// Picture games: seen scenes — stored on users/{uid}.seenSceneIds
+// Dedicated field, like seenStoryIds and seenHistoryFactsIds. A scene is shared
+// by every language (the words to find in it are translated per player), so
+// this is one list, not one per practice language.
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the list of scene IDs this user has already described.
+ * Reads users/{uid}.seenSceneIds — returns [] if not yet set.
+ *
+ * @param {string} token
+ * @param {string} uid
+ * @returns {Promise<string[]>}
+ */
+export const getSeenSceneIds = async (token, uid) => {
+  const profile = await getUserProfile(token, uid);
+  return profile?.seenSceneIds ?? [];
+};
+
+/**
+ * Append a sceneId to users/{uid}.seenSceneIds.
+ *
+ * @param {string}   token
+ * @param {string}   uid
+ * @param {string}   sceneId
+ * @param {string[]} currentSeenIds - current value, passed in to avoid an extra read
+ */
+export const markSceneSeen = async (token, uid, sceneId, currentSeenIds = []) => {
+  const updated = [...new Set([...currentSeenIds, sceneId])];
+  await updateUserProfile(token, uid, { seenSceneIds: updated });
+};
+
+/**
+ * Clear all seen scene IDs. Only affects "Descreve a imagem".
+ *
+ * @param {string} token
+ * @param {string} uid
+ */
+export const resetSeenScenes = async (token, uid) => {
+  await updateUserProfile(token, uid, {
+    seenSceneIds: [],
+    seenScenesResetAt: new Date().toISOString(),
+  });
+};
+
+// ---------------------------------------------------------------------------
 // Seen exercise IDs — stored on users/{uid}.seenExerciseIds
 // Tracks which exam exercises the user has already been shown, split by type.
 // Structure: { reading: string[], listening: string[], writing: string[] }
@@ -652,6 +698,71 @@ export const recordPlay = async (
         throw new Error(j?.error || j?.message || 'Failed to record play');
       }
     });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// A Caderneta — the picture games' sticker album
+//
+// Per player and per practice language, beside the challenge progress: the same
+// `userGameProgress/{uid}/games/{gameId}__{dialect}` document the challenges
+// keep their play count in, with the list of collected concept ids on it.
+// A sticker is a *concept*, not a word in one language, but the album is filed
+// by practice language because that is what the player is practising when they
+// earn it: a new language starts with an empty album.
+// ---------------------------------------------------------------------------
+
+const ALBUM_GAME_ID = 'picture_album';
+
+/**
+ * The concept ids this player has collected for a practice language.
+ *
+ * @param {string} token
+ * @param {string} uid
+ * @param {string} learningDialect
+ * @returns {Promise<string[]>}
+ */
+export const getAlbumStickers = async (token, uid, learningDialect) => {
+  const progress = await getUserGameProgress(token, uid, ALBUM_GAME_ID, learningDialect);
+  return Array.isArray(progress?.stickerConceptIds) ? progress.stickerConceptIds : [];
+};
+
+/**
+ * Save the whole sticker list. A whole-array write, the way favourites are
+ * written: a sticker is only ever added, and two devices racing can lose one,
+ * which is an accepted trade-off for an album.
+ *
+ * POST with an explicit id is a safe upsert here: the proxy merges it onto an
+ * existing document, so this works on a player's first sticker (no document
+ * yet) and on every one after, and leaves `totalPlayed` alone.
+ *
+ * @param {string}   token
+ * @param {string}   uid
+ * @param {string}   learningDialect
+ * @param {string[]} conceptIds
+ */
+export const saveAlbumStickers = async (token, uid, learningDialect, conceptIds) => {
+  const response = await fetch(`${PROXY_URL}/api/firestore`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      collection: PROGRESS_COLLECTION(uid),
+      id: PROGRESS_DOC_ID(ALBUM_GAME_ID, learningDialect),
+      data: {
+        gameId: ALBUM_GAME_ID,
+        learningDialect,
+        stickerConceptIds: [...new Set(conceptIds)],
+        lastPlayedAt: new Date().toISOString(),
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const json = await response.json().catch(() => ({}));
+    throw new Error(json?.error || json?.message || 'Failed to save the album');
   }
 };
 

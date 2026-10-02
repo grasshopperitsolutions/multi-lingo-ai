@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 /**
- * Translation loading, word/exercise pools, TTS and image lookup.
+ * Translation loading, word/exercise pools and TTS.
  *
  * The through-line is cost: every one of these can either serve something
  * already paid for or spend an AI call, and the rule for choosing is what
@@ -435,26 +435,6 @@ describe("conceptIconService", () => {
 
     expect(askAI).not.toHaveBeenCalled();
     if (icons) expect(typeof icons).toBe("object");
-  });
-});
-
-describe("getImageService", () => {
-  it("finds an existing image by its source word instead of generating", async () => {
-    setCollection("files", [{ id: "f1", sourceWord: "casa", url: "https://img/casa.png" }]);
-
-    const { findImageBySourceWord } = await import("../../src/services/getImageService");
-    await findImageBySourceWord("tok", "casa").catch(() => null);
-
-    // Image generation is the most expensive call in the app; reusing one
-    // that already exists is the whole point of the lookup.
-    expect(askAI).not.toHaveBeenCalled();
-  });
-
-  it("returns nothing rather than throwing when no image matches", async () => {
-    const { findImageBySourceWord } = await import("../../src/services/getImageService");
-
-    const found = await findImageBySourceWord("tok", "inexistente").catch(() => "threw");
-    expect(found === "threw" || found == null || typeof found === "object").toBe(true);
   });
 });
 

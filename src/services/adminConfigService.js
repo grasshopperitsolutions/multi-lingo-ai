@@ -33,6 +33,9 @@ export const CONFIG_SECTIONS = [
   // Not a collection — usage counts read from users, the shared pools and
   // reports (plans/app-current-pulse.md). Loads its own data.
   { id: "pulse", label: "Pulse", collection: "users + pools, read-only" },
+  // The picture games' pictures (written only by the API): reported ones, with
+  // Regenerate and Mark as not drawable. Loads its own data.
+  { id: "pictures", label: "Pictures", collection: "conceptPictures, read-only here" },
   // Not a collection either: every sound in config/sounds.js, to review by ear.
   { id: "sounds", label: "Sounds", collection: "config/sounds.js, nothing stored" },
 ];

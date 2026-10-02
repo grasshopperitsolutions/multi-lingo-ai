@@ -39,6 +39,9 @@ const WordLadderPage = lazy(() => import("./pages/dashboard/games/WordLadderPage
 const WordQuizComingSoonPage = lazy(() => import("./pages/dashboard/games/WordQuizComingSoonPage"));
 const CrosswordsPage = lazy(() => import("./pages/dashboard/games/CrosswordsPage"));
 
+const PictureGamesMenu = lazy(() => import("./components/PictureGamesMenu"));
+const PictureGamePage = lazy(() => import("./pages/dashboard/pictures/PictureGamePage"));
+
 const ExamTrainingMenu = lazy(() => import("./components/ExamTrainingMenu"));
 const ListeningExercisePage = lazy(() => import("./pages/dashboard/exercises/ListeningExercisePage"));
 const ReadingExercisePage = lazy(() => import("./pages/dashboard/exercises/ReadingExercisePage"));
@@ -192,6 +195,13 @@ const AppLayout = () => {
             <Route path="challenges/word-ladder" element={<WordLadderPage />} />
             <Route path="challenges/word-quiz" element={<WordQuizComingSoonPage />} />
             <Route path="challenges/crosswords" element={<CrosswordsPage />} />
+
+            <Route path="picture-games" element={<PictureGamesMenu isDarkMode={isDarkMode} />} />
+            <Route path="picture-games/match" element={<PictureGamePage gameId="picture_match" />} />
+            <Route path="picture-games/memory" element={<PictureGamePage gameId="picture_memory" />} />
+            <Route path="picture-games/odd-one-out" element={<PictureGamePage gameId="picture_odd_one_out" />} />
+            <Route path="picture-games/album" element={<PictureGamePage gameId="picture_album" />} />
+            <Route path="picture-games/describe" element={<PictureGamePage gameId="picture_describe" />} />
 
             <Route path="exam-training" element={<ExamTrainingMenu isDarkMode={isDarkMode} />} />
             <Route path="exam-training/listening" element={<ListeningExercisePage />} />

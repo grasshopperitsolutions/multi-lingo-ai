@@ -18,7 +18,7 @@ vi.mock("../../src/contexts/AppContext", () => ({
 }));
 
 const SPLIT = {
-  have_fun: ["challenges"],
+  have_fun: ["challenges", "picture_games"],
   tune_your_ear: ["voice_practice", "ai_tutor"],
   grow_vocabulary: ["translator", "story_generator"],
   tough_practice: ["dictionary", "exam_training", "grammar"],

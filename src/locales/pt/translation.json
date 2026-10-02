@@ -510,6 +510,8 @@
     "history_culture_desc": "Conhece o país por trás da língua que praticas — costumes, tradições e o que por lá aconteceu.",
     "challenges": "Desafios e Jogos de Palavras",
     "challenges_desc": "Põe-te à prova com desafios, questionários e jogos de palavras.",
+    "picture_games": "Jogos com Imagens",
+    "picture_games_desc": "Jogos feitos com uma imagem para cada palavra: liga, vira cartas e cola autocolantes.",
     "exam_training": "Preparação para Exames",
     "exam_training_desc": "Prepara-te para exames oficiais de certificação de línguas (CEFR).",
     "personal_tools": "O meu espaço",
@@ -808,6 +810,110 @@
     "word_ladder_won_desc": "Subiste os {{count}} degraus todos!",
     "word_ladder_lost": "Caíste!",
     "word_ladder_answer": "A palavra era: "
+  },
+  "picture_games": {
+    "title": "Jogos com Imagens",
+    "loading": "A preparar as imagens...",
+    "error": "Não foi possível carregar as imagens. Tenta novamente.",
+    "try_again": "Tentar outra vez",
+    "play_again": "Jogar outra vez",
+    "back_to_menu": "Voltar ao menu",
+    "picture": "Imagem",
+    "new_sticker": "Autocolante novo!",
+    "thin": {
+      "title": "Ainda não há imagens suficientes",
+      "body": "Cada palavra é desenhada uma só vez e depois fica para sempre. Volta daqui a pouco ou experimenta outro jogo.",
+      "filling": "A desenhar mais imagens..."
+    },
+    "report": {
+      "label": "Esta imagem não corresponde à palavra",
+      "sent": "Obrigado, já recebemos o teu aviso",
+      "thanks": "Obrigado! Vamos rever esta imagem."
+    },
+    "match": {
+      "title": "Liga a imagem",
+      "desc": "Liga cada palavra à sua imagem, e cada imagem à sua palavra.",
+      "turn": "Pergunta {{current}} de {{total}}",
+      "score": "Certas: {{score}}",
+      "which_picture": "Qual é a imagem?",
+      "which_word": "Qual é a palavra?",
+      "option": "Imagem {{n}}",
+      "right": "Certo!",
+      "wrong": "Era: {{word}}",
+      "next": "Seguinte",
+      "see_result": "Ver resultado",
+      "result": "{{score}} de {{total}}",
+      "result_hint": "Cada resposta certa cola a imagem na tua Caderneta."
+    },
+    "memory": {
+      "title": "Jogo da memória",
+      "desc": "Vira as cartas e junta cada imagem à sua palavra.",
+      "pairs": "{{found}} de {{total}} pares",
+      "moves": "Jogadas: {{moves}}",
+      "card_down": "Carta {{n}}, virada para baixo",
+      "new_stickers": "Autocolantes novos: {{stickers}}",
+      "result": "Concluíste em {{moves}} jogadas!"
+    },
+    "odd": {
+      "title": "Qual é o intruso?",
+      "desc": "Três imagens são do mesmo tema. Qual é a que não pertence?",
+      "turn": "Jogada {{current}} de {{total}}",
+      "score": "Certas: {{score}}",
+      "question": "Qual destas imagens não pertence ao grupo?",
+      "right": "Certo! Era mesmo o intruso.",
+      "wrong": "Não era essa. O intruso era: {{word}}",
+      "result": "{{score}} de {{total}}",
+      "result_hint": "Vês as quatro palavras no fim de cada jogada. É aí que se pratica."
+    },
+    "album": {
+      "title": "A Caderneta",
+      "desc": "Cola um autocolante por cada palavra que acertas.",
+      "other": "Outras",
+      "empty": "Ainda não há imagens para colecionar.",
+      "total": "Caderneta: {{collected}} / {{total}}",
+      "pages": "Páginas da Caderneta",
+      "count": "{{collected}} / {{total}}",
+      "sticker": "Autocolante colado",
+      "empty_slot": "Autocolante por descobrir",
+      "close": "Fechar"
+    },
+    "describe": {
+      "title": "Descreve a imagem",
+      "desc": "Escreve o que vês na cena e recebe feedback.",
+      "how": "Escreve o que vês, nas tuas palavras, com o teclado ou ditando. Contamos as palavras da cena que usaste e a IA comenta o resto.",
+      "creating": "A desenhar uma cena nova... pode demorar um pouco.",
+      "none": {
+        "no_scenes": "Ainda não há cenas para descrever",
+        "seen_all": "Já viste todas as cenas",
+        "no_words": "Ainda não há cenas com palavras suficientes no teu idioma",
+        "can_create": "Podes criar uma cena nova com palavras que já têm imagem.",
+        "cannot_create": "As cenas novas vão aparecendo aos poucos. Volta mais tarde."
+      },
+      "create": "Criar uma cena nova",
+      "create_error": {
+        "not_enough": "Ainda não há palavras suficientes do mesmo tema com imagem.",
+        "tier": "O teu plano não permite criar cenas novas.",
+        "cap": "Chegaste ao limite de cenas novas de hoje. Volta amanhã.",
+        "failed": "Não foi possível criar a cena. Tenta novamente."
+      },
+      "scene": "Cena para descrever",
+      "to_find": "Há {{total}} coisas para encontrar na cena.",
+      "placeholder": "Escreve o que vês...",
+      "check": "Ver feedback",
+      "found": "{{found}} de {{total}} encontradas",
+      "found_words": "Palavras encontradas",
+      "missed": "Ficaram por dizer:",
+      "corrections": "Correções",
+      "try_next": "Tenta a seguir",
+      "next_scene": "Outra cena",
+      "error": "Não foi possível obter o feedback. Tenta novamente.",
+      "seen_title": "Cenas vistas",
+      "reset": "Reiniciar cenas vistas",
+      "reset_title": "Reiniciar cenas vistas",
+      "reset_message": "Isto apaga as cenas que já descreveste, para as poderes voltar a ver.",
+      "reset_warning": "⚠ Isto não pode ser anulado.",
+      "reset_confirm": "Sim, reiniciar"
+    }
   },
   "report": {
     "buttonLabel": "Reportar",

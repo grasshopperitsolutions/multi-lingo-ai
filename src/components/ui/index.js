@@ -22,3 +22,4 @@ export { default as Pagination } from './Pagination';
 export { default as PracticeLanguage } from './PracticeLanguage';
 export { default as BetaBadge } from './BetaBadge';
 export { default as PlansLink } from './PlansLink';
+export { default as GameCard } from './GameCard';

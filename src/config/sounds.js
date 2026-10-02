@@ -131,6 +131,9 @@ export const SOUNDS = {
   word_banked: { category: C.FEEDBACK, parts: [part(z({ volume: 0.4, frequency: N.B5, sustain: 0.06, release: 0.12, shape: SHAPE.SQUARE, pitchJump: N.E6 - N.B5, pitchJumpTime: 0.06, filter: -5000 }))] },
   // A soft reverse pop, like a bubble going the wrong way. 100 ms.
   word_unbanked: { category: C.FEEDBACK, parts: [part(z({ volume: 0.35, frequency: 600, sustain: 0.03, release: 0.06, slide: -35 }))] },
+  // A sticker pressed onto a page: a soft paper "pat", then a quick rising
+  // two-note chirp, bright but small. "Stuck." The album's own sound. 190 ms.
+  sticker: { category: C.FEEDBACK, parts: [part(click(1500, 0.03, 0.45)), part(note(N.G5, { len: 0.06, volume: 0.35 }), 45), part(note(N.C6, { len: 0.1, volume: 0.35 }), 105)] },
   // A card flipped on a table: a papery flick with a tiny "tink" at the end. 130 ms.
   reveal: { category: C.FEEDBACK, parts: [part({ noise: { duration: 0.08, from: 3200, to: 1600, q: 1.2, peak: 0.2 } }), part(z({ volume: 0.25, frequency: N.C7, decay: 0.04, sustainVolume: 0, release: 0.02 }), 90)] },
   // A short sparkle: three fast rising pentatonic notes on a glassy triangle,

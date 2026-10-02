@@ -207,9 +207,14 @@ export async function askAI(token, prompt, providerParams, options = {}) {
           _reportUsage(json.usage);
           throw dailyLimitError(json?.error);
         }
-        throw new Error(
+        const failure = new Error(
           json?.error || json?.message || `AI request failed (${response.status})`
         );
+        // The server's machine-readable reason, when it gives one (the picture
+        // mode's PICTURE_CAP, PICTURE_GUEST, SCENE_TIER): a caller that wants
+        // to stop asking keys on it rather than on the English message.
+        if (json?.code) failure.code = json.code;
+        throw failure;
       }
 
       _reportUsage(json?.data?.usage);

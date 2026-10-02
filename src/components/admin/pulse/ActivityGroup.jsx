@@ -41,6 +41,9 @@ const ActivityGroup = ({ pulse }) => {
       pageOpens: rankMap(summed.pageOpens),
       locked: rankMap(summed.locked),
       deletions: summed.accountDeletions ?? {},
+      // What the picture games cost: drawn once per word on the server, outside
+      // the daily allowance, so this is the only place the spend shows.
+      pictures: summed.pictures ?? {},
     };
   }, [counters, period, today]);
 
@@ -65,6 +68,18 @@ const ActivityGroup = ({ pulse }) => {
         <Stat label="Tokens in / out" value={`${n(total("inputTokens"))} / ${n(total("outputTokens"))}`} hint={`${n(total("thinkingTokens"))} thinking`} isDarkMode={isDarkMode} />
         <Stat label="Daily limit hit" value={n(sumLeaves(m.summed.limitHits))} hint="Refused calls" isDarkMode={isDarkMode} />
         <Stat label="Live tutor" value={`${n(sumLeaves(m.summed.liveSessions))} sessions`} hint={`${m.liveMinutes.toFixed(0)} minutes, as reported by browsers`} isDarkMode={isDarkMode} />
+        <Stat
+          label={`Pictures drawn, ${periodName}`}
+          value={n(m.pictures.generated)}
+          hint={`${n(m.pictures.scenes)} scenes · ${n(m.pictures.failed)} declined · ${n(m.pictures.skipped)} not drawable`}
+          isDarkMode={isDarkMode}
+        />
+        <Stat
+          label="Picture cap hit"
+          value={n(m.pictures.capped)}
+          hint={`${n(m.pictures.reports)} pictures reported`}
+          isDarkMode={isDarkMode}
+        />
       </Grid>
 
       <Columns>

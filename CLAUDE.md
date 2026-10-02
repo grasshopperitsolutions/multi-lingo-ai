@@ -33,7 +33,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-**766 tests across 29 files, ~57% line coverage, blocking in CI.** It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
+**1,562 tests across 85 files, blocking in CI** (line coverage was ~57% when last measured). It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
 
 - `test/canaries/` — one assertion per library behaviour no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing, every literal `t()` key resolving in the pt-PT bundle.
 - `test/smoke/pages.test.jsx` — 37 pages mount, paint, stay out of the error boundary, and render no raw translation keys. **Feature pages assert the route shell only**: each is a Suspense wrapper, so the assertion passes while the lazy chunk is still loading. The heavy components are covered directly instead.
@@ -620,6 +620,162 @@ every one by name, with ×10 to hear fatigue, which is how the set gets tuned.
   `ai_ready` where each generator's result lands (`usePlayWhenSet`), the
   practice day and a new plan (`playOnNextTap`, since both arrive on load).
 - **Never the only signal.** Every sound repeats something on screen.
+
+## Picture games: one picture per word, drawn once, on the server
+
+"Jogos com Imagens" is a tile in Have fun beside Challenges
+(`/dashboard/picture-games`, id `picture_games`) and a hub of five games, built
+exactly like the Challenges hub (`PictureGamesMenu`, with the shared
+`ui/GameCard` that used to live inside `ChallengesMenu`):
+
+| Game | Id (gate key) | Page |
+|---|---|---|
+| Liga a imagem | `picture_match` | a word and four pictures, then, turn about, a picture and four words; 8 turns |
+| Jogo da memória | `picture_memory` | pair each picture with its word; 6 pairs on a phone (3×4), 8 on a wide screen (4×4) |
+| Qual é o intruso? | `picture_odd_one_out` | three pictures from one topic and one that is not; 6 turns |
+| A Caderneta | `picture_album` | a sticker album, one page per topic |
+| Descreve a imagem | `picture_describe` | write what you see in a scene; Maestro |
+
+**It is for everyone and says nothing about age**, in any string, so the privacy
+policy (§8, "not directed to children under 13") stays true as written.
+
+**Six feature ids have to be created in Admin › Tiers & Features** (the tile and
+the five games) and granted to a tier. Until then each resolves to "coming soon"
+and is locked for everyone but admin, like `grammar_text`. The route is guarded
+in `PictureGamePage` as well as the card, so a URL cannot bypass a lock.
+`FavouriteFeatureButton` works on all of them (they are in
+`favouritableFeatures.js` as `PICTURE_GAMES`); the ids are stored in tier grants
+and favourites, so never rename one.
+
+**A picture belongs to a concept, never to a word in one language**
+(`wordPool/{conceptId}`: a cake is a cake everywhere), and **it is drawn on the
+server**. The API's CLAUDE.md ("Pictures") has the reasoning and the cost
+controls; what matters here:
+
+- The frontend only *reads* `conceptPictures` and `pictureScenes` and asks for a
+  picture through the `picture` mode of `/api/ask-ai`, naming a concept id and
+  nothing else (`requestPicture`). It cannot choose what is drawn. Nothing in
+  this repo builds a picture prompt, and the old browser-side image code is gone.
+- **Only URLs on our own bucket are ever shown** (`isOwnPictureUrl`, from
+  `VITE_FIREBASE_STORAGE_BUCKET`, restricted to the `conceptPictures/` or
+  `pictureScenes/` folder). A second guard behind the server's own, and it fails
+  closed: with no bucket configured nothing is shown.
+- **Pictures do not spend the daily AI allowance**, so every picture call passes
+  `skipConfirm` and never raises the spend modal. Past the account's cap the
+  server answers `PICTURE_CAP`, which `askAI` now carries as `err.code`, and the
+  background fill stops asking.
+
+**Which words a round uses** (`hooks/usePictureRound`, rules in
+`utils/pictureRound.js`, pure and tested with a fixed random sequence):
+
+- A concept is playable when it has a ready picture **and** a word in the
+  player's practice language. The word is a **read, never a generation**
+  (`getConceptTranslations` in `getWordService`): generating one costs a daily AI
+  call per word, which a round of eight would spend for an Explorer. The
+  consequence to know about: **a language with few pooled translations shows
+  "not enough pictures yet"**, because the pool is language-neutral but
+  translations are written one language at a time as people play. The fix when
+  it matters is one batch translation prompt for the concepts that have a
+  picture, not per-word generation.
+- The player's saved interests come first, **for every tier** (nothing here
+  generates, so there is no reason to hold the preference back from Explorer, as
+  `useInterestTopics` does for the word games). Repeats are allowed, since seeing
+  the same word again is the point: a round only leans away from the last 24
+  words (a preference, never an exclusion, so a pool is never made smaller by who
+  is playing).
+- **Words are read a batch at a time** and the loop stops once it has enough, so
+  a pool of 200 pictured concepts costs one or two batches, not 200 reads.
+- **A pool with fewer than 12 pictured words fills itself**: once per visit and
+  language, the server is asked for up to four more, one at a time, for concepts
+  that already have a word in this language (a picture nobody here could play
+  with is money spent for someone else). The round starts with what exists; new
+  pictures are used from the next one. The fill has its own effect, so "play
+  again" cannot cut it off, and **the retry that follows it is decided from both
+  ends**: the fill and the round start together and can finish in either order,
+  even in the same tick, before React has re-rendered. The round's outcome is
+  therefore recorded in a ref where it is decided, never read from state at
+  render time. (A test caught this: the fill finished first, saw "loading", and
+  never retried.)
+- **Wrong options are fair.** A distractor never shares the answer's word, its
+  English label or (when both have one) its sense key: a cup and a mug are both
+  "chávena", and either would be a correct answer to one picture. A turn that
+  cannot find three fair options is dropped, never shown short.
+- **Qual é o intruso? needs words tagged with topics.** An untagged word is not
+  *known* to be off the topic, so it can be neither one of the three nor the
+  outsider; concepts written before interests existed have no `topicIds`. Until
+  some are curated the game says there are not enough pictures rather than
+  building an unfair turn.
+
+**`PictureTile` shows a picture on a white tile, in both themes.** The prompts ask
+for a plain white background, and a flat illustration dropped straight onto dark
+slate shows its box. **It derives its load state from the URL that loaded, with
+no effect resetting a flag.** It used to reset in an effect on mount, and a
+picture already in the browser's cache fires `load` *before* that effect runs,
+so the effect overwrote "loaded" with "loading" for good: a decoded picture
+hidden behind its own skeleton. With the one-year immutable cache header that is
+every second view of every picture. 1,500 tests did not see it; a real browser
+did, and `pictureGames.test.jsx` now reproduces it by firing `load` the moment
+`src` is set. **The report flag is a sibling of the tile, never inside it**: an
+answer tile is a button and a button must not contain a button. It shows only
+once an answer is known, which is when a picture that does not match its word is
+noticed.
+
+**A Caderneta** stores `stickerConceptIds` on the challenge progress document
+(`userGameProgress/{uid}/games/picture_album__{dialect}`), one album per
+practice language, written as the whole list by a POST with that id, which the
+proxy merges (an upsert, so it works on the first sticker and leaves
+`totalPlayed` alone). `useAlbumStickers` debounces the write like the other
+autosaving hooks (four right answers are one write), merges a sticker earned
+before the album had loaded instead of dropping it, and flushes when the page is
+left or hidden. **Its identity ref is synced in an effect, not during render, and
+the order matters**: on a language change the old effect's cleanup must still see
+the old language, or one language's stickers are written into another's album
+(the linter caught it; a test pins it). A right answer sticks a picture in every
+game (Liga a imagem and the memory game: the word; Qual é o intruso?: the
+outsider; Descreve a imagem: every word found), and a page's total is the words
+in that topic that *still have a picture*, so a sticker for a word that lost its
+picture never counts for more than the album can show.
+
+**Descreve a imagem** draws its scene from the pool first. A scene is shared by
+every language (the words to find are translated per player), each player's seen
+scenes are `users/{uid}.seenSceneIds` with a `SeenProgressCard` reset, and only
+when none is left that the player can use does an unlimited tier get a "create a
+new scene" button, which the server refuses to anyone else. **Which words were
+found is counted in code** (`findWordsInText`: whole words, case and Latin
+accents ignored, dictionary form accepted, substring for scripts written without
+spaces) and handed to the model as a fact, so "found 4 of 6" is never a guess.
+The feedback is an **ordinary counted AI call** (it asks first, and out of calls
+it points to the plans); the scene is attached **on the server** from `sceneId`,
+so the picture never travels through the browser. `tryNext` is filtered against
+the missed words before it is shown: the model phrases them, it cannot add one.
+
+**Admin › Pictures** lists reported pictures (largest count first, sorted in
+code), with Regenerate and Mark as not drawable; **Admin › Pulse** shows
+pictures drawn, declined, scenes, reports and cap hits under Activity & AI.
+
+**The deploy order is API first.** An API without the picture mode answers the
+picture request as an empty text call (a 400, swallowed here), and one without
+`sceneId` would give the describe feedback no picture to look at.
+
+### Pictures are generated organically, and only that way
+
+**There is deliberately no seeder for the pool's existing concepts.** A picture
+is drawn the first time a player's game needs it (or, for a thin pool, up to four
+at a time in the background of a game being played), and never in bulk. An earlier
+design had an admin "Picture common words" button; it was dropped, and so was the
+admin's exemption from the daily cap that existed only for it. Do not add one back
+without asking.
+
+### Temporary piece, to remove once it has been run
+
+**`src/services/promptSeedService.js`** creates the four prompts
+(`concept-picturable-prompt`, `concept-picture-prompt`, `picture-scene-prompt`,
+`picture-describe-feedback-prompt`) from Admin › Prompts. It is marked `TEMPORARY`
+and bracketed so removal is mechanical: press it once, then ask for it to go.
+**Read the templates in that file before pressing it**, and **check the model ids
+against Google's list**: a wrong id fails the call and nothing will be drawn until
+it is fixed in Admin. Removal: delete the file, the button in
+`PromptsSection.jsx`, and the handler and import in `AdminPage.jsx`.
 
 ## Practice days, not a day streak
 
@@ -1783,20 +1939,12 @@ It is still deliberately not built from locale strings — a machine-to-machine
 instruction, not user copy, and translating it would change the model's
 behaviour per language. Moving it into Firestore is not translating it.
 
-**`getImageService` has no callers yet, and that is deliberate.** Nothing in
-`src/` imports it; the only references are two tests for
-`findImageBySourceWord`. It is kept for planned work — generated images for
-exam exercises, and a possible kids section — so **do not delete it** as dead
-code on the strength of a call-site grep.
-
-What it does still lack is a prompt document. Its `generateImage` is now the
-only `askAI` call in the app with a model hardcoded in source
-(`imagen-4.0-fast-generate-001`, already a generation behind
-`gemini-3.1-flash-image`), and it takes its prompt text as an argument rather
-than from Firestore. Both are worth fixing **when it gains its first caller**,
-because that is when there is a real prompt to write: seeding one now would
-mean guessing at the wording for a feature nobody has designed, and a guessed
-prompt sitting in Admin is indistinguishable from a working one.
+**`getImageService` is the picture games' service now**, rebuilt from scratch
+(see "Picture games" below). The old one had never worked and could not have:
+nothing called it, the API could not return an image, its uploads went to a
+folder `api/storage.ts` refuses, nothing wrote the collection it searched, and
+its prompt and a retired Imagen model were hardcoded in it. Every old export
+went with it.
 
 ## "Estás a praticar mwl-PT" — the practice language, where it matters
 
@@ -2349,7 +2497,9 @@ else under `other`, so no caller can invent counter keys.
 beside `explorerModel` in `providerParams` (the exam services pass it through
 their `_callAskAI`). The server resolves it against the prompts collection and
 deletes it before the provider sees it. A new AI call should do the same, or it
-counts as `unspecified`. `getImageService` has no prompt document yet and does.
+counts as `unspecified`. `getImageService` labels its picture requests
+`concept-picture-prompt` and `picture-scene-prompt` (the API reads those two
+documents itself) and its feedback call `picture-describe-feedback-prompt`.
 
 **Where a user came from** (`utils/acquisition.js`): the first page of a
 browser session keeps, in `sessionStorage`, the referrer's **hostname** only,

@@ -31,6 +31,7 @@ import {
   RadioTower,
   Plane,
   Gamepad2,
+  Images,
   GraduationCap,
   BookUser,
 } from "lucide-react";
@@ -56,6 +57,17 @@ export const DASHBOARD_FEATURES = [
     color: "text-yellow-500",
     titleKey: "dashboard.challenges",
     descKey: "dashboard.challenges_desc",
+  },
+  {
+    // Games built on a picture for each word, for any age. Beside Challenges,
+    // not inside it: a second kind of play with its own menu.
+    id: "picture_games",
+    group: DASHBOARD_GROUP_IDS.HAVE_FUN,
+    route: "/dashboard/picture-games",
+    icon: Images,
+    color: "text-pink-500",
+    titleKey: "dashboard.picture_games",
+    descKey: "dashboard.picture_games_desc",
   },
 
   // ── Tune your ear ──────────────────────────────────────────────────────────

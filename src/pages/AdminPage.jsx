@@ -7,6 +7,8 @@ import { auth } from "../firebase";
 import { CONFIG_SECTIONS, getConfigSectionDocs } from "../services/adminConfigService";
 import { updateDocument } from "../services/firestoreService";
 import { getPrompts, updatePrompt } from "../services/promptService";
+// TEMPORARY — remove with src/services/promptSeedService.js.
+import { seedPrompts } from "../services/promptSeedService";
 import { getAuthProviders, setAuthProviderEnabled } from "../services/authProvidersService";
 import { getTiersConfig, saveTierConfig } from "../services/tiersConfigService";
 import { getFeatures, saveFeature } from "../services/featuresService";
@@ -43,6 +45,7 @@ import { ArrowLeft, ShieldCheck, FileJson } from "lucide-react";
 // opening any other Admin section.
 const PulseSection = lazy(() => import("../components/admin/pulse/PulseSection"));
 const SoundBoardSection = lazy(() => import("../components/admin/SoundBoardSection"));
+const PicturesSection = lazy(() => import("../components/admin/PicturesSection"));
 
 // ── Admin Page ───────────────────────────────────────────────────────────────
 // Viewer/editor for the appConfig/config/* Firestore subcollections.
@@ -91,6 +94,7 @@ const AdminPage = () => {
   const isReportsSection = activeSectionId === "reports";
   const isPulseSection = activeSectionId === "pulse";
   const isSoundsSection = activeSectionId === "sounds";
+  const isPicturesSection = activeSectionId === "pictures";
   const [reportBusyId, setReportBusyId] = useState(null);
   const [applicationBusyId, setApplicationBusyId] = useState(null);
 
@@ -115,7 +119,7 @@ const AdminPage = () => {
             // The template editor loads the one locale document it needs
             // itself; the generic loader would pull down every locale.
             // Pulse loads its own data the same way, and only when opened.
-            : section.id === "emailTemplates" || section.id === "pulse" || section.id === "sounds"
+            : section.id === "emailTemplates" || section.id === "pulse" || section.id === "sounds" || section.id === "pictures"
               ? []
               : await getConfigSectionDocs(section.collection);
       setDocsBySection((prev) => ({ ...prev, [section.id]: docs }));
@@ -409,6 +413,25 @@ const AdminPage = () => {
     return summary;
   }, [showAlert, refreshLocalesDocs]);
 
+  // TEMPORARY — remove with src/services/promptSeedService.js once it has been
+  // run in every environment.
+  const [isSeedingPrompts, setIsSeedingPrompts] = useState(false);
+  const handleSeedPrompts = useCallback(async () => {
+    setIsSeedingPrompts(true);
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const { created, skipped } = await seedPrompts(token);
+      const list = (ids) => (ids.length ? ids.join(", ") : "none");
+      showAlert("success", `Created: ${list(created)}. Already present: ${list(skipped)}.`);
+      const promptsSection = CONFIG_SECTIONS.find((s) => s.id === "prompts");
+      if (promptsSection) await loadSection(promptsSection);
+    } catch (err) {
+      showAlert("error", `Could not seed prompts: ${err.message}`);
+    } finally {
+      setIsSeedingPrompts(false);
+    }
+  }, [showAlert, loadSection]);
+
   const handleRefreshLocale = useCallback(async (code) => {
     try {
       const token = await auth.currentUser.getIdToken();
@@ -501,6 +524,10 @@ const AdminPage = () => {
           <Suspense fallback={<Loader message="Loading..." isDarkMode={isDarkMode} />}>
             <SoundBoardSection isDarkMode={isDarkMode} />
           </Suspense>
+        ) : isPicturesSection ? (
+          <Suspense fallback={<Loader message="Loading..." isDarkMode={isDarkMode} />}>
+            <PicturesSection isDarkMode={isDarkMode} />
+          </Suspense>
         ) : isPulseSection ? (
           <Suspense fallback={<Loader message="Loading..." isDarkMode={isDarkMode} />}>
             <PulseSection isDarkMode={isDarkMode} onOpenReports={() => setActiveSectionId("reports")} />
@@ -521,6 +548,8 @@ const AdminPage = () => {
             isLoadingDocs={isLoadingDocs}
             error={error}
             onEditPrompt={setEditingPrompt}
+            onSeedPrompts={handleSeedPrompts}
+            isSeeding={isSeedingPrompts}
           />
         ) : isCategoriesSection ? (
           <CategoriesSection

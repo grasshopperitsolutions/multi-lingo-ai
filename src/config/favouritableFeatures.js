@@ -39,6 +39,11 @@ import {
   MessageCircleQuestion,
   Dumbbell,
   FileText,
+  ImagePlay,
+  Grid2x2,
+  CircleHelp,
+  BookImage,
+  ScanEye,
 } from "lucide-react";
 
 import { DASHBOARD_FEATURES } from "./dashboardFeatures";
@@ -107,6 +112,62 @@ export const CHALLENGE_GAMES = [
     color: "bg-blue-400",
     titleKey: "challenges.crosswords",
     descKey: "challenges.crosswords_desc",
+  },
+];
+
+/**
+ * Picture games (the "Jogos com Imagens" hub). `id` doubles as the gate key,
+ * so access to each one is a row in Admin > Tiers & Features like any other.
+ *
+ * They are built on a picture for every word, drawn once on the server and
+ * shared by every player (see services/getImageService.js). None of them is
+ * labelled for any age: a beginner of any age gets as much from matching
+ * pictures, and the app is not directed to children.
+ *
+ * The ids are stored in tier grants and in users' favourites, so they are
+ * structural: rename one and it is silently un-granted everywhere.
+ */
+export const PICTURE_GAMES = [
+  {
+    id: "picture_match",
+    route: "/dashboard/picture-games/match",
+    icon: ImagePlay,
+    color: "bg-pink-400",
+    titleKey: "picture_games.match.title",
+    descKey: "picture_games.match.desc",
+  },
+  {
+    id: "picture_memory",
+    route: "/dashboard/picture-games/memory",
+    icon: Grid2x2,
+    color: "bg-cyan-400",
+    titleKey: "picture_games.memory.title",
+    descKey: "picture_games.memory.desc",
+  },
+  {
+    id: "picture_odd_one_out",
+    route: "/dashboard/picture-games/odd-one-out",
+    icon: CircleHelp,
+    color: "bg-lime-400",
+    titleKey: "picture_games.odd.title",
+    descKey: "picture_games.odd.desc",
+  },
+  {
+    id: "picture_album",
+    route: "/dashboard/picture-games/album",
+    icon: BookImage,
+    color: "bg-amber-400",
+    titleKey: "picture_games.album.title",
+    descKey: "picture_games.album.desc",
+  },
+  {
+    id: "picture_describe",
+    route: "/dashboard/picture-games/describe",
+    icon: ScanEye,
+    color: "bg-violet-400",
+    titleKey: "picture_games.describe.title",
+    descKey: "picture_games.describe.desc",
+    instructionsKey: "picture_games.describe.how",
   },
 ];
 
@@ -254,6 +315,7 @@ const addAll = (entries, keyFor) =>
   });
 
 addAll(CHALLENGE_GAMES, (game) => game.id);
+addAll(PICTURE_GAMES, (game) => game.id);
 addAll(EXAM_EXERCISES, (exercise) => exercise.featureKey);
 addAll(GRAMMAR_SECTIONS, (section) => `grammar_${section.id}`);
 

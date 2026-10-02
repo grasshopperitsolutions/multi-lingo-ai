@@ -567,6 +567,69 @@ function _sortByPreferredTopics(concepts, preferTopics) {
   return [...matched, ...rest];
 }
 
+// A word found is found for good (a pooled wording is never rewritten under
+// anyone); a word missing is only missing for a while, because another game
+// may write that translation a minute later.
+const translationsFound = new Map();
+const translationsMissing = new Map();
+const MISSING_TRANSLATION_TTL_MS = 2 * 60 * 1000;
+
+/** Forget every translation read so far. Tests use it; the app has no reason to. */
+export function clearTranslationCache() {
+  translationsFound.clear();
+  translationsMissing.clear();
+}
+
+/**
+ * The practice-language word for each of these concepts, when there is one.
+ *
+ * For the picture games, which draw from concepts that have a picture and then
+ * need the word to show beside it. **A read only: it never asks an AI for a
+ * translation that is missing.** A concept with no translation in this language
+ * is simply absent from the result, and the game uses another one. Generating a
+ * translation costs one of the player's daily AI calls per word, which a round
+ * of eight would spend in full for an Explorer.
+ *
+ * Reads run in parallel, one request per concept; a failed read counts as
+ * missing for this call and is not remembered.
+ *
+ * @param {string[]} conceptIds
+ * @param {string} locale - the practice language, e.g. 'pt-PT'
+ * @param {string} token
+ * @returns {Promise<Map<string, {word: string, baseForm: string|null}>>}
+ */
+export async function getConceptTranslations(conceptIds, locale, token) {
+  const now = Date.now();
+  const found = new Map();
+
+  await Promise.all(
+    [...new Set(conceptIds ?? [])].map(async (conceptId) => {
+      const key = `${locale}/${conceptId}`;
+
+      if (translationsFound.has(key)) {
+        found.set(conceptId, translationsFound.get(key));
+        return;
+      }
+      if (now - (translationsMissing.get(key) ?? -Infinity) < MISSING_TRANSLATION_TTL_MS) return;
+
+      try {
+        const translation = await _fetchTranslation(conceptId, locale, token);
+        if (translation?.word) {
+          const entry = { word: translation.word, baseForm: translation.baseForm ?? null };
+          translationsFound.set(key, entry);
+          found.set(conceptId, entry);
+        } else {
+          translationsMissing.set(key, now);
+        }
+      } catch (err) {
+        console.warn(`[getWordService] translation read failed for "${conceptId}":`, err.message);
+      }
+    }),
+  );
+
+  return found;
+}
+
 /**
  * Return the total number of "ready" concepts in the word pool.
  * Used by the sidebar to compute the seen-words percentage.

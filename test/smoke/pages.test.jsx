@@ -233,6 +233,12 @@ const signedIn = () =>
           "scrambled_word",
           "word_link",
           "word_ladder",
+          "picture_games",
+          "picture_match",
+          "picture_memory",
+          "picture_odd_one_out",
+          "picture_album",
+          "picture_describe",
           "reading_exercise",
           "listening_exercise",
           "writing_exercise",
@@ -307,6 +313,15 @@ const FEATURE_PAGES = [
   ["WordLinkPage", () => import("../../src/pages/dashboard/games/WordLinkPage")],
   ["WordLadderPage", () => import("../../src/pages/dashboard/games/WordLadderPage")],
   ["WordQuizComingSoonPage", () => import("../../src/pages/dashboard/games/WordQuizComingSoonPage")],
+  ["PictureGamesMenu", () => import("../../src/components/PictureGamesMenu")],
+  // One route serves every picture game, by its gate key.
+  [
+    "PictureGamePage",
+    async () => {
+      const { default: PictureGamePage } = await import("../../src/pages/dashboard/pictures/PictureGamePage");
+      return { default: () => <PictureGamePage gameId="picture_match" /> };
+    },
+  ],
   ["ReadingExercisePage", () => import("../../src/pages/dashboard/exercises/ReadingExercisePage")],
   ["ListeningExercisePage", () => import("../../src/pages/dashboard/exercises/ListeningExercisePage")],
   ["WritingExercisePage", () => import("../../src/pages/dashboard/exercises/WritingExercisePage")],
