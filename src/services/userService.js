@@ -186,6 +186,23 @@ export const markConceptSeenGlobal = async (token, uid, conceptId, currentSeenId
 };
 
 /**
+ * Append several conceptIds to the global seen list in one write.
+ *
+ * For the picture games, where one tap can mark a word and a round marks a
+ * handful: the same list and the same rule as markConceptSeenGlobal (call it
+ * only for words the player got right), written once rather than once each.
+ *
+ * @param {string}   token
+ * @param {string}   uid
+ * @param {string[]} conceptIds
+ * @param {string[]} currentSeenIds  - current value from getGlobalSeenIds()
+ */
+export const markConceptsSeenGlobal = async (token, uid, conceptIds, currentSeenIds = []) => {
+  const updated = [...new Set([...currentSeenIds, ...conceptIds])];
+  await updateUserProfile(token, uid, { seenConceptIds: updated });
+};
+
+/**
  * Clear all seen concept IDs globally.
  * Resets users/{uid}.seenConceptIds to [].
  * Affects ALL word-based game features — used from global Settings reset.

@@ -246,66 +246,6 @@ describe("asking the server to draw", () => {
   });
 });
 
-describe("fillPictures", () => {
-  it("asks one at a time and hands each picture over as it arrives", async () => {
-    let inFlight = 0;
-    let maxInFlight = 0;
-    askAI.mockImplementation(async (_t, _p, params) => {
-      inFlight += 1;
-      maxInFlight = Math.max(maxInFlight, inFlight);
-      await Promise.resolve();
-      inFlight -= 1;
-      const id = params.picture.conceptId;
-      return { picture: { status: "ready", url: pic(id) } };
-    });
-    const { fillPictures } = await svc();
-    const got = [];
-
-    const count = await fillPictures(["a", "b", "c"], { token: "tok", onPicture: (id, url) => got.push([id, url]), max: 5 });
-
-    expect(count).toBe(3);
-    expect(got).toEqual([["a", pic("a")], ["b", pic("b")], ["c", pic("c")]]);
-    expect(maxInFlight).toBe(1);
-  });
-
-  it("stops at max", async () => {
-    askAI.mockResolvedValue({ picture: { status: "ready", url: pic("x") } });
-    const { fillPictures } = await svc();
-    expect(await fillPictures(["a", "b", "c", "d", "e"], { token: "tok", max: 2 })).toBe(2);
-    expect(askAI).toHaveBeenCalledTimes(2);
-  });
-
-  it("stops asking once the account's daily cap is hit", async () => {
-    askAI
-      .mockResolvedValueOnce({ picture: { status: "ready", url: pic("a") } })
-      .mockRejectedValueOnce(Object.assign(new Error("cap"), { code: "PICTURE_CAP" }));
-    const { fillPictures } = await svc();
-    expect(await fillPictures(["a", "b", "c", "d"], { token: "tok", max: 4 })).toBe(1);
-    expect(askAI).toHaveBeenCalledTimes(2);
-  });
-
-  it("keeps going past a word that cannot be drawn", async () => {
-    askAI
-      .mockResolvedValueOnce({ picture: { status: "skipped" } })
-      .mockResolvedValueOnce({ picture: { status: "ready", url: pic("b") } });
-    const { fillPictures } = await svc();
-    expect(await fillPictures(["a", "b"], { token: "tok", max: 4 })).toBe(1);
-  });
-
-  it("stops when the caller goes away, without handing over the last one", async () => {
-    let cancelled = false;
-    askAI.mockImplementation(async () => {
-      cancelled = true;
-      return { picture: { status: "ready", url: pic("a") } };
-    });
-    const { fillPictures } = await svc();
-    const onPicture = vi.fn();
-    await fillPictures(["a", "b"], { token: "tok", onPicture, isCancelled: () => cancelled });
-    expect(onPicture).not.toHaveBeenCalled();
-    expect(askAI).toHaveBeenCalledTimes(1);
-  });
-});
-
 describe("reporting and regenerating", () => {
   it("reports a picture through the picture mode, and says whether it was counted", async () => {
     askAI.mockResolvedValueOnce({ picture: { conceptId: "c1", reported: true } });

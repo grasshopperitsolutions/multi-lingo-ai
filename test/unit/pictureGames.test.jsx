@@ -21,7 +21,7 @@ vi.mock("../../src/contexts/AppContext", () => ({
 }));
 
 const getPicturePool = vi.fn();
-const fillPictures = vi.fn(async () => 0);
+const requestPicture = vi.fn();
 const reportPicture = vi.fn(async () => true);
 const getScenes = vi.fn(async () => []);
 const requestScene = vi.fn();
@@ -30,7 +30,7 @@ const requestDescribeFeedback = vi.fn();
 vi.mock("../../src/services/getImageService", async (importOriginal) => ({
   ...(await importOriginal()),
   getPicturePool: (...a) => getPicturePool(...a),
-  fillPictures: (...a) => fillPictures(...a),
+  requestPicture: (...a) => requestPicture(...a),
   reportPicture: (...a) => reportPicture(...a),
   getScenes: (...a) => getScenes(...a),
   requestScene: (...a) => requestScene(...a),
@@ -38,8 +38,12 @@ vi.mock("../../src/services/getImageService", async (importOriginal) => ({
 }));
 
 const translations = { current: new Map() };
+const ensureConceptTranslation = vi.fn();
+const generateNewConcept = vi.fn();
 vi.mock("../../src/services/getWordService", () => ({
   getConceptTranslations: vi.fn(async (ids) => new Map([...translations.current].filter(([id]) => ids.includes(id)))),
+  ensureConceptTranslation: (...a) => ensureConceptTranslation(...a),
+  generateNewConcept: (...a) => generateNewConcept(...a),
   getWord: vi.fn(),
   getWordPoolCount: vi.fn(async () => 0),
 }));
@@ -49,9 +53,13 @@ const saveAlbumStickers = vi.fn(async () => {});
 const getSeenSceneIds = vi.fn(async () => []);
 const markSceneSeen = vi.fn(async () => {});
 const resetSeenScenes = vi.fn(async () => {});
+const getGlobalSeenIds = vi.fn(async () => []);
+const markConceptsSeenGlobal = vi.fn(async () => {});
 
 vi.mock("../../src/services/userService", async (importOriginal) => ({
   ...(await importOriginal()),
+  getGlobalSeenIds: (...a) => getGlobalSeenIds(...a),
+  markConceptsSeenGlobal: (...a) => markConceptsSeenGlobal(...a),
   getAlbumStickers: (...a) => getAlbumStickers(...a),
   saveAlbumStickers: (...a) => saveAlbumStickers(...a),
   getSeenSceneIds: (...a) => getSeenSceneIds(...a),
@@ -76,13 +84,20 @@ vi.mock("../../src/services/pulseReportService", async (importOriginal) => ({
 
 let i18n;
 
-/** A pool where every concept has a picture and a practice-language word. */
-const setUpWorld = ({ count = 10, topics = [], skip = [], unpictured = [] } = {}) => {
+/**
+ * A pool where every concept has a picture and a practice-language word, except
+ * `skip`. `seen` is what the player's profile says they have met.
+ */
+const setUpWorld = ({ count = 10, topics = [], skip = [], unpictured = [], seen = [] } = {}) => {
   const pool = makePool(count, { topics });
   getPicturePool.mockResolvedValue({ pictured: pool, unpictured });
+  getGlobalSeenIds.mockResolvedValue(seen);
   translations.current = translationsFor(pool, { skip });
   return pool;
 };
+
+/** The ids written to the player's seen list so far, across every write. */
+const savedSeenIds = () => markConceptsSeenGlobal.mock.calls.flatMap(([, , ids]) => ids);
 
 const show = async (Component, props = {}, { route = "/" } = {}) => {
   const view = render(
@@ -98,13 +113,22 @@ const show = async (Component, props = {}, { route = "/" } = {}) => {
 beforeEach(async () => {
   i18n = (await import("../../src/i18n")).default;
   ctx.current = signedInContext();
-  for (const mock of [getPicturePool, fillPictures, reportPicture, getScenes, requestScene, requestDescribeFeedback, getAlbumStickers, saveAlbumStickers, getSeenSceneIds, markSceneSeen, resetSeenScenes, speak, reportLockedAttempt]) {
+  for (const mock of [getPicturePool, reportPicture, getScenes, requestScene, requestDescribeFeedback, getAlbumStickers, saveAlbumStickers, getSeenSceneIds, markSceneSeen, resetSeenScenes, speak, reportLockedAttempt]) {
     mock.mockClear();
   }
+  for (const mock of [requestPicture, ensureConceptTranslation, generateNewConcept, getGlobalSeenIds, markConceptsSeenGlobal]) {
+    mock.mockReset();
+  }
+  getGlobalSeenIds.mockResolvedValue([]);
+  markConceptsSeenGlobal.mockResolvedValue(undefined);
+  // Getting more words works unless a test says otherwise: a word, a picture,
+  // and nothing new to invent.
+  ensureConceptTranslation.mockImplementation(async ({ conceptId }) => ({ word: `NOVA_${conceptId}`, baseForm: null }));
+  requestPicture.mockImplementation(async (id) => ({ status: "ready", url: pictureUrl(id) }));
+  generateNewConcept.mockRejectedValue(new Error("no new concept"));
   getAlbumStickers.mockResolvedValue([]);
   getSeenSceneIds.mockResolvedValue([]);
   getScenes.mockResolvedValue([]);
-  fillPictures.mockResolvedValue(0);
   globalThis.fetch = vi.fn(async () => ({
     ok: true,
     status: 200,
@@ -352,7 +376,7 @@ describe("Liga a imagem", () => {
     return show(PictureMatchGame);
   };
 
-  const turnText = (n) => t("picture_games.match.turn", { current: n, total: 8 });
+  const turnText = (n, total = 8) => t("picture_games.match.turn", { current: n, total });
   const optionButtons = () => screen.getAllByRole("button", { name: /^Imagem \d$/ });
   const tileFor = (id) => optionButtons().find((b) => b.querySelector("img")?.getAttribute("src") === pictureUrl(id));
 
@@ -429,7 +453,8 @@ describe("Liga a imagem", () => {
   });
 
   it("plays eight turns to a result, then plays again with a fresh round", async () => {
-    setUpWorld();
+    // Fourteen words: the eight got right are seen, and six are still new for the next round.
+    setUpWorld({ count: 14 });
     await game();
     for (let n = 1; n <= 8; n += 1) {
       await screen.findByText(turnText(n));
@@ -442,7 +467,8 @@ describe("Liga a imagem", () => {
 
     fireEvent.click(screen.getByRole("button", { name: t("picture_games.play_again") }));
 
-    expect(await screen.findByText(turnText(1))).toBeTruthy();
+    // Six words are still new, so the next round is six turns, not eight.
+    expect(await screen.findByText(turnText(1, 6))).toBeTruthy();
     // A fresh round is a fresh read of the pool.
     expect(getPicturePool.mock.calls.length).toBeGreaterThan(readsBefore);
   });
@@ -484,18 +510,96 @@ describe("Liga a imagem", () => {
     expect(screen.getAllByRole("button", { name: flagName })).toHaveLength(1);
   });
 
-  it("says there are not enough pictures when the pool is too thin, and asks for more in the background", async () => {
-    setUpWorld({ count: 3, unpictured: [{ id: "u1", sourceWord: "x", topicIds: [], pos: null }] });
-    translations.current = new Map([...translations.current, ["u1", { word: "X", baseForm: null }]]);
-    await game();
+  it("marks a word seen when it is got right, and a word got wrong not", async () => {
+    setUpWorld({ count: 14 });
+    const { unmount } = await game();
+    await screen.findByText(turnText(1));
+    const first = readTurn();
 
-    expect(await screen.findByText(t("picture_games.thin.title"))).toBeTruthy();
-    await waitFor(() => expect(fillPictures).toHaveBeenCalledTimes(1));
-    expect(fillPictures.mock.calls[0][0]).toEqual(["u1"]);
+    answer(first);
+    await screen.findByText(t("picture_games.match.right"));
+    fireEvent.click(screen.getByRole("button", { name: t("picture_games.match.next") }));
+    await screen.findByText(turnText(2));
+    const second = readTurn();
+    answer(second, { right: false });
+    await screen.findByText(t("picture_games.match.wrong", { word: wordOf(second.id) }));
+
+    // Written when the player leaves: only the one they knew.
+    unmount();
+    await waitFor(() => expect(markConceptsSeenGlobal).toHaveBeenCalledTimes(1));
+    expect(savedSeenIds()).toEqual([first.id]);
   });
 
-  it("does not use a word with no word in the practice language", async () => {
+  it("never asks a word the player has already seen", async () => {
+    // Fourteen words, ten seen: only the other four can be an answer, so there are four turns.
+    const seen = Array.from({ length: 10 }, (_, i) => `c${i}`);
+    setUpWorld({ count: 14, seen });
+    await game();
+    for (let n = 1; n <= 4; n += 1) {
+      await screen.findByText(turnText(n, 4));
+      expect(seen).not.toContain(readTurn().id);
+      answer(readTurn());
+      fireEvent.click(await screen.findByRole("button", { name: t(n === 4 ? "picture_games.match.see_result" : "picture_games.match.next") }));
+    }
+    expect(await screen.findByText(t("picture_games.match.result", { score: 4, total: 4 }))).toBeTruthy();
+  });
+
+  it("makes new words for a player who has seen them all, then plays them", async () => {
+    const seen = Array.from({ length: 6 }, (_, i) => `c${i}`);
+    setUpWorld({ count: 6, seen });
+    let next = 0;
+    generateNewConcept.mockImplementation(async () => {
+      next += 1;
+      return { conceptId: `n${next}`, word: `NOVA${next}`, sourceWord: `new${next}`, topicIds: [] };
+    });
+    await game();
+
+    // Four new words are made, then the game starts on them: four turns.
+    expect(await screen.findByText(turnText(1, 4))).toBeTruthy();
+    // (More are fetched in the background while it is played, for the next round.)
+    expect(requestPicture.mock.calls.length).toBeGreaterThanOrEqual(4);
+    expect(generateNewConcept.mock.calls.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("shows that it is preparing, not a blank wait", async () => {
+    const seen = Array.from({ length: 6 }, (_, i) => `c${i}`);
+    setUpWorld({ count: 6, seen });
+    let release;
+    generateNewConcept.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({ conceptId: "n1", word: "NOVA1", sourceWord: "new1", topicIds: [] });
+        }),
+    );
+    await game();
+
+    expect(await screen.findByText(t("picture_games.preparing"))).toBeTruthy();
+    await waitFor(() => expect(release).toBeTypeOf("function"));
+    // Let it end quietly: with nothing more to make, the game says there are not enough.
+    await act(async () => {
+      release();
+    });
+    expect(await screen.findByText(t("picture_games.thin.title"))).toBeTruthy();
+  });
+
+  it("says there are not enough pictures when nothing can be made for a thin pool", async () => {
+    setUpWorld({ count: 3 });
+    await game();
+    expect(await screen.findByText(t("picture_games.thin.title"))).toBeTruthy();
+  });
+
+  it("gets a word for a picture that has none in the practice language, rather than leaving it out", async () => {
     setUpWorld({ count: 5, skip: ["c0", "c1"] });
+    await game();
+    // Three words are there; one more is translated, and the game starts on four.
+    expect(await screen.findByText(turnText(1, 4))).toBeTruthy();
+    expect(ensureConceptTranslation).toHaveBeenCalled();
+    expect(ensureConceptTranslation.mock.calls[0][0].conceptId).toMatch(/^c[01]$/);
+  });
+
+  it("says there are not enough when a picture's word cannot be made either", async () => {
+    setUpWorld({ count: 5, skip: ["c0", "c1"] });
+    ensureConceptTranslation.mockRejectedValue(new Error("the model said no"));
     await game();
     // Three words are left: not enough for four options.
     expect(await screen.findByText(t("picture_games.thin.title"))).toBeTruthy();
@@ -597,7 +701,7 @@ describe("Jogo da memória", () => {
 
   it("is won by finding every pair, and offers another game", async () => {
     setUpWorld({ count: 10 });
-    const { container } = await game();
+    const { container, unmount } = await game();
     await screen.findByText(t("picture_games.memory.pairs", { found: 0, total: 6 }));
     vi.useFakeTimers();
 
@@ -627,12 +731,34 @@ describe("Jogo da memória", () => {
     expect(screen.getByText(t("picture_games.memory.pairs", { found: 6, total: 6 }))).toBeTruthy();
     expect(screen.getByText(/Concluíste em \d+ jogadas!/)).toBeTruthy();
     expect(screen.getByRole("button", { name: t("picture_games.play_again") })).toBeTruthy();
+
+    // Every pair found is a word met: written to the seen list when the player leaves.
+    vi.useRealTimers();
+    unmount();
+    await waitFor(() => expect(markConceptsSeenGlobal).toHaveBeenCalled());
+    expect(new Set(savedSeenIds()).size).toBe(6);
   });
 
   it("says there are not enough pictures when the pool is too thin", async () => {
     setUpWorld({ count: 3 });
     await game();
     expect(await screen.findByText(t("picture_games.thin.title"))).toBeTruthy();
+  });
+
+  it("deals pairs the player has not seen, and makes a short deck up with words already seen", async () => {
+    // Eight words, four seen: four are new. The deck is still six pairs.
+    setUpWorld({ count: 8, seen: ["c0", "c1", "c2", "c3"] });
+    await game();
+
+    expect(await screen.findByText(t("picture_games.memory.pairs", { found: 0, total: 6 }))).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: /virada para baixo/ })).toHaveLength(12);
+  });
+
+  it("deals only the pairs there are new words for, when there is nothing to make it up with", async () => {
+    setUpWorld({ count: 4 });
+    await game();
+    expect(await screen.findByText(t("picture_games.memory.pairs", { found: 0, total: 4 }))).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: /virada para baixo/ })).toHaveLength(8);
   });
 });
 
@@ -663,6 +789,35 @@ describe("Qual é o intruso?", () => {
     expect(tiles()).toHaveLength(4);
     const counts = tiles().reduce((acc, b) => ({ ...acc, [topicOf(idOf(b))]: (acc[topicOf(idOf(b))] ?? 0) + 1 }), {});
     expect(Object.values(counts).sort()).toEqual([1, 3]);
+  });
+
+  it("marks only the intruder seen: the three that belong together are the setting", async () => {
+    setUpWorld({ count: 10, topics: ["animals", "home"] });
+    const { unmount } = await game();
+    await screen.findByText(t("picture_games.odd.question"));
+    const intruder = idOf(intruderTile());
+
+    fireEvent.click(intruderTile());
+    await screen.findByText(t("picture_games.odd.right"));
+
+    unmount();
+    await waitFor(() => expect(markConceptsSeenGlobal).toHaveBeenCalledTimes(1));
+    expect(savedSeenIds()).toEqual([intruder]);
+  });
+
+  it("marks nothing seen on a wrong pick", async () => {
+    setUpWorld({ count: 10, topics: ["animals", "home"] });
+    const { unmount } = await game();
+    await screen.findByText(t("picture_games.odd.question"));
+    const intruder = intruderTile();
+    const intruderId = idOf(intruder);
+
+    fireEvent.click(tiles().find((b) => b !== intruder));
+    await screen.findByText(t("picture_games.odd.wrong", { word: wordOf(intruderId) }));
+
+    unmount();
+    await act(async () => {});
+    expect(markConceptsSeenGlobal).not.toHaveBeenCalled();
   });
 
   it("says Certo on the intruder, and then shows all four words", async () => {
@@ -897,6 +1052,18 @@ describe("Descreve a imagem", () => {
     fireEvent.click(screen.getByRole("button", { name: t("picture_games.describe.check") }));
     await screen.findByText(feedback.feedback);
     expect(markSceneSeen).toHaveBeenCalledWith("tok", "u1", "s1", []);
+  });
+
+  it("marks the words found as seen, as a right answer is elsewhere, and not the ones missed", async () => {
+    const { unmount } = await game();
+    await screen.findByRole("img", { name: t("picture_games.describe.scene") });
+    write(`${wordOf("c0")} ${wordOf("c1")}`);
+    fireEvent.click(screen.getByRole("button", { name: t("picture_games.describe.check") }));
+    await screen.findByText(feedback.feedback);
+
+    unmount();
+    await waitFor(() => expect(markConceptsSeenGlobal).toHaveBeenCalledTimes(1));
+    expect(savedSeenIds().sort()).toEqual(["c0", "c1"]);
   });
 
   it("does not offer a scene already seen, and moves to the next unseen one", async () => {

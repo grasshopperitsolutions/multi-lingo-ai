@@ -257,9 +257,68 @@ describe("pickOddOneOut", () => {
       expect(turn.topicId).toBe("home");
     }
   });
+
+  describe("the outsider is the answer, so it is the word not yet seen", () => {
+    it("takes an outsider from the preferred ones when any can make a turn", () => {
+      // Only "sofa" is new. Whichever topic is tried first, the outsider is the new word,
+      // so the trio has to be the animals.
+      for (let i = 0; i < 12; i += 1) {
+        const turn = pickOddOneOut(pool, { rng: sequence((i % 10) / 10, 0.3), preferIntruderIds: new Set(["sofa"]) });
+        expect(turn.intruder.conceptId).toBe("sofa");
+        expect(turn.topicId).toBe("animals");
+      }
+    });
+
+    it("looks across every topic for a new outsider before settling for one already seen", () => {
+      // Animals are the player's interest, but the only new word is an animal: it has
+      // to be the outsider of a home trio. An interest does not buy a repeat.
+      for (let i = 0; i < 6; i += 1) {
+        const turn = pickOddOneOut(pool, {
+          rng: sequence((i % 10) / 10, 0.7),
+          preferTopicIds: ["animals"],
+          preferIntruderIds: new Set(["cat"]),
+        });
+        expect(turn.intruder.conceptId).toBe("cat");
+        expect(turn.topicId).toBe("home");
+      }
+    });
+
+    it("falls back to a word already seen when no new one can be the outsider", () => {
+      // The one new word is one of the only three animals, so it cannot be set against them.
+      const small = [...pool.slice(0, 3), word("sofa", { topicIds: ["home"] })];
+      const turn = pickOddOneOut(small, { rng: sequence(0.5), preferIntruderIds: new Set(["cat"]) });
+      expect(turn.intruder.conceptId).toBe("sofa");
+    });
+
+    it("does not use an outsider that was already used", () => {
+      const turn = pickOddOneOut(pool, { rng: sequence(0.5), avoidIntruderIds: new Set(["sofa", "table"]) });
+      expect(["sofa", "table"]).not.toContain(turn.intruder.conceptId);
+    });
+
+    it("changes nothing when it is given no preference", () => {
+      for (let i = 0; i < 6; i += 1) {
+        const turn = pickOddOneOut(pool, { rng: sequence((i % 10) / 10, 0.3), preferIntruderIds: new Set() });
+        expect(turn.trio).toHaveLength(3);
+      }
+    });
+  });
 });
 
 describe("buildOddOneOutTurns", () => {
+  it("makes a word the outsider once in a round, and the new ones first", () => {
+    const pool = [
+      ...["a1", "a2", "a3", "a4"].map((id) => word(id, { topicIds: ["animals"] })),
+      ...["h1", "h2", "h3", "h4"].map((id) => word(id, { topicIds: ["home"] })),
+    ];
+    const fresh = new Set(["a1", "h1", "h2"]);
+    const turns = buildOddOneOutTurns(pool, { turns: 6, rng: Math.random, preferIntruderIds: fresh });
+
+    const intruders = turns.map((turn) => turn.intruder.conceptId);
+    expect(new Set(intruders).size).toBe(intruders.length);
+    // The three new words come first, whatever order the turns were made in.
+    expect(intruders.slice(0, 3).sort()).toEqual(["a1", "h1", "h2"]);
+  });
+
   it("never plays the same trio and outsider twice in a round", () => {
     const pool = [
       ...["a1", "a2", "a3", "a4"].map((id) => word(id, { topicIds: ["animals"] })),

@@ -7,6 +7,7 @@ import { useTierAccess } from "../../hooks/useTierAccess";
 import { usePracticeLevel } from "../../hooks/usePracticeLevel";
 import { useInterestTopics } from "../../hooks/useInterestTopics";
 import { useAlbumStickers } from "../../hooks/useAlbumStickers";
+import { useSeenConcepts } from "../../hooks/useSeenConcepts";
 import { useAiErrorAlert } from "../../hooks/useAiError";
 import { useSessionRecovery } from "../../hooks/useSessionRecovery";
 import { gatherPlayableWords } from "../../hooks/usePictureRound";
@@ -55,6 +56,10 @@ const SCENE_POOL = 40;
  *
  * **It is an ordinary AI call**, counted and confirmed like any other. The
  * learner's own keyboard dictation works in the box with no code of ours.
+ *
+ * **Words found are marked seen**, as a right answer is in the other games. A
+ * scene's own words are not filtered by what one player has seen: a scene is
+ * shared by everyone, and its words are chosen once.
  */
 const PictureDescribeGame = ({ isDarkMode }) => {
   const { t } = useTranslation();
@@ -63,6 +68,7 @@ const PictureDescribeGame = ({ isDarkMode }) => {
   const { level } = usePracticeLevel();
   const { topics } = useInterestTopics();
   const { collect } = useAlbumStickers();
+  const { markSeen } = useSeenConcepts();
   const alertAiError = useAiErrorAlert();
   const recoverSession = useSessionRecovery();
 
@@ -188,6 +194,9 @@ const PictureDescribeGame = ({ isDarkMode }) => {
         missed,
       });
 
+      // A word the learner found is a word they have met, like a right answer
+      // anywhere else.
+      markSeen(found.map((entry) => entry.conceptId));
       const fresh = collect(found.map((entry) => entry.conceptId));
       setResult({ found, missed, fresh: new Set(fresh), ...feedback });
       play(missed.length === 0 ? "win" : "success");

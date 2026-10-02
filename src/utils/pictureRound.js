@@ -180,12 +180,27 @@ export function groupByTopic(concepts) {
  * Null when the pool has no topic with three words and an outsider to go
  * with it.
  *
+ * The outsider is the answer (it is the one that gets marked seen), so the
+ * caller can say which words are still unseen: `preferIntruderIds` is tried
+ * first, across every topic, and only when it cannot make a turn does any
+ * tagged outsider do. The trio is context and may be words already seen.
+ *
  * @param {RoundWord[]} pool
- * @param {{ rng?: () => number, avoid?: Set<string>, preferTopicIds?: string[] }} [options]
- *   `avoid` holds keys of turns already played this round (`topic|outsider`).
+ * @param {{
+ *   rng?: () => number,
+ *   avoid?: Set<string>,
+ *   avoidIntruderIds?: Set<string>,
+ *   preferIntruderIds?: Set<string>,
+ *   preferTopicIds?: string[],
+ * }} [options]
+ *   `avoid` holds keys of turns already played this round (`topic|outsider`);
+ *   `avoidIntruderIds` the outsiders already used, so a word is the answer once.
  * @returns {{ topicId: string, key: string, trio: RoundWord[], intruder: RoundWord, items: RoundWord[] } | null}
  */
-export function pickOddOneOut(pool, { rng = Math.random, avoid = new Set(), preferTopicIds = [] } = {}) {
+export function pickOddOneOut(
+  pool,
+  { rng = Math.random, avoid = new Set(), avoidIntruderIds = new Set(), preferIntruderIds = new Set(), preferTopicIds = [] } = {},
+) {
   const groups = groupByTopic(pool);
   const wanted = new Set(preferTopicIds);
 
@@ -194,27 +209,31 @@ export function pickOddOneOut(pool, { rng = Math.random, avoid = new Set(), pref
     rng,
   ).sort((a, b) => (wanted.has(a) ? 0 : 1) - (wanted.has(b) ? 0 : 1));
 
-  for (const topicId of topics) {
-    const trio = shuffle(groups.get(topicId), rng).slice(0, 3);
-    const trioWords = new Set(trio.map((word) => normalizeForMatch(word.word)));
+  for (const strict of preferIntruderIds.size > 0 ? [true, false] : [false]) {
+    for (const topicId of topics) {
+      const trio = shuffle(groups.get(topicId), rng).slice(0, 3);
+      const trioWords = new Set(trio.map((word) => normalizeForMatch(word.word)));
 
-    const outsiders = shuffle(pool, rng).filter(
-      (word) =>
-        (word.topicIds ?? []).length > 0 &&
-        !word.topicIds.includes(topicId) &&
-        !trioWords.has(normalizeForMatch(word.word)) &&
-        !avoid.has(`${topicId}|${word.conceptId}`),
-    );
-    const intruder = outsiders[0];
-    if (!intruder) continue;
+      const outsiders = shuffle(pool, rng).filter(
+        (word) =>
+          (word.topicIds ?? []).length > 0 &&
+          !word.topicIds.includes(topicId) &&
+          !trioWords.has(normalizeForMatch(word.word)) &&
+          !avoidIntruderIds.has(word.conceptId) &&
+          !avoid.has(`${topicId}|${word.conceptId}`) &&
+          (!strict || preferIntruderIds.has(word.conceptId)),
+      );
+      const intruder = outsiders[0];
+      if (!intruder) continue;
 
-    return {
-      topicId,
-      key: `${topicId}|${intruder.conceptId}`,
-      trio,
-      intruder,
-      items: shuffle([...trio, intruder], rng),
-    };
+      return {
+        topicId,
+        key: `${topicId}|${intruder.conceptId}`,
+        trio,
+        intruder,
+        items: shuffle([...trio, intruder], rng),
+      };
+    }
   }
 
   return null;
@@ -222,19 +241,25 @@ export function pickOddOneOut(pool, { rng = Math.random, avoid = new Set(), pref
 
 /**
  * The turns of one "Qual é o intruso?" round: up to `turns` of pickOddOneOut,
- * never the same trio-and-outsider twice in a round. Fewer when the pool runs
- * out of fresh ones; empty when it has none at all.
+ * never the same trio-and-outsider twice in a round, and never the same word
+ * as the outsider twice (the first right answer has made it seen). Fewer when
+ * the pool runs out of fresh ones; empty when it has none at all.
  *
  * @param {RoundWord[]} pool
- * @param {{ turns?: number, rng?: () => number, preferTopicIds?: string[] }} [options]
+ * @param {{ turns?: number, rng?: () => number, preferTopicIds?: string[], preferIntruderIds?: Set<string> }} [options]
  */
-export function buildOddOneOutTurns(pool, { turns = 6, rng = Math.random, preferTopicIds = [] } = {}) {
+export function buildOddOneOutTurns(
+  pool,
+  { turns = 6, rng = Math.random, preferTopicIds = [], preferIntruderIds = new Set() } = {},
+) {
   const avoid = new Set();
+  const avoidIntruderIds = new Set();
   const built = [];
   for (let i = 0; i < turns; i += 1) {
-    const turn = pickOddOneOut(pool, { rng, avoid, preferTopicIds });
+    const turn = pickOddOneOut(pool, { rng, avoid, avoidIntruderIds, preferIntruderIds, preferTopicIds });
     if (!turn) break;
     avoid.add(turn.key);
+    avoidIntruderIds.add(turn.intruder.conceptId);
     built.push({ id: i, ...turn });
   }
   return built;

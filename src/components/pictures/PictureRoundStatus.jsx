@@ -7,9 +7,12 @@ import { PrimaryButton } from "../ui";
 /**
  * PictureRoundStatus
  *
- * What a picture game shows instead of a board: the round loading, a pool too
- * thin to play, or a read that failed. One component, so all three games say it
- * the same way.
+ * What a picture game shows instead of a board: the round loading, new words
+ * being made ready, a pool too thin to play, or a read that failed. One
+ * component, so all the games say it the same way.
+ *
+ * "Preparing" is the wait while a player who has seen every word they had is
+ * given new ones (translated, drawn, or invented): a few seconds, and it says so.
  *
  * "Thin" is not an error and says so. A language is new, or the pictures are
  * still being drawn, and the honest answer is "not enough pictures yet", with
@@ -21,6 +24,10 @@ const PictureRoundStatus = ({ status, isFilling, error, onRetry, isDarkMode }) =
 
   if (status === "loading") {
     return <Loader isDarkMode={isDarkMode} message={t("picture_games.loading")} />;
+  }
+
+  if (status === "preparing") {
+    return <Loader isDarkMode={isDarkMode} message={t("picture_games.preparing")} />;
   }
 
   const muted = isDarkMode ? "text-slate-400" : "text-slate-500";
@@ -58,7 +65,7 @@ const PictureRoundStatus = ({ status, isFilling, error, onRetry, isDarkMode }) =
 };
 
 PictureRoundStatus.propTypes = {
-  status: PropTypes.oneOf(["loading", "thin", "error"]).isRequired,
+  status: PropTypes.oneOf(["loading", "preparing", "thin", "error"]).isRequired,
   isFilling: PropTypes.bool,
   error: PropTypes.string,
   onRetry: PropTypes.func.isRequired,

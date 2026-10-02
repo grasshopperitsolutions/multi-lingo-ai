@@ -74,6 +74,37 @@ describe("the album, in userService", () => {
   });
 });
 
+describe("seen concepts, in userService", () => {
+  it("adds a batch to users/{uid}.seenConceptIds in one write, without duplicates", async () => {
+    fetchMock.mockResolvedValueOnce(okJson());
+    const { markConceptsSeenGlobal } = await import("../../src/services/userService");
+
+    await markConceptsSeenGlobal("tok", "u1", ["c2", "c3", "c3"], ["c1", "c2"]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toMatch(/\/api\/firestore$/);
+    expect(init.method).toBe("PUT");
+    const body = JSON.parse(init.body);
+    expect(body).toMatchObject({ collection: "users", id: "u1" });
+    // The same list every other word game writes, so a word met here is not served there.
+    expect(body.data).toEqual({ seenConceptIds: ["c1", "c2", "c3"] });
+  });
+
+  it("writes the batch when nothing was stored yet", async () => {
+    fetchMock.mockResolvedValueOnce(okJson());
+    const { markConceptsSeenGlobal } = await import("../../src/services/userService");
+    await markConceptsSeenGlobal("tok", "u1", ["c1"]);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).data).toEqual({ seenConceptIds: ["c1"] });
+  });
+
+  it("reports a failed write, so the caller can try again", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({ error: "nope" }) });
+    const { markConceptsSeenGlobal } = await import("../../src/services/userService");
+    await expect(markConceptsSeenGlobal("tok", "u1", ["c1"], [])).rejects.toThrow("nope");
+  });
+});
+
 describe("seen scenes, in userService", () => {
   it("reads, appends without duplicates, and resets users/{uid}.seenSceneIds", async () => {
     const { getSeenSceneIds, markSceneSeen, resetSeenScenes } = await import("../../src/services/userService");

@@ -604,6 +604,195 @@ describe("getWordService — the duplicate guard", () => {
 });
 
 /**
+ * What the picture games add to the word pool's service: a word for a concept
+ * that has a picture and nothing in this language yet, and a brand-new concept
+ * once everything the pool holds has been seen. Both are what getWord already
+ * does at the same two points ("translation missing", "pool exhausted"), taken
+ * without the word-game specifics, so they write the same documents.
+ */
+describe("getWordService — words for the picture games", () => {
+  const POOLED = { id: "c1", normalizedKey: "passport", sourceWord: "passport", status: "ready", topicIds: [] };
+  let posted;
+
+  /** Routes by URL, because this service talks to /api/firestore directly. */
+  const routeFetch = ({ match = [], translation = null } = {}) => {
+    posted = [];
+    globalThis.fetch = vi.fn(async (url, init) => {
+      const ok = (data) => ({ ok: true, status: 200, json: async () => ({ success: true, data }) });
+      if (init?.method === "POST") {
+        posted.push(JSON.parse(init.body));
+        return ok({ id: "brand-new" });
+      }
+      if (String(url).includes("translations")) {
+        return translation ? ok({ data: translation }) : { ok: false, status: 404, json: async () => ({}) };
+      }
+      if (String(url).includes("normalizedKey")) return ok({ documents: match, hasMore: false });
+      return ok({ documents: [POOLED], hasMore: false });
+    });
+  };
+
+  const service = async () => {
+    const mod = await import("../../src/services/getWordService");
+    mod.clearTranslationCache();
+    return mod;
+  };
+
+  const withPrompts = () =>
+    setCollection("prompts", [
+      { id: "get-word-translate-concept-prompt", template: "Say {{sourceWord}} in {{learningDialect}}, hint in {{userDialect}}" },
+      {
+        id: "get-word-generate-new-concept-prompt",
+        template: "One word about {{interestOrTopic}} in {{learningDialect}}, hint in {{userDialect}}. Avoid: {{avoidList}}",
+      },
+    ]);
+
+  const ARGS = { conceptId: "c1", sourceWord: "passport", userDialect: "en-US", learningDialect: "pt-PT", token: "tok" };
+
+  beforeEach(withPrompts);
+
+  describe("ensureConceptTranslation", () => {
+    it("reads a word that exists, and spends no AI call", async () => {
+      routeFetch({ translation: { word: "passaporte", baseForm: null } });
+      const { ensureConceptTranslation } = await service();
+
+      expect(await ensureConceptTranslation(ARGS)).toEqual({ word: "passaporte", baseForm: null });
+
+      expect(askAI).not.toHaveBeenCalled();
+      expect(posted).toHaveLength(0);
+    });
+
+    it("keeps the dictionary form of a word that has one", async () => {
+      routeFetch({ translation: { word: "foram", baseForm: "ir" } });
+      const { ensureConceptTranslation } = await service();
+      expect(await ensureConceptTranslation(ARGS)).toEqual({ word: "foram", baseForm: "ir" });
+    });
+
+    it("makes the word, once, when there is none, and writes it for everybody", async () => {
+      routeFetch({ translation: null });
+      askAI.mockResolvedValue(aiText(JSON.stringify({ word: "Passaporte", hint: "Documento de viagem" })));
+      const { ensureConceptTranslation } = await service();
+
+      expect(await ensureConceptTranslation(ARGS)).toEqual({ word: "passaporte", baseForm: null });
+
+      expect(askAI).toHaveBeenCalledTimes(1);
+      expect(askAI.mock.calls[0][1]).toBe("Say passport in pt-PT, hint in en-US");
+      // Labelled for Pulse, like every other prompt-backed call.
+      expect(askAI.mock.calls[0][2]).toMatchObject({ feature: "get-word-translate-concept-prompt" });
+
+      const written = posted.find((p) => p.collection === "wordPool/c1/translations");
+      expect(written.id).toBe("pt-PT");
+      expect(written.data).toMatchObject({ locale: "pt-PT", word: "passaporte", source: "ai" });
+      expect(written.data.hints).toEqual({ "en-US": "Documento de viagem" });
+      // It adds a language to a concept that exists: no new concept is written.
+      expect(posted.filter((p) => p.collection === "wordPool")).toHaveLength(0);
+    });
+
+    it("remembers a word it has made or read: the next ask is free", async () => {
+      routeFetch({ translation: null });
+      askAI.mockResolvedValue(aiText(JSON.stringify({ word: "passaporte", hint: "h" })));
+      const { ensureConceptTranslation, getConceptTranslations } = await service();
+
+      await ensureConceptTranslation(ARGS);
+      globalThis.fetch.mockClear();
+      askAI.mockClear();
+      await ensureConceptTranslation(ARGS);
+      const read = await getConceptTranslations(["c1"], "pt-PT", "tok");
+
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+      expect(askAI).not.toHaveBeenCalled();
+      expect(read.get("c1")).toEqual({ word: "passaporte", baseForm: null });
+    });
+
+    it("lets a failed call through, and writes nothing, so the caller can go on to another word", async () => {
+      routeFetch({ translation: null });
+      askAI.mockRejectedValue(new Error("the model said no"));
+      const { ensureConceptTranslation } = await service();
+
+      await expect(ensureConceptTranslation(ARGS)).rejects.toThrow("the model said no");
+      expect(posted).toHaveLength(0);
+    });
+
+    it("lets a daily limit through untouched, for the caller to recognise", async () => {
+      routeFetch({ translation: null });
+      askAI.mockRejectedValue(Object.assign(new Error("limit"), { code: "DAILY_LIMIT" }));
+      const { ensureConceptTranslation } = await service();
+      await expect(ensureConceptTranslation(ARGS)).rejects.toMatchObject({ code: "DAILY_LIMIT" });
+    });
+  });
+
+  describe("generateNewConcept", () => {
+    const NEW = { token: "tok", userDialect: "en-US", learningDialect: "pt-PT" };
+    const generated = () =>
+      askAI.mockResolvedValue(aiText(JSON.stringify({ sourceWord: "Lighthouse", word: "farol", hint: "Torre junto ao mar" })));
+
+    it("writes a new concept and its word, with the player's interest as its topic", async () => {
+      routeFetch({ match: [] });
+      generated();
+      const { generateNewConcept } = await service();
+
+      const result = await generateNewConcept({ ...NEW, topics: [{ id: "travel", label: "Travel" }] });
+
+      expect(result).toEqual({ conceptId: "brand-new", word: "farol", sourceWord: "lighthouse", topicIds: ["travel"] });
+      const concept = posted.find((p) => p.collection === "wordPool");
+      expect(concept.data).toMatchObject({ sourceWord: "lighthouse", status: "ready" });
+      expect(concept.data.topicIds).toEqual(["travel"]);
+      expect(posted.some((p) => p.collection.endsWith("/translations"))).toBe(true);
+      expect(askAI.mock.calls[0][1]).toContain("One word about Travel in pt-PT");
+    });
+
+    it("says nothing about a topic when the player has no interests", async () => {
+      routeFetch({ match: [] });
+      generated();
+      const { generateNewConcept } = await service();
+      expect((await generateNewConcept({ ...NEW, topics: [] })).topicIds).toEqual([]);
+    });
+
+    it("hands the pool's own concept back when the model repeats one it already holds", async () => {
+      // The pool's uniqueness check, which the caller has to allow for: the concept
+      // it gets may be one the player has already seen.
+      routeFetch({ match: [POOLED], translation: { word: "passaporte", hints: { "en-US": "A travel document" } } });
+      askAI.mockResolvedValue(aiText(JSON.stringify({ sourceWord: "Passport", word: "pasaporte", hint: "h" })));
+      const { generateNewConcept } = await service();
+
+      const result = await generateNewConcept({ ...NEW, topics: [] });
+
+      expect(result.conceptId).toBe("c1");
+      expect(result.word).toBe("passaporte");
+      expect(posted.filter((p) => p.collection === "wordPool")).toHaveLength(0);
+    });
+
+    it("tells the model what the pool already holds, so it does not repeat", async () => {
+      routeFetch({ match: [] });
+      generated();
+      const { generateNewConcept } = await service();
+      await generateNewConcept({ ...NEW, topics: [] });
+      expect(askAI.mock.calls[0][1]).toContain("Avoid: passport");
+    });
+
+    it("makes the new word available at once, without another read", async () => {
+      routeFetch({ match: [] });
+      generated();
+      const { generateNewConcept, ensureConceptTranslation } = await service();
+
+      await generateNewConcept({ ...NEW, topics: [] });
+      globalThis.fetch.mockClear();
+      const word = await ensureConceptTranslation({ ...ARGS, conceptId: "brand-new", sourceWord: "lighthouse" });
+
+      expect(word).toEqual({ word: "farol", baseForm: null });
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+
+    it("lets a failed call through, and writes nothing", async () => {
+      routeFetch({ match: [] });
+      askAI.mockRejectedValue(new Error("the model said no"));
+      const { generateNewConcept } = await service();
+      await expect(generateNewConcept({ ...NEW, topics: [] })).rejects.toThrow("the model said no");
+      expect(posted).toHaveLength(0);
+    });
+  });
+});
+
+/**
  * The pool grows from dictionary lookups, not only from generations.
  *
  * Until this existed the pool had one way to grow: a game ran out of words and

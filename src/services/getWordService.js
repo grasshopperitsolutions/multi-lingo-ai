@@ -631,6 +631,76 @@ export async function getConceptTranslations(conceptIds, locale, token) {
 }
 
 /**
+ * A concept's word in the practice language, generated when it has none.
+ *
+ * The picture games use this when the words they have not seen have run out:
+ * a pictured concept that nobody has played in this language yet has a picture
+ * and no word, and this is what gives it one. It reads first and spends an AI
+ * call only on a miss, writes the result to the pool for everyone, and so
+ * follows the rule getWord follows (Branch A, "translation missing").
+ *
+ * That call counts against the daily allowance like any other. The picture
+ * games are for tiers without a cap, which is the only reason they can do this
+ * without asking; a capped tier would meet the usual confirmation first.
+ *
+ * @param {{conceptId: string, sourceWord: string, userDialect: string, learningDialect: string, token: string}} params
+ * @returns {Promise<{word: string, baseForm: string|null}>}
+ */
+export async function ensureConceptTranslation({ conceptId, sourceWord, userDialect, learningDialect, token }) {
+  const key = `${learningDialect}/${conceptId}`;
+  if (translationsFound.has(key)) return translationsFound.get(key);
+
+  const existing = await _fetchTranslation(conceptId, learningDialect, token);
+  if (existing?.word) {
+    const entry = { word: existing.word, baseForm: existing.baseForm ?? null };
+    translationsFound.set(key, entry);
+    return entry;
+  }
+
+  const generated = await _generateTranslation(sourceWord, { userDialect, learningDialect }, token);
+  await _writeTranslation(conceptId, learningDialect, generated, token);
+
+  const entry = { word: generated.word, baseForm: null };
+  translationsFound.set(key, entry);
+  translationsMissing.delete(key);
+  return entry;
+}
+
+/**
+ * A brand-new concept, for when every word the pool holds has been seen: the
+ * same step getWord takes (Branch B, "pool exhausted for this user"), without
+ * the word-game specifics. One AI call; the concept and its practice-language
+ * word are written to the pool for everybody.
+ *
+ * The result may be a concept the pool already had (the pool's uniqueness check
+ * adopts it rather than writing a duplicate), so the caller must not assume it
+ * is new to the player.
+ *
+ * @param {{token: string, userDialect: string, learningDialect: string, topics?: Array<{id: string, label: string}>}} params
+ * @returns {Promise<{conceptId: string, word: string, sourceWord: string, topicIds: string[]}>}
+ */
+export async function generateNewConcept({ token, userDialect, learningDialect, topics = [] }) {
+  const allConcepts = await _fetchReadyConcepts(token);
+  const topic = topics.length > 0 ? topics[Math.floor(Math.random() * topics.length)] : null;
+
+  const generated = await _generateNewConcept(
+    { userDialect, learningDialect, knownWords: allConcepts.map((c) => c.normalizedKey), topic },
+    token,
+  );
+  const adopted = await _adoptOrCreateConcept({
+    generated, userDialect, learningDialect, token, topic: topic?.id ? topic : null,
+  });
+
+  translationsFound.set(`${learningDialect}/${adopted.conceptId}`, { word: adopted.word, baseForm: null });
+  return {
+    conceptId: adopted.conceptId,
+    word: adopted.word,
+    sourceWord: generated.sourceWord,
+    topicIds: topic?.id ? [topic.id] : [],
+  };
+}
+
+/**
  * Return the total number of "ready" concepts in the word pool.
  * Used by the sidebar to compute the seen-words percentage.
  *

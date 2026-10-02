@@ -33,7 +33,7 @@ npm run test:watch
 npm run test:coverage
 ```
 
-**1,556 tests across 85 files, blocking in CI** (line coverage was ~57% when last measured). It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
+**1,616 tests across 85 files, blocking in CI** (line coverage was ~57% when last measured). It started as a dependency guard — two production outages came from bumps that passed `lint` and `build` cleanly — and grew into partial behaviour coverage.
 
 - `test/canaries/` — one assertion per library behaviour no static check can see: `defaultProps` still applying, routes still resolving, `motion.div` still rendering a div, `t()` still looking keys up, every imported lucide icon still existing, every literal `t()` key resolving in the pt-PT bundle.
 - `test/smoke/pages.test.jsx` — 37 pages mount, paint, stay out of the error boundary, and render no raw translation keys. **Feature pages assert the route shell only**: each is a Suspense wrapper, so the assertion passes while the lazy chunk is still loading. The heavy components are covered directly instead.
@@ -662,40 +662,69 @@ controls; what matters here:
   closed: with no bucket configured nothing is shown.
 - **Pictures do not spend the daily AI allowance**, so every picture call passes
   `skipConfirm` and never raises the spend modal. Past the account's cap the
-  server answers `PICTURE_CAP`, which `askAI` now carries as `err.code`, and the
-  background fill stops asking.
+  server answers `PICTURE_CAP`, which `askAI` now carries as `err.code`, and
+  growing the pool (below) stops asking. **What does spend it** is the word for a
+  concept (a translation) and a brand-new concept: ordinary counted AI calls, made
+  through the usual confirm flow. The picture games are meant for tiers with no
+  daily cap (Maestro and up, granted in Admin), which is the only reason they can
+  make those calls without asking; a capped tier would meet the spend prompt in
+  the middle of "preparing", and declining it ends the growing.
 
 **Which words a round uses** (`hooks/usePictureRound`, rules in
 `utils/pictureRound.js`, pure and tested with a fixed random sequence):
 
+- **The seen-concept rule, the same as every other word game.** A concept the
+  player gets right goes on `users/{uid}.seenConceptIds` (`useSeenConcepts`:
+  debounced, merged with the list re-read just before the write, flushed when the
+  page is left or hidden) and is never an *answer* again, so the games keep moving
+  through the pool. A wrong answer does not mark it (the word is still unmet), and
+  neither does a word that was only a wrong *option*. A round also skips what was
+  marked this visit before the write has landed (`seenThisSession`), since the
+  stored list can be a moment behind. Where each game marks: Liga a imagem and the
+  memory game, the word; Qual é o intruso?, the outsider (it is the answer; the
+  three that belong together are only the setting); Descreve a imagem, every word
+  found. A scene's own words are not filtered by what one player has seen: a scene
+  is shared by everyone.
 - A concept is playable when it has a ready picture **and** a word in the
-  player's practice language. The word is a **read, never a generation**
-  (`getConceptTranslations` in `getWordService`): generating one costs a daily AI
-  call per word, which a round of eight would spend for an Explorer. The
-  consequence to know about: **a language with few pooled translations shows
-  "not enough pictures yet"**, because the pool is language-neutral but
-  translations are written one language at a time as people play. The fix when
-  it matters is one batch translation prompt for the concepts that have a
-  picture, not per-word generation.
-- The player's saved interests come first, **for every tier** (nothing here
-  generates, so there is no reason to hold the preference back from Explorer, as
-  `useInterestTopics` does for the word games). Repeats are allowed, since seeing
-  the same word again is the point: a round only leans away from the last 24
-  words (a preference, never an exclusion, so a pool is never made smaller by who
-  is playing).
-- **Words are read a batch at a time** and the loop stops once it has enough, so
-  a pool of 200 pictured concepts costs one or two batches, not 200 reads.
-- **A pool with fewer than 12 pictured words fills itself**: once per visit and
-  language, the server is asked for up to four more, one at a time, for concepts
-  that already have a word in this language (a picture nobody here could play
-  with is money spent for someone else). The round starts with what exists; new
-  pictures are used from the next one. The fill has its own effect, so "play
-  again" cannot cut it off, and **the retry that follows it is decided from both
-  ends**: the fill and the round start together and can finish in either order,
-  even in the same tick, before React has re-rendered. The round's outcome is
-  therefore recorded in a ref where it is decided, never read from state at
-  render time. (A test caught this: the fill finished first, saw "loading", and
-  never retried.)
+  player's practice language, **and has not been seen**. Wrong options may be
+  words already seen (a word the player knows is a good one to be wrong about), so
+  the pool is made up with them when it is short, flagged `seen: true`; only the
+  answers must be new. Qual é o intruso? takes its outsider from the unseen words
+  first, across every topic, and settles for a seen one only when no new word can
+  be set against a trio (`preferIntruderIds`), and never uses one word as the
+  outsider twice in a round. A memory deck short of new words is made up with seen
+  ones so the board is never short; a Liga a imagem round with fewer than eight new
+  words is simply shorter.
+- The player's saved interests come first, **for every tier**, and the round leans
+  away from the last 24 words played (a preference, never an exclusion).
+- **Words are read a batch at a time** and the loop stops once it has enough, so a
+  pool of 200 pictured concepts costs one or two batches, not 200 reads.
+  `gatherPlayableWords` only reads: a concept with no word in this language is
+  left out of it, and giving it one is the next step's job.
+- **Getting more words** (`growPlayableWords`) is the "pool exhausted" step every
+  word game has, with a picture to go with it. In the order that spends least:
+  1. a pictured, unseen concept with **no word in this language**: one translation
+     (`ensureConceptTranslation`: read first, generated and written to the pool
+     for everyone on a miss), and it is playable;
+  2. a concept in the pool that **nobody has asked a picture for**: its word first
+     (the picture is the dear call, and is not spent on a concept this player could
+     not be given a word for), then the server draws it;
+  3. nothing unseen is left: **a brand-new concept** (`generateNewConcept`, the
+     same prompt and uniqueness check as `getWord`; it may come back as a concept
+     the pool already had, so it is checked against what the player has seen), then
+     its picture. Three failures in a row end it.
+
+  It is sequential and never throws: a step that fails is an attempt and the next
+  is tried, and it stops outright when the day's calls are spent (`DAILY_LIMIT`),
+  the spend prompt is declined, or the picture cap is reached. **Two triggers.**
+  Under `minWords` playable unseen words the round **waits** (`status:
+  "preparing"`, "A preparar imagens novas…") while it grows enough to start, so the
+  player sees a loader and not an empty board. Once a round has started, fewer than
+  two rounds' worth of unseen words in hand tops the pool up **in the background**,
+  up to four at a time and one top-up at a time, and the new words are used from the
+  next round (it is not cut off by "play again", only by leaving). Pictures are only
+  ever drawn this way, as a game needs them. If it cannot make enough, the game says
+  "not enough pictures yet" and starts with what exists.
 - **Wrong options are fair.** A distractor never shares the answer's word, its
   English label or (when both have one) its sense key: a cup and a mug are both
   "chávena", and either would be a correct answer to one picture. A turn that
@@ -747,7 +776,8 @@ spaces) and handed to the model as a fact, so "found 4 of 6" is never a guess.
 The feedback is an **ordinary counted AI call** (it asks first, and out of calls
 it points to the plans); the scene is attached **on the server** from `sceneId`,
 so the picture never travels through the browser. `tryNext` is filtered against
-the missed words before it is shown: the model phrases them, it cannot add one.
+the missed words before it is shown: the model phrases them, it cannot add one. The words found are
+marked seen, like a right answer anywhere else.
 
 **Admin › Pictures** lists reported pictures (largest count first, sorted in
 code), with Regenerate and Mark as not drawable; **Admin › Pulse** shows
@@ -760,8 +790,9 @@ picture request as an empty text call (a 400, swallowed here), and one without
 ### Pictures are generated organically, and only that way
 
 **There is deliberately no seeder for the pool's existing concepts.** A picture
-is drawn the first time a player's game needs it (or, for a thin pool, up to four
-at a time in the background of a game being played), and never in bulk. An earlier
+is drawn the first time a player's game needs it (when the player has run out of
+unseen words, a few at a time while a game is prepared or played: see "Getting
+more words"), and never in bulk. An earlier
 design had an admin "Picture common words" button; it was dropped, and so was the
 admin's exemption from the daily cap that existed only for it. Do not add one back
 without asking.

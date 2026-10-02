@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Sparkles } from "lucide-react";
@@ -19,7 +19,7 @@ import PictureRoundResult from "./PictureRoundResult";
 const TURNS = 6;
 
 /** One round on the board; keyed on the round by its parent. */
-const OddBoard = ({ turns, onAgain, collect, isDarkMode }) => {
+const OddBoard = ({ turns, onAgain, onRight, isDarkMode }) => {
   const { t } = useTranslation();
   const { user } = useAppContext();
   const { ttsState, playTts, pauseTts, stopTts } = useTts();
@@ -62,7 +62,7 @@ const OddBoard = ({ turns, onAgain, collect, isDarkMode }) => {
       setScore((value) => value + 1);
       // The one that does not belong is the one that was singled out, so it is
       // the one that gets the sticker.
-      setGotSticker(collect([turn.intruder.conceptId]).length > 0);
+      setGotSticker(onRight(turn.intruder.conceptId));
     }
   };
 
@@ -156,7 +156,7 @@ const OddBoard = ({ turns, onAgain, collect, isDarkMode }) => {
 OddBoard.propTypes = {
   turns: PropTypes.array.isRequired,
   onAgain: PropTypes.func.isRequired,
-  collect: PropTypes.func.isRequired,
+  onRight: PropTypes.func.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
 };
 
@@ -171,17 +171,34 @@ OddBoard.propTypes = {
  * to belong anywhere, so it can be neither one of the three nor the outsider),
  * and enough of them across topics. A pool without that says so, rather than
  * building a turn it cannot make fair.
+ *
+ * The outsider is the answer, so it is the word that is marked seen on a right
+ * pick, and the one chosen from the words not seen yet. The three that belong
+ * together are only the setting, and may be words already met.
  */
 const PictureOddOneOutGame = ({ isDarkMode }) => {
-  const round = usePictureRound({ want: 0, poolSize: 40, minWords: 4 });
+  const round = usePictureRound({ want: TURNS, poolSize: 40, minWords: 4 });
   const { collect } = useAlbumStickers();
+  const { markSeen } = round;
   const { topics } = useInterestTopics();
   const topicKey = topics.map((topic) => topic.id).join("|");
+
+  const onRight = useCallback(
+    (conceptId) => {
+      markSeen([conceptId]);
+      return collect([conceptId]).length > 0;
+    },
+    [markSeen, collect],
+  );
 
   const turns = useMemo(
     () =>
       round.status === "ready"
-        ? buildOddOneOutTurns(round.pool, { turns: TURNS, preferTopicIds: topicKey ? topicKey.split("|") : [] })
+        ? buildOddOneOutTurns(round.pool, {
+            turns: TURNS,
+            preferTopicIds: topicKey ? topicKey.split("|") : [],
+            preferIntruderIds: new Set(round.pool.filter((word) => !word.seen).map((word) => word.conceptId)),
+          })
         : [],
     [round.status, round.pool, topicKey],
   );
@@ -199,7 +216,7 @@ const PictureOddOneOutGame = ({ isDarkMode }) => {
   }
 
   return (
-    <OddBoard key={round.roundId} turns={turns} onAgain={round.newRound} collect={collect} isDarkMode={isDarkMode} />
+    <OddBoard key={round.roundId} turns={turns} onAgain={round.newRound} onRight={onRight} isDarkMode={isDarkMode} />
   );
 };
 

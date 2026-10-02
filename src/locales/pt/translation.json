@@ -814,6 +814,7 @@
   "picture_games": {
     "title": "Jogos com Imagens",
     "loading": "A preparar as imagens...",
+    "preparing": "A preparar imagens novas… isto pode demorar um pouco.",
     "error": "Não foi possível carregar as imagens. Tenta novamente.",
     "try_again": "Tentar outra vez",
     "play_again": "Jogar outra vez",

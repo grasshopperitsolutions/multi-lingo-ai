@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Sparkles } from "lucide-react";
@@ -28,7 +28,7 @@ const OPTION_CLASSES = {
  * One round on the board. Keyed on the round by its parent, so a new round
  * starts with every piece of state at its first value.
  */
-const MatchBoard = ({ turns, onAgain, collect, isDarkMode }) => {
+const MatchBoard = ({ turns, onAgain, onRight, isDarkMode }) => {
   const { t } = useTranslation();
   const { user } = useAppContext();
   const { ttsState, playTts, pauseTts, stopTts } = useTts();
@@ -74,7 +74,7 @@ const MatchBoard = ({ turns, onAgain, collect, isDarkMode }) => {
     if (correct) {
       setScore((value) => value + 1);
       // The sticker sound is the album's own; this only decides the chip.
-      setGotSticker(collect([turn.answer.conceptId]).length > 0);
+      setGotSticker(onRight(turn.answer.conceptId));
     }
   };
 
@@ -190,7 +190,7 @@ const MatchBoard = ({ turns, onAgain, collect, isDarkMode }) => {
 MatchBoard.propTypes = {
   turns: PropTypes.array.isRequired,
   onAgain: PropTypes.func.isRequired,
-  collect: PropTypes.func.isRequired,
+  onRight: PropTypes.func.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
 };
 
@@ -202,12 +202,23 @@ MatchBoard.propTypes = {
  * each word, so it is also listening practice.
  *
  * The round's words come from usePictureRound (concepts with a picture and a
- * practice-language word); the turns from buildMatchTurns, which keeps the wrong
- * options fair. A right answer sticks the picture in the album.
+ * practice-language word the player has not seen); the turns from
+ * buildMatchTurns, which keeps the wrong options fair. A right answer marks the
+ * word seen and sticks the picture in the album.
  */
 const PictureMatchGame = ({ isDarkMode }) => {
   const round = usePictureRound({ want: TURNS, poolSize: 24, minWords: 4 });
   const { collect } = useAlbumStickers();
+  const { markSeen } = round;
+
+  // One right answer, two bookkeeping jobs. Returns whether the album got a new sticker.
+  const onRight = useCallback(
+    (conceptId) => {
+      markSeen([conceptId]);
+      return collect([conceptId]).length > 0;
+    },
+    [markSeen, collect],
+  );
 
   const turns = useMemo(
     () => (round.status === "ready" ? buildMatchTurns(round.words, round.pool, { turns: TURNS }) : []),
@@ -227,7 +238,7 @@ const PictureMatchGame = ({ isDarkMode }) => {
   }
 
   return (
-    <MatchBoard key={round.roundId} turns={turns} onAgain={round.newRound} collect={collect} isDarkMode={isDarkMode} />
+    <MatchBoard key={round.roundId} turns={turns} onAgain={round.newRound} onRight={onRight} isDarkMode={isDarkMode} />
   );
 };
 

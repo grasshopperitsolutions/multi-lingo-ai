@@ -286,45 +286,6 @@ export async function requestConceptPicture(conceptId, token) {
 }
 
 /**
- * Ask for pictures one at a time, the way icons are asked for, so a thin pool
- * grows in the background while the game starts with what exists.
- *
- * Sequential on purpose: each is a model call, and several at once would
- * compete with whatever the player does next. Stops at the first refusal that
- * means "no more" (the daily cap, a guest), and when the caller goes away.
- *
- * @param {string[]} conceptIds
- * @param {{
- *   token: string,
- *   onPicture?: (conceptId: string, url: string) => void,
- *   max?: number,
- *   isCancelled?: () => boolean,
- * }} options
- * @returns {Promise<number>} how many pictures were drawn or found
- */
-export async function fillPictures(conceptIds, { token, onPicture, max = 4, isCancelled = () => false } = {}) {
-  let got = 0;
-  let asked = 0;
-
-  for (const conceptId of conceptIds ?? []) {
-    if (asked >= max || isCancelled()) break;
-    asked += 1;
-
-    const result = await requestPicture(conceptId, token);
-    if (isCancelled()) break;
-
-    if (result.status === "ready") {
-      got += 1;
-      onPicture?.(conceptId, result.url);
-    } else if (result.code === "PICTURE_CAP" || result.code === "PICTURE_GUEST") {
-      break;
-    }
-  }
-
-  return got;
-}
-
-/**
  * "This picture does not match its word." Counted once per account, on the
  * server. Resolves to whether it was counted; never rejects.
  *

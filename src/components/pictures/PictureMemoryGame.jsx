@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { useTranslation } from "react-i18next";
 import { Sparkles } from "lucide-react";
@@ -25,7 +25,7 @@ const WIDE_QUERY = "(min-width: 768px)";
  * One memory game. Keyed on the round by its parent, so a new game builds a
  * new deck and starts every counter at zero.
  */
-const MemoryBoard = ({ words, onAgain, collect, isDarkMode }) => {
+const MemoryBoard = ({ words, onAgain, onRight, isDarkMode }) => {
   const { t } = useTranslation();
   const { user } = useAppContext();
   const { playTts } = useTts();
@@ -68,7 +68,7 @@ const MemoryBoard = ({ words, onAgain, collect, isDarkMode }) => {
     if (first.conceptId === second.conceptId) {
       play("word_found");
       setMatched((previous) => new Set(previous).add(first.conceptId));
-      if (collect([first.conceptId]).length > 0) setNewStickers((value) => value + 1);
+      if (onRight(first.conceptId)) setNewStickers((value) => value + 1);
       setFlipped([]);
     } else {
       lockedRef.current = true;
@@ -164,7 +164,7 @@ const MemoryBoard = ({ words, onAgain, collect, isDarkMode }) => {
 MemoryBoard.propTypes = {
   words: PropTypes.array.isRequired,
   onAgain: PropTypes.func.isRequired,
-  collect: PropTypes.func.isRequired,
+  onRight: PropTypes.func.isRequired,
   isDarkMode: PropTypes.bool.isRequired,
 };
 
@@ -175,13 +175,31 @@ MemoryBoard.propTypes = {
  * it turns. Moves are counted. Six pairs on a phone (3 by 4), eight on a wide
  * screen (4 by 4).
  *
- * Every pair found sticks its picture in the album.
+ * Every pair found marks the word seen and sticks its picture in the album. The
+ * deck is words the player has not seen; when fewer than a full deck are left
+ * (a fresh few are being fetched for the next game) it is made up with words
+ * already seen, so the board is never short.
  */
 const PictureMemoryGame = ({ isDarkMode }) => {
   const isWide = useMediaQuery(WIDE_QUERY);
   const pairs = isWide ? PAIRS_WIDE : PAIRS_NARROW;
-  const round = usePictureRound({ want: pairs, poolSize: pairs, minWords: 4 });
+  const round = usePictureRound({ want: pairs, poolSize: PAIRS_WIDE * 2, minWords: 4 });
   const { collect } = useAlbumStickers();
+  const { markSeen } = round;
+
+  const onRight = useCallback(
+    (conceptId) => {
+      markSeen([conceptId]);
+      return collect([conceptId]).length > 0;
+    },
+    [markSeen, collect],
+  );
+
+  const words = useMemo(() => {
+    if (round.status !== "ready" || round.words.length >= pairs) return round.words;
+    const have = new Set(round.words.map((word) => word.conceptId));
+    return [...round.words, ...round.pool.filter((word) => !have.has(word.conceptId))].slice(0, pairs);
+  }, [round.status, round.words, round.pool, pairs]);
 
   if (round.status !== "ready") {
     return (
@@ -196,7 +214,7 @@ const PictureMemoryGame = ({ isDarkMode }) => {
   }
 
   return (
-    <MemoryBoard key={round.roundId} words={round.words} onAgain={round.newRound} collect={collect} isDarkMode={isDarkMode} />
+    <MemoryBoard key={round.roundId} words={words} onAgain={round.newRound} onRight={onRight} isDarkMode={isDarkMode} />
   );
 };
 
