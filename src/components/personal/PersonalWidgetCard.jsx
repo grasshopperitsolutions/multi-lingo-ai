@@ -29,6 +29,16 @@ import { Card } from "../ui";
  * loading at once the page reads as a crash. The title and the expand control
  * are useful before the data arrives, so they are never behind the skeleton.
  */
+/**
+ * Every widget has a fixed height, so the page reads as a tidy grid whatever
+ * is inside and a long list can never push the rest of it down. The body
+ * scrolls when its content is taller. 22rem (352px) is a phone's worth: header
+ * and a few rows fit without the card owning the screen, and the same height
+ * works beside a sibling on desktop. `tall` widgets (the note board) get more.
+ */
+const CARD_HEIGHT = "h-[22rem]";
+const TALL_HEIGHT = "h-[26rem] lg:h-[30rem]";
+
 const Skeleton = ({ isDarkMode }) => (
   <div className="flex flex-col gap-2 py-1" aria-hidden="true">
     {[3, 4, 2].map((width, index) => (
@@ -68,8 +78,8 @@ const PersonalWidgetCard = ({
   const Icon = widget.icon;
 
   return (
-    <Card isDarkMode={isDarkMode} className="!p-3.5 sm:!p-5">
-      <div className="flex items-start gap-2.5 sm:gap-3">
+    <Card isDarkMode={isDarkMode} className={`!p-3.5 sm:!p-5 flex flex-col ${widget.tall ? TALL_HEIGHT : CARD_HEIGHT}`}>
+      <div className="flex items-start gap-2.5 sm:gap-3 shrink-0">
         <div
           className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl border-4 border-slate-900 flex items-center justify-center shrink-0 ${widget.color}`}
         >
@@ -129,8 +139,12 @@ const PersonalWidgetCard = ({
         )}
       </div>
 
-      <div className={`mt-3 pt-3 sm:mt-4 sm:pt-4 border-t-2 ${isDarkMode ? "border-slate-700" : "border-slate-200"}`}>
-        {isLoading ? <Skeleton isDarkMode={isDarkMode} /> : children}
+      {/* The divider stays put and only what is under it scrolls. `-mx-1 px-1`
+          gives focus rings room, since an overflow container clips them. */}
+      <div className={`mt-3 pt-3 sm:mt-4 sm:pt-4 border-t-2 flex-1 min-h-0 flex flex-col ${isDarkMode ? "border-slate-700" : "border-slate-200"}`}>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hidden -mx-1 px-1">
+          {isLoading ? <Skeleton isDarkMode={isDarkMode} /> : children}
+        </div>
       </div>
     </Card>
   );

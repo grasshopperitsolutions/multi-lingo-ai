@@ -1,6 +1,7 @@
 import { requestUpload, uploadToGcs, deleteByPrefix } from './storageService';
 import { queryCollection } from './firestoreService';
 import { storagePaths } from '../config/storagePaths';
+import { localToday, nextPracticeState } from '../utils/practiceDays';
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL || 'https://multi-lingo-ai-api.vercel.app';
 
@@ -507,66 +508,44 @@ export const resetSeenExercises = async (token, uid, type) => {
 };
 
 // ---------------------------------------------------------------------------
-// Day streak — stored on users/{uid}.dayStreak + users/{uid}.lastStreakDate
-// lastStreakDate is stored as a YYYY-MM-DD string (UTC).
-// highestDayStreak tracks the all-time highest streak ever reached.
+// Practice days — users/{uid}.practiceDates, .practiceMonths, .practiceDaysSeed
+// and .lastPracticeDate. Opening the app signed in is a practice day, once a
+// day, in the device's own calendar. Nothing resets; see utils/practiceDays.
 // ---------------------------------------------------------------------------
 
-const getTodayUTC = () => new Date().toISOString().slice(0, 10);
-
-const getYesterdayUTC = () => {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10);
-};
-
 /**
- * Update the user's day streak based on their last active date.
- * Also updates highestDayStreak if the new streak exceeds the previous record.
+ * Record today as a practice day. A no-op when it already is one.
  *
- * Rules:
- *  - Same day as lastStreakDate  → no-op (already counted today)
- *  - lastStreakDate was yesterday → increment streak by 1
- *  - lastStreakDate is older or missing → reset streak to 1
+ * Written through the ordinary profile PUT, like the streak it replaced: a
+ * field-level update, no new endpoint. `practiceMonths` goes as a whole map
+ * (never a dotted path), the way favourites write whole arrays.
  *
- * @param {string}      token
- * @param {string}      uid
- * @param {object}      profile  - the already-fetched Firestore profile object
- * @returns {Promise<{ dayStreak: number, highestDayStreak: number }>}
+ * @param {string} token
+ * @param {string} uid
+ * @param {object} profile  the already-fetched Firestore profile
+ * @returns {Promise<{practiceDates: string[], practiceMonths: object, practiceDaysSeed: number|null, lastPracticeDate: string|null}>}
+ *   the current values, whether or not they just changed
  */
-export const updateDayStreak = async (token, uid, profile) => {
-  const today     = getTodayUTC();
-  const yesterday = getYesterdayUTC();
-  const last      = profile?.lastStreakDate ?? null;
-  const current   = profile?.dayStreak ?? 0;
-  const highest   = profile?.highestDayStreak ?? 0;
+export const recordPracticeDay = async (token, uid, profile) => {
+  const next = nextPracticeState(profile, localToday());
 
-  if (last === today) {
-    return { dayStreak: current, highestDayStreak: highest };
+  if (!next) {
+    return {
+      practiceDates: profile?.practiceDates ?? [],
+      practiceMonths: profile?.practiceMonths ?? {},
+      practiceDaysSeed: profile?.practiceDaysSeed ?? null,
+      lastPracticeDate: profile?.lastPracticeDate ?? null,
+    };
   }
 
-  let newStreak;
-  if (last === yesterday) {
-    newStreak = current + 1;
-  } else {
-    newStreak = 1;
-  }
+  await updateUserProfile(token, uid, next);
 
-  const newHighest = Math.max(newStreak, highest);
-
-  const updatePayload = {
-    dayStreak: newStreak,
-    lastStreakDate: today,
+  return {
+    practiceDates: next.practiceDates,
+    practiceMonths: next.practiceMonths,
+    practiceDaysSeed: next.practiceDaysSeed ?? profile?.practiceDaysSeed ?? null,
+    lastPracticeDate: next.lastPracticeDate,
   };
-
-  // Only write highestDayStreak if it has actually improved
-  if (newHighest > highest) {
-    updatePayload.highestDayStreak = newHighest;
-  }
-
-  await updateUserProfile(token, uid, updatePayload);
-
-  return { dayStreak: newStreak, highestDayStreak: newHighest };
 };
 
 // ---------------------------------------------------------------------------

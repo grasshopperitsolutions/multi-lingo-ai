@@ -2,7 +2,7 @@ import PropTypes from "prop-types";
 import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Flame, Star, Trophy, TrendingUp, Heart, X } from "lucide-react";
+import { CalendarCheck, CalendarDays, Star, Trophy, Heart, X } from "lucide-react";
 import { useAppContext } from "../../contexts/AppContext";
 import { useFeatureFavourites } from "../../hooks/useFeatureFavourites";
 import { suggestedFeatureIds, TODAY_SUGGESTION_LIMIT } from "../../config/dashboardFeatures";
@@ -11,6 +11,7 @@ import { useTierAccess } from "../../hooks/useTierAccess";
 import { reportLockedAttempt } from "../../services/pulseReportService";
 import { FEATURE_STATUS, PURCHASABLE_STATUSES, isFeatureBeta } from "../../utils/featureAccess";
 import { BetaBadge } from "../../components/ui";
+import { daysThisMonth, daysThisWeek, localToday, resolveWeeklyTarget } from "../../utils/practiceDays";
 
 // ── StatCard ────────────────────────────────────────────────────────────────
 // One design at every width, rather than a small mobile card and a large
@@ -116,9 +117,15 @@ const TodayPanel = ({ tiles }) => {
     });
   }, []);
 
+  // Practice days, in the reader's own calendar. Nothing here can fall to
+  // zero because of a missed day: a week just has fewer ticks in it.
+  const today = localToday();
+  const weekDays = daysThisWeek(user?.practiceDates, today);
+  const weeklyTarget = resolveWeeklyTarget(user?.weeklyTarget);
+
   const stats = [
-    { icon: Flame,      label: t("dashboard.day_streak"),     value: String(user?.dayStreak ?? 0),        color: "text-rose-500" },
-    { icon: TrendingUp, label: t("dashboard.highest_streak"), value: String(user?.highestDayStreak ?? 0), color: "text-orange-500" },
+    { icon: CalendarCheck, label: t("dashboard.week_days"),  value: `${weekDays}/${weeklyTarget}`,                         color: "text-blue-500" },
+    { icon: CalendarDays,  label: t("dashboard.month_days"), value: String(daysThisMonth(user?.practiceDates, today)), color: "text-sky-500" },
     { icon: Star,       label: t("dashboard.words"),          value: String(user?.wordsFound ?? 0),       color: "text-emerald-500" },
     // TODO: Awards is a placeholder until achievements exist — it always reads
     // zero. Kept on screen deliberately as a reminder to build them; wire it to

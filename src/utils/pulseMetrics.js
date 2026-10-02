@@ -5,7 +5,7 @@
  * with a fixture (plans/app-current-pulse.md, "Checks per phase").
  *
  * Days are UTC `YYYY-MM-DD` keys throughout, because that is how the server
- * stamps `lastStreakDate` and `aiCallsDate`. A period is an inclusive
+ * stamps `lastPracticeDate` (device-local, so it can differ by a day from UTC) and `aiCallsDate`. A period is an inclusive
  * `{ from, to }` pair of those keys.
  *
  * Counts only: nothing here returns the content of a document or a list of
@@ -137,10 +137,23 @@ export function stackByDay(docs, period, keyFn, emptyLabel = "Not set", field = 
   return { keys, days: Object.values(byDay) };
 }
 
+/**
+ * The last day somebody opened the app signed in. `lastPracticeDate` is what
+ * is written now; `lastStreakDate` is the old field, still read so people who
+ * have not opened the app since the switch do not look dormant.
+ */
+export function lastSeenDate(user) {
+  if (typeof user?.lastPracticeDate === "string") return user.lastPracticeDate;
+  return typeof user?.lastStreakDate === "string" ? user.lastStreakDate : null;
+}
+
 /** Users seen within the last `days` days, today included. */
 export function countActiveWithin(users, days, today) {
   const cutoff = shiftDay(today, -(days - 1));
-  return users.filter((u) => typeof u.lastStreakDate === "string" && u.lastStreakDate >= cutoff).length;
+  return users.filter((u) => {
+    const seen = lastSeenDate(u);
+    return seen !== null && seen >= cutoff;
+  }).length;
 }
 
 /** Sum of the lengths of an array field across users. */
@@ -280,34 +293,40 @@ export function bucketize(values, buckets) {
 /** Signed-in users not seen for more than `days` days, never-seen included. */
 export function countDormant(users, days, today) {
   const cutoff = shiftDay(today, -days);
-  return users.filter((u) => typeof u.lastStreakDate !== "string" || u.lastStreakDate < cutoff).length;
+  return users.filter((u) => {
+    const seen = lastSeenDate(u);
+    return seen === null || seen < cutoff;
+  }).length;
 }
 
-/**
- * A streak is only current while it is still alive: `dayStreak` is not reset
- * until the user next opens the app, so a streak last extended a week ago
- * still reads as its old length. Alive means seen today or yesterday.
- */
-export function currentStreak(user, today) {
-  const last = user?.lastStreakDate;
-  if (typeof last !== "string" || last < shiftDay(today, -1)) return 0;
-  return Number(user.dayStreak) || 0;
+/** Practice days in the seven days ending `today`, from the dates held. */
+export function practiceDaysLast7(user, today) {
+  const cutoff = shiftDay(today, -6);
+  const dates = Array.isArray(user?.practiceDates) ? user.practiceDates : [];
+  return dates.filter((d) => typeof d === "string" && d >= cutoff && d <= today).length;
 }
 
-export const STREAK_BUCKETS = [
+export const PRACTICE_WEEK_BUCKETS = [
   { label: "None", min: 0, max: 0 },
   { label: "1 day", min: 1, max: 1 },
-  { label: "2–6", min: 2, max: 6 },
-  { label: "7–29", min: 7, max: 29 },
-  { label: "30+", min: 30 },
+  { label: "2 days", min: 2, max: 2 },
+  { label: "3–4 days", min: 3, max: 4 },
+  { label: "5–7 days", min: 5 },
 ];
 
-export function streakSummary(users, today) {
-  const current = users.map((u) => currentStreak(u, today));
+/**
+ * How many days people practised in the last week, and the best month anyone
+ * has had. Counts only, like the rest of Pulse: never who.
+ */
+export function practiceSummary(users, today) {
+  const week = users.map((u) => practiceDaysLast7(u, today));
   return {
-    distribution: bucketize(current, STREAK_BUCKETS),
-    longestCurrent: Math.max(0, ...current),
-    longestEver: Math.max(0, ...users.map((u) => Number(u?.highestDayStreak) || 0)),
+    distribution: bucketize(week, PRACTICE_WEEK_BUCKETS),
+    threePlus: week.filter((n) => n >= 3).length,
+    bestMonthEver: Math.max(
+      0,
+      ...users.map((u) => Math.max(0, ...Object.values(u?.practiceMonths ?? {}).map((n) => Number(n) || 0))),
+    ),
   };
 }
 

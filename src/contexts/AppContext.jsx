@@ -7,7 +7,7 @@ import {
   loginWithTwitter,
   logout as logoutUserService,
 } from "../services/authService";
-import { getUserProfile, updateDayStreak, updateUserProfile } from "../services/userService";
+import { getUserProfile, recordPracticeDay, updateUserProfile } from "../services/userService";
 import { getLanguages, getWritingSystems } from "../services/supportedLanguagesService";
 import { getCategories } from "../services/categoriesService";
 import { getTiersConfig } from "../services/tiersConfigService";
@@ -586,8 +586,8 @@ export const AppProvider = ({ children }) => {
    *   2. Auth provider    — Google / Facebook / Apple / X display name and photo
    *
    * All other profile fields (theme, interfaceLang,
-   * learningDialect, interests, dayStreak, wordsFound,
-   * highestDayStreak) come from Firestore only.
+   * learningDialect, interests, practiceDates, wordsFound,
+   * practiceMonths) come from Firestore only.
    *
    * @param {object} authUser - The raw Firebase Auth user object fields + token.
    *                            Used as fallback source for displayName and photoURL.
@@ -616,9 +616,9 @@ export const AppProvider = ({ children }) => {
         // localStorage unavailable
       }
 
-      // Day streak — update in Firestore (no-op if already updated today)
-      // Returns { dayStreak, highestDayStreak } — current or newly updated values.
-      const { dayStreak, highestDayStreak } = await updateDayStreak(authUser.token, authUser.uid, profile);
+      // Practice days — opening the app is a practice day (no-op if today is
+      // already recorded). Returns the current values either way.
+      const practice = await recordPracticeDay(authUser.token, authUser.uid, profile);
 
       // Timezone — captured once, on the first load that finds it missing.
       //
@@ -693,8 +693,10 @@ export const AppProvider = ({ children }) => {
         aiCallsToday: profile?.aiCallsToday ?? 0,
         aiCallsDate: profile?.aiCallsDate ?? null,
         // ── Stats fields ─────────────────────────────────────────────────────
-        dayStreak,
-        highestDayStreak,
+        ...practice,
+        // Mirror of the goal in personalSettings/main, so the Today panel can
+        // read it with no extra request. Absent resolves to the default (3).
+        weeklyTarget: profile?.weeklyTarget ?? null,
         wordsFound,
         seenExerciseIds,
         seenStoryIds,

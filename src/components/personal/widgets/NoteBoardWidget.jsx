@@ -12,9 +12,9 @@ import { personalInputClasses } from "../fieldStyles";
  *
  * Corridor use is "add two lines". Desk use is "scroll back through six weeks",
  * and that is what the full page's `min-h-[60vh]` is for — putting that height
- * here would push the journals below it two screens down on a phone. Six rows
- * plus `resize-y` covers the first case and lets anyone who wants more drag for
- * it without leaving the page.
+ * here would push the journals below it two screens down on a phone. The card
+ * has a fixed height and the box fills it, which covers the first case; the
+ * full page is for anyone who wants more.
  *
  * The status line comes along and is not optional. It is the whole reason
  * `usePersonalNoteBoard` reports a status: a box that autosaves and says
@@ -52,7 +52,10 @@ const NoteBoardWidget = forwardRef(function NoteBoardWidget(
       expandTo="/dashboard/personal/notes"
       expandLabel={t("personal.dash_open_board")}
     >
-      <div className="flex flex-col gap-2">
+      {/* min-h-full + a growing textarea: the card has a fixed height, and the
+          box takes whatever the status line leaves instead of sitting at the
+          top of an empty card. */}
+      <div className="flex flex-col gap-2 min-h-full">
         <label className="sr-only" htmlFor="dash-note-board">
           {t("personal.notes_title")}
         </label>
@@ -65,8 +68,8 @@ const NoteBoardWidget = forwardRef(function NoteBoardWidget(
           onChange={(e) => onChange(e.target.value)}
           placeholder={t("personal.notes_placeholder")}
           maxLength={maxChars}
-          rows={4}
-          className={`${personalInputClasses(isDarkMode)} resize-y font-medium leading-relaxed min-h-[7rem] sm:min-h-[9rem]`}
+          rows={6}
+          className={`${personalInputClasses(isDarkMode)} resize-none flex-1 font-medium leading-relaxed min-h-[10rem]`}
         />
 
         <span

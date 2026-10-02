@@ -51,7 +51,7 @@ vi.mock("../../src/services/featuresService", () => ({
 const profile = { current: {} };
 vi.mock("../../src/services/userService", () => ({
   getUserProfile: vi.fn(async () => profile.current),
-  updateDayStreak: vi.fn(async () => ({ dayStreak: 1, highestDayStreak: 1 })),
+  recordPracticeDay: vi.fn(async () => ({})),
   updateUserProfile: vi.fn(async () => ({})),
 }));
 vi.mock("../../src/services/supportedLanguagesService", () => ({

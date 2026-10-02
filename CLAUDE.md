@@ -543,6 +543,41 @@ answers a 401 with a browser `alert()` and a reload. With the token kept fresh
 it should almost never fire, but it is the one remaining place a session
 problem looks like a crash.
 
+## Practice days, not a day streak
+
+The streak reset to zero on the first missed day, which contradicts what the
+product says about itself (no streak to protect). **Opening the app signed in
+is a practice day**, recorded once a day, and nothing ever resets.
+`utils/practiceDays.js` holds all the calendar arithmetic as pure functions;
+`userService.recordPracticeDay` is the single writer, called from
+`loadUserProfile`.
+
+- **Stored on `users/{uid}`:** `practiceDates` (the last 400 days, `YYYY-MM-DD`),
+  `practiceMonths` (`{ "2026-10": 5 }`, never trimmed), `practiceDaysSeed` (the
+  old best streak, carried over once so nobody starts at zero),
+  `lastPracticeDate`, and `weeklyTarget`. All of them are on AppContext's
+  hydration allow-list.
+- **Dates are the device's own day, not UTC**, and weeks start on Monday.
+  The old `dayStreak`, `highestDayStreak` and `lastStreakDate` are no longer
+  written and nothing shows them. `lastStreakDate` is still read as a
+  fallback (`lastPracticeDate ?? lastStreakDate`) in Pulse and in the API's
+  reminders, so someone who has not opened the app since the switch is not
+  mistaken for dormant.
+- **The weekly goal** is `weeklyTarget` (default 3, at most 7; absent or zero
+  means 3, through `resolveWeeklyTarget`). Its source is
+  `personalSettings/main`; `usePersonalSettings` mirrors it onto the profile
+  because the API's reminder loop and the Today panel cannot read a
+  subcollection per user.
+- **The widget keeps the id `streak`** in `config/personalWidgets.js`: that id
+  is what `hiddenPersonalWidgets` stores. Do not rename it, and do not add a
+  "current run" number back.
+- **The reminder** is now `weeklyGoal` (it was `streakRescue`), mirrored in the
+  API's `lib/reminders.ts`. It goes out on Thursday and Saturday only, and only
+  while the goal can still be reached that week. A stored
+  `streakRescue: false` carries over as `weeklyGoal: false`. The copy is
+  `email.reminders.weekly_goal_*`, so `npm run sync:email-copy` in the API repo
+  must follow any wording change.
+
 ## Dependencies
 
 Dependabot is configured in `.github/dependabot.yml`, grouped so minor/patch updates arrive as two PRs a week and majors arrive individually — ten green PRs at once is how a real break gets merged. `npm test` now runs blocking in CI ahead of `build`, so a bump that breaks rendering fails the PR instead of reaching Pages.

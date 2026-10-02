@@ -1,4 +1,5 @@
 export { default as Card } from './Card';
+export { default as DatePicker } from './DatePicker';
 export { default as SectionHeading } from './SectionHeading';
 export { default as ErrorBanner } from './ErrorBanner';
 export { default as PrimaryButton } from './PrimaryButton';

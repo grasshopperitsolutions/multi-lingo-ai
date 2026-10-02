@@ -288,7 +288,7 @@ describe("reminder preferences (frontend mirror of the API's)", () => {
     expect(DEFAULT_REMINDER_PREFS).toEqual({
       hour: 19,
       weekday: 0,
-      streakRescue: true,
+      weeklyGoal: true,
       practiceNudge: true,
       lessonsLow: true,
       weeklyReview: true,

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, fireEvent, act, waitFor } from "@testing-library/react";
+import { render, fireEvent, act, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { I18nextProvider } from "react-i18next";
 import { makeAppContext } from "../helpers/appContext";
@@ -111,7 +111,7 @@ describe("the settings document", () => {
 describe("the lesson counter", () => {
   it("turns a burst of taps into one write, at the right path and id", async () => {
     vi.useFakeTimers();
-    const { getByLabelText, getByText } = await mount();
+    const { getByLabelText } = await mount();
 
     const plus = getByLabelText("Adicionar uma aula");
     // One act per click. Batched into a single act they would all read the
@@ -122,7 +122,11 @@ describe("the lesson counter", () => {
     }
 
     // The number moves immediately — the debounce must never be visible.
-    expect(getByText("3")).toBeTruthy();
+    // Other widgets print a 3 too (the weekly goal, the month's day numbers),
+    // so look inside the lesson counter's own card.
+    let card = plus;
+    while (card.parentElement && !card.querySelector("h2")) card = card.parentElement;
+    expect(within(card).getByText("3")).toBeTruthy();
     expect(createDocument).not.toHaveBeenCalled();
 
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });

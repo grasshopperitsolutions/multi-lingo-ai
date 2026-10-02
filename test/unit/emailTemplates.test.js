@@ -55,7 +55,7 @@ describe("what is editable", () => {
     const reminders = TEMPLATE_GROUPS.find((g) => g.id === "reminders");
 
     expect(reminders).toBeTruthy();
-    for (const id of ["streak_rescue", "lessons_low", "weekly_review", "practice_nudge"]) {
+    for (const id of ["weekly_goal", "lessons_low", "weekly_review", "practice_nudge"]) {
       expect(reminders.keys).toContain(`email.reminders.${id}_subject`);
       expect(reminders.keys).toContain(`email.reminders.${id}_body`);
     }
@@ -87,8 +87,8 @@ describe("the values shown", () => {
     // used to read has been deleted.
     const values = loadEmailTemplates();
     expect(values["email.welcome.subject"]).toBe(ptTranslation.email.welcome.subject);
-    expect(values["email.reminders.streak_rescue_body"]).toBe(
-      ptTranslation.email.reminders.streak_rescue_body
+    expect(values["email.reminders.weekly_goal_body"]).toBe(
+      ptTranslation.email.reminders.weekly_goal_body
     );
   });
 

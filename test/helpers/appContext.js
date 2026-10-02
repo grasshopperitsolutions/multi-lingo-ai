@@ -57,8 +57,6 @@ export function makeAppContext(overrides = {}) {
     isLoadingTranslations: false,
 
     // ── progress ──
-    dayStreak: 0,
-    highestDayStreak: 0,
     seenExerciseIds: [],
     seenStoryIds: [],
     seenHistoryFactsIds: [],

@@ -50,9 +50,9 @@ const NextLessonWidget = ({ openQuestions, doneCount, total, onAdd, onToggle, is
             {t("personal.plan_empty")}
           </p>
         ) : (
-          // Capped by height and scrolled, so one very long question cannot
-          // push the rest of the page down.
-          <ul className="flex flex-col gap-2 max-h-52 sm:max-h-64 overflow-y-auto overscroll-contain scrollbar-hidden">
+          // The card's body scrolls (PersonalWidgetCard), so one very long
+          // question cannot push the rest of the page down.
+          <ul className="flex flex-col gap-2">
             {openQuestions.map((item) => (
               <li key={item.id}>
                 <button

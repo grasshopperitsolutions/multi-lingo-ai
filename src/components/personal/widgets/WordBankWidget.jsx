@@ -69,7 +69,7 @@ const WordBankWidget = ({ words, onRemove, isDarkMode }) => {
           </button>
         </div>
       ) : (
-        <div className="flex flex-wrap gap-2 max-h-40 sm:max-h-52 overflow-y-auto overscroll-contain scrollbar-hidden">
+        <div className="flex flex-wrap gap-2">
           {visible.map((word) => (
             <span
               key={word}

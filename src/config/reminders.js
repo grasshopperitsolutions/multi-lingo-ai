@@ -13,7 +13,7 @@
 export const DEFAULT_REMINDER_PREFS = {
   hour: 19,
   weekday: 0,
-  streakRescue: true,
+  weeklyGoal: true,
   practiceNudge: true,
   lessonsLow: true,
   weeklyReview: true,
@@ -26,7 +26,7 @@ export const DEFAULT_REMINDER_PREFS = {
  * interruption.
  */
 export const REMINDER_TOGGLES = [
-  { id: "streakRescue", titleKey: "notifications.reminder_streak", descKey: "notifications.reminder_streak_desc" },
+  { id: "weeklyGoal", titleKey: "notifications.reminder_goal", descKey: "notifications.reminder_goal_desc" },
   { id: "practiceNudge", titleKey: "notifications.reminder_nudge", descKey: "notifications.reminder_nudge_desc" },
   { id: "lessonsLow", titleKey: "notifications.reminder_lessons", descKey: "notifications.reminder_lessons_desc" },
   { id: "weeklyReview", titleKey: "notifications.reminder_weekly", descKey: "notifications.reminder_weekly_desc" },
@@ -56,6 +56,11 @@ export function normalizeReminderPrefs(stored) {
   }
   for (const { id } of REMINDER_TOGGLES) {
     if (typeof stored[id] === "boolean") result[id] = stored[id];
+  }
+  // The streak reminder became the weekly-goal nudge. Someone who had switched
+  // it off has not asked for its replacement, so the old answer carries over.
+  if (typeof stored.weeklyGoal !== "boolean" && stored.streakRescue === false) {
+    result.weeklyGoal = false;
   }
   return result;
 }

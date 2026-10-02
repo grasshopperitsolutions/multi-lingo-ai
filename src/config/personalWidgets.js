@@ -1,7 +1,7 @@
 import {
   Camera,
   Ticket,
-  Flame,
+  CalendarCheck,
   NotebookPen,
   ListChecks,
   Target,
@@ -27,7 +27,11 @@ import {
  * as the old menu's card descriptions, which is the voice the three new ones
  * are written in.
  *
- * `span` marks the ones that take both columns at `lg:` — the note board and
+ * `tall` gives a widget a taller fixed height (every card has one, see
+ * `PersonalWidgetCard`): the note board, which wants room to write.
+ *
+ * `span` marks the ones that take both columns at `lg:` — the practice days
+ * (a month of numbered days wants the width), the note board and
  * the word bank because their content is wide (a textarea, a wrapping chip
  * cloud), and the recall card because it sits under the three lists it draws
  * from.
@@ -39,20 +43,23 @@ import {
  * are the ones who went out of their way to turn that exact one off.
  */
 export const PERSONAL_WIDGETS = [
+  // The page opens on how much you practise (a full-width row), then the two
+  // small ones you set rather than read — lessons and goal — side by side, then
+  // the note board, which is two columns wide and taller than the rest.
+  { id: "streak", titleKey: "personal.dash_streak_title", descKey: "personal.dash_streak_desc",
+    icon: CalendarCheck, color: "bg-blue-400", span: true },
   { id: "lessons", titleKey: "personal.lessons_title", descKey: "personal.lessons_desc",
     icon: Ticket, color: "bg-emerald-400" },
-  { id: "streak", titleKey: "personal.dash_streak_title", descKey: "personal.dash_streak_desc",
-    icon: Flame, color: "bg-orange-400" },
-  // Near the top because it is the fastest way to fill everything below it:
-  // you arrive holding a notebook, not looking for a card.
-  { id: "photo", titleKey: "personal.photo_title", descKey: "personal.photo_desc",
-    icon: Camera, color: "bg-lime-400" },
-  { id: "notes", titleKey: "personal.notes_title", descKey: "personal.notes_desc",
-    icon: NotebookPen, color: "bg-violet-400", span: true },
-  { id: "plan", titleKey: "personal.plan_title", descKey: "personal.plan_desc",
-    icon: ListChecks, color: "bg-sky-400" },
   { id: "goal", titleKey: "personal.goal_title", descKey: "personal.goal_desc",
     icon: Target, color: "bg-yellow-400" },
+  { id: "notes", titleKey: "personal.notes_title", descKey: "personal.notes_desc",
+    icon: NotebookPen, color: "bg-violet-400", span: true, tall: true },
+  // Right after the notes because it is the fastest way to fill everything
+  // below it: you arrive holding a notebook, not looking for a card.
+  { id: "photo", titleKey: "personal.photo_title", descKey: "personal.photo_desc",
+    icon: Camera, color: "bg-lime-400" },
+  { id: "plan", titleKey: "personal.plan_title", descKey: "personal.plan_desc",
+    icon: ListChecks, color: "bg-sky-400" },
   { id: "phrasebook", titleKey: "personal.phrasebook_title", descKey: "personal.phrasebook_desc",
     icon: Quote, color: "bg-amber-400" },
   { id: "mistakes", titleKey: "personal.mistakes_title", descKey: "personal.mistakes_desc",

@@ -80,11 +80,9 @@ const CaptureListWidget = ({
             {t(emptyKey)}
           </p>
         ) : (
-          // Capped and scrolled rather than sliced: a card that grows with
-          // its content eventually owns the page, and `scrollbar-hidden` keeps
-          // the neo surface clean. `overscroll-contain` stops a flick inside
-          // the list from carrying on into the page behind it.
-          <ul className="flex flex-col gap-1 max-h-52 sm:max-h-64 overflow-y-auto overscroll-contain scrollbar-hidden">
+          // Not sliced: the card has a fixed height and its body scrolls
+          // (PersonalWidgetCard), so every row stays reachable.
+          <ul className="flex flex-col gap-1">
             {items.map((item) => (
               <li key={item.id} className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1 py-1.5">

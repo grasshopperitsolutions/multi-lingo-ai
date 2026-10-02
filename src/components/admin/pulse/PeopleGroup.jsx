@@ -5,11 +5,11 @@ import {
   rankBy,
   rankListEntries,
   regionOfTimezone,
-  streakSummary,
+  practiceSummary,
 } from "../../../utils/pulseMetrics";
 import { Chart, Columns, DailyBars, Grid, Group, RankedBars, Ratio, Stat } from "./PulseCharts";
 
-/** Who uses the app: sign-ups, onboarding, languages, streaks, where, interests. */
+/** Who uses the app: sign-ups, onboarding, languages, practice days, where, interests. */
 const PeopleGroup = ({ pulse }) => {
   const { data, people, today, isDarkMode, langLabel } = pulse;
   const { users, categories } = data;
@@ -18,7 +18,7 @@ const PeopleGroup = ({ pulse }) => {
     const categoryLabels = Object.fromEntries((categories ?? []).map((c) => [c.id, c.label || c.id]));
     return {
       dormant: countDormant(users, 30, today),
-      streaks: streakSummary(users, today),
+      practice: practiceSummary(users, today),
       regions: rankBy(users, (u) => regionOfTimezone(u.timezone)),
       zones: rankBy(users, (u) => u.timezone).slice(0, 10),
       interests: rankListEntries(users, (u) => u.interests),
@@ -44,12 +44,12 @@ const PeopleGroup = ({ pulse }) => {
 
       <Grid>
         <Stat label="Dormant" value={extra.dormant} hint="Not seen for over 30 days" isDarkMode={isDarkMode} />
-        <Stat label="Longest current streak" value={extra.streaks.longestCurrent} hint="Days" isDarkMode={isDarkMode} />
-        <Stat label="Longest streak ever" value={extra.streaks.longestEver} hint="Days" isDarkMode={isDarkMode} />
+        <Stat label="Practised 3+ days this week" value={extra.practice.threePlus} hint="Last 7 days" isDarkMode={isDarkMode} />
+        <Stat label="Best month, anyone" value={extra.practice.bestMonthEver} hint="Practice days in one month" isDarkMode={isDarkMode} />
       </Grid>
       <Columns>
-        <Chart title="Current streaks" isDarkMode={isDarkMode}>
-          <RankedBars items={extra.streaks.distribution} isDarkMode={isDarkMode} />
+        <Chart title="Practice days, last 7" isDarkMode={isDarkMode}>
+          <RankedBars items={extra.practice.distribution} isDarkMode={isDarkMode} />
         </Chart>
         <Chart title="Sign-in method" isDarkMode={isDarkMode}>
           <RankedBars items={extra.providers} isDarkMode={isDarkMode} />

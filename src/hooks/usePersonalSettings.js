@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import { getPersonalSettings, savePersonalSettings } from "../services/personalService";
+import { updateUserProfile } from "../services/userService";
+import { DEFAULT_WEEKLY_TARGET, resolveWeeklyTarget } from "../utils/practiceDays";
 
 /** How long to wait after the last change before writing. */
 const FLUSH_DELAY_MS = 800;
@@ -22,19 +24,39 @@ const FLUSH_DELAY_MS = 800;
  * may be the last moment any JavaScript runs).
  */
 export function usePersonalSettings() {
-  const { user, showAlert } = useAppContext();
+  const { user, setUser, showAlert } = useAppContext();
   const { t } = useTranslation();
 
   const [settings, setSettings] = useState({
     lessonsRemaining: 0,
     goalLabel: "",
     goalDate: "",
-    weeklyTarget: 0,
+    weeklyTarget: DEFAULT_WEEKLY_TARGET,
   });
   const [isLoading, setIsLoading] = useState(true);
 
   const token = user?.token;
   const uid = user?.uid;
+  // Read by the load effect below without re-running it when the goal changes.
+  const mirroredTargetRef = useRef(user?.weeklyTarget);
+  useEffect(() => { mirroredTargetRef.current = user?.weeklyTarget; }, [user?.weeklyTarget]);
+
+  /**
+   * The weekly goal also lives on the profile, because the API's reminder loop
+   * and the Today panel cannot read a subcollection per user. This keeps the
+   * two in step; a failed mirror costs a nudge measured against the default,
+   * not the goal itself, so it is logged rather than shown.
+   */
+  const mirrorTarget = useCallback(
+    (value) => {
+      if (!token || !uid) return;
+      const target = resolveWeeklyTarget(value);
+      setUser((prev) => (prev ? { ...prev, weeklyTarget: target } : prev));
+      updateUserProfile(token, uid, { weeklyTarget: target })
+        .catch((err) => console.warn("[usePersonalSettings] Could not mirror the weekly goal:", err?.message));
+    },
+    [token, uid, setUser],
+  );
 
   const pendingRef = useRef(null);
   const timerRef = useRef(null);
@@ -50,22 +72,30 @@ export function usePersonalSettings() {
 
     try {
       await savePersonalSettings({ token, uid, patch });
+      if (patch.weeklyTarget !== undefined) mirrorTarget(patch.weeklyTarget);
     } catch (err) {
       showAlert("error", err.message || t("settings.errors.save_failed"));
     }
-  }, [token, uid, showAlert, t]);
+  }, [token, uid, showAlert, t, mirrorTarget]);
 
   useEffect(() => {
     if (!token || !uid) return;
     let cancelled = false;
 
     getPersonalSettings({ token, uid })
-      .then((loaded) => { if (!cancelled) setSettings(loaded); })
+      .then((loaded) => {
+        if (cancelled) return;
+        setSettings(loaded);
+        // A goal set before the profile carried a copy of it: mirror it once.
+        if (resolveWeeklyTarget(loaded.weeklyTarget) !== resolveWeeklyTarget(mirroredTargetRef.current)) {
+          mirrorTarget(loaded.weeklyTarget);
+        }
+      })
       .catch(() => { /* defaults are a fine starting point */ })
       .finally(() => { if (!cancelled) setIsLoading(false); });
 
     return () => { cancelled = true; };
-  }, [token, uid]);
+  }, [token, uid, mirrorTarget]);
 
   // Leaving the page must not lose the last tap.
   useEffect(() => {

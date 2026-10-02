@@ -5,6 +5,8 @@ import { useTierAccess } from "../../../hooks/useTierAccess";
 import { usePersonalSettings } from "../../../hooks/usePersonalSettings";
 import Loader from "../../../components/Loader";
 import { daysUntil } from "../../../utils/dates";
+import { MAX_WEEKLY_TARGET } from "../../../utils/practiceDays";
+import DatePicker from "../../../components/ui/DatePicker";
 import {
   personalInputClasses,
   personalLabelClasses,
@@ -101,12 +103,12 @@ const GoalPage = () => {
                 <label className={labelClasses} htmlFor="goal-date">
                   {t("personal.goal_date_field")}
                 </label>
-                <input
+                <DatePicker
                   id="goal-date"
-                  type="date"
                   value={settings.goalDate}
-                  onChange={(e) => save({ goalDate: e.target.value })}
+                  onChange={(next) => save({ goalDate: next })}
                   className={inputClasses}
+                  isDarkMode={isDarkMode}
                 />
               </div>
 
@@ -119,7 +121,7 @@ const GoalPage = () => {
                   type="number"
                   inputMode="numeric"
                   min={0}
-                  max={99}
+                  max={MAX_WEEKLY_TARGET}
                   value={settings.weeklyTarget || ""}
                   onChange={(e) => save({ weeklyTarget: Number(e.target.value) || 0 })}
                   placeholder="3"

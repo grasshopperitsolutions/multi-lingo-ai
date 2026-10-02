@@ -50,7 +50,7 @@ vi.mock("../../src/services/featuresService", () => ({
 }));
 vi.mock("../../src/services/userService", () => ({
   getUserProfile: vi.fn(async () => ({})),
-  updateDayStreak: vi.fn(async () => ({})),
+  recordPracticeDay: vi.fn(async () => ({})),
   updateUserProfile: vi.fn(async () => ({})),
 }));
 vi.mock("../../src/services/supportedLanguagesService", () => ({

@@ -9,7 +9,7 @@ import { PERSONAL_WIDGETS } from "../../../config/personalWidgets";
 import { NOTE_BOARD_MAX_CHARS } from "../../../services/personalService";
 import FirstRunCard from "../../../components/personal/FirstRunCard";
 import LessonCounterWidget from "../../../components/personal/widgets/LessonCounterWidget";
-import PracticeStreakWidget from "../../../components/personal/widgets/PracticeStreakWidget";
+import PracticeDaysWidget from "../../../components/personal/widgets/PracticeDaysWidget";
 import NoteBoardWidget from "../../../components/personal/widgets/NoteBoardWidget";
 import NextLessonWidget from "../../../components/personal/widgets/NextLessonWidget";
 import GoalWidget from "../../../components/personal/widgets/GoalWidget";
@@ -184,7 +184,13 @@ const PersonalDashboard = () => {
         isLoading={settings.isLoading}
       />
     ),
-    streak: <PracticeStreakWidget isDarkMode={isDarkMode} />,
+    streak: (
+      <PracticeDaysWidget
+        isDarkMode={isDarkMode}
+        weeklyTarget={settings.isLoading ? undefined : settings.settings.weeklyTarget}
+        onChangeTarget={(next) => settings.save({ weeklyTarget: next })}
+      />
+    ),
     photo: <PhotoCaptureWidget onAnalysed={setReview} isDarkMode={isDarkMode} />,
     notes: (
       <NoteBoardWidget

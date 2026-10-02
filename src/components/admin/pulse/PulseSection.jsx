@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { RefreshCw } from "lucide-react";
 import Loader from "../../Loader";
-import { GhostButton } from "../../ui";
+import { DatePicker, GhostButton } from "../../ui";
 import { auth } from "../../../firebase";
 import { loadPulseData } from "../../../services/pulseService";
 import { todayUTC } from "../../../utils/aiUsage";
@@ -115,22 +115,24 @@ const PulseSection = ({ isDarkMode, onOpenReports }) => {
         <Pill active={preset === "custom"} onClick={() => setPreset("custom")} isDarkMode={isDarkMode}>Custom</Pill>
         {preset === "custom" && (
           <span className="flex items-center gap-1">
-            <input
-              type="date"
-              aria-label="From"
+            <DatePicker
+              ariaLabel="From"
               value={custom.from}
               max={today}
-              onChange={(e) => e.target.value && setCustom((c) => ({ ...c, from: e.target.value }))}
+              clearable={false}
+              onChange={(next) => next && setCustom((c) => ({ ...c, from: next }))}
               className={dateInput}
+              isDarkMode={isDarkMode}
             />
             <span className={`text-xs font-bold ${muted}`}>to</span>
-            <input
-              type="date"
-              aria-label="To"
+            <DatePicker
+              ariaLabel="To"
               value={custom.to}
               max={today}
-              onChange={(e) => e.target.value && setCustom((c) => ({ ...c, to: e.target.value }))}
+              clearable={false}
+              onChange={(next) => next && setCustom((c) => ({ ...c, to: next }))}
               className={dateInput}
+              isDarkMode={isDarkMode}
             />
           </span>
         )}
@@ -175,7 +177,7 @@ const PulseSection = ({ isDarkMode, onOpenReports }) => {
       <MessagingGroup pulse={pulse} />
 
       <p className={`text-xs font-bold leading-relaxed ${muted}`}>
-        Known limits: “seen”, dormancy and streaks come from the last day each person opened the app signed in, not a
+        Known limits: “seen”, dormancy and practice days come from the last day each person opened the app signed in, not a
         daily history, so they ignore the period picker; the Activity group&apos;s daily actives are the history. The
         Plans group&apos;s AI calls are today only. Reads, completions, preferences and the outbox are as they stand now.
         Guests are never counted. The Activity counters and the snapshots start on the day the Phase 3 API was

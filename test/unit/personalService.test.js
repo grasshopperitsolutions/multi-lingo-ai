@@ -142,7 +142,7 @@ describe("the settings document", () => {
       lessonsRemaining: 0,
       goalLabel: "",
       goalDate: "",
-      weeklyTarget: 0,
+      weeklyTarget: 3,
     });
   });
 

@@ -4,7 +4,7 @@ import { mailQueueSummary, messagingSummary } from "../../../utils/pulseMetrics"
 import { Chart, DailyBars, Grid, Group, RankedBars, SourceError, Stat } from "./PulseCharts";
 
 const REMINDER_LABELS = {
-  streakRescue: "Streak rescue",
+  weeklyGoal: "Weekly goal nudge",
   practiceNudge: "Practice nudge",
   lessonsLow: "Lessons running low",
   weeklyReview: "Weekly review",

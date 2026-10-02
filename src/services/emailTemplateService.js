@@ -108,8 +108,8 @@ export const TEMPLATE_GROUPS = [
       "Push notifications, not email — at most one a day per person. " +
       "Subject is the notification title, body the line under it.",
     keys: [
-      "email.reminders.streak_rescue_subject",
-      "email.reminders.streak_rescue_body",
+      "email.reminders.weekly_goal_subject",
+      "email.reminders.weekly_goal_body",
       "email.reminders.lessons_low_subject",
       "email.reminders.lessons_low_body",
       "email.reminders.weekly_review_subject",
@@ -163,7 +163,7 @@ export const TEMPLATE_VARIABLES = {
   "email.subscription_activated.body": ["tier"],
   "email.subscription_cancel_scheduled.subject": ["date"],
   "email.subscription_cancel_scheduled.body": ["tier", "date"],
-  "email.reminders.streak_rescue_body": ["days"],
+  "email.reminders.weekly_goal_body": ["days", "target"],
   "email.reminders.lessons_low_body": ["n"],
   "email.reminders.weekly_review_body": ["days", "words"],
 };

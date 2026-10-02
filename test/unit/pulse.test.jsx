@@ -20,8 +20,8 @@ import {
   rankListEntries,
   bucketize,
   countDormant,
-  currentStreak,
-  streakSummary,
+  lastSeenDate,
+  practiceSummary,
   regionOfTimezone,
   messagingSummary,
   mailQueueSummary,
@@ -214,21 +214,27 @@ describe("pulseMetrics: phase 2", () => {
     expect(countDormant(USERS, 20, TODAY)).toBe(3);
   });
 
-  it("treats a streak not extended since before yesterday as over", () => {
-    expect(currentStreak({ dayStreak: 5, lastStreakDate: "2026-09-27" }, TODAY)).toBe(5);
-    expect(currentStreak({ dayStreak: 5, lastStreakDate: "2026-09-26" }, TODAY)).toBe(0);
-    const summary = streakSummary(
+  it("reads last seen from lastPracticeDate, falling back to the old field", () => {
+    expect(lastSeenDate({ lastPracticeDate: "2026-09-28", lastStreakDate: "2026-09-01" })).toBe("2026-09-28");
+    expect(lastSeenDate({ lastStreakDate: "2026-09-01" })).toBe("2026-09-01");
+    expect(lastSeenDate({})).toBeNull();
+    // Someone who has not opened the app since the switch is not dormant.
+    expect(countActiveWithin([{ lastStreakDate: TODAY }, { lastPracticeDate: TODAY }, {}], 1, TODAY)).toBe(2);
+  });
+
+  it("summarises practice days in the last week and the best month", () => {
+    const summary = practiceSummary(
       [
-        { dayStreak: 40, highestDayStreak: 40, lastStreakDate: TODAY },
-        { dayStreak: 90, highestDayStreak: 90, lastStreakDate: "2026-01-01" },
+        { practiceDates: [TODAY, "2026-09-27", "2026-09-26"], practiceMonths: { "2026-09": 14, "2026-08": 20 } },
+        { practiceDates: ["2026-09-20"], practiceMonths: { "2026-09": 1 } },
         {},
       ],
       TODAY,
     );
-    expect(summary.longestCurrent).toBe(40);
-    expect(summary.longestEver).toBe(90);
+    expect(summary.threePlus).toBe(1);
+    expect(summary.bestMonthEver).toBe(20);
+    expect(summary.distribution.find((b) => b.key === "3–4 days").count).toBe(1);
     expect(summary.distribution.find((b) => b.key === "None").count).toBe(2);
-    expect(summary.distribution.find((b) => b.key === "30+").count).toBe(1);
   });
 
   it("reads a region from a timezone", () => {
@@ -245,12 +251,12 @@ describe("pulseMetrics: phase 2", () => {
       { fcmTokens: ["t3"] },
       { fcmTokens: [], notificationPrefs: { announcements: { email: false } } },
       // A reminder preference without push reaches nobody, so it is not counted.
-      { reminderPrefs: { streakRescue: true }, notificationPrefs: { reminders: { push: true } } },
+      { reminderPrefs: { weeklyGoal: true }, notificationPrefs: { reminders: { push: true } } },
     ]);
     expect(summary.pushEnabled).toBe(2);
     expect(summary.browsers).toBe(3);
     expect(summary.remindersOn.find((r) => r.key === "weeklyReview").count).toBe(1);
-    expect(summary.remindersOn.find((r) => r.key === "streakRescue").count).toBe(2);
+    expect(summary.remindersOn.find((r) => r.key === "weeklyGoal").count).toBe(2);
     expect(summary.optOuts).toEqual({ announcementsEmail: 1, announcementsPush: 0, remindersPush: 0 });
   });
 

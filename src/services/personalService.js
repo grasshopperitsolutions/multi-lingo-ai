@@ -44,6 +44,7 @@ import {
   deleteDocument,
   getDocument,
 } from "./firestoreService";
+import { DEFAULT_WEEKLY_TARGET } from "../utils/practiceDays";
 
 /** The subcollection each *list* kind lives in, under `users/{uid}`. */
 export const PERSONAL_KINDS = {
@@ -158,7 +159,7 @@ export async function getPersonalSettings({ token, uid }) {
     lessonsRemaining: Number.isFinite(data.lessonsRemaining) ? data.lessonsRemaining : 0,
     goalLabel: data.goalLabel ?? "",
     goalDate: data.goalDate ?? "",
-    weeklyTarget: Number.isFinite(data.weeklyTarget) ? data.weeklyTarget : 0,
+    weeklyTarget: Number.isFinite(data.weeklyTarget) ? data.weeklyTarget : DEFAULT_WEEKLY_TARGET,
   };
 }
 
