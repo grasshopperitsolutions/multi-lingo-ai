@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../contexts/AppContext";
 import NeoDropdown from "../components/NeoDropdown";
@@ -122,6 +122,12 @@ const OnboardingPage = () => {
   }, [user, isLoadingUser, navigate]);
 
   const [step, setStep] = useState(0);
+  // The minimum age from Terms §1.1, confirmed once, here: every new account
+  // passes through onboarding, while the login page also serves people
+  // signing back in. A checkbox rather than a birth date — the Terms only need
+  // the confirmation, and a birth date would be more personal data than that.
+  // Kept as the moment it was ticked, so the profile records when.
+  const [ageConfirmedAt, setAgeConfirmedAt] = useState(null);
   const [learningDialect, setLearningDialect] = useState("");
   const [interfaceLang, setInterfaceLang] = useState(user?.interfaceLang || "");
   const [interests, setInterests] = useState([]);
@@ -256,6 +262,7 @@ const OnboardingPage = () => {
         theme: isDarkMode ? "dark" : "light",
         learningDialect,
         interests,
+        ageConfirmedAt,
         onboardingCompleted: true,
       });
       changeLanguage(interfaceLang);
@@ -296,12 +303,43 @@ const OnboardingPage = () => {
       <p className={`font-bold text-lg ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
         {t("onboarding.welcome_subtitle")}
       </p>
+      <div
+        className={`text-left p-4 rounded-2xl border-4 space-y-2
+          ${isDarkMode ? "bg-slate-900 border-slate-700" : "bg-blue-50 border-slate-900"}`}
+      >
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={Boolean(ageConfirmedAt)}
+            onChange={(e) => setAgeConfirmedAt(e.target.checked ? new Date().toISOString() : null)}
+            className="w-5 h-5 mt-0.5 shrink-0"
+          />
+          <span className={`text-sm font-bold ${isDarkMode ? "text-slate-200" : "text-slate-700"}`}>
+            {t("onboarding.age_confirm")}
+          </span>
+        </label>
+        {/* A new tab, so reading the Terms doesn't lose the onboarding. */}
+        <Link
+          to="/terms"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`block pl-8 text-xs font-black uppercase tracking-widest underline
+            ${isDarkMode ? "text-slate-400 hover:text-white" : "text-slate-500 hover:text-slate-900"}`}
+        >
+          {t("onboarding.age_terms_link")}
+        </Link>
+      </div>
       <button
         onClick={() => setStep(1)}
-        className={`inline-flex items-center gap-3 px-8 py-4 rounded-2xl border-4 font-black uppercase tracking-widest text-lg transition-all active:scale-95 hover:-translate-y-1
-          ${isDarkMode
-            ? "bg-yellow-400 border-yellow-400 text-slate-900 shadow-[6px_6px_0px_0px_#854d0e]"
-            : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a]"
+        disabled={!ageConfirmedAt}
+        className={`inline-flex items-center gap-3 px-8 py-4 rounded-2xl border-4 font-black uppercase tracking-widest text-lg transition-all
+          ${!ageConfirmedAt
+            ? isDarkMode
+              ? "bg-slate-700 border-slate-600 text-slate-400 cursor-not-allowed"
+              : "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed"
+            : isDarkMode
+              ? "bg-yellow-400 border-yellow-400 text-slate-900 shadow-[6px_6px_0px_0px_#854d0e] active:scale-95 hover:-translate-y-1"
+              : "bg-yellow-400 border-slate-900 text-slate-900 shadow-[6px_6px_0px_0px_#0f172a] active:scale-95 hover:-translate-y-1"
           }`}
       >
         {t("onboarding.next")}

@@ -505,6 +505,23 @@ Migrating a caller from the old `filters`/`activeFilters`/`onFilterToggle` shape
 
 This replaced a real bug: `DashboardLayout` used to render `if (!user) return <Loader fullScreen .../>` with nothing that would ever change that — no redirect, no timeout. A guest opening any `/dashboard/*` URL (a shared tutor-directory link, a bookmark, a second tab after signing out) got a spinner that never resolved. `DashboardLayout`'s own `!user` branch now returns `null` — defensive only, since `RequireAuth` should mean it's unreachable — rather than repeating the same shape of bug at a second layer. Do not add a full-screen loader anywhere that has no corresponding path back out; a loading state needs a guard that eventually decides "yes" or "no", not just "wait".
 
+## The minimum age is confirmed once, on onboarding's first screen
+
+Terms §1.1 sets 13 as the minimum (higher in some countries, with a parent's
+consent below it), and privacy §8 says the app is not directed to children.
+Onboarding's welcome step carries a required checkbox saying exactly that, and
+"Seguinte" stays disabled until it is ticked. The moment it was ticked is saved
+on the profile as `ageConfirmedAt` with the rest of onboarding.
+
+- **Onboarding, not the login page:** every new account passes through
+  onboarding once, while the login page also serves people signing back in.
+- **A checkbox, not a birth date:** the Terms only need the confirmation. A
+  birth date is more personal data than that, and once an under-13 date is
+  entered the app *knows*, which brings COPPA's delete-and-block duties.
+- **Accounts that finished onboarding before 2026-10-01 were never asked.**
+  They have no `ageConfirmedAt`. That is deliberate; asking them is a separate
+  decision.
+
 ## `user.token` is renewed in place; nobody should read it once and keep it
 
 Firebase ID tokens last an hour. `user.token` is what every service is handed,
